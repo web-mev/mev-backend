@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'api.apps.ApiConfig'
 ]
 
@@ -99,4 +100,13 @@ AUTH_USER_MODEL = 'api.CustomUser'
 
 # The location where we will dump the testing database
 TESTING_DB_DUMP = os.path.join(BASE_DIR, 'api', 'tests', 'test_db.json')
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ]
+}
+
 
