@@ -1,0 +1,21 @@
+site_name: MEV REST API
+site_description: Documentation for the MEV RESTful API
+
+repo_url: https://github.com/qbrc-cnap/mev-backend
+
+markdown_extensions:
+ - toc:
+    anchorlink: True
+ - admonition
+ - codehilite
+ - mkautodoc
+
+theme: readthedocs
+
+nav:
+ - Home: 'index.md'
+ - Install: 'install.md'
+ - API: 
+   - Intro: 'api.md'
+   - Authentication: 'auth.md'
+   - Workspaces: 'workspaces.md'

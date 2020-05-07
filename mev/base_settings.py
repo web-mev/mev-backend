@@ -109,4 +109,8 @@ REST_FRAMEWORK = {
     ]
 }
 
+# The location of the mkdocs YAML configuration file
+MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
+
+
 
