@@ -19,8 +19,8 @@ class WorkspaceListTests(BaseAPITestCase):
         Test that general requests to the endpoint generate 401
         """
         response = self.regular_client.get(self.url)
-        self.assertTrue(response.status_code == status.HTTP_401_UNAUTHORIZED 
-        | response.status_code == status.HTTP_403_FORBIDDEN)
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
 
     def test_admin_can_list_workspace(self):
         """
@@ -159,9 +159,9 @@ class WorkspaceDetailTests(BaseAPITestCase):
         Test that general requests to the endpoint generate 401
         """
         response = self.regular_client.get(self.url)
-        self.assertTrue(response.status_code == status.HTTP_401_UNAUTHORIZED 
-        | response.status_code == status.HTTP_403_FORBIDDEN)
-        
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
+
     def test_admin_can_view_workspace_detail(self):
         """
         Test that admins can view the Workpace detail for anyone

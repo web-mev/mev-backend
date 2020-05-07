@@ -1,8 +1,12 @@
 from django.urls import path
 
+from rest_framework_simplejwt import views as jwt_views
+
 import api.views
 
 urlpatterns = [
+    path('token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
     path('workspaces/', api.views.WorkspaceList.as_view(), name='workspace-list'),
     path('workspaces/<uuid:pk>/', api.views.WorkspaceDetail.as_view(), name='workspace-detail'),
     path('users/', api.views.UserList.as_view(), name='user-list'),
