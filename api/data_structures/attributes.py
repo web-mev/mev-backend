@@ -1,7 +1,8 @@
-from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
 import api.exceptions as api_exceptions
+
 
 class BaseAttribute(object):
     '''
@@ -9,16 +10,28 @@ class BaseAttribute(object):
     '''
     typename = None
 
-    def __init__(self, key, value):
-        self.key_validator(key)
+    def __init__(self, value):
         self.value_validator(value)
-
-    def key_validator(self, key):
-        valid_key = api_utils.normalize_identifier(key)
-        self.key = valid_key
 
     def value_validator(self, val):
         raise NotImplementedError('You must override this method.')
+
+    def to_representation(self):
+        return {
+            'attribute_type': self.typename,
+            'value': self.value
+        }
+
+    def __eq__(self, other):
+        same_type = self.typename == other.typename
+        same_val = self.value == other.value
+        return all([same_type, same_val])
+
+    def __repr__(self):
+        return '{val} ({typename})'.format(
+            val=self.value,
+            typename=self.typename
+        )
 
 
 class IntegerAttribute(BaseAttribute):
@@ -29,10 +42,10 @@ class IntegerAttribute(BaseAttribute):
         if type(val) == int:
             self.value = val
         else:
-            raise serializers.ValidationError({self.key:
+            raise ValidationError(
                 'An integer attribute was expected, but the'
                 ' value "{val}" could not'
-                ' be cast as an integer'.format(val=val)}
+                ' be cast as an integer'.format(val=val)
             )
 
 class PositiveIntegerAttribute(BaseAttribute):
@@ -44,13 +57,13 @@ class PositiveIntegerAttribute(BaseAttribute):
             if val > 0:
                 self.value = val
             else:
-                raise serializers.ValidationError({self.key:
+                raise ValidationError(
                     'The value {val} was not a' 
-                    ' positive integer.'.format(val=val)})    
+                    ' positive integer.'.format(val=val))    
         else:
-            raise serializers.ValidationError({self.key:
+            raise ValidationError(
                 'A positive integer attribute was expected,'
-                ' but "{val}" is not.'.format(val=val)})
+                ' but "{val}" is not.'.format(val=val))
 
 
 class NonnegativeIntegerAttribute(BaseAttribute):
@@ -62,13 +75,13 @@ class NonnegativeIntegerAttribute(BaseAttribute):
             if val >= 0:
                 self.value = val
             else:
-                raise serializers.ValidationError({self.key:
+                raise ValidationError(
                     'The value {val} is not a non-' 
-                    'negative integer.'.format(val=val)})    
+                    'negative integer.'.format(val=val))    
         else:
-            raise serializers.ValidationError({self.key:
+            raise ValidationError(
                 'A non-negative integer attribute was expected,'
-                ' but "{val}" is not.'.format(val=val)})
+                ' but "{val}" is not.'.format(val=val))
 
 #TODO: implement a bounded int
 
@@ -80,9 +93,9 @@ class FloatAttribute(BaseAttribute):
         if (type(val) == float) or (type(val) == int):
             self.value = float(val)
         else:
-            raise serializers.ValidationError({self.key:
+            raise ValidationError(
                 'A float attribute was expected, but'
-                ' received "{val}"'.format(val=val)})
+                ' received "{val}"'.format(val=val))
 
 #TODO: implement a positive float
 #TODO: implement a bounded float
@@ -97,6 +110,49 @@ class StringAttribute(BaseAttribute):
             val = api_utils.normalize_identifier(val)
             self.value = val
         except api_exceptions.StringIdentifierException as ex:
-            raise serializers.ValidationError({self.key:str(ex)})
+            raise ValidationError(str(ex))
 
     
+numeric_attribute_types = [
+    IntegerAttribute,
+    PositiveIntegerAttribute,
+    NonnegativeIntegerAttribute,
+    FloatAttribute
+]
+numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
+
+all_attribute_types = numeric_attribute_types + [StringAttribute,]
+all_attribute_typenames = [x.typename for x in all_attribute_types]
+
+attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))
+
+def create_attribute(attr_key, attr_dict):
+
+    try:
+        attr_val = attr_dict['value']
+    except KeyError as ex:
+        raise ValidationError({attr_key: 'Attributes must supply'
+        ' a "value" key.'})
+
+    try:
+        attribute_typename = attr_dict['attribute_type']
+    except KeyError as ex:
+        raise ValidationError({attr_key: 'Attributes must supply'
+        ' an "attribute_type" key.'})
+
+    if not attribute_typename in all_attribute_typenames:
+        raise ValidationError({attr_dict:'Attributes must supply'
+        ' a valid "attribute_type" from the choices of: {typelist}'.format(
+            typelist='\n'.join(all_attribute_typenames)
+        )})
+    attribute_type = attribute_mapping[attribute_typename]
+
+    # we "test" validity by trying to create an Attribute subclass instance.
+    # If the specification is not correct, it will raise an exception
+    try:
+        attribute_instance = attribute_type(attr_val)
+    except ValidationError as ex:
+        raise ValidationError({
+            attr_key: ex.detail
+        })
+    return attribute_instance

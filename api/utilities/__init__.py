@@ -13,7 +13,12 @@ def normalize_identifier(original_name):
     '''
     regex_pattern = '[a-zA-Z][a-zA-Z0-9-_\.]*\w'
     # Replace spaces and dashes with underscores
-    new_name = original_name.replace(' ', '_')
+    if type(original_name) == str:
+        new_name = original_name.replace(' ', '_')
+    else:
+        raise api_exceptions.StringIdentifierException(
+            'The name "{original_name}" was not'
+            ' a string.'.format(original_name=original_name))
 
     # We cannot possibly guess what else could be there, so we 
     # check with a regex
