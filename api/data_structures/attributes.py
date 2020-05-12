@@ -35,6 +35,9 @@ class BaseAttribute(object):
 
 
 class IntegerAttribute(BaseAttribute):
+    '''
+    General, unbounded integers
+    '''
 
     typename = 'Integer'
 
@@ -49,7 +52,9 @@ class IntegerAttribute(BaseAttribute):
             )
 
 class PositiveIntegerAttribute(BaseAttribute):
-
+    '''
+    Integers > 0
+    '''
     typename = 'PositiveInteger'
 
     def value_validator(self, val):
@@ -67,7 +72,9 @@ class PositiveIntegerAttribute(BaseAttribute):
 
 
 class NonnegativeIntegerAttribute(BaseAttribute):
-
+    '''
+    Integers >=0
+    '''
     typename = 'NonNegativeInteger'
 
     def value_validator(self, val):

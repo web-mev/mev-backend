@@ -61,12 +61,15 @@ class TestObservationSerializer(unittest.TestCase):
 
     def test_expected_deserialization_case2(self):
         '''
-        Tests deserialization with missing attribute dict
+        Tests deserialization with missing attribute dict,
+        which is valid since Observations are not required
+        to have one.
         '''
         data = {'id': 'my_identifier'}
         obs_s = ObservationSerializer(data=data)
         self.assertTrue(obs_s.is_valid())
         obs = obs_s.get_instance()
+        self.assertEqual({}, obs.attributes)
 
     def test_expected_deserialization_case3(self):
         '''
@@ -76,15 +79,18 @@ class TestObservationSerializer(unittest.TestCase):
         obs_s = ObservationSerializer(data=data)
         self.assertTrue(obs_s.is_valid())
         obs = obs_s.get_instance()
+        self.assertEqual({}, obs.attributes)
 
     def test_expected_deserialization_case4(self):
         '''
         Tests when attributes is a non-dict
         '''
+        # here an empty list is given for attributes
         data = {'id': 'my_identifier', 'attributes':[]}
         obs_s = ObservationSerializer(data=data)
         self.assertFalse(obs_s.is_valid())
 
+        # here, a string given for attributes
         data = {'id': 'my_identifier', 'attributes':'abc'}
         obs_s = ObservationSerializer(data=data)
         self.assertFalse(obs_s.is_valid())
@@ -96,7 +102,20 @@ class TestObservationSerializer(unittest.TestCase):
         obs_s = ObservationSerializer(data=self.bad_observation_data)
         self.assertFalse(obs_s.is_valid())
 
-    def test_attribute_with_missing_value_raises_ex(self):
+    def test_expected_deserialization_case6(self):
+        '''
+        Tests when the identifier "name" is invalid
+        '''
+        data = {'id': 'my-bad-id-', 'attributes':{}}
+        obs_s = ObservationSerializer(data=data)
+        self.assertFalse(obs_s.is_valid())
+
+    def test_attribute_with_missing_value_is_invalid(self):
+        '''
+        The attribute is missing its value.
+        Other tests check validity of attributes at a 'lower level'
+        and this is just a secondary check.
+        '''
         data = {'id': 'my_identifier', 
             'attributes':{
                 'keyA':{'attribute_type':'Float'}
@@ -106,6 +125,10 @@ class TestObservationSerializer(unittest.TestCase):
         self.assertFalse(obs_s.is_valid())
 
     def test_serialization(self):
+        '''
+        Check that Observation instances are correctly
+        serialized into json-like structures.
+        '''
         s = ObservationSerializer(self.demo_observation)
         self.assertDictEqual(s.data, self.demo_observation_data)
         s = ObservationSerializer(self.demo_observation2)

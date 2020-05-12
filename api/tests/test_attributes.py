@@ -7,10 +7,6 @@ from api.data_structures import IntegerAttribute, \
     NonnegativeIntegerAttribute, \
     FloatAttribute, \
     StringAttribute
-    
-from api.serializers import AttributeSerializer
-from api.exceptions import StringIdentifierException
-
 
 class TestAttributes(unittest.TestCase):
 
@@ -18,6 +14,7 @@ class TestAttributes(unittest.TestCase):
         a1 = FloatAttribute(2.3)
         a2 = FloatAttribute(2.3)
         self.assertTrue(a1 == a2)
+
 
     def test_integer_attribute(self):
         i = IntegerAttribute(44)
@@ -72,6 +69,7 @@ class TestAttributes(unittest.TestCase):
         # can't specify a float as a string
         with self.assertRaises(ValidationError):
             FloatAttribute('3.4')
+
 
     def test_string_attribute(self):
         # this is sort of double test-coverage, but that can't hurt

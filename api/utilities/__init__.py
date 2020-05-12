@@ -12,6 +12,7 @@ def normalize_identifier(original_name):
     - dash
     '''
     regex_pattern = '[a-zA-Z][a-zA-Z0-9-_\.]*\w'
+        
     # Replace spaces and dashes with underscores
     if type(original_name) == str:
         new_name = original_name.replace(' ', '_')

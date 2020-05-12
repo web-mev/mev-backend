@@ -11,13 +11,8 @@ class ObservationSerializer(serializers.Serializer):
     attributes = AttributeSerializer(required=False)
 
     def validate_id(self, id):
-        try:
-            normalized_id = normalize_identifier(id)
-            return normalized_id
-        except StringIdentifierException as ex:
-            raise serializers.ValidationError(
-                {'id': str(ex)}
-            )
+        normalized_id = normalize_identifier(id)
+        return normalized_id
 
     def validate(self, data):
         '''
@@ -29,6 +24,10 @@ class ObservationSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
+        '''
+        Returns an Observation instance from the validated
+        data.
+        '''
         attr_dict = {}
         for k, val_dict in validated_data['attributes'].items():
             attr = create_attribute(k, val_dict)
@@ -36,5 +35,11 @@ class ObservationSerializer(serializers.Serializer):
         return Observation(validated_data['id'], attr_dict)
 
     def get_instance(self):
+        '''
+        A more suggestive way to retrieve the Observation
+        instance from the serializer than `save()`, since
+        we are not actually saving Observation instances in the
+        database.
+        '''
         self.is_valid(raise_exception=True)
         return self.create(self.validated_data)

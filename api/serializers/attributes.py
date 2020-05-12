@@ -5,6 +5,12 @@ import api.exceptions as api_exceptions
 
 
 class AttributeSerializer(serializers.BaseSerializer):
+    '''
+    Serializes/deserializes attributes.  Observation instances
+    contain attribute dictionaries.  The keys of those dicts 
+    are a unique set of string identifiers and the values are 
+    sub-classes of api.data_structures.attributes.BaseAttribute
+    '''
 
     def to_representation(self, instance):
         output = {}
@@ -20,34 +26,6 @@ class AttributeSerializer(serializers.BaseSerializer):
         for k in data.keys():
             attr_dict = data[k]
             api_ds.create_attribute(k, attr_dict)
-            '''
-            try:
-                attr_val = attr_dict['value']
-            except KeyError as ex:
-                raise serializers.ValidationError({k: 'Attributes must supply'
-                ' a "value" key.'})
-            try:
-                attribute_typename = attr_dict['attribute_type']
-            except KeyError as ex:
-                raise serializers.ValidationError({k: 'Attributes must supply'
-                ' an "attribute_type" key.'})
-        
-            if not attribute_typename in api_ds.all_attribute_typenames:
-                raise serializers.ValidationError({k:'Attributes must supply'
-                ' a valid "attribute_type" from the choices of: {typelist}'.format(
-                    typelist='\n'.join(api_ds.all_attribute_typenames)
-                )})
-            attribute_type = api_ds.attribute_mapping[attribute_typename]
-
-            # we "test" validity by trying to create an Attribute subclass instance.
-            # If the specification is not correct, it will raise an exception
-            try:
-                attribute_instance = attribute_type(attr_dict['value'])
-            except serializers.ValidationError as ex:
-                raise serializers.ValidationError({
-                    k: ex.detail
-                })
-            '''
         return data
 
     def create(self, validated_data):
