@@ -15,9 +15,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
 
+        # argument to control whether we push to github.  Note that it is
+        # "paired" with the one below to create a more conventional "switch flag"
         parser.add_argument(
             '--push',
             default=False,
+            action='store_true',
             help='Use this flag if you want to push the docs to github.'
         )
 
