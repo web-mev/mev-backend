@@ -6,7 +6,10 @@ from api.data_structures import IntegerAttribute, \
     PositiveIntegerAttribute, \
     NonnegativeIntegerAttribute, \
     FloatAttribute, \
-    StringAttribute
+    StringAttribute, \
+    BoundedIntegerAttribute, \
+    BoundedFloatAttribute
+
 
 class TestAttributes(unittest.TestCase):
 
@@ -81,3 +84,58 @@ class TestAttributes(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             StringAttribute(3.4)
+
+    def test_missing_keys_for_bounded_attributes(self):
+
+        for clazz in [BoundedIntegerAttribute, BoundedFloatAttribute]:
+            # test missing min key
+            with self.assertRaises(ValidationError):
+                i = clazz(3, max=10)
+        
+            # test missing max key
+            with self.assertRaises(ValidationError):
+                i = clazz(3, min=0)
+
+            # test missing both keys
+            with self.assertRaises(ValidationError):
+                i = clazz(3)
+
+    def test_bounded_integer_atttribute(self):
+
+        # test a valid bounded int
+        i = BoundedIntegerAttribute(3, min=0, max=5)
+        self.assertEqual(i.value, 3)
+
+        # within bounds, but a float
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(3.3, min=0, max=5)
+
+        # out of bounds (over)
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(12, min=0, max=10)
+
+        # out of bounds (under)
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(-2, min=0, max=10)
+
+    def test_bounded_float_atttribute(self):
+
+        # test a valid bounded float
+        f = BoundedFloatAttribute(0.2, min=0, max=1.0)
+        self.assertEqual(f.value, 0.2)
+
+        # within bounds, but int
+        f = BoundedFloatAttribute(3.3, min=0, max=5)
+        self.assertEqual(f.value, 3.3)
+
+        # within bounds, equal to max
+        f = BoundedFloatAttribute(5.0, min=0, max=5)
+        self.assertEqual(f.value, 5.0)
+
+        # out of bounds (over)
+        with self.assertRaises(ValidationError):
+            f = BoundedFloatAttribute(1.2, min=0, max=1.0)
+
+        # out of bounds (under)
+        with self.assertRaises(ValidationError):
+            i = BoundedFloatAttribute(-2.2, min=0, max=10)

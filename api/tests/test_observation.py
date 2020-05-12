@@ -5,7 +5,9 @@ from rest_framework.exceptions import ValidationError
 from api.data_structures import Observation, \
     IntegerAttribute, \
     FloatAttribute, \
-    StringAttribute
+    StringAttribute, \
+    BoundedFloatAttribute, \
+    BoundedIntegerAttribute
 from api.serializers import ObservationSerializer
 from api.exceptions import StringIdentifierException
 
@@ -15,6 +17,8 @@ class TestObservationSerializer(unittest.TestCase):
     def setUp(self):
         float_attr = FloatAttribute(0.01)
         int_attr = IntegerAttribute(3)
+        bounded_float_attr = BoundedFloatAttribute(0.1, min=0.0, max=1.0)
+
         self.demo_observation = Observation(
             'my_identifier', 
             {'keyA': float_attr, 'keyB':int_attr}
@@ -39,6 +43,37 @@ class TestObservationSerializer(unittest.TestCase):
             'id': 'my_identifier', 
             'attributes':{
                 'keyA':{'attribute_type':'Float', 'value': 'abc'},
+                'keyB':{'attribute_type':'Integer', 'value': 3}
+            }
+        }
+
+        self.demo_observation_data_w_bounds = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'pvalue':{
+                    'attribute_type':'BoundedFloat', 
+                    'value': 0.1, 
+                    'min':0.0, 
+                    'max':1.0
+                },
+                'keyB':{'attribute_type':'Integer', 'value': 3}
+            }
+        }
+        self.demo_observation_w_bounds = Observation(
+            'my_identifier', 
+            {'pvalue': bounded_float_attr, 'keyB':int_attr}
+        )
+
+
+        self.bad_demo_observation_data_w_bounds = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'pvalue':{
+                    'attribute_type':'BoundedFloat', 
+                    'value': 1.1, # out of bounds!!
+                    'min':0.0, 
+                    'max':1.0
+                },
                 'keyB':{'attribute_type':'Integer', 'value': 3}
             }
         }
@@ -110,6 +145,31 @@ class TestObservationSerializer(unittest.TestCase):
         obs_s = ObservationSerializer(data=data)
         self.assertFalse(obs_s.is_valid())
 
+    def test_expected_deserialization_case7(self):
+        '''
+        Tests a full-featured Observation where one of the attributes
+        is a bounded float
+        '''
+        obs_s = ObservationSerializer(data=self.demo_observation_data_w_bounds)
+        self.assertTrue(obs_s.is_valid())
+
+        obs = obs_s.get_instance()
+
+        # note that equality of Observations is only determined by the 
+        # name/identifier.  We will check all the attributes here also.
+        self.assertEqual(obs, self.demo_observation_w_bounds)
+        for attr_name, attr in obs.attributes.items():
+            expected_attr = self.demo_observation_w_bounds.attributes[attr_name]
+            self.assertEqual(expected_attr, attr)
+
+    def test_expected_deserialization_case8(self):
+        '''
+        Tests a full-featured Observation where one of the attributes
+        is a bounded float, BUT it is out-of-bounds
+        '''
+        obs_s = ObservationSerializer(data=self.bad_demo_observation_data_w_bounds)
+        self.assertFalse(obs_s.is_valid())
+
     def test_attribute_with_missing_value_is_invalid(self):
         '''
         The attribute is missing its value.
@@ -133,6 +193,8 @@ class TestObservationSerializer(unittest.TestCase):
         self.assertDictEqual(s.data, self.demo_observation_data)
         s = ObservationSerializer(self.demo_observation2)
         self.assertDictEqual(s.data, self.demo_observation_data2)
+        s = ObservationSerializer(self.demo_observation_w_bounds)
+        self.assertDictEqual(s.data, self.demo_observation_data_w_bounds)
 
 
 class TestObservation(unittest.TestCase):
@@ -235,7 +297,8 @@ class TestObservation(unittest.TestCase):
     def test_adding_bad_attribute_raises_error(self):
         '''
         Here the attribute has a type in conflict with its
-        value.  They key is new
+        value.  They key is new, so it COULD be added
+        if the value was valid.
         '''
         with self.assertRaises(ValidationError):
             self.demo_observation.add_attribute(

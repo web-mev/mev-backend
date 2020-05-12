@@ -7,5 +7,7 @@ from .attributes import IntegerAttribute, \
     NonnegativeIntegerAttribute, \
     FloatAttribute, \
     StringAttribute, \
+    BoundedIntegerAttribute, \
+    BoundedFloatAttribute, \
     create_attribute
 
