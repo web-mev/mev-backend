@@ -6,7 +6,13 @@ import api.exceptions as api_exceptions
 
 class BaseAttribute(object):
     '''
-    Base object which defines some common behavior for Attribute types
+    Base object which defines some common methods and members
+    for Attribute types
+
+    Classes that derive from `BaseAttribute` have strings which
+    identify their type (`typename`) and a `value`, which is specific
+    to the child class implementation.  See child classes for 
+    examples.
     '''
     typename = None
 
@@ -42,8 +48,15 @@ class BaseAttribute(object):
 
 class BoundedBaseAttribute(BaseAttribute):
     '''
-    Additional logic for numeric attributes
-    that are bounded to between specified values.
+    This class derives from `BaseAttribute` and adds
+    logic for numeric attributes that are bounded between
+    specified values.
+
+    In addition to the `typename` and `value` members, these
+    require a `min` and a `max` to set the bounds.
+
+    Classes deriving from this can be used for things like bounding
+    a p-value from a hypothesis test (which is 0<=p<=1)
     '''
     MINIMUM_KEY = 'min'
     MAXIMUM_KEY = 'max'
@@ -57,6 +70,29 @@ class BoundedBaseAttribute(BaseAttribute):
             raise ValidationError('Need bounds to specify a BoundedInteger.'
                 ' Was missing {key}'.format(key=missing_key))
         super().__init__(value)
+
+    def check_bound_types(self, primitive_type_list):
+        '''
+        This checks that the bounds are sensible for the specific
+        implementation of the bounded type.  For example, if we are
+        creating a bounded integer, the bounds are also integers.
+        
+        The child implementations call this and provide the 
+        acceptable types as a list.
+        '''
+        d = {
+            'minimum': self.min_value,
+            'maximum': self.max_value
+        }
+        for k in d.keys():
+            dtype = type(d[k])
+            if not dtype in primitive_type_list:
+                raise ValidationError('The {bound} value {val}'
+                ' specified does not match the expected type'
+                ' for this bounded attribute.'.format(
+                    bound=k,
+                    val = d[k]
+                ))
 
     def to_representation(self):
         return {
@@ -76,7 +112,13 @@ class BoundedBaseAttribute(BaseAttribute):
 
 class IntegerAttribute(BaseAttribute):
     '''
-    General, unbounded integers
+    General, unbounded integers.  Represented by
+    ```
+    {
+        "attribute_type": "Integer",
+        "value": <integer>
+    }
+    ```
     '''
 
     typename = 'Integer'
@@ -94,6 +136,12 @@ class IntegerAttribute(BaseAttribute):
 class PositiveIntegerAttribute(BaseAttribute):
     '''
     Integers > 0
+    ```
+    {
+        "attribute_type": "PositiveInteger",
+        "value": <integer>
+    }
+    ```
     '''
     typename = 'PositiveInteger'
 
@@ -114,6 +162,12 @@ class PositiveIntegerAttribute(BaseAttribute):
 class NonnegativeIntegerAttribute(BaseAttribute):
     '''
     Integers >=0
+    ```
+    {
+        "attribute_type": "NonNegativeInteger",
+        "value": <integer>
+    }
+    ```
     '''
     typename = 'NonNegativeInteger'
 
@@ -134,10 +188,23 @@ class NonnegativeIntegerAttribute(BaseAttribute):
 class BoundedIntegerAttribute(BoundedBaseAttribute):
     '''
     Integers that are bounded between a min and max value.
+    ```
+    {
+        "attribute_type": "BoundedInteger",
+        "value": <integer>,
+        "min": <integer lower bound>,
+        "max": <integer upper bound>
+    }
+    ```
     '''
     typename = 'BoundedInteger'
 
     def value_validator(self, val):
+
+        # here we also validate that the bounds are of
+        # the same integer type
+        self.check_bound_types([int])
+
         if type(val) == int:
             if (val >= self.min_value) and (val <= self.max_value):
                 self.value = val
@@ -156,7 +223,15 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
 
 
 class FloatAttribute(BaseAttribute):
-
+    '''
+    General, unbounded float type
+    ```
+    {
+        "attribute_type": "Float",
+        "value": <float>
+    }
+    ```
+    '''
     typename = 'Float'
 
     def value_validator(self, val):
@@ -169,10 +244,19 @@ class FloatAttribute(BaseAttribute):
 
 
 class PositiveFloatAttribute(BaseAttribute):
-
+    '''
+    Positive (>0) float type
+    ```
+    {
+        "attribute_type": "PositiveFloat",
+        "value": <float>
+    }
+    ```
+    '''
     typename = 'PositiveFloat'
 
     def value_validator(self, val):
+        
         if (type(val) == float) or (type(val) == int):
             if val > 0:
                 self.value = float(val)
@@ -185,13 +269,51 @@ class PositiveFloatAttribute(BaseAttribute):
                 ' received "{val}"'.format(val=val))
 
 
+class NonnegativeFloatAttribute(BaseAttribute):
+    '''
+    Non-negative (>=0) float type
+    ```
+    {
+        "attribute_type": "NonNegativeFloat",
+        "value": <float>
+    }
+    ```
+    '''
+    typename = 'NonNegativeFloat'
+
+    def value_validator(self, val):
+        
+        if (type(val) == float) or (type(val) == int):
+            if val >= 0:
+                self.value = float(val)
+            else:
+                raise ValidationError('Received a valid float, but'
+                    ' it was not >= 0.')
+        else:
+            raise ValidationError(
+                'A float attribute was expected, but'
+                ' received "{val}"'.format(val=val))
+
 class BoundedFloatAttribute(BoundedBaseAttribute):
     '''
     Floats that are bounded between a min and max value.
+    ```
+    {
+        "attribute_type": "BoundedFloat",
+        "value": <float>,
+        "min": <integer/float lower bound>,
+        "max": <integer/float upper bound>
+    }
+    ```
     '''
     typename = 'BoundedFloat'
 
     def value_validator(self, val):
+
+        # here we also validate that the bounds are of
+        # the same integer type
+        self.check_bound_types([int, float])
+
         if (type(val) == float) or (type(val) == int):
             if (val >= self.min_value) and (val <= self.max_value):
                 self.value = val
@@ -210,7 +332,16 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
 
 
 class StringAttribute(BaseAttribute):
-
+    '''
+    String type that has basic guards against
+    non-typical characters.
+    ```
+    {
+        "attribute_type": "String",
+        "value": <str>
+    }
+    ```
+    '''
     typename = 'String'
 
     def value_validator(self, val):
@@ -220,7 +351,10 @@ class StringAttribute(BaseAttribute):
         except api_exceptions.StringIdentifierException as ex:
             raise ValidationError(str(ex))
 
-    
+
+# collect the types into logical groupings so we can 
+# map the typenames (e.g. "PositiveFloat") to their
+# class implementation
 numeric_attribute_types = [
     IntegerAttribute,
     PositiveIntegerAttribute,
@@ -230,13 +364,29 @@ numeric_attribute_types = [
     BoundedFloatAttribute
 ]
 numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
-
 all_attribute_types = numeric_attribute_types + [StringAttribute,]
 all_attribute_typenames = [x.typename for x in all_attribute_types]
-
 attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))
 
+
 def create_attribute(attr_key, attribute_dict):
+    '''
+    Utility function used by the serializers to create/return
+    BaseAttribute-derived instances.
+
+    Accepts an `attribute_dict` which is a Python dictionary object
+    containing the keys appropriate to create a particular attribute.
+    For example, to create a `BoundedIntegerAttribute`, this dict would
+    be formatted as,
+    ```
+    attr_dict = {
+        'attribute_type': 'BoundedInteger',
+        'value': 3,
+        'min': 0,
+        'max': 10
+    }
+    ```
+    '''
     attr_dict = attribute_dict.copy()
     try:
         attr_val = attr_dict.pop('value')

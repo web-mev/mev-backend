@@ -7,6 +7,9 @@ from .attributes import AttributeSerializer
 
 
 class ObservationSerializer(serializers.Serializer):
+    '''
+    Serializer for the `api.data_structures.Observation` class.
+    '''
     id = serializers.CharField(max_length=50)
     attributes = AttributeSerializer(required=False)
 

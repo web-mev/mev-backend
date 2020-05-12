@@ -1,1 +1,4 @@
-## Information about `Workspace` instances.
+### Workspaces
+
+::: api.models.workspace.Workspace
+    :docstring:

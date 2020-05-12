@@ -11,9 +11,15 @@ from mkdocs.commands import build, gh_deploy
 
 
 class Command(BaseCommand):
-    help = 'Builds documentation with mkdocs and deploys to github pages'
+    help = 'Builds documentation with mkdocs and optionally deploys to github pages'
 
     def add_arguments(self, parser):
+
+        parser.add_argument(
+            '--push',
+            default=False,
+            help='Use this flag if you want to push the docs to github.'
+        )
 
         parser.add_argument(
             '--remote_name',
@@ -59,4 +65,5 @@ class Command(BaseCommand):
         config = UserDict(kwargs)
         config.config_file_path = settings.MAIN_DOC_YAML
 
-        gh_deploy.gh_deploy(config, message=options['message'])
+        if options['push']:
+            gh_deploy.gh_deploy(config, message=options['message'])

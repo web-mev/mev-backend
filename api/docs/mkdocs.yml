@@ -11,11 +11,15 @@ markdown_extensions:
  - mkautodoc
 
 theme: readthedocs
+extra_css: [style.css]
 
 nav:
  - Home: 'index.md'
  - Install: 'install.md'
  - API: 
    - Intro: 'api.md'
+   - Data Structures:
+      - Attributes: 'attributes.md'
+      - Observations: 'observations.md'
+      - Workspaces: 'workspaces.md'
    - Authentication: 'auth.md'
-   - Workspaces: 'workspaces.md'

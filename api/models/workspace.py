@@ -8,8 +8,14 @@ from django.dispatch import receiver
 
 class Workspace(models.Model):
     '''
-    A Workspace is a way to logically group the files and and analyses
+    A `Workspace` is a way to logically group the files and and analyses
     that are part of a user's work.
+
+    Users can have multiple `Workspace`s to separate distinct analyses.
+
+    Data, files, and analyses are grouped under a `Workspace` such that all
+    information related to the analyses, including analysis history, is captured
+    the `Workspace`.
     '''
 
     # Workspace instances will be referenced by their UUID instead of a PK

@@ -6,6 +6,8 @@ from .attributes import IntegerAttribute, \
     PositiveIntegerAttribute, \
     NonnegativeIntegerAttribute, \
     FloatAttribute, \
+    PositiveFloatAttribute, \
+    NonnegativeFloatAttribute, \
     StringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \

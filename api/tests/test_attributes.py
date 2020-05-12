@@ -6,6 +6,8 @@ from api.data_structures import IntegerAttribute, \
     PositiveIntegerAttribute, \
     NonnegativeIntegerAttribute, \
     FloatAttribute, \
+    PositiveFloatAttribute, \
+    NonnegativeFloatAttribute, \
     StringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute
@@ -73,6 +75,25 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             FloatAttribute('3.4')
 
+    def test_positive_float_attribute(self):
+        f = PositiveFloatAttribute(4.4)
+        self.assertEqual(f.value, 4.4)
+
+        with self.assertRaises(ValidationError):
+            PositiveFloatAttribute(-3.2)
+
+        with self.assertRaises(ValidationError):
+            PositiveFloatAttribute(0)
+
+    def test_nonnegative_float_attribute(self):
+        f = NonnegativeFloatAttribute(4.4)
+        self.assertEqual(f.value, 4.4)
+
+        f = NonnegativeFloatAttribute(0.0)
+        self.assertEqual(f.value, 0.0)
+
+        with self.assertRaises(ValidationError):
+            NonnegativeFloatAttribute(-3.2)
 
     def test_string_attribute(self):
         # this is sort of double test-coverage, but that can't hurt
@@ -118,6 +139,23 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             i = BoundedIntegerAttribute(-2, min=0, max=10)
 
+        # out of bounds (under) AND wrong type
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(-2.2, min=0, max=10)
+
+        # bounds are wrong type.  Since we want an integer,
+        # the bounds should be integers also.
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(2, min=0.1, max=10)
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(2, min=0, max=10.2)
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(2, min=0.1, max=10.2)
+
+        # out of bounds AND wrong type of bounds
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(22, min=0.1, max=10.2)
+
     def test_bounded_float_atttribute(self):
 
         # test a valid bounded float
@@ -138,4 +176,8 @@ class TestAttributes(unittest.TestCase):
 
         # out of bounds (under)
         with self.assertRaises(ValidationError):
-            i = BoundedFloatAttribute(-2.2, min=0, max=10)
+            f = BoundedFloatAttribute(-2.2, min=0, max=10)
+
+        # you CAN specify integer bounds for bounded floats
+        f = BoundedFloatAttribute(2.2, min=0, max=10)
+        f = BoundedFloatAttribute(2.2, min=0.2, max=10.5)

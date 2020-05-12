@@ -12,6 +12,17 @@ class Observation(object):
 
     `Observation` instances act as metadata and can be used to filter and subset
     the data to which it is associated/attached.
+
+    An `Observation` is structured as:
+    ```
+    {
+        "id": <string identifier>,
+        "attributes": {
+            "keyA": <Attribute>,
+            "keyB": <Attribute>
+        }
+    }
+    ```
  
     '''
 
