@@ -20,7 +20,8 @@ class ObservationSerializer(serializers.Serializer):
     def validate(self, data):
         '''
         This is a final check on the deserialization where we can check
-        for things like duplicate attribute keys, etc.
+        validity on mulitple fields.  If the `Observation` did not include
+        any attributes, we simply fill-in an empty dict
         '''
         if not 'attributes' in data:
             data['attributes'] = {}

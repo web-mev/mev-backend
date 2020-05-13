@@ -15,7 +15,10 @@ class AttributeSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
         output = {}
         for key, attr_obj in instance.items():
-            output[key] = attr_obj.to_representation()
+            if type(attr_obj) == dict:
+                output[key] = attr_obj
+            else:
+                output[key] = attr_obj.to_representation()
         return output
 
     def to_internal_value(self, data):
