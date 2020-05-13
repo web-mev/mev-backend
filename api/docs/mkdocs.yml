@@ -20,6 +20,6 @@ nav:
    - Intro: 'api.md'
    - Data Structures:
       - Attributes: 'attributes.md'
-      - Observations: 'observations.md'
+      - Observations and Features: 'elements.md'
       - Workspaces: 'workspaces.md'
    - Authentication: 'auth.md'

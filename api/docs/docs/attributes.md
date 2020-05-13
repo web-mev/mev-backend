@@ -1,6 +1,6 @@
 ### Attributes
 
-Attributes are a way to add information to [`Observation`](observations.md) instances.  For example, one could specify the phenotype or experimental group.
+Attributes are a way to add information to [`Observation` or `Feature`](elements.md) instances.  For example, one could specify the phenotype or experimental group.
 
 ::: api.data_structures.attributes.BaseAttribute
     :docstring:

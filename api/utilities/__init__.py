@@ -11,7 +11,7 @@ def normalize_identifier(original_name):
     - period/dot
     - dash
     '''
-    regex_pattern = '[a-zA-Z][a-zA-Z0-9-_\.]*\w'
+    regex_pattern = '[a-zA-Z]([a-zA-Z0-9-_\.]*\w)?'
         
     # Replace spaces and dashes with underscores
     if type(original_name) == str:

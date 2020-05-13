@@ -1,11 +1,11 @@
 from .element_set import BaseElementSet
 
-class ObservationSet(BaseElementSet):
+class FeatureSet(BaseElementSet):
     '''
-    An `ObservationSet` is a collection of unique `Observation` instances
+    A `FeatureSet` is a collection of unique `Feature` instances
     and is typically used as a metadata data structure attached to some "real"
-    data.  For instance, given a matrix of gene expressions, the `ObservationSet`
-    is the set of samples that were assayed.  
+    data.  For instance, given a matrix of gene expressions, the `FeatureSet`
+    is the set of genes.  
  
     We depend on the native python set data structure and appropriately
     hashable/comparable `Observation` instances.
@@ -15,7 +15,7 @@ class ObservationSet(BaseElementSet):
     specific to our application.
 
     Notably, we disallow (i.e. raise exceptions) if there are attempts to create
-    duplicate `Observation`s, in contrast to native sets which silently
+    duplicate `Feature`s, in contrast to native sets which silently
     ignore duplicate elements.
 
     A serialized representation would look like:
@@ -23,12 +23,12 @@ class ObservationSet(BaseElementSet):
     {
         "multiple": <bool>,
         "elements": [
-            <Observation>,
-            <Observation>,
+            <Feature>,
+            <Feature>,
             ...
         ]
     }
     ```
     '''
-    element_typename = 'observation'
+    element_typename = 'feature'
         

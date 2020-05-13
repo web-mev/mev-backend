@@ -1,32 +1,20 @@
 from rest_framework import serializers, exceptions
 
 from api.data_structures import ObservationSet
+from .element_set import ElementSetSerializer
 from api.serializers import ObservationSerializer
 
-class ObservationSetSerializer(serializers.Serializer):
+class ObservationSetSerializer(ElementSetSerializer):
 
-    multiple = serializers.BooleanField()
-    observations = ObservationSerializer(required=False, many=True)
-
-    def validate(self, data):
-        '''
-        Validates the entire payload.  Here we check that the number of items
-        in the list `Observation`s does not conflict with the `multiple` flag
-        '''
-        if (len(data['observations']) > 1) and (not data['multiple']):
-            raise exceptions.ValidationError({'observations':
-                'Multiple observations were specified, but the "multiple" key'
-                ' was set to False.'})
-        return data
+    elements = ObservationSerializer(required=False, many=True)
         
-
     def create(self, validated_data):
         '''
         Returns an ObservationSet instance from the validated
         data.
         '''
         obs_list = []
-        for obs_dict in validated_data['observations']:
+        for obs_dict in validated_data['elements']:
             # the validated data has the Observation info as an OrderedDict
             # below, we use the ObservationSerializer to turn that into
             # proper Observation instance.
@@ -37,13 +25,3 @@ class ObservationSetSerializer(serializers.Serializer):
             obs_list, 
             validated_data['multiple']
         )
-
-    def get_instance(self):
-        '''
-        A more suggestive way to retrieve the Observation
-        instance from the serializer than `save()`, since
-        we are not actually saving Observation instances in the
-        database.
-        '''
-        self.is_valid(raise_exception=True)
-        return self.create(self.validated_data)
