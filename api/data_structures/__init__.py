@@ -1,5 +1,3 @@
-from rest_framework.exceptions import ValidationError
-
 from .observation import Observation
 from .feature import Feature
 from .observation_set import ObservationSet

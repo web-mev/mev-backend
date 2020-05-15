@@ -7,9 +7,32 @@ import api.views
 urlpatterns = [
     path('token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
-    path('workspaces/', api.views.WorkspaceList.as_view(), name='workspace-list'),
-    path('workspaces/<uuid:pk>/', api.views.WorkspaceDetail.as_view(), name='workspace-detail'),
+
+    ##########################################################################
+
+    # views for querying User instances
     path('users/', api.views.UserList.as_view(), name='user-list'),
     path('users/<int:pk>/', api.views.UserDetail.as_view(), name='user-detail'),
+
+    ##################### Views for Workspaces ###############################
+
+    path('workspaces/', api.views.WorkspaceList.as_view(), name='workspace-list'),
+    path('workspaces/<uuid:pk>/', api.views.WorkspaceDetail.as_view(), name='workspace-detail'),
+
+    ##################### Views for Resources ################################
+
+    # general endpoints for Resources, regardless of Workspace association
+    #path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
+    #path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
+
+    # Resources that are associated with specific Workspaces
+    #path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-detail'),
+    #path('workspaces/<uuid:workspace_pk>/resources/<uuid:resource_pk>/', api.views.WorkspaceResourceDetail.as_view(), name='workspace-resource-detail'),
+
+    ################# Views for Resource metadata ############################
+
+
+
+
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
