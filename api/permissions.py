@@ -34,3 +34,11 @@ class IsInfoAboutSelf(permissions.BasePermission):
         if request.user.is_staff:
             return True
         return obj == request.user
+
+class ReadOnly(permissions.BasePermission):
+    '''
+    Allows us to restrict certain ListCreate views so that 
+    regular users can only list and NOT create objects.
+    '''
+    def has_permission(self, request, view):
+        return request.method in permissions.SAFE_METHODS

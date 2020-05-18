@@ -22,17 +22,15 @@ urlpatterns = [
     ##################### Views for Resources ################################
 
     # general endpoints for Resources, regardless of Workspace association
-    #path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
-    #path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
+    path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
+    path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
 
     # Resources that are associated with specific Workspaces
     #path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-detail'),
-    #path('workspaces/<uuid:workspace_pk>/resources/<uuid:resource_pk>/', api.views.WorkspaceResourceDetail.as_view(), name='workspace-resource-detail'),
+    #path('workspaces/<uuid:workspace_pk>/resources/<uuid:resource_pk>/', 
+    #   api.views.WorkspaceResourceDetail.as_view(), name='workspace-resource-detail'),
 
     ################# Views for Resource metadata ############################
-
-
-
 
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]

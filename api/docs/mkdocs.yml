@@ -22,4 +22,5 @@ nav:
       - Attributes: 'attributes.md'
       - Observations and Features: 'elements.md'
       - Workspaces: 'workspaces.md'
+      - Resources: 'resources.md'
    - Authentication: 'auth.md'

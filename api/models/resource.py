@@ -8,13 +8,13 @@ from api.resource_types import DATABASE_RESOURCE_TYPES
 
 class Resource(models.Model):
     '''
-    A `Resource` is an abstraction of data files.  It represents some 
+    A `Resource` is an abstraction of data.  It represents some 
     piece of data we are analyzing or manipulating in the course of
     an analysis workflow.  
 
     `Resource`s are most often represented by flat files, but their 
     physical storage is not important.  They could be stored locally
-    or in cloud storage accessible to MEV  
+    or in cloud storage accessible to MEV.  
 
     Various "types" of `Resource`s implement specific constraints
     on the data that are important for tracking inputs and outputs of
@@ -26,25 +26,61 @@ class Resource(models.Model):
     Note that we store all types of `Resource`s in the database as 
     a single table and maintain the notion of "type" by a 
     string-field identifier.  Creating specific database tables for
-    each type of `Resource` would be unnecessary.
+    each type of `Resource` would be unnecessary.  By connecting the
+    string stored in the database with a concrete implementation class
+    we can check the type of the `Resource`.
 
-    `Resource`s are not entered into the database until their "type"
+    `Resource`s are not active (`is_active` flag in the database) until their "type"
     has been verified.  API users will submit the intended type with
     the request and the backend will check that.  Violations are 
-    reported as errors and the `Resource` is not added to the database.
+    reported and the `Resource` remains inactive (`is_active=False`).
 
     Some additional notes:
+
     - `Resource`s are owned by users and *can* be added to a `Workspace`.  
     However, that is not required-- `Resource`s can be "unattached".  
+
+    - Regular users (non-admins) can't create new `Resource` directly via the API.
+    The only way they can create a `Resource` is indirectly by adding a new upload.
+
     - When a `Resource` is added to a `Workspace`, a new copy is made.  This
     maintains the state of the original `Resource`.  In this way, the same 
     original file can be added to multiple `Workspace`s but users do not have
     to worry that modifications in one `Workspace` will affect those in other 
     `Workspace`s.  
+
     - `Resource`s can be made "public" so that others can view and import 
     them.  Once another user chooses to import the file, a copy is made and
-    that new user has their own copy.    
+    that new user has their own copy.  If a `Resource` is later made "private"
+    then any files that have been "used" by others *cannot* be recalled.
+
+    - `Resource`s can be removed from a `Workspace`, but only if they have not 
+    been used for any analyses/operations. 
+
+    - `Resource`s cannot be transferred from one `Workspace` to another, but
+    they can be copied.
+
+    - A change in the type of the `Resource` can be requested.  Until the 
+    validation of that change is complete, the `Resource` is made private and
+    inactive.
+
+    - Admins can make essentially any change to `Resources`, including creation.
+    However, they must be careful to maintain the integrity of the database
+    and the files they point to.
+    
+    - In a request to create a `Resource` via the API, the `resource_type`
+    field can be blank/null.  The type can be inferred from the path of the
+    resource.  We can do this because only admins are allowed to create via the API
+    and they should only generate such requests if the resource type can be 
+    inferred (i.e. admins know not to give bad requests to the API...) 
     '''
+
+    # Resource instances will be referenced by their UUID instead of a PK
+    id = models.UUIDField(
+        primary_key = True, 
+        default = uuid.uuid4, 
+        editable = False
+    )
 
     # Resources are owned by someone.
     owner = models.ForeignKey(
@@ -63,7 +99,10 @@ class Resource(models.Model):
         on_delete = models.CASCADE
     )
 
-    # the location of the file
+    # the location of the file.  Since the files can be added in
+    # a multitude of ways (perhaps outside the API), we permit 
+    # this field to be blank.  We later fill that in once we have
+    # all the necessary resource information.
     path = models.CharField(
         max_length = 255,
         default = ''  
@@ -86,8 +125,13 @@ class Resource(models.Model):
     # as an input to various analyses.
     resource_type = models.CharField(
         choices = DATABASE_RESOURCE_TYPES, 
-        max_length = 5
+        max_length = 5,
+        null = True,
+        blank = True
     )
+
+    # before validating the file, this will be false
+    has_valid_resource_type = models.BooleanField(default=False)
 
     # whether the resource is active.  If a file was just uploaded
     # and it has not been validated, then it is not active.  Similarly
@@ -104,4 +148,43 @@ class Resource(models.Model):
         null=True, 
         blank=True
     )
+
+    # When the resource was added
+    creation_datetime = models.DateTimeField(
+        auto_now_add = True
+    )
+
+
+    def save(self, *args, **kwargs):
+        '''
+        This overrides the save method, implementing
+        custom behavior upon creation
+        '''
+        if self._state.adding:
+            # Initially set the resource status to indicate
+            # that there is some file validation checking
+            self.status = 'Validating'
+
+            # TODO: get the initial "name" from the upload path or something?
+        super().save(*args, **kwargs)
+
+    #def get_readable_datetime(self):
+    #    '''
+    #    Return a human-readable representation of the datetime field
+    #    '''
+    #    return self.creation_datetime.strftime('%B %d, %Y (%H:%M:%S)')
+
+    def __str__(self):
+        workspace_str = str(self.workspace.pk) if self.workspace else 'None'
+        return '''Resource ({uuid})
+          Name: {name}
+          Owner: {owner}
+          Workspace: {workspace}
+          Created: {date}'''.format(
+                name = self.name,
+                uuid = str(self.id),
+                owner = str(self.owner),
+                workspace = workspace_str,
+                date = self.creation_datetime
+        )
 

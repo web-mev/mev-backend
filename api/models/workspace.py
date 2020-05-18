@@ -50,12 +50,6 @@ class Workspace(models.Model):
             self.workspace_name = str(self.id)
         super().save(*args, **kwargs)
 
-    def get_readable_datetime(self):
-        '''
-        Return a human-readable representation of the datetime field
-        '''
-        return self.creation_datetime.strftime('%B %d, %Y (%H:%M:%S)')
-
     def __str__(self):
         return '''Workspace ({uuid})
           Name: {name}

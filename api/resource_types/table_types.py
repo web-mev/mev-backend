@@ -17,25 +17,16 @@ class TableResource(DataResource):
 class Matrix(TableResource):
     '''
     This is a table that has only numeric types, possibly mixed
+    types like floats and integers
     '''
     @classmethod
     def validate_type(cls, resource_path):
         pass
 
 
-class FloatMatrix(Matrix):
+class IntegerMatrix(Matrix):
     '''
-    This is a numerical matrix where the data is registered as
-    float types
-    '''
-    @classmethod
-    def validate_type(cls, resource_path):
-        pass
-
-
-class IntegerMatrix(FloatMatrix):
-    '''
-    This type further specializes the FloatMatrix
+    This type further specializes the Matrix
     to admit only integers.
     '''
     @classmethod

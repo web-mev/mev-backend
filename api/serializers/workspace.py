@@ -6,20 +6,21 @@ from api.models import Workspace
 class WorkspaceSerializer(serializers.ModelSerializer):
 
     # add a human-readable datetime
-    readable_datetime = serializers.CharField(source='get_readable_datetime', read_only=True)
     owner_email = serializers.EmailField(source='owner.email')
-
+    created = serializers.DateTimeField(
+        source='creation_datetime', 
+        format = '%B %d, %Y (%H:%M:%S)',
+        read_only=True
+    )
     class Meta:
         model = Workspace
         fields = [
             'url',
             'id',
             'workspace_name',
-            'creation_datetime',
             'owner_email',
-            'readable_datetime'
+            'created'
         ]
-        read_only_fields = ['creation_datetime', 'readable_datetime']
 
     def create(self, validated_data): 
 
