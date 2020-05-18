@@ -24,6 +24,7 @@ urlpatterns = [
     # general endpoints for Resources, regardless of Workspace association
     path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
     path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
+    path('resources/upload/', api.views.ResourceUpload.as_view(), name='resource-upload'),
 
     # Resources that are associated with specific Workspaces
     path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-list'),

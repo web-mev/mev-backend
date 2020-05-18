@@ -6,3 +6,4 @@ from .attributes import AttributeSerializer
 from .observation_set import ObservationSetSerializer
 from .feature_set import FeatureSetSerializer
 from .resource import ResourceSerializer
+from .upload_serializer import UploadSerializer

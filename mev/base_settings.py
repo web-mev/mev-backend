@@ -1,5 +1,6 @@
 import os
 
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -112,5 +113,21 @@ REST_FRAMEWORK = {
 # The location of the mkdocs YAML configuration file
 MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 
+# location where uploaded files are held temporarily:
+FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'upload_tmp')
+if not os.path.exists(FILE_UPLOAD_TEMP_DIR):
+    raise ImproperlyConfigured('Please create a tmp directory for your'
+    ' uploaded files at {tmp_path}.'.format(
+        tmp_path = FILE_UPLOAD_TEMP_DIR)
+    )
+
+# A directory where we hold user uploads while they are validated.
+# After validation, they are moved to a users' own storage
+PENDING_FILES_DIR = os.path.join(BASE_DIR, 'pending_user_uploads')
+if not os.path.exists(PENDING_FILES_DIR):
+    raise ImproperlyConfigured('Please create a directory for the'
+    ' pending uploaded files at {path}.'.format(
+        path = PENDING_FILES_DIR)
+    )
 
 
