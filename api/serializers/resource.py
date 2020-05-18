@@ -23,6 +23,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         model = Resource
         fields = [
             'id',
+            'url',
             'name',
             'resource_type',
             'owner_email',
@@ -186,6 +187,7 @@ class ResourceSerializer(serializers.ModelSerializer):
                 instance.status = 'Validating resource type change'
                 instance.is_active = False
                 instance.is_public = False
+                instance.has_valid_resource_type = False
 
         # save the instance
         instance.save()
