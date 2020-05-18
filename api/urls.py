@@ -26,9 +26,7 @@ urlpatterns = [
     path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
 
     # Resources that are associated with specific Workspaces
-    #path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-detail'),
-    #path('workspaces/<uuid:workspace_pk>/resources/<uuid:resource_pk>/', 
-    #   api.views.WorkspaceResourceDetail.as_view(), name='workspace-resource-detail'),
+    path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-list'),
 
     ################# Views for Resource metadata ############################
 
