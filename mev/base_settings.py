@@ -136,13 +136,27 @@ if not os.path.exists(PENDING_FILES_DIR):
 FILE_UPLOAD_HANDLERS = ['mev.upload_handler.UploadProgressCachedHandler',] + \
     global_settings.FILE_UPLOAD_HANDLERS
 
+REDIS_BASE_LOCATION = 'redis://localhost:6379'
+
+###############################################################################
+# Parameters for Redis-based cache
+###############################################################################
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'LOCATION': '%s/1' % REDIS_BASE_LOCATION,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient'
         },
         'KEY_PREFIX': 'mev'
     }
 }
+
+###############################################################################
+# Parameters for Celery queueing
+###############################################################################
+CELERY_BROKER_URL = REDIS_BASE_LOCATION
+CELERY_RESULT_BACKEND = REDIS_BASE_LOCATION
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'

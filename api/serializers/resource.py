@@ -67,7 +67,13 @@ class ResourceSerializer(serializers.ModelSerializer):
     def create(self, validated_data): 
 
         # the user who generated the request.  A User instance (or subclass)
-        requesting_user = validated_data['requesting_user']
+        # If we are using the serializer to validate internal calls, there
+        # will not be a `requesting_user` key.
+        internal_call = False
+        try:
+            requesting_user = validated_data['requesting_user']
+        except KeyError:
+            internal_call = True
         owner_email = validated_data['owner']['email']
 
         # check that the owner does exist
@@ -79,7 +85,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         # If the user is an admin, they can create a Resource for anyone.
         # The DRF permissions should catch problems before here, but this is
         # extra insurance
-        if requesting_user.is_staff:
+        if internal_call or requesting_user.is_staff:
             d = ResourceSerializer.parse_request_parameters(validated_data)
 
             if d['workspace'] is None:

@@ -75,6 +75,11 @@ class Resource(models.Model):
     inferred (i.e. admins know not to give bad requests to the API...) 
     '''
 
+    # Some status messages to be displayed.
+    UPLOADING = 'Uploading...'
+    VALIDATING = 'Validating...'
+    READY = ''
+
     # Resource instances will be referenced by their UUID instead of a PK
     id = models.UUIDField(
         primary_key = True, 
@@ -163,16 +168,11 @@ class Resource(models.Model):
         if self._state.adding:
             # Initially set the resource status to indicate
             # that there is some file validation checking
-            self.status = 'Validating'
+            self.status = Resource.VALIDATING
 
             # TODO: get the initial "name" from the upload path or something?
         super().save(*args, **kwargs)
 
-    #def get_readable_datetime(self):
-    #    '''
-    #    Return a human-readable representation of the datetime field
-    #    '''
-    #    return self.creation_datetime.strftime('%B %d, %Y (%H:%M:%S)')
 
     def __str__(self):
         workspace_str = str(self.workspace.pk) if self.workspace else 'None'

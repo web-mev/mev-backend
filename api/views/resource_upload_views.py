@@ -3,6 +3,7 @@ import os
 
 from django.conf import settings
 from django.core.cache import cache
+from django.contrib.auth import get_user_model
 
 from rest_framework import permissions as framework_permissions
 from rest_framework.views import APIView
@@ -10,8 +11,12 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework import status
 from rest_framework.response import Response
 
-from api.serializers import UploadSerializer
+from api.serializers import UploadSerializer, ResourceSerializer
 import api.permissions as api_permissions
+import api.async_tasks as api_tasks
+from api.utilities.resource_utilities import create_resource_from_upload
+
+User = get_user_model()
 
 class ResourceUpload(APIView):
     '''
@@ -24,21 +29,48 @@ class ResourceUpload(APIView):
     def post(self, request, *args, **kwargs):
         serializer = UploadSerializer(data=request.data)
         if serializer.is_valid():
+
+            # the owner key is optional.  If not specified,
+            # the uploaded resource will be assigned to the 
+            # user originating this request.
             try:
-                owner = request.data['owner']
+                owner_email = request.data['owner']
+                try:
+                    owner = User.objects.get(email=owner_email)
+                except User.DoesNotExist:
+                    return Response(
+                        {'owner': 'Owner email not found.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             except KeyError:
                 owner = request.user
-            resource_type = request.data.get('resource_type', None)
+
+            # The resource type is required and enforced by the 
+            # serializer.
+            resource_type = request.data.get('resource_type')
 
             upload = request.data['upload_file']
+            filename = upload.name
             tmp_path = os.path.join(
                 settings.PENDING_FILES_DIR, 
                 str(uuid.uuid4()))
-            name = upload.name
             with open(tmp_path, 'wb+') as destination:
                 for chunk in upload.chunks():
                     destination.write(chunk)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            # create a Resource instance:
+            resource = create_resource_from_upload(
+                tmp_path, 
+                filename, 
+                resource_type, 
+                owner
+            )
+
+            # now that we have the file, start the validation process
+            # in the background
+            api_tasks.validate_resource.delay(resource.pk)
+            resource_serializer = ResourceSerializer(resource, context={'request': request})
+            return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
