@@ -23,8 +23,6 @@ class ResourceUpload(APIView):
     def post(self, request, *args, **kwargs):
         serializer = UploadSerializer(data=request.data)
         if serializer.is_valid():
-            print('was valid')
-            print(request.data)
             try:
                 owner = request.data['owner']
             except KeyError:
@@ -41,9 +39,10 @@ class ResourceUpload(APIView):
             with open(tmp_path, 'wb+') as destination:
                 for chunk in upload.chunks():
                     destination.write(chunk)
-            return Response(status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             print('was invalid')
             print(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
