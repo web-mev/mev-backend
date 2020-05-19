@@ -12,3 +12,10 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'dev_db.sqlite3'),
     }
 }
+
+# for dev work, just use the local memory cache
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'
+    }
+}

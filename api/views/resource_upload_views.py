@@ -2,6 +2,7 @@ import uuid
 import os
 
 from django.conf import settings
+from django.core.cache import cache
 
 from rest_framework import permissions as framework_permissions
 from rest_framework.views import APIView
@@ -27,8 +28,6 @@ class ResourceUpload(APIView):
                 owner = request.data['owner']
             except KeyError:
                 owner = request.user
-                print('owner was null, set to %s' % owner)
-
             resource_type = request.data.get('resource_type', None)
 
             upload = request.data['upload_file']
@@ -41,8 +40,28 @@ class ResourceUpload(APIView):
                     destination.write(chunk)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            print('was invalid')
-            print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResourceUploadProgress(APIView):
+    '''
+    Endpoint for checking the progress of an upload
+    '''
+    def get(self, request, format=None):
+        progress_id = None
+        if 'HTTP_X_PROGRESS_ID' in self.request.GET :
+            progress_id = request.GET['HTTP_X_PROGRESS_ID']
+        elif 'HTTP_X_PROGRESS_ID' in request.META:
+            progress_id = request.META['HTTP_X_PROGRESS_ID']
+        if progress_id:
+            cache_key = "%s_%s" % (
+                request.META['REMOTE_ADDR'], progress_id
+            )
+            data = cache.get(cache_key)
+            return Response(data)
+        else:
+            error_msg = ('Requests must include a "X-Progress-ID" key'
+            ' in the header or as a query parameter with the GET request')
+            return Response({'errors': error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
 

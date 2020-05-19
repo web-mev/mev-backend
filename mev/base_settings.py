@@ -1,6 +1,7 @@
 import os
 
 from django.core.exceptions import ImproperlyConfigured
+from django.conf import global_settings
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -130,4 +131,18 @@ if not os.path.exists(PENDING_FILES_DIR):
         path = PENDING_FILES_DIR)
     )
 
+# change the class that handles the direct file uploads.  This provides a mechanism
+# to query for upload progress.
+FILE_UPLOAD_HANDLERS = ['mev.upload_handler.UploadProgressCachedHandler',] + \
+    global_settings.FILE_UPLOAD_HANDLERS
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient'
+        },
+        'KEY_PREFIX': 'mev'
+    }
+}
