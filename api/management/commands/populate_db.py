@@ -45,27 +45,27 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileA.tsv',
-            resource_type = 'Integer table',
+            resource_type = 'MTX',
             path='/path/to/fileA.txt',
             is_active = True
         )
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileB.csv',
-            resource_type = 'Annotation table',
+            resource_type = 'ANN',
             path='/path/to/fileB.txt'
         )   
         Resource.objects.create(
             owner=user_dict[USER1],
             name='public_file.csv',
-            resource_type = 'Integer table',
+            resource_type = 'I_MTX',
             path='/path/to/public_file.txt',
             is_public = True
         )        
         Resource.objects.create(
             owner=user_dict[USER2],
             name='fileC.tsv',
-            resource_type = 'Numeric table',
+            resource_type = 'MTX',
             path='/path/to/fileC.txt'
         )
 
@@ -79,14 +79,14 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER1],
             name='file1_in_workspace.tsv',
-            resource_type = 'Integer table',
+            resource_type = 'I_MTX',
             workspace=workspace,
             path='/path/to/file1_in_workspace.tsv'
         )
         Resource.objects.create(
             owner=user_dict[USER1],
             name='file2_in_workspace.tsv',
-            resource_type = 'Integer table',
+            resource_type = 'I_MTX',
             workspace=workspace,
             path='/path/to/file2_in_workspace.tsv'
         )

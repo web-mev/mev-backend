@@ -416,28 +416,28 @@ class ResourceDetailTests(BaseAPITestCase):
         has not changed.
         ''' 
         # check that it was not active to start:
-        self.assertFalse(self.regular_user_unattached_resource.is_active)
+        self.assertFalse(self.regular_user_workspace_resource.is_active)
 
         payload = {'is_active': True}
         response = self.authenticated_regular_client.put(
-            self.url_for_unattached, payload, format='json'
+            self.url_for_workspace_resource, payload, format='json'
         )
-        r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+        r = Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
         self.assertFalse(r.is_active)
 
     def test_admin_can_change_active_status(self):
         '''
         The `is_active` boolean can be reset by an admin
         ''' 
-        # check that it was not active to start:
-        self.assertFalse(self.regular_user_unattached_resource.is_active)
+        # check that it was active to start:
+        self.assertTrue(self.regular_user_unattached_resource.is_active)
 
-        payload = {'is_active': True}
+        payload = {'is_active': False}
         response = self.authenticated_admin_client.put(
             self.url_for_unattached, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
-        self.assertTrue(r.is_active)
+        self.assertFalse(r.is_active)
 
 
     def test_user_cannot_change_status_message(self):
@@ -625,12 +625,12 @@ class ResourceDetailTests(BaseAPITestCase):
             'resource-detail', 
             kwargs={'pk':resource.pk}
         )
-        newtype = 'MTX'
+        newtype = 'I_MTX'
+
         # verify that we are actually changing the type 
         # in this request
-    
         self.assertFalse(
-            newtype == HUMAN_READABLE_TO_DB_STRINGS[resource.resource_type]
+            newtype == resource.resource_type
         )
         payload = {'resource_type': newtype}
         response = self.authenticated_regular_client.put(
