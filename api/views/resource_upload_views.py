@@ -34,12 +34,12 @@ class ResourceUpload(APIView):
             # the uploaded resource will be assigned to the 
             # user originating this request.
             try:
-                owner_email = request.data['owner']
+                owner_email = request.data['owner_email']
                 try:
                     owner = User.objects.get(email=owner_email)
                 except User.DoesNotExist:
                     return Response(
-                        {'owner': 'Owner email not found.'},
+                        {'owner_email': 'Owner email not found.'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
             except KeyError:
@@ -48,7 +48,6 @@ class ResourceUpload(APIView):
             # The resource type is required and enforced by the 
             # serializer.
             resource_type = request.data.get('resource_type')
-
             upload = request.data['upload_file']
             filename = upload.name
             tmp_path = os.path.join(

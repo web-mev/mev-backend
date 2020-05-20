@@ -7,7 +7,6 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource, Workspace
-from api.resource_types import HUMAN_READABLE_TO_DB_STRINGS
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
