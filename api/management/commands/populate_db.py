@@ -47,7 +47,8 @@ class Command(BaseCommand):
             name='fileA.tsv',
             resource_type = 'MTX',
             path='/path/to/fileA.txt',
-            is_active = True
+            is_active = True,
+            is_public = True
         )
         Resource.objects.create(
             owner=user_dict[USER1],
@@ -81,14 +82,16 @@ class Command(BaseCommand):
             name='file1_in_workspace.tsv',
             resource_type = 'I_MTX',
             workspace=workspace,
-            path='/path/to/file1_in_workspace.tsv'
+            path='/path/to/file1_in_workspace.tsv',
+            is_active = True
         )
         Resource.objects.create(
             owner=user_dict[USER1],
             name='file2_in_workspace.tsv',
             resource_type = 'I_MTX',
             workspace=workspace,
-            path='/path/to/file2_in_workspace.tsv'
+            path='/path/to/file2_in_workspace.tsv',
+            is_active = True
         )
 
     def handle(self, *args, **options):

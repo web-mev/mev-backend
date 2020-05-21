@@ -40,16 +40,15 @@ RESOURCE_MAPPING = {
     'BED': BEDFile
 } 
 
-def verify_resource_type(resource_pk, requested_type, original_attributes={}):
+def resource_type_is_valid(resource_class, resource_path):
     '''
     When a `Resource.resource_type` is set or edited, we need
     to validate that the type "agrees" with the file format.
 
     This function is the entrypoint for this validation.
 
-    - `resource_pk` is the primary key of a `api.models.Resource`
-    - `requested_type` is a string representing the type
-    - `original_attributes` is a native dict which will allow 
-    us to restore fields (e.g. `is_public`) after the type check is completed.
+    - `resource_class` is the implementation class which performs
+    the validation
+    - `resource_path` is the path to the file we are validating.
     '''
     pass

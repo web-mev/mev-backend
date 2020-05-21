@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource, Workspace
+from api.resource_types import DATABASE_RESOURCE_TYPES
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -37,16 +38,23 @@ class ResourceListTests(BaseAPITestCase):
         received_resource_uuids = set([x['id'] for x in response.data])
         self.assertEqual(all_known_resource_uuids, received_resource_uuids)
 
-    def test_admin_can_create_resource(self):
+
+    @mock.patch('api.serializers.resource.api_tasks')
+    @mock.patch('api.serializers.resource.set_resource_to_validation_status')
+    def test_admin_can_create_resource(self, 
+        mock_set_resource_to_validation_status,
+        mock_api_tasks):
         """
-        Test that admins can create a Resource.
+        Test that admins can create a Resource and that the proper validation
+        methods are called.
         """
         # get all initial instances before anything happens:
         initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
 
         payload = {
             'owner_email': self.regular_user_1.email,
-            'name': 'some_file.txt'
+            'name': 'some_file.txt',
+            'resource_type':'MTX'
         }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -55,6 +63,36 @@ class ResourceListTests(BaseAPITestCase):
         current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
         difference_set = current_resource_uuids.difference(initial_resource_uuids)
         self.assertEqual(len(difference_set), 1)
+
+        # check that the proper validation methods were called
+        mock_set_resource_to_validation_status.assert_called()
+        mock_api_tasks.validate_resource.delay.assert_called()
+
+        # check that the resource has the proper members set:
+        r = Resource.objects.get(pk=list(difference_set)[0])
+        self.assertFalse(r.is_active)
+        # should be False since it was not explicitly set to True
+        self.assertFalse(r.is_public)
+        self.assertIsNone(r.resource_type)
+
+
+    def test_bad_admin_request_fails(self):
+        """
+        Test that even admins must specify a resource_type.
+        """
+        # get all initial instances before anything happens:
+        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+
+        # payload is missing the resource_type key
+        payload = {
+            'owner_email': self.regular_user_1.email,
+            'name': 'some_file.txt',
+        }
+        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+        difference_set = current_resource_uuids.difference(initial_resource_uuids)
+        self.assertEqual(len(difference_set), 0)
 
     def test_invalid_resource_type_raises_exception(self):
         """
@@ -72,10 +110,16 @@ class ResourceListTests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_null_resource_type_is_valid(self):
+
+    def test_null_resource_type_is_invalid(self):
         """
-        Test that a null resource_type is valid.
+        Test that a null resource_type does not work.
+        We need to know what the intended type is-
+        no guessing types.
         """
+        # get all initial instances before anything happens:
+        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+
         payload = {
             'owner_email': self.regular_user_1.email,
             'name': 'some_file.txt',
@@ -85,9 +129,18 @@ class ResourceListTests(BaseAPITestCase):
         response = self.authenticated_admin_client.post(
             self.url, data=payload, format='json'
         )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_admin_can_create_resource_assoc_with_workspace(self):
+        # check that nothing changed in in the database:
+        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+        difference_set = current_resource_uuids.difference(initial_resource_uuids)
+        self.assertEqual(len(difference_set), 0)
+
+    @mock.patch('api.serializers.resource.api_tasks')
+    @mock.patch('api.serializers.resource.set_resource_to_validation_status')
+    def test_admin_can_create_resource_assoc_with_workspace(self,
+        mock_set_resource_to_validation_status,
+        mock_api_tasks):
         """
         Test that giving a valid workspace properly associates
         the resource that was created
@@ -103,6 +156,7 @@ class ResourceListTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'name': 'some_file.txt',
+            'resource_type': 'MTX',
             'workspace': workspace.pk
         }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
@@ -113,6 +167,16 @@ class ResourceListTests(BaseAPITestCase):
         difference_set = current_resource_uuids.difference(initial_resource_uuids)
         self.assertEqual(len(difference_set), 1)
 
+        # check that the proper validation methods were called
+        mock_set_resource_to_validation_status.assert_called()
+        mock_api_tasks.validate_resource.delay.assert_called()
+
+        # check that the resource has the proper members set:
+        r = Resource.objects.get(pk=list(difference_set)[0])
+        self.assertFalse(r.is_active)
+        # should be False since it was not explicitly set to True
+        self.assertFalse(r.is_public)
+        self.assertIsNone(r.resource_type)
 
     def test_bad_workspace_provided(self):
         """
@@ -125,6 +189,7 @@ class ResourceListTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'name': 'some_file.txt',
+            'resource_type': 'MTX',
             'workspace': str(uuid.uuid4())
         }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
@@ -133,7 +198,7 @@ class ResourceListTests(BaseAPITestCase):
 
     def test_assigning_to_other_users_workspace_fails(self):
         """
-        Test creating a new Resource (assigning to reg user 1)
+        Test an admin creating a new Resource (assigning to reg user 1)
         and giving a valid Workspace, but that workspace belongs
         to a different user than reg user 1
         """
@@ -145,6 +210,7 @@ class ResourceListTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'name': 'some_file.txt',
+            'resource_type': 'MTX',
             'workspace': workspace.pk
         }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
@@ -158,7 +224,10 @@ class ResourceListTests(BaseAPITestCase):
         # get all initial instances before anything happens:
         initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
 
-        payload = {'owner_email': test_settings.JUNK_EMAIL}
+        payload = {'owner_email': test_settings.JUNK_EMAIL,
+            'name': 'some_file.txt',
+            'resource_type': 'MTX'
+        }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -173,7 +242,10 @@ class ResourceListTests(BaseAPITestCase):
         create a Resource).  All Resource creation should be handled by
         the upload methods or be initiated by an admin.
         """
-        payload = {'owner_email': self.regular_user_1.email}
+        payload = {'owner_email': self.regular_user_1.email,
+            'name': 'some_file.txt',
+            'resource_type': 'MTX'
+        }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -215,6 +287,22 @@ class ResourceDetailTests(BaseAPITestCase):
             '''.format(user=self.regular_user_1)
             raise ImproperlyConfigured(msg)
 
+        active_resources = []
+        inactive_resources = []
+        for r in regular_user_resources:
+            if r.is_active:
+                active_resources.append(r)
+            else:
+                inactive_resources.append(r)
+        if len(active_resources) == 0:
+            raise ImproperlyConfigured('Need at least one active resource.')
+        if len(inactive_resources) == 0:
+            raise ImproperlyConfigured('Need at least one INactive resource.')
+        # grab the first:
+        self.active_resource = active_resources[0]
+        self.inactive_resource = inactive_resources[0]
+
+
         # we need some Resources that are associated with a Workspace and 
         # some that are not.
         unassociated_resources = []
@@ -236,6 +324,14 @@ class ResourceDetailTests(BaseAPITestCase):
         self.url_for_workspace_resource = reverse(
             'resource-detail', 
             kwargs={'pk':self.regular_user_workspace_resource.pk}
+        )
+        self.url_for_active_resource = reverse(
+            'resource-detail', 
+            kwargs={'pk':self.active_resource.pk}
+        )
+        self.url_for_inactive_resource = reverse(
+            'resource-detail', 
+            kwargs={'pk':self.inactive_resource.pk}
         )
 
     def test_resource_detail_requires_auth(self):
@@ -408,21 +504,20 @@ class ResourceDetailTests(BaseAPITestCase):
     def test_user_cannot_change_active_status(self):
         '''
         The `is_active` boolean cannot be altered by a regular user.
-        `is_active` is used to control expiration, etc.
+        `is_active` is used to block edits while validation is processing, etc.
 
         The `is_active` is ignored for requests from regular users
         so there is no 400 returned.  Rather, we check that the flag
         has not changed.
         ''' 
         # check that it was not active to start:
-        self.assertFalse(self.regular_user_workspace_resource.is_active)
-
-        payload = {'is_active': True}
+        self.assertTrue(self.regular_user_workspace_resource.is_active)
+        payload = {'is_active': False}
         response = self.authenticated_regular_client.put(
             self.url_for_workspace_resource, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
-        self.assertFalse(r.is_active)
+        self.assertTrue(r.is_active)
 
     def test_admin_can_change_active_status(self):
         '''
@@ -436,6 +531,8 @@ class ResourceDetailTests(BaseAPITestCase):
             self.url_for_unattached, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+
+        # the request was ignored-- resource is still active
         self.assertFalse(r.is_active)
 
 
@@ -458,13 +555,13 @@ class ResourceDetailTests(BaseAPITestCase):
         The `status` string can be reset by an admin
         ''' 
         # check that it was not active to start:
-        orig_status = self.regular_user_unattached_resource.status
+        orig_status = self.active_resource.status
 
         payload = {'status': 'something'}
         response = self.authenticated_admin_client.put(
-            self.url_for_unattached, payload, format='json'
+            self.url_for_active_resource, payload, format='json'
         )
-        r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+        r = Resource.objects.get(pk=self.active_resource.pk)
         self.assertFalse(r.status == orig_status)
 
     def test_user_cannot_change_date_added(self):
@@ -523,43 +620,48 @@ class ResourceDetailTests(BaseAPITestCase):
         This will NOT "recall" datasets that were derived
         from this (e.g. if someone else used it while it was public)
         '''
-        public_resources = Resource.objects.filter(
-            owner = self.regular_user_1,
-            is_public = True
-        )
-        if len(public_resources) > 0:
-            public_resource = public_resources[0]
-
-            url = reverse(
-                'resource-detail', 
-                kwargs={'pk':public_resource.pk}
-            )
-            payload = {'is_public': False}
-            response = self.authenticated_regular_client.put(
-                url, payload, format='json'
-            )
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            r = Resource.objects.get(pk=public_resource.pk)
-            self.assertFalse(r.is_public)
-
-        else:
+        if not self.active_resource.is_public:
             raise ImproperlyConfigured('To properly run this test, you'
-            ' need to have at least one public Resource.')
+            ' need to have at least one public AND active Resource.')
+
+        payload = {'is_public': False}
+        response = self.authenticated_regular_client.put(
+            self.url_for_active_resource, payload, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        r = Resource.objects.get(pk=self.active_resource.pk)
+        self.assertFalse(r.is_public)
+
+
+
+    def test_cannot_make_changes_when_inactive(self):
+        '''
+        Test that no changes can be made when the resource is inactive.
+        '''
+        self.assertFalse(self.inactive_resource.is_active)
+
+        # just try to change the path as an example
+        payload = {'path': '/some/path/to/file.txt'}
+        response = self.authenticated_admin_client.put(
+            self.url_for_inactive_resource, payload, format='json'
+        )
+        self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
 
     def test_admin_can_change_path(self):
         '''
         Path is only relevant for internal/database use so 
         users cannot change that. Admins may, however
         '''
-        original_path = self.regular_user_unattached_resource.path
+        self.assertTrue(self.active_resource.is_active)
+        original_path = self.active_resource.path
         new_path = '/some/new/path.txt'
         payload = {'path': new_path}
         response = self.authenticated_admin_client.put(
-            self.url_for_unattached, payload, format='json'
+            self.url_for_active_resource, payload, format='json'
         )
         # query db for that same Resource object and verify that the path
         # has not been changed:
-        obj = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+        obj = Resource.objects.get(pk=self.active_resource.pk)
         self.assertEqual(obj.path, new_path)
         self.assertFalse(obj.path == original_path)
 
@@ -584,11 +686,11 @@ class ResourceDetailTests(BaseAPITestCase):
         Users may change the Resource name.  This does NOT
         change anything about the path, etc.
         '''
-        original_name = self.regular_user_unattached_resource.name
+        original_name = self.active_resource.name
 
         payload = {'name': 'newname.txt'}
         response = self.authenticated_regular_client.put(
-            self.url_for_unattached, payload, format='json'
+            self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         json_obj = response.json()
@@ -598,8 +700,9 @@ class ResourceDetailTests(BaseAPITestCase):
         # by chance
         self.assertTrue(original_name != 'newname.txt')
 
-    @mock.patch('api.serializers.resource.verify_resource_type')
-    def test_changing_resource_type_resets_status(self, mock_verify):
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_changing_resource_type_resets_status(self,  
+        mock_api_tasks):
         '''
         If an attempt is made to change the resource type
         ensure that the resource has its "active" state 
@@ -608,49 +711,35 @@ class ResourceDetailTests(BaseAPITestCase):
         Since the validation can take some time, it will call
         the asynchronous validation process.
         '''
-        # find an active resource
-        active_resources = Resource.objects.filter(
-            owner = self.regular_user_1,
-            is_active = True
-        )
-        if len(active_resources) == 0:
-            raise ImproperlyConfigured('You need to have at least one'
-            ' active resource to run this test.')
-
-        resource = active_resources[0]
-        self.assertTrue(resource.is_active)
-
-        url = reverse(
-            'resource-detail', 
-            kwargs={'pk':resource.pk}
-        )
-        newtype = 'I_MTX'
+        current_resource_type = self.active_resource.resource_type
+        other_types = set(
+            [x[0] for x in DATABASE_RESOURCE_TYPES]
+            ).difference(set([current_resource_type]))
+        newtype = list(other_types)[0]
 
         # verify that we are actually changing the type 
-        # in this request
+        # in this request (i.e. not a trivial test)
         self.assertFalse(
-            newtype == resource.resource_type
+            newtype == current_resource_type
         )
         payload = {'resource_type': newtype}
         response = self.authenticated_regular_client.put(
-            url, payload, format='json'
+            self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        r = Resource.objects.get(pk=resource.pk)
+        r = Resource.objects.get(pk=self.active_resource.pk)
 
         # active state set to False
         self.assertFalse(r.is_active)
 
-        # check that the status message changed.  technically possibly
+        # check that the status message changed.  technically possible
         # that the original and "updated" status messages are the same
         # but it would be obvious if that happens since the test would fail.
-        self.assertFalse(resource.status == r.status)
+        self.assertTrue(r.status == Resource.VALIDATING)
 
         # check that the validation method was called.
-        d = {'is_active': resource.is_active,
-            'is_public': resource.is_public
-        }
-        mock_verify.assert_called_with(resource.pk, newtype, d)
+        #mock_api_tasks.validate_resource.delay.assert_called()
+        mock_api_tasks.validate_resource.delay.assert_called_with(self.active_resource.pk, newtype)
 
 
     def test_setting_workspace_to_null_fails(self):

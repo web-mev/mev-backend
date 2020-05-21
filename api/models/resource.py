@@ -79,6 +79,9 @@ class Resource(models.Model):
     UPLOADING = 'Uploading...'
     VALIDATING = 'Validating...'
     READY = ''
+    FAILED = 'Failed validation for resource type {requested_resource_type}'
+    REVERTED = ('Failed validation for type {requested_resource_type}.'
+        ' Reverting back to the valid type of {original_resource_type}')
 
     # Resource instances will be referenced by their UUID instead of a PK
     id = models.UUIDField(
@@ -113,6 +116,10 @@ class Resource(models.Model):
         default = ''  
     )
 
+    # Whether the Resource is located locally or in remote
+    # storage (e.g. a bucket)
+    is_local = models.BooleanField(default=True)
+
     # the name of the Resource.  Allows users to create
     # named files but have the backend keep track of it by
     # some unique path.  For instance, we may choose to save
@@ -134,9 +141,6 @@ class Resource(models.Model):
         null = True,
         blank = True
     )
-
-    # before validating the file, this will be false
-    has_valid_resource_type = models.BooleanField(default=False)
 
     # whether the resource is active.  If a file was just uploaded
     # and it has not been validated, then it is not active.  Similarly
@@ -166,9 +170,9 @@ class Resource(models.Model):
         custom behavior upon creation
         '''
         if self._state.adding:
-            # Initially set the resource status to indicate
-            # that there is some file validation checking
-            self.status = Resource.VALIDATING
+            # If we wish, we can initially set the resource status to indicate
+            # that there is some file validation checking (or otherwise)
+            self.status = ''
 
             # TODO: get the initial "name" from the upload path or something?
         super().save(*args, **kwargs)

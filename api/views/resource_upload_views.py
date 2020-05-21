@@ -14,7 +14,8 @@ from rest_framework.response import Response
 from api.serializers import UploadSerializer, ResourceSerializer
 import api.permissions as api_permissions
 import api.async_tasks as api_tasks
-from api.utilities.resource_utilities import create_resource_from_upload
+from api.utilities.resource_utilities import create_resource_from_upload, \
+    set_resource_to_validation_status
 
 User = get_user_model()
 
@@ -29,7 +30,6 @@ class ResourceUpload(APIView):
     def post(self, request, *args, **kwargs):
         serializer = UploadSerializer(data=request.data)
         if serializer.is_valid():
-
             # the owner key is optional.  If not specified,
             # the uploaded resource will be assigned to the 
             # user originating this request.
@@ -48,7 +48,14 @@ class ResourceUpload(APIView):
             # The resource type is required and enforced by the 
             # serializer.
             resource_type = request.data.get('resource_type')
+
+            # get the remainder of the payload parameters
             upload = request.data['upload_file']
+            is_public = request.data.get('is_public', False)
+
+            # grab the file name from the upload request
+            # and write to a temporary directory where
+            # we stage files pre-validation
             filename = upload.name
             tmp_path = os.path.join(
                 settings.PENDING_FILES_DIR, 
@@ -57,17 +64,23 @@ class ResourceUpload(APIView):
                 for chunk in upload.chunks():
                     destination.write(chunk)
 
-            # create a Resource instance:
+            # create a Resource instance.  Note that this
+            # also starts the validation process:
             resource = create_resource_from_upload(
                 tmp_path, 
                 filename, 
-                resource_type, 
+                resource_type,
+                is_public,
+                True,
                 owner
             )
 
             # now that we have the file, start the validation process
             # in the background
-            api_tasks.validate_resource.delay(resource.pk)
+            api_tasks.validate_resource.delay(
+                resource.pk, 
+                resource_type
+            )
             resource_serializer = ResourceSerializer(resource, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:

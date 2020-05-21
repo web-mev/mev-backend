@@ -1,4 +1,5 @@
 import os
+import uuid
 import unittest.mock as mock
 
 from django.urls import reverse
@@ -18,7 +19,8 @@ class ResourceUploadTests(BaseAPITestCase):
         self.url = reverse('resource-upload')
         self.establish_clients()
 
-    def upload_and_cleanup(self, payload):
+    @mock.patch('api.views.resource_upload_views.api_tasks')
+    def upload_and_cleanup(self, payload, mock_api_tasks):
         '''
         Same functionality is used by multiple functions, so just
         keep it here
@@ -33,6 +35,13 @@ class ResourceUploadTests(BaseAPITestCase):
             format='multipart'
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        j = response.json()
+
+        # check that the validation async task was called
+        mock_api_tasks.validate_resource.delay.assert_called_with(
+            uuid.UUID(j['id']), payload['resource_type'])
+
         # assert that we have more Resources now:
         num_current_resources = len(Resource.objects.all())
         self.assertTrue((num_current_resources - num_initial_resources) == 1)
@@ -41,12 +50,11 @@ class ResourceUploadTests(BaseAPITestCase):
         j = response.json()
         r = Resource.objects.get(pk=j['id'])
         self.assertFalse(r.is_active)
-        self.assertFalse(r.has_valid_resource_type)
         self.assertFalse(r.is_public)
         self.assertTrue(r.status == Resource.VALIDATING)
+        self.assertIsNone(r.resource_type)
 
         # cleanup:
-
         path = r.path
         self.assertTrue(os.path.exists(path))
         os.remove(path)
@@ -60,7 +68,7 @@ class ResourceUploadTests(BaseAPITestCase):
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
 
-    @mock.patch('api.views.resource_upload_views.api_tasks')
+    @mock.patch('api.serializers.resource.api_tasks')
     def test_missing_owner_is_ok(self, mock_api_tasks):
         '''
         Test that a request without an `owner`
@@ -111,7 +119,8 @@ class ResourceUploadTests(BaseAPITestCase):
             format='multipart'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    @mock.patch('api.views.resource_upload_views.api_tasks')
+
+    @mock.patch('api.serializers.resource.api_tasks')
     def test_proper_upload_creates_pending_resource(self, mock_api_tasks):
         '''
         Test that we add a `Resource` to the database when a proper
@@ -131,7 +140,7 @@ class ResourceUploadTests(BaseAPITestCase):
         # check that the validation was called:
         mock_api_tasks.validate_resource.delay.assert_called() 
 
-    @mock.patch('api.views.resource_upload_views.api_tasks')
+    @mock.patch('api.serializers.resource.api_tasks')
     def test_bad_owner_email_raises_ex(self, mock_api_tasks):
         '''
         Test that a bad email will raise an exception.  Everything else

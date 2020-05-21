@@ -8,3 +8,4 @@ class UploadSerializer(serializers.Serializer):
         choices=DATABASE_RESOURCE_TYPES
     )
     upload_file = serializers.FileField()
+    is_public = serializers.BooleanField(required=False)
