@@ -124,17 +124,20 @@ if not os.path.exists(PENDING_FILES_DIR):
         path = PENDING_FILES_DIR)
     )
 
+# A local directory where we store all the user's local files
 USER_STORAGE_DIR = os.path.join(BASE_DIR, 'user_resources')
 if not os.path.exists(USER_STORAGE_DIR):
     raise ImproperlyConfigured('Please create a directory for the'
     ' users resources at {path}.'.format(
         path = USER_STORAGE_DIR)
     )
+
 # change the class that handles the direct file uploads.  This provides a mechanism
 # to query for upload progress.
 FILE_UPLOAD_HANDLERS = ['mev.upload_handler.UploadProgressCachedHandler',] + \
     global_settings.FILE_UPLOAD_HANDLERS
 
+# We use Redis to manage cache and celery queues.  
 REDIS_BASE_LOCATION = 'redis://localhost:6379'
 
 ###############################################################################
@@ -159,3 +162,6 @@ CELERY_RESULT_BACKEND = REDIS_BASE_LOCATION
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+# Import the logging config:
+from mev import base_logging_config as log_config

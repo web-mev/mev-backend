@@ -1,8 +1,12 @@
+import logging
+
 from celery.decorators import task
 
 from api.models import Resource
 from api.utilities.resource_utilities import move_resource_to_final_location
 from api.resource_types import RESOURCE_MAPPING, resource_type_is_valid
+
+logger = logging.getLogger(__name__)
 
 @task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type):
@@ -77,6 +81,3 @@ def validate_resource(resource_pk, requested_resource_type):
     # and save the instance
     resource.is_active = True
     resource.save()
-
-
-

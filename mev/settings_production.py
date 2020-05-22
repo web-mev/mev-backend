@@ -1,8 +1,11 @@
 import os
+import copy
+import logging.config
 
 from django.core.exceptions import ImproperlyConfigured
 
 from .base_settings import * 
+print(dir())
 
 # helper function to catch and warn about missing required environment variables
 # that are needed for "secret" config variables.
@@ -31,4 +34,22 @@ DATABASES = {
         'PORT': get_env_value('DATABASE_PORT'),
     }
 }
+
+# setup some logging options for production:
+production_config_dict = copy.deepcopy(log_config.base_logging_config_dict)
+
+# make changes to the default logging dict here:
+
+# Add sentry handler:
+production_config_dict['handlers']['sentry'] = {
+    'level': 'WARNING',
+    'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+},
+
+# add that sentry handler to the loggers:
+production_config_dict['loggers']['']['handlers'].append('sentry')
+production_config_dict['loggers']['api']['handlers'].append('sentry')
+
+# finally, register this config:
+logging.config.dictConfig(production_config_dict)
 

@@ -1,8 +1,12 @@
 import os
+import logging
+
 from django.conf import settings
 
 from api.models import Resource
 from .basic_utils import make_local_directory, move_resource
+
+logger = logging.getLogger(__name__)
 
 def check_for_resource_operations(resource_instance):
     '''

@@ -1,3 +1,6 @@
+import copy
+import logging.config
+
 from .base_settings import * 
 
 SECRET_KEY = 'dev'
@@ -19,3 +22,13 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'
     }
 }
+
+# setup some logging options for production:
+dev_config_dict = copy.deepcopy(log_config.base_logging_config_dict)
+
+# make changes to the default logging dict below:
+
+#######
+
+# finally, register this config:
+logging.config.dictConfig(dev_config_dict)

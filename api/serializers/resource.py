@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers, exceptions
 
@@ -5,6 +7,8 @@ from api.resource_types import DATABASE_RESOURCE_TYPES
 from api.models import Resource, Workspace
 from api.utilities.resource_utilities import set_resource_to_validation_status
 import api.async_tasks as api_tasks
+
+logger = logging.getLogger(__name__)
 
 class ResourceSerializer(serializers.ModelSerializer):
 
@@ -74,6 +78,8 @@ class ResourceSerializer(serializers.ModelSerializer):
         # If we are using the serializer to validate data when creating
         # Resources internally, there will not be a `requesting_user` key.
 
+        logger.info('Received validated data: %s' % validated_data)
+        
         internal_call = False
         try:
             requesting_user = validated_data['requesting_user']
@@ -82,10 +88,11 @@ class ResourceSerializer(serializers.ModelSerializer):
 
         owner_email = validated_data['owner']['email']
 
-        # check that the owner does exist
+        # check that the owner does exist.  If not, return an error
         try:
             resource_owner = get_user_model().objects.get(email=owner_email)
         except get_user_model().DoesNotExist as ex:
+            logger.info('User %s did not exist.' % owner_email)
             raise exceptions.ParseError()
 
         # If the user is an admin, they can create a Resource for anyone.
@@ -94,13 +101,14 @@ class ResourceSerializer(serializers.ModelSerializer):
         if internal_call or requesting_user.is_staff:
             params = ResourceSerializer.parse_request_parameters(validated_data)
             
-            # we require the resource_type
+            # we require the resource_type.  No guessing types.
             resource_type = params['resource_type']
             if not resource_type:
                 raise exceptions.ValidationError({
                     'resource_type': 'This field is required and cannot be null.'
                 })
 
+            # for Resources that have no been associated with a Workspace:
             if params['workspace'] is None:
                 resource = Resource.objects.create(
                     owner=resource_owner,
@@ -109,8 +117,8 @@ class ResourceSerializer(serializers.ModelSerializer):
                     is_public=params['is_public']
                 )
             else:
-                # We need to check that the Workspace owner and the 
-                # Resource owner are the same.
+                # If the request specifies a Workspace UUID, we need to check 
+                # that the Workspace owner and the Resource owner are the same.
                 workspace_owner = params['workspace'].owner
                 if workspace_owner != resource_owner:
                     raise exceptions.ValidationError({
@@ -128,7 +136,13 @@ class ResourceSerializer(serializers.ModelSerializer):
                     name=params['name'],
                     is_public=params['is_public']
                 )
+                
+            logger.info('Created a Resource: %s' % resource)
 
+            # Now start the validation process (async):
+            logger.info('Queueing validation for new resource %s with type %s ' % 
+                (str(resource.pk), resource_type)
+            )
             set_resource_to_validation_status(resource)
             api_tasks.validate_resource.delay(
                 resource.pk, 
@@ -153,14 +167,22 @@ class ResourceSerializer(serializers.ModelSerializer):
         - status
         - path
         '''
+
+        logger.info('Received validated data: %s' % validated_data)
+
         # if we are performing validation, or some other action has 
-        # set the resource "inactive", we cannot make changes 
+        # set the resource "inactive", we cannot make changes.  Issue an error 
         if not instance.is_active:
+            logger.info('Change was requested on inactive Resource %s' % instance)
             raise exceptions.ParseError('The requested Resource'
             ' is not currently activated, possibly due to pending'
             ' validation.  Please wait and try again.')
 
-        requesting_user = validated_data['requesting_user']
+        try:
+            requesting_user = validated_data['requesting_user']
+        except KeyError as ex:
+            logger.info('The "requesting_user" was not supplied to the update method.')
+            raise ex
 
         # we could just ignore any data attempting to
         # change the owner of the Resource, but
@@ -170,18 +192,19 @@ class ResourceSerializer(serializers.ModelSerializer):
         if new_requested_owner:
             new_owner_email = new_requested_owner['email']
             if original_owner_email != new_owner_email:
-                raise exceptions.ParseError('Cannot change the owner of a workspace.')
+                raise exceptions.ParseError({'owner_email':'Cannot change the owner of a workspace.'})
 
         # Note that we cannot change the workspace with this method.
-        # Providing a workspace is not an error provided the workspace (if assigned)
-        # happens to be the same.
-        # we could ignore requests to change the associated workspace, but it is
+        # However, providing a workspace is not an error provided the 
+        # workspace (if assigned) happens to be the same.
+        # We could ignore requests to change the associated workspace, but it is
         # more helpful to issue a message.
         if validated_data.get('workspace', None):
             if validated_data['workspace'] != instance.workspace:
-                raise exceptions.ParseError('Cannot change the workspace directly.'
+                logger.info('A change in Workspace was requested.  Rejecting this request.')
+                raise exceptions.ParseError({'workspace':'Cannot change the workspace directly.'
                     ' Remove it from the workspace (if possible) and then add it'
-                    ' to the desired workspace'
+                    ' to the desired workspace'}
                 )
 
         # the following are fields able to be edited by regular users and admins:
@@ -194,32 +217,38 @@ class ResourceSerializer(serializers.ModelSerializer):
             instance.status = validated_data.get('status', instance.status)
             instance.path = validated_data.get('path', instance.path)
 
-        # if the resource_type was sent in the request, we will eventually
-        # kick off an async process for validating the type.  Until that 
-        # happens, however, we simply change the status and save.  Note that  
-        # the resource_type has NOT changed yet.  
-        # 
-        # If the validation succeeds, then the `resource_type` and
-        # that status will be changed.
-        #
-        # Also note that we change the status immediately since the async
-        # task might lag and not be executed immediately.
-
+        # Now handle any requests to change the resource type
         changing_resource_type = False
         new_resource_type = validated_data.get('resource_type', None)
         if new_resource_type:
-            # if the type is different, reset the flag
+            # if the type is different than the existing assigned type, reset the flag
             if new_resource_type != instance.resource_type:
+                # Until the validation is complete we simply change the status and save.  
+                # Note that the resource_type has NOT changed yet.  
+                # 
+                # If the validation succeeds, then the `resource_type` and
+                # that status will be changed.
+                #
+                # Also note that we change the status immediately since the async
+                # task might lag and not be executed immediately.
+                logger.info('A new resource type was requested.  '
+                    'Changing %s from %s to %s' % (
+                        str(instance.pk), instance.resource_type, new_resource_type
+                    )
+                )
                 changing_resource_type = True
                 set_resource_to_validation_status(instance)
 
-        # save the instance
+        # save the instance- but only the fields that do not require validation
         instance.save()
 
         # if the `resource_type` was changed in the request, start
         # the validation process.  Since it is calling an async, we
         # have to pass the primary key instead of the instance.
         if changing_resource_type:
+            logger.info('Queueing validation for updating resource %s with type %s ' % 
+                (str(instance.pk), new_resource_type)
+            )
             api_tasks.validate_resource.delay(
                 instance.pk, 
                 new_resource_type
