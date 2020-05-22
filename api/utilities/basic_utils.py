@@ -41,9 +41,14 @@ def move_resource(source, dest):
     # but we still check.
     # Given the fact that it's nigh impossible, we simply
     # pre-pend an integer until it becomes unique.
+    # e.g. if /a/b.txt exists, we try /a/0b.txt.
+    # if THAT exists, we try /a/10b.txt, etc.
     i = 0
     while os.path.exists(dest):
-        dest = '%d%s' % (i, dest)
+        b = os.path.basename(dest)
+        d = os.path.dirname(dest)
+        b = '%d%s' % (i,b)
+        dest = '%s/%s' % (d, b)
         i += 1
 
     try:

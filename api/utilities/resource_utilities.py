@@ -61,7 +61,7 @@ def set_resource_to_validation_status(resource_instance):
 
 def move_resource_to_final_location(resource_instance):
     '''
-    Given a `Resource` instance, create an appropriate
+    Given a `Resource` instance (validated), create an appropriate
     space for the resource
     '''
 
@@ -69,8 +69,8 @@ def move_resource_to_final_location(resource_instance):
     # resource UUID and the file's "human readable" name
     owner_uuid = str(resource_instance.owner.user_uuid)
     basename = '{uuid}.{name}'.format(
-        uuid=resource.pk, 
-        name=resource.name
+        uuid=resource_instance.pk, 
+        name=resource_instance.name
     )
 
     if resource_instance.is_local:
