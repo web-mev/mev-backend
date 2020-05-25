@@ -10,6 +10,7 @@ RUN apt-get update \
     libreadline-dev \
     libbz2-dev \
     libffi-dev \
+    liblzma-dev \
     libsqlite3-dev \
     wget \
     supervisor \
