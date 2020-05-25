@@ -30,7 +30,7 @@ def validate_resource(resource_pk, requested_resource_type):
     resource_class = RESOURCE_MAPPING[requested_resource_type]
 
     # check the validity
-    is_valid = resource_type_is_valid(
+    is_valid, message = resource_type_is_valid(
         resource_class,
         resource.path
     )

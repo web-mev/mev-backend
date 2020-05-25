@@ -40,15 +40,21 @@ RESOURCE_MAPPING = {
     'BED': BEDFile
 } 
 
-def resource_type_is_valid(resource_class, resource_path):
+def resource_type_is_valid(resource_type_class, resource_path):
     '''
     When a `Resource.resource_type` is set or edited, we need
     to validate that the type "agrees" with the file format.
 
     This function is the entrypoint for this validation.
 
-    - `resource_class` is the implementation class which performs
+    - `resource_type_class` is the implementation class which performs
     the validation
     - `resource_path` is the path to the file we are validating.
+
+    Returns a tuple of (bool, str).
+    The bool indicates whether the type was valid for the resource
+    The string is a message providing an explanation for any failures.
     '''
-    pass
+    
+    resource_type = resource_type_class()
+    return resource_type.validate_type(resource_path)
