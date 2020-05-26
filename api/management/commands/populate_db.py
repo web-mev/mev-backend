@@ -70,6 +70,13 @@ class Command(BaseCommand):
             path='/path/to/fileC.txt'
         )
 
+        # create a Resource that has the type unset:
+        Resource.objects.create(
+            owner=user_dict[USER2],
+            name='fileD.tsv',
+            path='/path/to/fileD.txt'      
+        )
+
     def add_resources_to_workspace(self):
         # for regular user1, associate some Resources
         # with a Workspace

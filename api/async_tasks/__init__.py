@@ -20,14 +20,27 @@ def validate_resource(resource_pk, requested_resource_type):
 
     try:
         resource = Resource.objects.get(pk=resource_pk)
-    except Resource.DoesNotExist:
-        #TODO log this and issue warning-- should not receive bad PKs
-        return
+    except Resource.DoesNotExist as ex:
+        logger.error('Received an unknown/invalid primary key'
+        ' when trying to retrieve a Resource instance in an async'
+        ' task.  PK was {uuid}.'.format(uuid=str(resource_pk))
+    )
+        raise ex
 
     # The resource type is the shorthand identifier.
     # To get the actual resource class implementation, we 
     # use the RESOURCE_MAPPING dict
-    resource_class = RESOURCE_MAPPING[requested_resource_type]
+    try:
+        resource_class = RESOURCE_MAPPING[requested_resource_type]
+    except KeyError as ex:
+        logger.error('Received an unknown resource_type identifier:'
+            ' {requested_resource_type}.  Current types are:'
+            ' {resource_mapping}'.format(
+                resource_mapping = RESOURCE_MAPPING,
+                requested_resource_type = requested_resource_type
+            )
+        )
+        raise ex 
 
     # check the validity
     is_valid, message = resource_type_is_valid(
@@ -50,17 +63,22 @@ def validate_resource(resource_pk, requested_resource_type):
                 # a variety of exceptions can be raised due to failure
                 # to create directories/files.  Catch them all here and
                 # set the resource to be inactive.
-                # TODO: inform admins
-                pass
+                logger.error('An exception was raised following'
+                ' successful validation of reosurce {resource}.'
+                ' Exception trace is {ex}'.format(
+                    ex=ex,
+                    resource = resource
+                ))
 
         # this is here so that we can check if the resource_type
         # was previously null/None
-        resource.resource_type = resource_type
+        resource.resource_type = requested_resource_type
 
     else:
         # again, if resource_type has not been set, then this   
         # Resource has NEVER been verified.  We report a failure
         # via the status message and set the appropriate flags
+
         if not resource.resource_type:
             resource.status = Resource.FAILED.format(
                 requested_resource_type=requested_resource_type
