@@ -163,7 +163,6 @@ class ResourceSerializer(serializers.ModelSerializer):
         - change public or private
 
         In addition to these, admins may also change:
-        - is_active
         - status
         - path
         '''
@@ -213,7 +212,6 @@ class ResourceSerializer(serializers.ModelSerializer):
 
         # fields that can only be edited by admins:
         if requesting_user.is_staff:
-            instance.is_active = validated_data.get('is_active', instance.is_active)
             instance.status = validated_data.get('status', instance.status)
             instance.path = validated_data.get('path', instance.path)
 

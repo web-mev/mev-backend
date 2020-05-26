@@ -519,21 +519,23 @@ class ResourceDetailTests(BaseAPITestCase):
         r = Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
         self.assertTrue(r.is_active)
 
-    def test_admin_can_change_active_status(self):
+    def test_admin_cannot_change_active_status(self):
         '''
-        The `is_active` boolean can be reset by an admin
+        The `is_active` boolean cannot be reset via the API, even by
+        an admin
         ''' 
-        # check that it was active to start:
-        self.assertTrue(self.regular_user_unattached_resource.is_active)
+        # find the status at the start:
+        initial_status = self.regular_user_unattached_resource.is_active
+        final_status = not initial_status
 
-        payload = {'is_active': False}
+        payload = {'is_active': final_status}
         response = self.authenticated_admin_client.put(
             self.url_for_unattached, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
 
-        # the request was ignored-- resource is still active
-        self.assertFalse(r.is_active)
+        # check that the bool changed:
+        self.assertEqual(r.is_active, initial_status)
 
 
     def test_user_cannot_change_status_message(self):
@@ -620,17 +622,26 @@ class ResourceDetailTests(BaseAPITestCase):
         This will NOT "recall" datasets that were derived
         from this (e.g. if someone else used it while it was public)
         '''
-        if not self.active_resource.is_public:
+        active_and_public_resources = Resource.objects.filter(
+            is_active = True,
+            is_public = True,
+            owner = self.regular_user_1
+        )
+        if len(active_and_public_resources) == 0:
             raise ImproperlyConfigured('To properly run this test, you'
             ' need to have at least one public AND active Resource.')
-
+        r = active_and_public_resources[0]
+        url = reverse(
+            'resource-detail', 
+            kwargs={'pk':r.pk}
+        )
         payload = {'is_public': False}
         response = self.authenticated_regular_client.put(
-            self.url_for_active_resource, payload, format='json'
+            url, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        r = Resource.objects.get(pk=self.active_resource.pk)
-        self.assertFalse(r.is_public)
+        updated_resource = Resource.objects.get(pk=r.pk)
+        self.assertFalse(updated_resource.is_public)
 
 
 
@@ -738,7 +749,6 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertTrue(r.status == Resource.VALIDATING)
 
         # check that the validation method was called.
-        #mock_api_tasks.validate_resource.delay.assert_called()
         mock_api_tasks.validate_resource.delay.assert_called_with(self.active_resource.pk, newtype)
 
 
