@@ -55,6 +55,10 @@ MISSING_HEADER_WARNING = ('One of your column names matched the values in the'
     ' proper header line was missing.  Please check to ensure the file was'
     ' parsed correctly.')
 
+EMPTY_TABLE_ERROR = ('The parsed table was empty. If you are trying to'
+    ' import an Excel spreadsheet, please ensure that the data is contained'
+    ' in the first sheet of the workbook.')
+
 def col_str_formatter(x):
     '''
     x is a tuple with the column number
@@ -118,6 +122,9 @@ class TableResource(DataResource):
             try:
                 # read the table using the appropriate parser:
                 self.table = reader(resource_path, index_col=0, comment='#')
+
+                if self.table.shape == (0,0):
+                    return (False, EMPTY_TABLE_ERROR )
 
                 if self.table.shape[1] == 0:
                     return (False, TRIVIAL_TABLE_ERROR)

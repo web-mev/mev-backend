@@ -16,7 +16,8 @@ from api.resource_types.table_types import TableResource, \
     NUMBERED_COLUMN_NAMES_ERROR, \
     NUMBERED_ROW_NAMES_ERROR, \
     NONUNIQUE_ROW_NAMES_ERROR, \
-    MISSING_HEADER_WARNING
+    MISSING_HEADER_WARNING, \
+    EMPTY_TABLE_ERROR
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -280,6 +281,57 @@ class TestIntegerMatrix(unittest.TestCase):
         expected_err_str = NON_INTEGER_ERROR.format(cols=bad_col_str)
         self.assertEqual(err, expected_err_str) 
 
+    def test_excel_parses_correctly(self):
+        '''
+        Test that we can parse an excel spreadsheet provided the 
+        data is contained in the first sheet
+        '''
+        m = IntegerMatrix()
+        is_valid, err = m.validate_type(os.path.join(
+            TESTDIR, 'test_integer_matrix.xlsx'))
+        self.assertTrue(is_valid)
+
+    def test_excel_fails_if_not_in_first_sheet(self):
+        '''
+        If the data is contained on a different sheet than "the first"
+        the table is empty.  If the first sheet contained data, then 
+        there's really nothing we can do to correct that.
+        '''
+        m = IntegerMatrix()
+        is_valid, err = m.validate_type(os.path.join(
+            TESTDIR, 'test_integer_matrix.second_sheet.xlsx'))
+        self.assertFalse(is_valid)
+        self.assertEqual(err, EMPTY_TABLE_ERROR)
+
+    def test_fails_if_filetype_incorrect(self):
+        '''
+        If a user specifies CSV but the file is, in fact,
+        a TSV, we fail out.
+
+        We are unable to decipher (without looking at the table)
+        that it was due to an incorrect file extension, but the
+        file still fails validation.
+        '''
+        m = IntegerMatrix()
+        is_valid, err = m.validate_type(os.path.join(
+            TESTDIR, 'test_tsv_integer_matrix_labeled_as_csv.csv'))
+        self.assertFalse(is_valid)
+
+    def test_fails_if_filetype_incorrect_case2(self):
+        '''
+        If a user specifies TSV but the file is, in fact,
+        a CSV, we fail out.
+
+        We are unable to decipher (without looking at the table)
+        that it was due to an incorrect file extension, but the
+        file still fails validation.
+        '''
+        m = IntegerMatrix()
+        is_valid, err = m.validate_type(os.path.join(
+            TESTDIR, 'test_csv_integer_matrix_labeled_as_tsv.tsv'))
+        self.assertFalse(is_valid)
+
+
 class TestAnnotationMatrix(unittest.TestCase):
 
     def test_table_without_header(self):
@@ -344,3 +396,5 @@ class TestBed(unittest.TestCase):
         is_valid, err = b.validate_type(os.path.join(
             TESTDIR, 'five_column.bed'))
         self.assertTrue(is_valid)
+
+
