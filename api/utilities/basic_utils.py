@@ -127,3 +127,23 @@ def copy_local_resource(src, dest):
         logger.error('Caught an unhandled exception.  Was {err}'.format(err=str(ex)))
         raise ex
     
+
+def delete_local_file(path):
+    '''
+    Deletes a local file.
+    '''
+    logger.info('Requesting deletion of {path}'.format(path=path))
+    try:
+        os.remove(path)
+        logger.info('Success in removing {path}'.format(path=path))
+    except FileNotFoundError as ex:
+        logger.error('Tried to remove a Resource path that'
+            ' pointed at a non-existent file: {path}'.format(path=path))
+    except IsADirectoryError as ex:
+        logger.error('Tried to remove a Resource path that'
+            ' pointed at a directory: {path}'.format(path=path))
+        raise ex
+    except Exception as ex:
+        logger.error('General exception handled.'
+            'Could not delete the file at {path}'.format(path=path))
+        raise ex

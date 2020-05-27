@@ -4,6 +4,7 @@ import os
 from celery.decorators import task
 
 from api.models import Resource
+from api.utilities import basic_utils
 from api.utilities.resource_utilities import move_resource_to_final_location
 from api.resource_types import RESOURCE_MAPPING, resource_type_is_valid
 
@@ -16,19 +17,7 @@ def delete_file(path, is_local = True):
     '''
     logger.info('Requesting deletion of {path}'.format(path=path))
     if is_local:
-        try:
-            os.remove(path)
-        except FileNotFoundError as ex:
-            logging.error('Tried to remove a Resource path that'
-                ' pointed at a non-existent file: {path}'.format(path=path))
-        except IsADirectoryError as ex:
-            logging.error('Tried to remove a Resource path that'
-                ' pointed at a directory: {path}'.format(path=path))
-            raise ex
-        except Exception as ex:
-            logger.error('General exception handled.'
-                'Could not delete the file at {path}'.format(path=path))
-            raise ex
+        basic_utils.copy_local_resource(path)
     else:
         raise NotImplementedError('Remote file removal not implemented.')
 
