@@ -1,4 +1,5 @@
 import logging
+import os
 
 from celery.decorators import task
 
@@ -7,6 +8,29 @@ from api.utilities.resource_utilities import move_resource_to_final_location
 from api.resource_types import RESOURCE_MAPPING, resource_type_is_valid
 
 logger = logging.getLogger(__name__)
+
+@task(name='delete_file')
+def delete_file(path, is_local = True):
+    '''
+    Deletes a file.  Can be a local or remote resource.
+    '''
+    logger.info('Requesting deletion of {path}'.format(path=path))
+    if is_local:
+        try:
+            os.remove(path)
+        except FileNotFoundError as ex:
+            logging.error('Tried to remove a Resource path that'
+                ' pointed at a non-existent file: {path}'.format(path=path))
+        except IsADirectoryError as ex:
+            logging.error('Tried to remove a Resource path that'
+                ' pointed at a directory: {path}'.format(path=path))
+            raise ex
+        except Exception as ex:
+            logger.error('General exception handled.'
+                'Could not delete the file at {path}'.format(path=path))
+            raise ex
+    else:
+        raise NotImplementedError('Remote file removal not implemented.')
 
 @task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type):

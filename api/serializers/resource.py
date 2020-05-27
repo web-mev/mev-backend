@@ -108,7 +108,7 @@ class ResourceSerializer(serializers.ModelSerializer):
                     'resource_type': 'This field is required and cannot be null.'
                 })
 
-            # for Resources that have no been associated with a Workspace:
+            # for Resources that have not been associated with a Workspace:
             if params['workspace'] is None:
                 resource = Resource.objects.create(
                     owner=resource_owner,

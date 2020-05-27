@@ -353,36 +353,54 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(str(self.regular_user_unattached_resource.pk), response.data['id'])
 
-    def test_admin_can_delete_resource(self):
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
+    def test_admin_can_delete_resource(self, mock_api_tasks, mock_file_check):
         """
-        Test that admin users can delete any Resource, but only if unattached
+        Test that admin users can delete an unattached Resource
         """
+        mock_file_check.return_value = False
         response = self.authenticated_admin_client.delete(self.url_for_unattached)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_api_tasks.delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
             Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
 
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
     @mock.patch('api.views.resource_views.check_for_resource_operations')
-    def test_admin_can_delete_unused_resource(self, mock_check_for_resource_operations):
+    def test_admin_can_delete_unused_resource(self,
+            mock_check_for_resource_operations,
+            mock_api_tasks,
+            mock_file_check):
         """
         Test that admin users can delete a workspace-associated Resource if it 
         has not been used.
         """
+        mock_file_check.return_value = False
         mock_check_for_resource_operations.return_value = False
         response = self.authenticated_admin_client.delete(self.url_for_workspace_resource)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_api_tasks.delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
             Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
     @mock.patch('api.views.resource_views.check_for_resource_operations')
-    def test_admin_cannot_delete_attached_resource(self, mock_check_for_resource_operations):
+    def test_admin_cannot_delete_attached_resource(self, 
+        mock_check_for_resource_operations,
+        mock_api_tasks,
+        mock_file_check):
         """
         Test that even admin users cannot delete an attached Resource that has
         been used in a Workspace
         """
+        mock_file_check.return_value = False
         mock_check_for_resource_operations.return_value = True
         response = self.authenticated_admin_client.delete(self.url_for_workspace_resource)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_api_tasks.delete_file.delay.assert_not_called()
         r = Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 
     def test_users_can_view_own_resource_detail(self):
@@ -393,30 +411,94 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(str(self.regular_user_unattached_resource.pk), response.data['id'])
 
-    def test_users_can_delete_own_unused_resource(self):
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
+    def test_users_can_delete_own_unused_resource(self, 
+        mock_api_tasks,
+        mock_file_check):
         """
         Test that regular users can delete their own Resource IF IT IS
         NOT associated with a Workspace.
+
+        Here, no other Resources reference the file that this particular
+        Resource is pointing at.  We can then safely call for deletion on 
+        the Resoure AND the file
         """
+        mock_file_check.return_value = False
         response = self.authenticated_regular_client.delete(self.url_for_unattached)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_api_tasks.delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
             Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
 
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
+    def test_users_can_delete_own_unused_resource_case2(self, 
+        mock_api_tasks,
+        mock_file_check):
+        """
+        Test that regular users can delete their own Resource IF IT IS
+        NOT associated with a Workspace.
+
+        Here, there are somehow other Resources referencing the same 
+        underlying file.  Then we have to assert that the async delete
+        was NOT called, but the Resource database record was.
+        """
+        mock_file_check.return_value = True
+        response = self.authenticated_regular_client.delete(self.url_for_unattached)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_api_tasks.delete_file.delay.assert_not_called()
+        with self.assertRaises(Resource.DoesNotExist):
+            Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
     @mock.patch('api.views.resource_views.check_for_resource_operations')
-    def test_user_can_remove_unused_resource_from_workspace(self, mock_check_for_resource_operations):
+    def test_user_can_remove_unused_resource_from_workspace(self, 
+        mock_check_for_resource_operations,
+        mock_api_tasks,
+        mock_file_check):
         """
         Test that regular users can delete their own Resource if it has 
-        NOT been used within a Workspace
+        NOT been used within a Workspace.  Here we check that both the Resource
+        AND file are deleted.
         """
+        mock_file_check.return_value = False
         mock_check_for_resource_operations.return_value = False
         response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_api_tasks.delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
             Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
     @mock.patch('api.views.resource_views.check_for_resource_operations')
-    def test_users_cannot_delete_own_attached_resource(self, mock_check_for_resource_operations):
+    def test_user_can_remove_unused_resource_from_workspace(self, 
+        mock_check_for_resource_operations,
+        mock_api_tasks,
+        mock_file_check):
+        """
+        Test that regular users can delete their own Resource if it has 
+        NOT been used within a Workspace.
+
+        Here, only the Resource is deleted.
+        """
+        mock_file_check.return_value = True
+        mock_check_for_resource_operations.return_value = False
+        response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_api_tasks.delete_file.delay.assert_not_called()
+        with self.assertRaises(Resource.DoesNotExist):
+            Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
+
+    @mock.patch('api.views.resource_views.check_for_shared_resource_file')
+    @mock.patch('api.views.resource_views.api_tasks')
+    @mock.patch('api.views.resource_views.check_for_resource_operations')
+    def test_users_cannot_delete_own_attached_resource(self, 
+        mock_check_for_resource_operations,
+        mock_api_tasks,
+        mock_file_check):
         """
         Users CANNOT remove the resource is it has been
         used by ANY of the operations/analyses associated with the 
@@ -425,8 +507,10 @@ class ResourceDetailTests(BaseAPITestCase):
         Test that regular users cannot delete their own Resource if it has been
         used within a Workspace
         """
+        mock_file_check.return_value = False
         mock_check_for_resource_operations.return_value = True
         response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
+        mock_api_tasks.delete_file.delay.assert_not_called()
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
 

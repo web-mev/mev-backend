@@ -77,6 +77,17 @@ class Command(BaseCommand):
             path='/path/to/fileD.txt'      
         )
 
+        # create a Resource that has the same path as another
+        # Resource.  This is for testing Resource deletions.
+        Resource.objects.create(
+            owner=user_dict[USER1],
+            name='fileA.tsv',
+            resource_type = 'MTX',
+            path='/path/to/fileA.txt',
+            is_active = True,
+            is_public = True
+        )
+
     def add_resources_to_workspace(self):
         # for regular user1, associate some Resources
         # with a Workspace

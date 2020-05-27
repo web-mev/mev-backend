@@ -11,7 +11,8 @@ from rest_framework.exceptions import ValidationError
 from api.models import Resource, Workspace
 from api.utilities.resource_utilities import create_resource_from_upload, \
     move_resource_to_final_location, \
-    copy_resource_to_workspace
+    copy_resource_to_workspace, \
+    check_for_shared_resource_file
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -128,21 +129,11 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_make_local_dir.assert_not_called()
         mock_move_resource.assert_called_with(owner_resource.path, expected_final_path)
 
-    @mock.patch('api.utilities.resource_utilities.os.path.exists')
-    @mock.patch('api.utilities.resource_utilities.move_resource')
-    @mock.patch('api.utilities.resource_utilities.copy_local_resource')
-    def test_copy_to_workspace(self, mock_local_copy, mock_move, mock_os_exists):
+    def test_copy_to_workspace(self):
         '''
-        Tests that "attaching" a resource to a workspace creates the necesary copy
-        of the file (assert is called, at least) and that the database object
-        is created appropriately.
+        Tests that "attaching" a resource to a workspace creates the
+        appropriate database object.
         '''
-        # setup the mock:
-        tmp_path = '/tmp/something.tsv'
-        final_path = '/some/final/path/abc.tsv'
-        mock_local_copy.return_value = tmp_path
-        mock_os_exists.return_value = True # mocking that the user storage dir exists
-        mock_move.return_value = final_path 
 
         unattached_resources = Resource.objects.filter(workspace=None, is_public=True)
         if len(unattached_resources) == 0:
@@ -171,9 +162,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # call the method
         new_resource = copy_resource_to_workspace(r, workspace)
 
-        # check that the proper functions were called:
-        mock_local_copy.assert_called()
-        mock_move.assert_called()
 
         # check that there is a new resource and it is associated
         # with the workspace
@@ -182,7 +170,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertEqual(n1-n0, 1)
 
         # check the contents of the returned "new" Resource
-        self.assertEqual(new_resource.path, final_path)
+        self.assertEqual(new_resource.path, orig_path)
         self.assertEqual(new_resource.workspace, workspace)
         self.assertFalse(new_resource.pk == orig_pk)
         # check that the new resource is private
@@ -194,4 +182,42 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertIsNone(orig_resource.workspace)
         self.assertTrue(orig_resource.is_public)
 
-   
+
+    def test_for_multiple_resources_referencing_single_file_case1(self):
+        '''
+        This tests the function which checks to see if a single file
+        is referenced by multiple Resource instances, as would be the case once 
+        Resources are added to Workspaces.
+        '''
+        all_resources = Resource.objects.all()
+        d = {}
+        repeated_resources = []
+        for r in all_resources:
+            if r.path in d:
+                repeated_resources.append(r)
+            else:
+                d[r.path] = 1
+            
+        if len(repeated_resources) == 0:
+            raise ImproperlyConfigured('Need at least two Resources that have'
+            ' the same path to run this test.')
+
+        # just get the first Resource to use for the test
+        r = repeated_resources[0]
+        self.assertTrue(check_for_shared_resource_file(r))
+
+    def test_for_multiple_resources_referencing_single_file_case2(self):
+        '''
+        This tests the function which checks to see if a single file
+        is referenced by multiple Resource instances, as would be the case once 
+        Resources are added to Workspaces.
+
+        Here, we check that 1:1 correspondance returns False
+        '''
+        r = Resource.objects.filter(path='/path/to/fileB.txt')
+        if len(r) != 1:
+            raise ImproperlyConfigured('Need a Resource with a unique'
+                ' path to run this test.')
+
+        self.assertFalse(check_for_shared_resource_file(r[0]))        
+

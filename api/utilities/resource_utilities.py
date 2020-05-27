@@ -110,8 +110,9 @@ def copy_resource_to_workspace(unattached_resource, workspace):
     This function handles the copy of an existing (and validated)
     Resource when it is added to a Workspace.
 
-    It copies both the physical resource and creates the appropriate
-    database object.
+    Note that it only creates the appropriate
+    database object- in the case of large files, we
+    do not want to copy those.
     '''
     logger.info('Adding resource ({resource}) to'
         ' workspace ({workspace}).'.format(
@@ -120,30 +121,54 @@ def copy_resource_to_workspace(unattached_resource, workspace):
         )
     )  
 
-    # We will eventually use the `move_resource_to_final_location`
-    # function above.  However, that essentially performs a "mv"
-    # on a file (and we want to retain the original resource).  
-    # Therefore, we will perform a copy to some temp location
-    # and then call that function.
-    tmp_path = os.path.join(settings.TMP_DIR, str(uuid.uuid4()))
-    tmp_path = copy_local_resource(unattached_resource.path, tmp_path) 
-
     # we need to create a new Resource with the Workspace 
     # field filled appropriately.  Note that this method of "resetting"
     # the primary key by setting it to None creates an effective copy
     # of the original resource. We then alter the path field and save.
     r = unattached_resource
     r.pk = None
-    r.path = tmp_path
     r.workspace = workspace
     r.is_public = False # when we copy to a workspace, set private
     r.save()
 
-    # finally, move the copy currently sitting in the temp dir to the final
-    # location.  Again, this is essentially a copy of the original file, but
-    # with a different primary key and an entirely identical file
-    final_path = move_resource_to_final_location(r)
-    r.path = final_path
-    r.save()
-
     return r
+
+def check_for_shared_resource_file(resource_instance):
+    '''
+    When a Resource deletion is requested, we need to be a bit careful about
+    deleting database records, the underlying files, or both.
+
+    Now we need to check if any OTHER Resource instances 
+    reference the same path.  If there are, we only delete
+    the database record, NOT the file.  If this is the only
+    database record referring to the file, we can delete both
+    the record and the file.
+
+    Returns True if multiple Resources reference the same file.
+    '''
+    path = resource_instance.path
+    if len(path) > 0: # in case the path was empty somehow.
+        all_resources_with_path = Resource.objects.filter(path=path)
+        if len(all_resources_with_path) == 0:
+            logger.error('Unexpected exception when'
+            ' attempting to delete a Resource instance. Despite'
+            ' filtering with the path member, could not locate'
+            ' any Resource instances referencing that same path.')
+            raise Exception('No Resource found')
+
+        elif len(all_resources_with_path) == 1: 
+            # only one Resource record references the path.  
+            # Double-check that it's the same as the current
+            # instance we're considering 
+            r = all_resources_with_path[0]
+            if r.pk != resource_instance.pk:
+                logger.error('Unexpected exception when'
+                ' attempting to delete a Resource instance.  Did not "re-find"'
+                ' the Resource instance we used to search with.')
+                raise Exception('Database inconsistency!')
+            else:
+                # consistency check worked.  Only a singe Resource instance
+                # references the file.  Delete both the file AND the record.
+                return False
+        else:
+            return True
