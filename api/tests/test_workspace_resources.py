@@ -1,4 +1,5 @@
 import uuid
+import unittest.mock as mock
 
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
@@ -129,3 +130,131 @@ class WorkspaceResourceListTests(BaseAPITestCase):
         self.assertTrue(
             len(uuid_universe.difference(all_known_user_uuids))>0
         )
+
+class WorkpaceResourceAddTests(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+
+        all_resources = Resource.objects.all()
+        workspace_resources = []
+        for r in all_resources:
+            if r.workspace:
+                workspace_resources.append(r)
+
+        if len(workspace_resources) == 0:
+            raise ImproperlyConfigured('You need at least one'
+                ' workspace-associated resource to run the tests.'
+                ' in this test case.'
+            )
+        
+        self.workspace_resource = workspace_resources[0]
+        workspace_pk = self.workspace_resource.workspace.pk
+        self.url = reverse(
+            'workspace-resource-add', 
+            kwargs={'workspace_pk': workspace_pk}
+        )
+
+        active_unattached_resources = Resource.objects.filter(
+            is_active=True,
+            owner = self.regular_user_1,
+            workspace = None
+        )
+        if len(active_unattached_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' active and unattached Resource to'
+                ' run this test.'
+            )
+        self.unattached_resource = active_unattached_resources[0]
+
+
+    def test_attached_resource_rejected(self):
+        '''
+        Tests that a Resource already associated with a Workspace
+        can't be added
+        '''
+        payload = {'resource_uuid': self.workspace_resource.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_malformatted_request_fails(self):
+        '''
+        Tests the serializer and an incorrect payload
+        '''
+        # the key of the payload is bad--
+        payload = {'resource_pk': self.workspace_resource.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_bad_resource_pk_fails(self):
+        '''
+        Test that posting a bad resource UUID causes the 
+        request to fail.
+        '''
+        payload = {'resource_uuid': str(uuid.uuid4())}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cannot_add_inactive_resource(self):
+        '''
+        Test that an inactive resource can't be added to
+        a workspace (since it may be performing validation, etc.)
+        Only active and validated resources can be attached
+        to workspaces.
+        '''
+        inactive_unattached_resources = Resource.objects.filter(
+            is_active=False,
+            owner = self.regular_user_1,
+            workspace = None
+        )
+        if len(inactive_unattached_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' inactive and unattached Resource to run'
+                ' this test.'
+            )
+        r = inactive_unattached_resources[0]
+        payload = {'resource_uuid': r.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_workspace_and_resource_owner_different_raises_ex(self):
+        '''
+        If the owner of the workspace and the resource are not the
+        same, reject the request.
+        '''
+        other_user_workspaces = Workspace.objects.filter(owner=self.regular_user_2)
+        if len(other_user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace'
+                ' owned by a different user to run this test.'
+            )
+        other_user_workspace_pk = other_user_workspaces[0].pk
+        url = reverse(
+            'workspace-resource-add', 
+            kwargs={'workspace_pk': other_user_workspace_pk}
+        )
+        payload = {'resource_uuid': self.unattached_resource.pk}
+        response = self.authenticated_regular_client.post(url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    @mock.patch('api.views.workspace_resource_views.copy_resource_to_workspace')
+    def test_correct_request_yields_object_creation(self, mock_copy):
+        '''
+        Test that the endpoint returns a 201 if the request
+        was correct and the resource was added to the workspace
+        '''
+        mock_new_resource = Resource.objects.create(
+            path='/path/to/foo.tsv',
+            name = 'foo.tsv',
+            owner = self.regular_user_1,
+            workspace = self.workspace_resource.workspace,
+            resource_type = 'MTX',
+        )
+        mock_copy.return_value = mock_new_resource
+
+        payload = {'resource_uuid': self.unattached_resource.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

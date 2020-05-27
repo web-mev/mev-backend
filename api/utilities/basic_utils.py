@@ -1,4 +1,5 @@
 import os
+import shutil
 import errno
 import logging
 
@@ -41,7 +42,8 @@ def make_local_directory(directory_path):
 
 def move_resource(source, dest):
     '''
-    Handles relocation of files from source to dest
+    Handles relocation of files from source to dest.
+    Essentially a 'mv' with error checking.
     '''
     logger.info('Moving resource from %s to %s' % (source, dest))
 
@@ -90,3 +92,38 @@ def move_resource(source, dest):
             # Should not happen.  
             logger.error('Could not move file due to permissions issue.')
         raise ex
+
+def copy_local_resource(src, dest):
+    '''
+    Wraps the basic shutil copyfile.
+
+    src and dest are 
+    '''
+    logger.info('Copying from {src} to {dest}'.format(
+        src=src,
+        dest=dest
+    ))
+    try:
+        final_dest = shutil.copyfile(src, dest)
+        logger.info('Success in copy from {src} to {dest}'.format(
+            src=src,
+            dest=dest
+        ))
+        return final_dest
+    except OSError as ex:
+        logger.error('Experienced an OSError when copying'
+        ' from {src} to {dest}'.format(
+            src=src,
+            dest=dest
+        ))
+        raise ex
+    except shutil.SameFileError as ex:
+        logger.error('shutil.copyfile raised a SameFileError'
+        ' exception when copying from {src} to {dest}'.format(
+            src=src,
+            dest=dest
+        ))
+    except Exception as ex:
+        logger.error('Caught an unhandled exception.  Was {err}'.format(err=str(ex)))
+        raise ex
+    

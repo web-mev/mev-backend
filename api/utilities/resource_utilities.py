@@ -1,10 +1,13 @@
 import os
+import uuid
 import logging
 
 from django.conf import settings
 
 from api.models import Resource
-from .basic_utils import make_local_directory, move_resource
+from .basic_utils import make_local_directory, \
+    move_resource, \
+    copy_local_resource
 
 logger = logging.getLogger(__name__)
 
@@ -100,3 +103,47 @@ def move_resource_to_final_location(resource_instance):
     else:
         # TODO: implement
         raise NotImplementedError('Implement logic for remote resource')
+
+
+def copy_resource_to_workspace(unattached_resource, workspace):
+    '''
+    This function handles the copy of an existing (and validated)
+    Resource when it is added to a Workspace.
+
+    It copies both the physical resource and creates the appropriate
+    database object.
+    '''
+    logger.info('Adding resource ({resource}) to'
+        ' workspace ({workspace}).'.format(
+            workspace = str(workspace),
+            resource = str(unattached_resource)
+        )
+    )  
+
+    # We will eventually use the `move_resource_to_final_location`
+    # function above.  However, that essentially performs a "mv"
+    # on a file (and we want to retain the original resource).  
+    # Therefore, we will perform a copy to some temp location
+    # and then call that function.
+    tmp_path = os.path.join(settings.TMP_DIR, str(uuid.uuid4()))
+    tmp_path = copy_local_resource(unattached_resource.path, tmp_path) 
+
+    # we need to create a new Resource with the Workspace 
+    # field filled appropriately.  Note that this method of "resetting"
+    # the primary key by setting it to None creates an effective copy
+    # of the original resource. We then alter the path field and save.
+    r = unattached_resource
+    r.pk = None
+    r.path = tmp_path
+    r.workspace = workspace
+    r.is_public = False # when we copy to a workspace, set private
+    r.save()
+
+    # finally, move the copy currently sitting in the temp dir to the final
+    # location.  Again, this is essentially a copy of the original file, but
+    # with a different primary key and an entirely identical file
+    final_path = move_resource_to_final_location(r)
+    r.path = final_path
+    r.save()
+
+    return r

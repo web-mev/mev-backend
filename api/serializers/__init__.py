@@ -7,3 +7,4 @@ from .observation_set import ObservationSetSerializer
 from .feature_set import FeatureSetSerializer
 from .resource import ResourceSerializer
 from .upload_serializer import UploadSerializer
+from .workspace_resource_add import WorkspaceResourceAddSerializer

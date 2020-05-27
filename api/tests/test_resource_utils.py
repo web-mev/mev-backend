@@ -4,12 +4,14 @@ import unittest.mock as mock
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from rest_framework.exceptions import ValidationError
 
-from api.models import Resource
+from api.models import Resource, Workspace
 from api.utilities.resource_utilities import create_resource_from_upload, \
-    move_resource_to_final_location
+    move_resource_to_final_location, \
+    copy_resource_to_workspace
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -125,3 +127,71 @@ class TestResourceUtilities(BaseAPITestCase):
 
         mock_make_local_dir.assert_not_called()
         mock_move_resource.assert_called_with(owner_resource.path, expected_final_path)
+
+    @mock.patch('api.utilities.resource_utilities.os.path.exists')
+    @mock.patch('api.utilities.resource_utilities.move_resource')
+    @mock.patch('api.utilities.resource_utilities.copy_local_resource')
+    def test_copy_to_workspace(self, mock_local_copy, mock_move, mock_os_exists):
+        '''
+        Tests that "attaching" a resource to a workspace creates the necesary copy
+        of the file (assert is called, at least) and that the database object
+        is created appropriately.
+        '''
+        # setup the mock:
+        tmp_path = '/tmp/something.tsv'
+        final_path = '/some/final/path/abc.tsv'
+        mock_local_copy.return_value = tmp_path
+        mock_os_exists.return_value = True # mocking that the user storage dir exists
+        mock_move.return_value = final_path 
+
+        unattached_resources = Resource.objects.filter(workspace=None, is_public=True)
+        if len(unattached_resources) == 0:
+            raise ImproperlyConfigured('Need at least one unattached Resource'
+                ' to test the workspace-add function.')
+        
+        r = unattached_resources[0]
+
+        # extract the attributes of the resource so we can check 
+        # for any changes later
+        orig_path = r.path
+        orig_pk = r.pk
+
+        owner = r.owner
+        owner_workspaces = Workspace.objects.filter(owner=owner)
+        if len(owner_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace'
+                ' to attach to (for this owner)')
+
+        workspace = owner_workspaces[0]
+
+        # now have a workspace and owner.  Check initial state:
+        workspace_resources = Resource.objects.filter(workspace=workspace)
+        n0 = len(workspace_resources)
+
+        # call the method
+        new_resource = copy_resource_to_workspace(r, workspace)
+
+        # check that the proper functions were called:
+        mock_local_copy.assert_called()
+        mock_move.assert_called()
+
+        # check that there is a new resource and it is associated
+        # with the workspace
+        workspace_resources = Resource.objects.filter(workspace=workspace)
+        n1 = len(workspace_resources)
+        self.assertEqual(n1-n0, 1)
+
+        # check the contents of the returned "new" Resource
+        self.assertEqual(new_resource.path, final_path)
+        self.assertEqual(new_resource.workspace, workspace)
+        self.assertFalse(new_resource.pk == orig_pk)
+        # check that the new resource is private
+        self.assertFalse(new_resource.is_public)
+
+        # check that the original resource did not change
+        orig_resource = Resource.objects.get(pk=orig_pk)
+        self.assertEqual(orig_resource.path, orig_path)
+        self.assertIsNone(orig_resource.workspace)
+        self.assertTrue(orig_resource.is_public)
+
+   

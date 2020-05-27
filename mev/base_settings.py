@@ -132,6 +132,15 @@ if not os.path.exists(USER_STORAGE_DIR):
         path = USER_STORAGE_DIR)
     )
 
+# A local directory to be used as a tmp dir
+# Don't write to /tmp since we can't 
+TMP_DIR = '/tmp'
+if not os.path.exists(TMP_DIR):
+    raise ImproperlyConfigured('Please ensure there exists a'
+    ' temporary directory for files at {path}.'.format(
+        path = TMP_DIR)
+    )  
+
 # change the class that handles the direct file uploads.  This provides a mechanism
 # to query for upload progress.
 FILE_UPLOAD_HANDLERS = ['mev.upload_handler.UploadProgressCachedHandler',] + \
