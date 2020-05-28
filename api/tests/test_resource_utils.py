@@ -12,7 +12,8 @@ from api.models import Resource, Workspace
 from api.utilities.resource_utilities import create_resource_from_upload, \
     move_resource_to_final_location, \
     copy_resource_to_workspace, \
-    check_for_shared_resource_file
+    check_for_shared_resource_file, \
+    get_resource_preview
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -221,3 +222,73 @@ class TestResourceUtilities(BaseAPITestCase):
 
         self.assertFalse(check_for_shared_resource_file(r[0]))        
 
+    @mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
+    def test_resource_preview_for_valid_resource_type(self, mock_resource_mapping):
+        '''
+        Tests that a proper preview dict is returned.  Mocks out the 
+        method that does the reading of the resource path.
+        '''
+        all_resources = Resource.objects.all()
+        resource = None
+        for r in all_resources:
+            if r.resource_type:
+                resource = r
+                break
+        if not resource:
+            raise ImproperlyConfigured('Need at least one resource with'
+                ' a specified resource_type to run this test.'
+            )
+
+        expected_dict = {'a': 1, 'b':2}
+
+        class mock_resource_type_class(object):
+            def get_preview(self, path):
+                return expected_dict
+
+        mock_resource_mapping.__getitem__.return_value = mock_resource_type_class
+
+        preview_dict = get_resource_preview(r)
+        self.assertDictEqual(expected_dict, preview_dict)
+
+
+    def test_resource_preview_for_null_resource_type(self):
+        '''
+        Tests that a proper preview dict is returned.  Mocks out the 
+        method that does the reading of the resource path.
+        '''
+        all_resources = Resource.objects.all()
+        resource = None
+        for r in all_resources:
+            if r.resource_type is None:
+                resource = r
+                break
+        if not resource:
+            raise ImproperlyConfigured('Need at least one resource without'
+                ' a specified resource_type to run this test.'
+            )
+
+        preview_dict = get_resource_preview(r)
+        self.assertTrue('info' in preview_dict)
+        
+
+    @mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
+    def test_resource_preview_for_invalid_resource_type(self, mock_resource_mapping):
+        '''
+        Tests that a proper preview dict is returned.  Mocks out the 
+        method that does the reading of the resource path.
+        '''
+        all_resources = Resource.objects.all()
+        resource = None
+        for r in all_resources:
+            if r.resource_type:
+                resource = r
+                break
+        if not resource:
+            raise ImproperlyConfigured('Need at least one resource with'
+                ' a specified resource_type to run this test.'
+            )
+
+        mock_resource_mapping.__getitem__.side_effect = KeyError
+
+        preview_dict = get_resource_preview(r)
+        self.assertTrue('error' in preview_dict)

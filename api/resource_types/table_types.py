@@ -16,8 +16,22 @@ TAB_DELIMITED_EXTENSIONS = ['tsv', 'tab', 'bed', 'vcf']
 COMMA_DELIMITED_EXTENSIONS = ['csv']
 EXCEL_EXTENSIONS = ['xls', 'xlsx']
 
+class ParserNotFoundException(Exception):
+    '''
+    For raising exceptions when a proper 
+    parser cannot be found.
+    '''
+    pass
+
+class ParseException(Exception):
+    '''
+    For raising exceptions when the parser
+    fails for someon reason.
+    '''
+    pass
+
+
 # Some error messages:
-# acceptable file extensions which give us a
 PARSE_ERROR = ('There was an unexpected problem when'
     ' parsing and validating the file.')
 
@@ -112,6 +126,25 @@ class TableResource(DataResource):
         else:
             return False
 
+    def read_resource(self, resource_path):
+        '''
+        One common spot to define how the file is read
+        '''
+        reader = TableResource.get_reader(resource_path)
+        if reader is None:
+            raise ParserNotFoundException('')
+        else:
+            try:
+                # read the table using the appropriate parser:
+                self.table = reader(resource_path, index_col=0, comment='#')
+            except Exception as ex:
+                logger.error('Could not use {reader} to parse the file'
+                ' at {path}'.format(
+                    reader = reader,
+                    path = resource_path
+                ))     
+                raise ParseException('')
+
     def validate_type(self, resource_path):
         '''
         In this base method, we determine attempt to parse the file.
@@ -122,47 +155,80 @@ class TableResource(DataResource):
         classes.  This method, however, fills in the `self.table` member
         which is then accessible to children.
         '''
-        reader = TableResource.get_reader(resource_path)
-        if reader is None:
+        try:
+            self.read_resource(resource_path)
+            if self.table.shape == (0,0):
+                return (False, EMPTY_TABLE_ERROR )
+
+            if self.table.shape[1] == 0:
+                return (False, TRIVIAL_TABLE_ERROR)
+
+            # check if all the column names are numbers-- which would USUALLY
+            # indicate a missing header
+            columns_all_numbers = TableResource.index_all_numbers(self.table.columns)
+            if columns_all_numbers:
+                return (False, NUMBERED_COLUMN_NAMES_ERROR)
+
+            # check if all the rownames are numbers, which would usually
+            # indicate missing row names (i.e. a column of data is read
+            # as the index)
+            rows_all_numbers = TableResource.index_all_numbers(self.table.index)
+
+            if rows_all_numbers:
+                return (False, NUMBERED_ROW_NAMES_ERROR)
+
+            # check for duplicate row names
+            if self.table.index.has_duplicates:
+                return (False, NONUNIQUE_ROW_NAMES_ERROR)
+            return (True, None)
+
+        except ParserNotFoundException as ex:
             return (False, PARSER_NOT_FOUND_ERROR)
-        else:
-            try:
-                # read the table using the appropriate parser:
-                self.table = reader(resource_path, index_col=0, comment='#')
 
-                if self.table.shape == (0,0):
-                    return (False, EMPTY_TABLE_ERROR )
+        except ParseException as ex:
+            return (False, PARSE_ERROR)
+     
 
-                if self.table.shape[1] == 0:
-                    return (False, TRIVIAL_TABLE_ERROR)
+    def get_preview(self, resource_path):
+        '''
+        Returns a dict of the table contents
 
-                # check if all the column names are numbers-- which would USUALLY
-                # indicate a missing header
-                columns_all_numbers = TableResource.index_all_numbers(self.table.columns)
-                if columns_all_numbers:
-                    return (False, NUMBERED_COLUMN_NAMES_ERROR)
+        Note that we don't use the Pandas to_json() method
+        since it's a bit verbose.
+        '''
+        try:
+            self.read_resource(resource_path)
+            table_head = self.table.head()
+            j = {}
+            j['columns'] = table_head.columns.tolist()
+            j['rows'] = table_head.index.tolist()
+            j['values'] = table_head.values.tolist()
+            return j
 
-                # check if all the rownames are numbers, which would usually
-                # indicate missing row names (i.e. a column of data is read
-                # as the index)
-                rows_all_numbers = TableResource.index_all_numbers(self.table.index)
+        # for these first two exceptions, we already have logged
+        # any problems when we called the `read_resource` method
+        except ParserNotFoundException as ex:
+            return {
+                'error': 
+                'Parser for the resource not found.'
+            }
 
-                if rows_all_numbers:
-                    return (False, NUMBERED_ROW_NAMES_ERROR)
-
-                # check for duplicate row names
-                if self.table.index.has_duplicates:
-                    return (False, NONUNIQUE_ROW_NAMES_ERROR)
-                return (True, None)
-
-
-            except Exception as ex:
-                logger.error('Could not use {reader} to parse the file'
-                ' at {path}'.format(
-                    reader = reader,
-                    path = resource_path
+        except ParseException as ex:
+            return {
+                'error': 
+                'Parser could not read the resource.'
+            }
+        
+        # catch any other types of exceptions that we did not anticipate.
+        except Exception as ex:
+            logger.error('An unexpected error occurred when preparing'
+                'a resource preview for the resource at {path}'.format(
+                    path=resource_path
                 ))
-                return (False, PARSE_ERROR)     
+            return {
+                'error': 
+                'An unexpected error occurred.'
+            }     
 
 
 class Matrix(TableResource):

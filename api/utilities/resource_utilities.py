@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 
 from api.models import Resource
+from api.resource_types import RESOURCE_MAPPING
 from .basic_utils import make_local_directory, \
     move_resource, \
     copy_local_resource, \
@@ -180,3 +181,39 @@ def check_for_shared_resource_file(resource_instance):
                 return False
         else:
             return True
+
+def get_resource_preview(resource_instance):
+    '''
+    Returns a "preview" of the resource_instance in JSON-format.
+
+    Only valid for certain resource types and assumes
+    that the resource is active. 
+    '''
+    logger.info('Retrieving preview for resource: {resource}.'.format(
+        resource=resource_instance
+    ))
+
+    if not resource_instance.resource_type:
+        logger.info('No resource type was known for resource: {resource}.'.format(
+            resource = resource_instance
+        ))
+        return {
+            'info': 'No preview available since the resource'
+            ' type was not set.'
+        }
+
+    # The resource type is the shorthand identifier.
+    # To get the actual resource class implementation, we 
+    # use the RESOURCE_MAPPING dict
+    try:
+        resource_class = RESOURCE_MAPPING[resource_instance.resource_type]
+    except KeyError as ex:
+        logger.error('Received a Resource that had a non-null resource_type'
+            ' but was also not in the known resource types.'
+        )
+        return {'error': 'No preview available'}
+        
+    # instantiate the proper class for this type:
+    resource_type = resource_class()
+    preview = resource_type.get_preview(resource_instance.path)
+    return preview

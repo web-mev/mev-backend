@@ -1,4 +1,6 @@
 import uuid
+import os
+import json
 import unittest.mock as mock
 
 from django.urls import reverse
@@ -878,3 +880,93 @@ class ResourceDetailTests(BaseAPITestCase):
             self.url_for_unattached, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ResourcePreviewTests(BaseAPITestCase):
+
+    def setUp(self):
+
+        self.establish_clients()
+
+        # get an example from the database:
+        regular_user_resources = Resource.objects.filter(
+            owner=self.regular_user_1,
+        )
+        if len(regular_user_resources) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Resource instance for the user {user}
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+
+        self.resource = regular_user_resources[0]
+        self.url = reverse(
+            'resource-preview', 
+            kwargs={'pk':self.resource.pk}
+        )
+
+        for r in regular_user_resources:
+            if not r.is_active:
+                inactive_resource = r
+                break
+        self.inactive_resource_url = reverse(
+            'resource-preview', 
+            kwargs={'pk':inactive_resource.pk}
+        )
+
+    def test_preview_request_from_non_owner(self):
+        '''
+        Tests where a preview is requested from someone else's
+        resource
+        '''
+        response = self.authenticated_other_client.get(
+            self.url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_403_FORBIDDEN)
+
+    def test_preview_request_for_inactive_fails(self):
+        '''
+        Tests where a preview is requested for a resource
+        that is inactive.
+        '''
+        response = self.authenticated_regular_client.get(
+            self.inactive_resource_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+
+    @mock.patch('api.views.resource_views.get_resource_preview')
+    def test_error_reported(self, mock_preview):
+        '''
+        If there was some error in preparing the preview, 
+        the returned data will have an 'error' key
+        '''
+        mock_preview.return_value = {'error': 'something'}
+        response = self.authenticated_regular_client.get(
+            self.url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_500_INTERNAL_SERVER_ERROR)   
+
+        self.assertTrue('error' in response.json())     
+
+    @mock.patch('api.views.resource_views.get_resource_preview')
+    def test_expected_response(self, mock_preview):
+        '''
+        If there was some error in preparing the preview, 
+        the returned data will have an 'error' key
+        '''
+        preview_dict = {
+            'columns': ['a', 'b', 'c'],
+            'rows': [1,2,3], 
+            'values': [[0,1,2],[3,4,5],[6,7,8]]}
+        mock_preview.return_value = preview_dict
+        response = self.authenticated_regular_client.get(
+            self.url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = json.loads(response.json())
+        self.assertDictEqual(preview_dict, j) 

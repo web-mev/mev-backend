@@ -1,7 +1,9 @@
 import logging
+import json
 
 from rest_framework import permissions as framework_permissions
 from rest_framework import generics
+from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -9,7 +11,9 @@ from api.models import Resource
 from api.serializers import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
-    check_for_shared_resource_file
+    check_for_shared_resource_file, \
+    get_resource_preview
+
 import api.async_tasks as api_tasks
 
 logger = logging.getLogger(__name__)
@@ -92,6 +96,13 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         logger.info('Requesting deletion of Resource: {resource}'.format(
             resource=instance))
 
+        if not instance.is_active:
+            logger.info('Resource {resource_uuid} was not active.'
+                ' Rejecting request for deletion.'.format(
+                    resource_uuid = str(instance.pk)
+                ))
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         try:
             file_shared_by_multiple_resources = check_for_shared_resource_file(instance)
             logger.info('File underlying the deleted Resource is '
@@ -120,3 +131,39 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
             api_tasks.delete_file.delay(instance.path, instance.is_local)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ResourcePreview(APIView):
+    '''
+    For certain types of Resource objects, the users may like to see
+    a preview of how the data was parsed, like a unix `head` call.  
+    This returns a JSON-format representation of the data.
+
+    This preview endpoint is only really sensible for certain types of 
+    Resources, such as those in table format.  Other types, such as 
+    sequence-based files do not have preview functionality.
+    '''
+
+    permission_classes = [framework_permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            resource = Resource.objects.get(pk=kwargs['pk'])
+        except Resource.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_staff or (resource.owner == user):
+            if not resource.is_active:
+                return Response({
+                    'resource': 'The requested resource is'
+                    ' not active.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # requester can access, resource is active.  Go get preview
+            j = get_resource_preview(resource)
+            if 'error' in j:
+                return Response(json.dumps(j), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(json.dumps(j), status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)

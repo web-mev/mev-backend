@@ -54,6 +54,16 @@ class TestBasicTable(unittest.TestCase):
         reader = t.get_reader('junk.odc')
         self.assertIsNone(reader)
 
+    def test_fails_at_empty_table(self):
+        '''
+        If the file is literally empty, check that it fails
+        '''
+        t = TableResource()
+        is_valid, err = t.validate_type(os.path.join(
+            TESTDIR, 'test_empty.tsv'))
+        self.assertFalse(is_valid)
+        self.assertEqual(err, PARSE_ERROR)
+        
     def test_reads_basic_table(self):
         '''
         Is able to parse and report validation on a well-formatted
