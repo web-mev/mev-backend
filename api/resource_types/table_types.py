@@ -69,8 +69,15 @@ def col_str_formatter(x):
 
 class TableResource(DataResource):
     '''
-    This is the most generic form of a delimited file.  Any
+    The `TableResource` is the most generic form of a delimited file.  Any
     type of data that can be represented as rows and columns.
+
+    This or any of the more specific subclasses can be contained in files
+    saved in CSV, TSV, or Excel (xls/xlsx) format.  If in Excel format, the 
+    data of interest must reside in the first sheet of the workbook.
+
+    Special tab-delimited files like BED or VCF files are recognized by
+    their canonical extension (e.g. ".bed" or ".vcf").
     '''
     @staticmethod
     def get_reader(resource_path):
@@ -129,7 +136,7 @@ class TableResource(DataResource):
                 if self.table.shape[1] == 0:
                     return (False, TRIVIAL_TABLE_ERROR)
 
-                # check if all the column names are numbers-- which would USUAlly
+                # check if all the column names are numbers-- which would USUALLY
                 # indicate a missing header
                 columns_all_numbers = TableResource.index_all_numbers(self.table.columns)
                 if columns_all_numbers:
@@ -160,8 +167,8 @@ class TableResource(DataResource):
 
 class Matrix(TableResource):
     '''
-    This is a table that has only numeric types, possibly mixed
-    types like floats and integers
+    A `Matrix` is a delimited table-based file that has only numeric types.
+    These types can be mixed, like floats and integers
     '''
 
     # looking for integers OR floats.  Both are acceptable  
@@ -201,7 +208,7 @@ class Matrix(TableResource):
 
 class IntegerMatrix(Matrix):
     '''
-    This type further specializes the Matrix
+    An `IntegerMatrix` further specializes the `Matrix`
     to admit only integers.
     '''
     # looking for only integers. 
@@ -245,9 +252,12 @@ class IntegerMatrix(Matrix):
 
 class AnnotationTable(TableResource):
     '''
-    This is a special type of table that will be responsible
+    An `AnnotationTable` is a special type of table that will be responsible
     for annotating samples (e.g. adding sample names and 
-    associated attributes like experimental group or other covariates)
+    associated attributes like experimental group or other covariates).
+
+    The first column will give the sample names and the remaining columns will
+    each individually represent different covariates associated with that sample.
     '''
     def validate_type(self, resource_path):
 
@@ -295,11 +305,14 @@ class BEDFile(TableResource):
     '''
     A file format that corresponds to the BED format.  This is
     the minimal BED format, which has:
+
     - chromosome
     - start position
     - end position
 
-    By default, BED files do NOT contain headers and we enforce that here
+    Additional columns are ignored.
+
+    By default, BED files do NOT contain headers and we enforce that here.
     '''
     def validate_type(self, resource_path):
         reader = TableResource.get_reader(resource_path)

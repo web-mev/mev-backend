@@ -9,10 +9,9 @@ class SequenceResource(DataResource):
     This class is used to represent sequence-based files
     such as Fasta, Fastq, SAM/BAM
 
-    We cannot reasonably validate the contents of these files quickly,
-    so any validation will have to be deferred or queued somehow.
-
-    This class will contain any logic common to these types
+    We cannot (reasonably) locally validate the contents of these 
+    files quickly or exhaustively, so minimal validation is performed
+    remotely
     '''
     @classmethod
     def validate_type(cls, resource_path):
@@ -21,8 +20,15 @@ class SequenceResource(DataResource):
 
 class FastAResource(SequenceResource):
     '''
-    This resource type is for Fasta files,
-    compressed or not
+    This type is for validating Fasta files,
+    compressed or not.  Fasta files are recognized using
+    the following formats:
+
+    - fasta
+    - fasta.gz
+    - fa
+    - fa.gz
+
     '''
     file_extensions = [
         'fasta',
@@ -38,7 +44,14 @@ class FastAResource(SequenceResource):
 class FastQResource(SequenceResource):
     '''
     This resource type is for Fastq files,
-    compressed or not
+    compressed or not. Fastq files are recognized using
+    the following formats:
+
+    - fastq
+    - fastq.gz
+    - fq
+    - fq.gz
+
     '''
     file_extensions = [
         'fastq',
@@ -54,7 +67,12 @@ class FastQResource(SequenceResource):
 
 class AlignedSequenceResource(SequenceResource):
     '''
-    This is for SAM/BAM files
+    This resource type is for SAM/BAM files.  We accept
+    both SAM and BAM files named using their canonical extensions:
+
+    - ".bam" for BAM files
+    - ".sam" for SAM files
+    
     '''
     file_extensions = [
         'bam',

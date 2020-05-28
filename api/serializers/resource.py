@@ -86,7 +86,12 @@ class ResourceSerializer(serializers.ModelSerializer):
         except KeyError:
             internal_call = True
 
-        owner_email = validated_data['owner']['email']
+        try:
+            owner_email = validated_data['owner']['email']
+        except KeyError as ex:
+            raise exceptions.ParseError({'owner_email':'This field'
+                ' must be supplied with the payload.'
+            })
 
         # check that the owner does exist.  If not, return an error
         try:

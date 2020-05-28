@@ -43,11 +43,8 @@ class Resource(models.Model):
     - Regular users (non-admins) can't create new `Resource` directly via the API.
     The only way they can create a `Resource` is indirectly by adding a new upload.
 
-    - When a `Resource` is added to a `Workspace`, a new copy is made.  This
-    maintains the state of the original `Resource`.  In this way, the same 
-    original file can be added to multiple `Workspace`s but users do not have
-    to worry that modifications in one `Workspace` will affect those in other 
-    `Workspace`s.  
+    - When a `Resource` is added to a `Workspace`, a new copy of the database
+    record is made.  This maintains the state of the original `Resource`.   
 
     - `Resource`s can be made "public" so that others can view and import 
     them.  Once another user chooses to import the file, a copy is made and

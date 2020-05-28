@@ -76,6 +76,28 @@ class ResourceListTests(BaseAPITestCase):
         self.assertIsNone(r.resource_type)
 
 
+    @mock.patch('api.serializers.resource.api_tasks')
+    @mock.patch('api.serializers.resource.set_resource_to_validation_status')
+    def test_missing_owner_in_admin_resource_request_fails(self, 
+        mock_set_resource_to_validation_status,
+        mock_api_tasks):
+        """
+        Test that admins must specify an owner_email field in their request
+        to create a Resource directly via the API
+        """
+        # get all initial instances before anything happens:
+        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+
+        payload = {
+            'name': 'some_file.txt',
+            'resource_type':'MTX'
+        }
+        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+        difference_set = current_resource_uuids.difference(initial_resource_uuids)
+        self.assertEqual(len(difference_set), 0)
+
     def test_bad_admin_request_fails(self):
         """
         Test that even admins must specify a resource_type.

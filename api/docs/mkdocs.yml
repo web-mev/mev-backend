@@ -22,5 +22,7 @@ nav:
       - Attributes: 'attributes.md'
       - Observations and Features: 'elements.md'
       - Workspaces: 'workspaces.md'
-      - Resources: 'resources.md'
+      - Resources: 
+         - General info: 'resources.md'
+         - Resource types: 'resource_types.md'
    - Authentication: 'auth.md'
