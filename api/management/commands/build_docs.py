@@ -65,7 +65,7 @@ class Command(BaseCommand):
         build.build(mkdocs_config.load_config(**kwargs), dirty=False)
 
         # generate the openAPI spec:
-        generator = SchemaGenerator()
+        generator = SchemaGenerator(title='WebMEV REST API Specification')
         schema = generator.get_schema(request=None, public=True)
         renderer = JSONOpenAPIRenderer()
         output = renderer.render(schema, renderer_context={})
