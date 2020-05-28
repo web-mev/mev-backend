@@ -10,8 +10,9 @@ class WorkspaceList(generics.ListCreateAPIView):
     '''
     Lists available Workspace instances.
 
-    Admins can list all available Workspaces, but non-admin users 
-    can only view their own Workspaces.
+    Admins can list all available Workspaces.
+    
+    Non-admin users can only view their own Workspaces.
     '''
     
     permission_classes = [api_permissions.IsOwnerOrAdmin, 
@@ -37,6 +38,13 @@ class WorkspaceList(generics.ListCreateAPIView):
 
 
 class WorkspaceDetail(generics.RetrieveUpdateDestroyAPIView):
+    '''
+    Retrieves a specific Workspace instance.
+
+    Admins may access any user's Workspace.
+
+    Non-admin users may only access their own Workspace instances.
+    '''
 
     # Admins can view/update/delete anyone's Workspaces, but general users 
     # can only modify their own

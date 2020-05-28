@@ -9,7 +9,7 @@ import api.permissions as api_permissions
 
 class UserList(generics.ListCreateAPIView):
     '''
-    Lists available User instances.
+    Lists User instances.
 
     Admins can view and create new users.
     Non-admin users can only view their own information.
@@ -35,9 +35,11 @@ class UserList(generics.ListCreateAPIView):
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     '''
+    Retrieves a specific user.
+
     Admins may view/modify/delete any user.
 
-    Non-admins may only view/modify/delete themself
+    Non-admins may only view/modify/delete their own user instance.
     '''
     # Admins can view detail about any user
     permission_classes = [api_permissions.IsInfoAboutSelf, 

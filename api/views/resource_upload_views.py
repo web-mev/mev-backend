@@ -92,7 +92,10 @@ class ResourceUpload(APIView):
 
 class ResourceUploadProgress(APIView):
     '''
-    Endpoint for checking the progress of an upload
+    Endpoint for checking the progress of an upload.
+
+    Requests must contain a "X-Progress-ID" header to identify
+    the upload they are monitoring.
     '''
     def get(self, request, format=None):
         progress_id = None

@@ -5,6 +5,9 @@ from collections import UserDict
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
+from rest_framework.renderers import JSONOpenAPIRenderer
+from rest_framework.schemas.openapi import SchemaGenerator
+
 from mkdocs.__main__ import cli
 from mkdocs import config as mkdocs_config
 from mkdocs.commands import build, gh_deploy
@@ -48,6 +51,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
+        # the location where the markdown and other files live
+        docs_dir = os.path.join(os.path.dirname(settings.MAIN_DOC_YAML), 'docs')
+
         if options['site_dir']:
             site_dir = options['site_dir']
         else:
@@ -57,6 +63,14 @@ class Command(BaseCommand):
 
         # build docs
         build.build(mkdocs_config.load_config(**kwargs), dirty=False)
+
+        # generate the openAPI spec:
+        generator = SchemaGenerator()
+        schema = generator.get_schema(request=None, public=True)
+        renderer = JSONOpenAPIRenderer()
+        output = renderer.render(schema, renderer_context={})
+        with open(os.path.join(site_dir, 'openapi_spec.json'), 'w') as fout:
+            fout.write(output.decode())
 
         # add the information relevant for the commit/push
         kwargs['remote_name'] = options['remote_name']

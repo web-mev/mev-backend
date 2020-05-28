@@ -22,8 +22,9 @@ class ResourceList(generics.ListCreateAPIView):
     '''
     Lists available Resource instances.
 
-    Admins can list all available Resources, but non-admin users 
-    can only view their own Resources.
+    Admins can list all available Resources.
+    
+    Non-admin users can only view their own Resources.
     '''
     
     permission_classes = [
@@ -56,6 +57,13 @@ class ResourceList(generics.ListCreateAPIView):
 
 
 class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
+    '''
+    Retrieves a specific Resource instance.
+
+    Admins can get/modify any Resource.
+    
+    Non-admin users can only view/edit their own Resources.
+    '''
 
     # Admins can view/update/delete anyone's Resources, but general users 
     # can only modify their own
@@ -135,14 +143,22 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
 
 class ResourcePreview(APIView):
     '''
-    For certain types of Resource objects, the users may like to see
-    a preview of how the data was parsed, like a unix `head` call.  
-    This returns a JSON-format representation of the data.
+    Returns a preview of the data underlying a Resource.
 
-    This preview endpoint is only really sensible for certain types of 
-    Resources, such as those in table format.  Other types, such as 
-    sequence-based files do not have preview functionality.
+    Typically used for checking that the parsing of a file worked
+    correctly and is formatted properly.
+
+    Depending on the data, the format of the response may be different.
+    Additionally, some Resource types do not support a preview.
     '''
+    # For certain types of Resource objects, the users may like to see
+    # a preview of how the data was parsed, like a unix `head` call.  
+    # This returns a JSON-format representation of the data.
+
+    # This preview endpoint is only really sensible for certain types of 
+    # Resources, such as those in table format.  Other types, such as 
+    # sequence-based files do not have preview functionality.
+    
 
     permission_classes = [framework_permissions.IsAuthenticated]
 
