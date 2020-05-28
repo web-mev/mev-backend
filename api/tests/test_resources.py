@@ -701,6 +701,7 @@ class ResourceDetailTests(BaseAPITestCase):
         '''
         private_resources = Resource.objects.filter(
             owner = self.regular_user_1,
+            is_active = True,
             is_public = False
         )
         if len(private_resources) > 0:

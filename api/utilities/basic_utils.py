@@ -147,3 +147,25 @@ def delete_local_file(path):
         logger.error('General exception handled.'
             'Could not delete the file at {path}'.format(path=path))
         raise ex
+
+def get_filesize(path, is_local=True):
+    '''
+    Gets the size of the resource at `path`,
+    returning an integer
+    '''
+
+    if is_local:
+        try:
+            return os.path.getsize(path)
+        except FileNotFoundError:
+            logger.error('Failed to get the size of local file at {path}'
+            ' since it did not exist.'.format(path=path))
+        except Exception as ex:
+            logger.error('Caught some unexpected exception when calling'
+            ' os.path.getsize.  Exception was {ex}'.format(ex=ex))
+        # since file-size is not "critical", we log the errors and just
+        # return 0 since it will still work.
+        return 0
+    else:
+        raise NotImplementedError('Need to implement get_filesize'
+            ' for remote resources')

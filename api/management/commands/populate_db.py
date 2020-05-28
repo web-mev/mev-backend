@@ -1,3 +1,5 @@
+import random 
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
@@ -42,39 +44,49 @@ class Command(BaseCommand):
         Workspace.objects.create(owner=user_dict[USER2])
 
     def populate_resources(self):
+
+        # for creating random file sizes:
+        size_low = 1000
+        size_high = 1000000000
+
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileA.tsv',
             resource_type = 'MTX',
             path='/path/to/fileA.txt',
             is_active = True,
-            is_public = True
+            is_public = True,
+            size = random.randint(size_low, size_high)
         )
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileB.csv',
             resource_type = 'ANN',
-            path='/path/to/fileB.txt'
+            path='/path/to/fileB.txt',
+            size = random.randint(size_low, size_high)
         )   
         Resource.objects.create(
             owner=user_dict[USER1],
             name='public_file.csv',
             resource_type = 'I_MTX',
             path='/path/to/public_file.txt',
-            is_public = True
+            is_public = True,
+            size = random.randint(size_low, size_high)
         )        
         Resource.objects.create(
             owner=user_dict[USER2],
             name='fileC.tsv',
             resource_type = 'MTX',
-            path='/path/to/fileC.txt'
+            path='/path/to/fileC.txt',
+            size = random.randint(size_low, size_high)
         )
 
         # create a Resource that has the type unset:
         Resource.objects.create(
             owner=user_dict[USER2],
             name='fileD.tsv',
-            path='/path/to/fileD.txt'      
+            path='/path/to/fileD.txt',
+            size = random.randint(size_low, size_high)      
         )
 
         # create a Resource that has the same path as another
@@ -85,7 +97,8 @@ class Command(BaseCommand):
             resource_type = 'MTX',
             path='/path/to/fileA.txt',
             is_active = True,
-            is_public = True
+            is_public = True,
+            size = random.randint(size_low, size_high)
         )
 
     def add_resources_to_workspace(self):

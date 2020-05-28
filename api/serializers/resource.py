@@ -24,6 +24,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         required=False
     )
     path = serializers.CharField(write_only=True, required=False)
+    size = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Resource
@@ -38,7 +39,8 @@ class ResourceSerializer(serializers.ModelSerializer):
             'status',
             'workspace',
             'created',
-            'path'
+            'path',
+            'size'
         ]
 
     @staticmethod
@@ -55,6 +57,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         is_public = validated_data.get('is_public', False)
         is_active = validated_data.get('is_active', False)
         status = validated_data.get('status', '')
+        size = validated_data.get('size', 0)
 
         # the 'get' above returns a tuple so we have to index
         # to get the actual workspace instance or None
@@ -67,7 +70,8 @@ class ResourceSerializer(serializers.ModelSerializer):
             'resource_type': resource_type,
             'is_public' : is_public,
             'is_active' : is_active,
-            'status': status
+            'status': status,
+            'size': size
         }
 
     def create(self, validated_data): 
@@ -119,7 +123,8 @@ class ResourceSerializer(serializers.ModelSerializer):
                     owner=resource_owner,
                     path=params['path'],
                     name=params['name'],
-                    is_public=params['is_public']
+                    is_public=params['is_public'],
+                    size=params['size']
                 )
             else:
                 # If the request specifies a Workspace UUID, we need to check 
@@ -139,7 +144,8 @@ class ResourceSerializer(serializers.ModelSerializer):
                     owner=resource_owner,
                     path=params['path'],
                     name=params['name'],
-                    is_public=params['is_public']
+                    is_public=params['is_public'],
+                    size=params['size']
                 )
                 
             logger.info('Created a Resource: %s' % resource)

@@ -7,7 +7,8 @@ from django.conf import settings
 from api.models import Resource
 from .basic_utils import make_local_directory, \
     move_resource, \
-    copy_local_resource
+    copy_local_resource, \
+    get_filesize
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +37,19 @@ def create_resource_from_upload(filepath,
     `is_public` is a boolean.
     `owner` is an instance of our user model
     '''
+    # get the size of the file:
+    size = get_filesize(filepath, is_local)
+
     # create a serialized representation so we can use the validation
     # contained there.  Note that since we are creating a new Resource
-    # we have NOT validated it.  Hence, the `resource_type` is set to null.
+    # we have NOT validated it.
     d = {'owner_email': owner.email,
         'path': filepath,
         'name': filename,
         'resource_type': resource_type,
         'is_public': is_public,
-        'is_local': is_local
+        'is_local': is_local,
+        'size': size
     }
 
     from api.serializers import ResourceSerializer

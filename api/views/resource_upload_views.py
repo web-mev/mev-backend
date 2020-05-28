@@ -64,8 +64,7 @@ class ResourceUpload(APIView):
                 for chunk in upload.chunks():
                     destination.write(chunk)
 
-            # create a Resource instance.  Note that this
-            # also starts the validation process:
+            # create a Resource instance.
             resource = create_resource_from_upload(
                 tmp_path, 
                 filename, 
@@ -74,6 +73,10 @@ class ResourceUpload(APIView):
                 True,
                 owner
             )
+
+            # ensure the resource is not active for use until
+            # validation is complete:
+            set_resource_to_validation_status(resource)
 
             # now that we have the file, start the validation process
             # in the background

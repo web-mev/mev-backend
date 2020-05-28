@@ -128,6 +128,11 @@ class Resource(models.Model):
         default = ''
     )
 
+    # The size of the resource in bytes.
+    # Converters will handle conversion to human-readable form
+    size = models.BigIntegerField(default=0)
+
+
     # the "type" of the Resource.  Each type will have
     # characteristics that need to be verified.  For example
     # an integer matrix obviously can only contain integers.
