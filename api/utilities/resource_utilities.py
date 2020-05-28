@@ -34,6 +34,9 @@ def create_resource_from_upload(filepath,
     `resource_type` is one of the acceptable resource type identifiers.  
        - At this point, it's just a "requested" resource type and has not
          been verified.
+       - Note that even though we fill the resource_type field in the dict 
+         below, we do not end up setting that member on the database object.
+         See the `ResourceSerializer.create` method. 
     `is_public` is a boolean.
     `owner` is an instance of our user model
     '''

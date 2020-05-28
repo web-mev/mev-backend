@@ -111,6 +111,9 @@ class ResourceSerializer(serializers.ModelSerializer):
             params = ResourceSerializer.parse_request_parameters(validated_data)
             
             # we require the resource_type.  No guessing types.
+            # Note that we do not actually set the resource_type 
+            # on the "pre-validated" Resource instances created
+            # below.
             resource_type = params['resource_type']
             if not resource_type:
                 raise exceptions.ValidationError({
