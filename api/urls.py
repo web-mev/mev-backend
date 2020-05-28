@@ -13,7 +13,7 @@ urlpatterns = [
 
     # views for querying User instances
     path('users/', api.views.UserList.as_view(), name='user-list'),
-    path('users/<int:pk>/', api.views.UserDetail.as_view(), name='user-detail'),
+    path('users/<uuid:pk>/', api.views.UserDetail.as_view(), name='user-detail'),
 
     ##################### Views for Workspaces ###############################
 

@@ -43,7 +43,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     Custom model implementing the email as the username
     """
     email = models.EmailField(_('email address'), unique=True, null=False, max_length=100)
-    user_uuid = models.UUIDField(primary_key=False, default=uuid.uuid4, editable=True)
+    user_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
