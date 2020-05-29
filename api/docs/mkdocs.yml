@@ -25,4 +25,8 @@ nav:
       - Resources: 
          - General info: 'resources.md'
          - Resource types: 'resource_types.md'
+         - Resource metadata: 'resource_metadata.md'
    - Authentication: 'auth.md'
+ - Operations: 'operations.md'
+ - Workflow and analysis concepts: 'example_workflow.md'
+
