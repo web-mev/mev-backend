@@ -230,6 +230,9 @@ class WorkspaceDetailTests(BaseAPITestCase):
         self.assertEqual(w.workspace_name, new_name)
 
         # try editing via PATCH:
+        new_name = 'Another new workspace name'
+        self.assertTrue(self.regular_user_workspace.workspace_name != new_name)
+        payload = {'workspace_name':new_name, 'owner_email':self.regular_user_1.email}
         response = self.authenticated_regular_client.patch(self.url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(new_name, response.data['workspace_name'])
@@ -238,6 +241,14 @@ class WorkspaceDetailTests(BaseAPITestCase):
         pk = self.regular_user_workspace.pk
         w = Workspace.objects.get(pk=pk)
         self.assertEqual(w.workspace_name, new_name)
+
+        # check that the owner_email field is indeed unnecesary:
+        new_name = 'Yet another new workspace name'
+        self.assertTrue(self.regular_user_workspace.workspace_name != new_name)
+        payload = {'workspace_name':new_name}
+        response = self.authenticated_regular_client.put(self.url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(new_name, response.data['workspace_name'])
 
     def test_others_cannot_edit_workspace_detail(self):
         """

@@ -76,4 +76,3 @@ class UserAdmin(BaseUserAdmin):
 
 # Now register the new UserAdmin...
 admin.site.register(get_user_model(), UserAdmin)
-# Register your models here.

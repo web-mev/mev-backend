@@ -6,7 +6,7 @@ from api.models import Workspace
 class WorkspaceSerializer(serializers.ModelSerializer):
 
     # add a human-readable datetime
-    owner_email = serializers.EmailField(source='owner.email')
+    owner_email = serializers.EmailField(source='owner.email', required=False)
     created = serializers.DateTimeField(
         source='creation_datetime', 
         format = '%B %d, %Y (%H:%M:%S)',
@@ -26,12 +26,18 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
         # the user who generated the request.  A User instance (or subclass)
         requesting_user = validated_data['requesting_user']
-        owner_email = validated_data['owner']['email']
 
+        # see if the request included the optional 'owner_email' field:
         try:
-            workspace_owner = get_user_model().objects.get(email=owner_email)
-        except get_user_model().DoesNotExist as ex:
-            raise exceptions.ParseError()
+            owner_email = validated_data['owner']['email']
+
+            # if the owner_email was given, check that it's valid:
+            try:
+                workspace_owner = get_user_model().objects.get(email=owner_email)
+            except get_user_model().DoesNotExist as ex:
+                raise exceptions.ParseError({'owner_email':'Invalid owner email.'})
+        except KeyError as ex:
+            workspace_owner = requesting_user
 
         # If the user is an admin, they can create a Workspace for anyone.
         # if the user is not an admin, they can only create Workspaces for themself.

@@ -57,10 +57,7 @@ class WorkspaceResourceList(generics.ListAPIView):
 
 class WorkspaceResourceAdd(APIView):
     '''
-    This class handles adding Resource instances to a specific workspace
-
-    When we add Resources to a workspace, we make a copy so that the 
-    original data remains unmodified.
+    This endpoint adds a Resource instance to a specific Workspace.
     '''
     permission_classes = [framework_permissions.IsAuthenticated]
     serializer_class = WorkspaceResourceAddSerializer
