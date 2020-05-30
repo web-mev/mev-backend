@@ -12,6 +12,7 @@ RUN apt-get update \
     libffi-dev \
     liblzma-dev \
     libsqlite3-dev \
+    libpq-dev \
     wget \
     supervisor \
     nano \
@@ -19,6 +20,12 @@ RUN apt-get update \
     curl \
     pkg-config \
     procps
+
+# Install postgresql:
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add && \
+  apt-get update && \
+  apt-get install -y postgresql-12
 
 # Install Python 3.7.6:
 RUN mkdir /opt/software && \
