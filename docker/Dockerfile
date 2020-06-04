@@ -70,9 +70,6 @@ RUN pip3 install -U pip && \
 #COPY gunicorn.conf /etc/supervisor/conf.d/
 RUN cp /www/supervisor/*.conf /etc/supervisor/conf.d/
 
-# copy over the startup script:
-COPY startup.sh /opt/software/
-
 # setup some static environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -87,10 +84,10 @@ RUN mkdir /var/log/mev && \
     chown -R mev:mev /www /var/log/mev /var/log/supervisor /etc/supervisor/conf.d
 
 # Give ownership and add execution permissions for startup script
-RUN chown mev:mev /opt/software/startup.sh && chmod +x /opt/software/startup.sh
+RUN chown mev:mev /www/docker/startup.sh && chmod +x /www/docker/startup.sh
 
 # switch to the mev user
 USER mev
 
 
-ENTRYPOINT ["/opt/software/startup.sh"]
+ENTRYPOINT ["/www/docker/startup.sh"]
