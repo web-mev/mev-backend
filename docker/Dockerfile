@@ -67,11 +67,8 @@ RUN pip3 install -U pip && \
     pip3 install --no-cache-dir -r /www/requirements.txt
 
 # Copy over the supervisor conf files:
-COPY gunicorn.conf /etc/supervisor/conf.d/
-COPY redis.conf /etc/supervisor/conf.d/
-COPY celery_worker.conf /etc/supervisor/conf.d/
-COPY celery_beat.conf /etc/supervisor/conf.d/
-COPY supervisord.conf /etc/supervisor/supervisord.conf
+#COPY gunicorn.conf /etc/supervisor/conf.d/
+RUN cp /www/supervisor/*.conf /etc/supervisor/conf.d/
 
 # copy over the startup script:
 COPY startup.sh /opt/software/
@@ -96,4 +93,4 @@ RUN chown mev:mev /opt/software/startup.sh && chmod +x /opt/software/startup.sh
 USER mev
 
 
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/opt/software/startup.sh"]

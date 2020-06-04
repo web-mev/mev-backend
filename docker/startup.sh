@@ -31,20 +31,12 @@ python3 /www/manage.py makemigrations api
 python3 /www/manage.py migrate
 python3 /www/manage.py collectstatic --noinput
 
-# Create the superuser
-
-
-
-
-
 # Startup redis, celery, gunicorn
-if [ $BIND = 'local' ]; then
-    export BIND="0.0.0.0:8000"
-else
-    export BIND="unix:/host_mount/mev.sock"
-fi
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread && supervisorctl update
+
+cd /wwww
+gunicorn mev.wsgi:application $1
 
 
 
