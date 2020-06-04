@@ -59,8 +59,6 @@ RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.g
   && make install \
   && cp redis.conf /etc/redis.conf
 
-RUN ls /opt
-
 # Pull the source code:
 RUN git clone https://github.com/qbrc-cnap/mev-backend /www
 
