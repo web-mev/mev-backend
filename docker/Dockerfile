@@ -59,6 +59,8 @@ RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.g
   && make install \
   && cp redis.conf /etc/redis.conf
 
+RUN ls /opt
+
 # Pull the source code:
 RUN git clone https://github.com/qbrc-cnap/mev-backend /www
 
@@ -68,7 +70,10 @@ RUN pip3 install -U pip && \
 
 # Copy over the supervisor conf files:
 #COPY gunicorn.conf /etc/supervisor/conf.d/
-RUN cp /www/supervisor/*.conf /etc/supervisor/conf.d/
+RUN cp /www/supervisor/redis.conf /etc/supervisor/conf.d/ && \
+    cp /www/supervisor/celery_worker.conf /etc/supervisor/conf.d/ && \
+    cp /www/supervisor/celery_beat.conf /etc/supervisor/conf.d/ && \
+    cp /www/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 
 # setup some static environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
