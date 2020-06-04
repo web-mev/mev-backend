@@ -103,7 +103,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # use an alternate user model which has the email as the username
 AUTH_USER_MODEL = 'api.CustomUser'

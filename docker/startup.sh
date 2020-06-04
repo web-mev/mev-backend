@@ -29,6 +29,7 @@ fi
 
 python3 /www/manage.py makemigrations api
 python3 /www/manage.py migrate
+python3 /www/manage.py collectstatic --noinput
 
 # Create the superuser
 
