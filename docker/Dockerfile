@@ -79,7 +79,7 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 # create the mev user
-RUN addgroup -S mev && adduser -m -S mev -G mev
+RUN addgroup --system mev && adduser --system --group mev
 
 # Give that user ownership of the code directory and the logging directory
 RUN mkdir /var/log/mev && \
@@ -87,5 +87,9 @@ RUN mkdir /var/log/mev && \
 
 # switch to the mev user
 USER mev
+
+# copy over the startup script:
+RUN mkdir /opt/software
+COPY startup.sh /opt/software/
 
 ENTRYPOINT ["/bin/bash"]

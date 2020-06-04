@@ -21,7 +21,7 @@ DATABASES = {
         'USER': get_env('DB_USER'),
         'PASSWORD': get_env('DB_PASSWD'),
         'HOST': get_env('DB_HOST'),
-        'PORT': get_env('DB_PORT'),
+        'PORT': int(get_env('DB_PORT')),
     }
 }
 
