@@ -71,6 +71,10 @@ COPY gunicorn.conf /etc/supervisor/conf.d/
 COPY redis.conf /etc/supervisor/conf.d/
 COPY celery_worker.conf /etc/supervisor/conf.d/
 COPY celery_beat.conf /etc/supervisor/conf.d/
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+
+# copy over the startup script:
+COPY startup.sh /opt/software/
 
 # setup some static environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -83,13 +87,13 @@ RUN addgroup --system mev && adduser --system --group mev
 
 # Give that user ownership of the code directory and the logging directory
 RUN mkdir /var/log/mev && \
-    chown -R mev:mev /www /var/log/mev
+    chown -R mev:mev /www /var/log/mev /var/log/supervisor /etc/supervisor/conf.d
+
+# Give ownership and add execution permissions for startup script
+RUN chown mev:mev /opt/software/startup.sh && chmod +x /opt/software/startup.sh
 
 # switch to the mev user
 USER mev
 
-# copy over the startup script:
-RUN mkdir /opt/software
-COPY startup.sh /opt/software/
 
 ENTRYPOINT ["/bin/bash"]

@@ -21,13 +21,13 @@ mkdir /www/pending_user_uploads
 mkdir /www/user_resources
 
 
-if [$ENVIRONMENT = 'dev']; then
+if [ $ENVIRONMENT = 'dev' ]; then
     export DJANGO_SETTINGS_MODULE=mev.settings_dev
 else
     export DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
 
-python3 /www/manage.py makemigrations
+python3 /www/manage.py makemigrations api
 python3 /www/manage.py migrate
 
 # Create the superuser
@@ -37,11 +37,12 @@ python3 /www/manage.py migrate
 
 
 # Startup redis, celery, gunicorn
-if [$BIND = 'local']; then
+if [ $BIND = 'local' ]; then
     export BIND="0.0.0.0:8000"
 else
     export BIND="unix:/host_mount/mev.sock"
 fi
+supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread && supervisorctl update
 
 
