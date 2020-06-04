@@ -3,7 +3,7 @@ import logging.config
 
 from .base_settings import * 
 
-SECRET_KEY = 'dev'
+SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 
 DEBUG = True
 
@@ -11,8 +11,12 @@ ALLOWED_HOSTS = []
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'dev_db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': get_env('DB_NAME'),
+        'USER': get_env('DB_USER'),
+        'PASSWORD': get_env('DB_PASSWD'),
+        'HOST': get_env('DB_HOST'),
+        'PORT': get_env('DB_PORT'),
     }
 }
 

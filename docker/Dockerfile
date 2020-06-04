@@ -4,6 +4,10 @@ FROM debian:stretch
 RUN apt-get update \
     && apt-get install -y \
     build-essential \
+    apt-transport-https \
+    ca-certificates \
+    gnupg2 \
+    software-properties-common \
     zlib1g-dev \
     libssl-dev \
     libncurses5-dev \
@@ -20,6 +24,15 @@ RUN apt-get update \
     curl \
     pkg-config \
     procps
+
+# Docker in Docker!!
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
+    add-apt-repository \
+    "deb [arch=amd64] https://download.docker.com/linux/debian \
+    $(lsb_release -cs) \
+    stable" && \
+    apt-get update && \
+    apt-get install -y docker-ce
 
 # Install postgresql:
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
@@ -47,12 +60,32 @@ RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.g
   && cp redis.conf /etc/redis.conf
 
 # Pull the source code:
-RUN git clone https://github.com/qbrc-cnap/mev-backend /tmp/mev
+RUN git clone https://github.com/qbrc-cnap/mev-backend /www
 
 # Install the python dependencies, as given from the repository:
-RUN pip3 install -U pip
-RUN pip3 install --no-cache-dir -r /tmp/mev/requirements.txt
+RUN pip3 install -U pip && \
+    pip3 install --no-cache-dir -r /www/requirements.txt
 
-RUN rm -rf /tmp/mev
+# Copy over the supervisor conf files:
+COPY gunicorn.conf /etc/supervisor/conf.d/
+COPY redis.conf /etc/supervisor/conf.d/
+COPY celery_worker.conf /etc/supervisor/conf.d/
+COPY celery_beat.conf /etc/supervisor/conf.d/
+
+# setup some static environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+# create the mev user
+RUN addgroup -S mev && adduser -m -S mev -G mev
+
+# Give that user ownership of the code directory and the logging directory
+RUN mkdir /var/log/mev && \
+    chown -R mev:mev /www /var/log/mev
+
+# switch to the mev user
+USER mev
 
 ENTRYPOINT ["/bin/bash"]
