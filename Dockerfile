@@ -62,12 +62,13 @@ RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.g
 # Copy the source files over
 ADD ./api /www/api
 ADD ./mev /www/mev
+ADD ./docker /www/docker
 ADD ./manage.py /www/manage.py
 ADD ./requirements.txt /www/requirements.txt
-ADD ./supervisor/redis.conf /etc/supervisor/conf.d/ && \
-ADD ./supervisor/celery_worker.conf /etc/supervisor/conf.d/ && \
-ADD ./supervisor/celery_beat.conf /etc/supervisor/conf.d/ && \
-ADD ./supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY ./supervisor/redis.conf /etc/supervisor/conf.d/
+COPY ./supervisor/celery_worker.conf /etc/supervisor/conf.d/
+COPY ./supervisor/celery_beat.conf /etc/supervisor/conf.d/
+COPY ./supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 
 # Install the python dependencies, as given from the repository:
 RUN pip3 install -U pip && \
