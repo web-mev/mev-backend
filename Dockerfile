@@ -59,19 +59,19 @@ RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.g
   && make install \
   && cp redis.conf /etc/redis.conf
 
-# Pull the source code:
-RUN git clone https://github.com/qbrc-cnap/mev-backend /www
+# Copy the source files over
+ADD ./api /www/api
+ADD ./mev /www/mev
+ADD ./manage.py /www/manage.py
+ADD ./requirements.txt /www/requirements.txt
+ADD ./supervisor/redis.conf /etc/supervisor/conf.d/ && \
+ADD ./supervisor/celery_worker.conf /etc/supervisor/conf.d/ && \
+ADD ./supervisor/celery_beat.conf /etc/supervisor/conf.d/ && \
+ADD ./supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 
 # Install the python dependencies, as given from the repository:
 RUN pip3 install -U pip && \
     pip3 install --no-cache-dir -r /www/requirements.txt
-
-# Copy over the supervisor conf files:
-#COPY gunicorn.conf /etc/supervisor/conf.d/
-RUN cp /www/supervisor/redis.conf /etc/supervisor/conf.d/ && \
-    cp /www/supervisor/celery_worker.conf /etc/supervisor/conf.d/ && \
-    cp /www/supervisor/celery_beat.conf /etc/supervisor/conf.d/ && \
-    cp /www/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 
 # setup some static environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -91,6 +91,5 @@ RUN chown mev:mev /www/docker/startup.sh && chmod +x /www/docker/startup.sh
 
 # switch to the mev user
 USER mev
-
 
 ENTRYPOINT ["/www/docker/startup.sh"]
