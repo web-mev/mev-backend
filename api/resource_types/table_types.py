@@ -7,6 +7,14 @@ import pandas as pd
 import numpy as np
 
 from .base import DataResource
+from api.data_structures import Feature, \
+    FeatureSet, \
+    Observation, \
+    ObservationSet, \
+    create_attribute, \
+    convert_dtype
+from api.serializers.feature_set import FeatureSetSerializer
+from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +35,17 @@ class ParseException(Exception):
     '''
     For raising exceptions when the parser
     fails for someon reason.
+    '''
+    pass
+
+class UnexpectedTypeValidationException(Exception):
+    '''
+    Raised when a Resource fails to validate but *should have*
+    been fine. 
+
+    This would be raised, for instance, when an Operation completes and
+    produces some output file, for which we know the type.  In that case,
+    a failure to validate would indicate some unexpected error 
     '''
     pass
 
@@ -92,7 +111,15 @@ class TableResource(DataResource):
 
     Special tab-delimited files like BED or VCF files are recognized by
     their canonical extension (e.g. ".bed" or ".vcf").
+
+    Note that unless you create a "specialized" implementation (e.g. like
+    for a BED file), then we assume you have features as rows and observables
+    as columns.
     '''
+
+    def __init__(self):
+        self.table = None
+
     @staticmethod
     def get_reader(resource_path):
         '''
@@ -228,7 +255,45 @@ class TableResource(DataResource):
             return {
                 'error': 
                 'An unexpected error occurred.'
-            }     
+            }
+
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        '''
+        This method extracts metadata from the Resource in question and 
+        saves it to the database.
+
+        In the case of new Resources being added, the `parent_op` is None
+        since no MEV-based analyses were responsible for the creation of the 
+        Resource.  If the Resource is created by some MEV-based analysis,
+        the primary-key for that ExecutedOperation will be passed.
+
+        '''
+        logger.info('Extracting metadata from resource with path ({path}).'.format(
+            path = resource_path
+        ))
+
+        # If the self.table field was not already filled, we need to 
+        # read the data
+        if self.table is None:
+            logger.info('Resource with path ({path}) was not '
+                'previously parsed.  Do that now.'.format(
+                    path=resource_path
+                )
+            )
+            is_valid, message = self.validate_type(resource_path)
+            if not is_valid:
+                raise UnexpectedTypeValidationException(message)
+
+        # now we have a table loaded at self.table.  
+
+        # call the super method to initialize the self.metadata
+        # dictionary
+        super().setup_metadata()
+
+        # now add the information to self.metadata:
+        if parent_op_pk:
+            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+
 
 
 class Matrix(TableResource):
@@ -270,6 +335,19 @@ class Matrix(TableResource):
             return (False, error_message)
 
         return (True, None)
+
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+
+        super().extract_metadata(resource_path, parent_op_pk)
+
+        # the FeatureSet comes from the rows:
+        f_set = FeatureSet([Feature(x) for x in self.table.index])
+        self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
+
+        # the ObservationSet comes from the cols:
+        o_set = ObservationSet([Observation(x) for x in self.table.columns])
+        self.metadata[DataResource.OBSERVATION_SET] = ObservationSetSerializer(o_set).data
+        return self.metadata
 
 
 class IntegerMatrix(Matrix):
@@ -316,11 +394,72 @@ class IntegerMatrix(Matrix):
         return (True, None)
 
 
-class AnnotationTable(TableResource):
+class ElementTable(TableResource):
+    '''
+    An ElementTable captures common behavior of tables which
+    annotate Observations (AnnotationTable) or Features (FeatureTable)
+
+    It's effectively an abstract class-- 
+    '''
+
+    def validate_type(self, resource_path):
+
+        # check that file can be parsed:
+        is_valid, error_message = super().validate_type(resource_path)
+        if not is_valid:
+            return (False, error_message)
+        
+        # check that the file is "useful" in that it has
+        # more than one column.  It's not REALLY an error, but it does not 
+        # provide any information.  This can also be caught earlier, but
+        # we provide it here just as a secondary guard.
+        if self.table.shape[1] == 0:
+            return (False, TRIVIAL_TABLE_ERROR)
+        return (True, None)
+
+    def prep_metadata(self, element_class):
+        '''
+        When we extract the metadata from an ElementTable, we 
+        expect the Element instances (Observations or Features) 
+        to be contained in the rows.  
+
+        Additional columns specify attributes which we incorporate.
+
+        The `element_class` arg is a class which implements the specific
+        type we want (i.e. Observation or Feature)
+        '''
+        # Go through the columns and find out the primitive types
+        # for each column/covariate.
+        # Note that we can't determine specific types (e.g. bounded integers)
+        # from general annotations.  We basically allow floats, integers, and
+        # "other" types, which get converted to strings.
+        type_dict = {}
+        for c in self.table.dtypes.index:
+            # the convert_dtype function takes the native pandas dtype
+            # and returns an attribute "type" that MEV understands.
+            type_dict[c] = convert_dtype(str(self.table.dtypes[c]))
+
+        element_list = []
+        for id, row_series in self.table.iterrows():
+            d = row_series.to_dict()
+            attr_dict = {}
+            for key, val in d.items():
+                attr = create_attribute(key,
+                    {
+                        'attribute_type': type_dict[key],
+                        'value': val
+                    }
+                )
+                attr_dict[key] = attr
+            element_list.append(element_class(id, attr_dict))
+        return element_list
+
+
+class AnnotationTable(ElementTable):
     '''
     An `AnnotationTable` is a special type of table that will be responsible
-    for annotating samples (e.g. adding sample names and 
-    associated attributes like experimental group or other covariates).
+    for annotating Observations/samples (e.g. adding sample names and 
+    associated attributes like experimental group or other covariates)
 
     The first column will give the sample names and the remaining columns will
     each individually represent different covariates associated with that sample.
@@ -329,16 +468,8 @@ class AnnotationTable(TableResource):
 
         # check that file can be parsed:
         is_valid, error_message = super().validate_type(resource_path)
-
         if not is_valid:
             return (False, error_message)
-        
-        # check that the annotation file is "useful" in that it has
-        # more than one column.  It's not REALLY an error, but it does not 
-        # provide any information.  This can also be caught earlier, but
-        # we provide it here just as a secondary guard.
-        if self.table.shape[1] == 0:
-            return (False, TRIVIAL_TABLE_ERROR)
 
         # it is hard to check for proper headers for annotation
         # files since they have relatively free format.  However,
@@ -364,7 +495,50 @@ class AnnotationTable(TableResource):
 
         return (True, None)
 
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        '''
+        When we extract the metadata from an AnnotationTable, we 
+        expect the Observation instances to be the rows.  
 
+        Additional columns specify attributes of each Observation,
+        which we incorporate
+        '''
+        super().extract_metadata(resource_path, parent_op_pk)
+
+        observation_list = super().prep_metadata(Observation)
+        o_set = ObservationSet(observation_list)
+        self.metadata[DataResource.OBSERVATION_SET] = ObservationSetSerializer(o_set).data
+        return self.metadata
+
+
+class FeatureTable(ElementTable):
+    '''
+    A `FeatureTable` is a type of table that has aggregate information about
+    the features, but does not have any "observations" in the columns.  An example
+    would be the results of a differential expression analysis.  Each row corresponds
+    to a gene (feature) and the columns are information about that gene (such as p-value).
+
+    Another example could be a table of metadata about genes (e.g. pathways or perhaps a 
+    mapping to a different gene identifier).
+
+    The first column will give the feature/gene identifiers and the remaining columns will
+    have information about that gene
+    '''
+
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        '''
+        When we extract the metadata from a FeatureTable, we 
+        expect the Feature instances to be the rows.  
+
+        Additional columns specify attributes of each Feature,
+        which we incorporate
+        '''
+        super().extract_metadata(resource_path, parent_op_pk)
+
+        feature_list = super().prep_metadata(Feature)
+        f_set = FeatureSet(feature_list)
+        self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
+        return self.metadata
 
 
 class BEDFile(TableResource):
@@ -403,3 +577,7 @@ class BEDFile(TableResource):
             cols = ','.join([str(x) for x in problem_columns])
             error_message = BED_FORMAT_ERROR.format(cols=cols)
             return (False, error_message)
+
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        super().extract_metadata(resource_path, parent_op_pk)
+        return self.metadata

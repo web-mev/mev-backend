@@ -8,7 +8,7 @@ class FeatureSet(BaseElementSet):
     is the set of genes.  
  
     We depend on the native python set data structure and appropriately
-    hashable/comparable `Observation` instances.
+    hashable/comparable `Feature` instances.
 
     This essentially copies most of the functionality of the native set class,
     simply passing through the operations, but includes some additional members

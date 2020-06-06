@@ -11,5 +11,6 @@ from .attributes import IntegerAttribute, \
     StringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
-    create_attribute
+    create_attribute, \
+    convert_dtype
 

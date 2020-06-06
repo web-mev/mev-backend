@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from api.models import Resource
-from api.serializers import ResourceSerializer
+from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
     check_for_shared_resource_file, \
@@ -113,6 +113,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
 
         try:
             file_shared_by_multiple_resources = check_for_shared_resource_file(instance)
+            print(file_shared_by_multiple_resources)
             logger.info('File underlying the deleted Resource is '
             ' referenced by multiple Resource instances: {status}'.format(
                 status=file_shared_by_multiple_resources
@@ -121,7 +122,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if instance.workspace is not None:
-
+            print('had workspace'*100)
             # check if the Resource has been used.  If yes, can't delete
             has_been_used = check_for_resource_operations(instance)
 

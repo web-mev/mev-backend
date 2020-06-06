@@ -56,7 +56,7 @@ def create_resource_from_upload(filepath,
         'size': size
     }
 
-    from api.serializers import ResourceSerializer
+    from api.serializers.resource import ResourceSerializer
     rs = ResourceSerializer(data=d)
 
     # values were checked prior to this, but we enforce this again

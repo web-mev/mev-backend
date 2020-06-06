@@ -1,0 +1,7 @@
+sample	condition	genotype
+SW1_Control	CTRL	WT
+SW2_Control	CTRL	KO
+SW3_Control	CTRL	WT
+SW4_Treated	TREAT	KO
+SW5_Treated	TREAT	WT
+SW6_Treated	TREAT	KO

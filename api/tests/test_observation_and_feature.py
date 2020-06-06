@@ -9,7 +9,8 @@ from api.data_structures import Observation, \
     StringAttribute, \
     BoundedFloatAttribute, \
     BoundedIntegerAttribute
-from api.serializers import ObservationSerializer, FeatureSerializer
+from api.serializers.observation import ObservationSerializer
+from api.serializers.feature import FeatureSerializer
 from api.exceptions import StringIdentifierException
 
 

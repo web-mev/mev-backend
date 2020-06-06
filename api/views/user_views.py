@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import permissions as framework_permissions
 from rest_framework import generics
 
-from api.serializers import UserSerializer
+from api.serializers.user import UserSerializer
 import api.permissions as api_permissions
  
 

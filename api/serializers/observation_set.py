@@ -2,7 +2,7 @@ from rest_framework import serializers, exceptions
 
 from api.data_structures import ObservationSet
 from .element_set import ElementSetSerializer
-from api.serializers import ObservationSerializer
+from .observation import ObservationSerializer
 
 class ObservationSetSerializer(ElementSetSerializer):
 

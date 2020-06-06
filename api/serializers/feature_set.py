@@ -2,7 +2,7 @@ from rest_framework import serializers, exceptions
 
 from api.data_structures import FeatureSet
 from .element_set import ElementSetSerializer
-from api.serializers import FeatureSerializer
+from .feature import FeatureSerializer
 
 class FeatureSetSerializer(ElementSetSerializer):
 

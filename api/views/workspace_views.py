@@ -2,7 +2,7 @@ from rest_framework import permissions as framework_permissions
 from rest_framework import generics
 
 from api.models import Workspace
-from api.serializers import WorkspaceSerializer
+from api.serializers.workspace import WorkspaceSerializer
 import api.permissions as api_permissions
 
 

@@ -11,7 +11,8 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework import status
 from rest_framework.response import Response
 
-from api.serializers import UploadSerializer, ResourceSerializer
+from api.serializers.upload_serializer import UploadSerializer
+from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 import api.async_tasks as api_tasks
 from api.utilities.resource_utilities import create_resource_from_upload, \

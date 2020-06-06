@@ -1,3 +1,5 @@
+import logging
+
 from .sequence_types import FastAResource, \
     FastQResource, \
     AlignedSequenceResource
@@ -6,7 +8,11 @@ from .table_types import TableResource, \
     Matrix, \
     IntegerMatrix, \
     AnnotationTable, \
+    FeatureTable, \
     BEDFile
+
+logger = logging.getLogger(__name__)
+
 
 # A list of tuples for use in the database.
 # The first item in each tuple is the stored value
@@ -16,7 +22,8 @@ DATABASE_RESOURCE_TYPES = [
     ('FQ', 'Fastq'),
     ('FA','Fasta'),
     ('ALN','Alignment (SAM/BAM)'),
-    ('TBL','General data table'),
+    #('TBL','General data table'),
+    ('FT', 'Feature table'),
     ('MTX','Numeric table'),
     ('I_MTX','Integer table'),
     ('ANN','Annotation table'),
@@ -33,14 +40,15 @@ RESOURCE_MAPPING = {
     'FQ': FastQResource, 
     'FA': FastAResource,
     'ALN': AlignedSequenceResource,
-    'TBL': TableResource,
+    #'TBL': TableResource,
+    'FT': FeatureTable,
     'MTX': Matrix,
     'I_MTX': IntegerMatrix,
     'ANN': AnnotationTable,
     'BED': BEDFile
 } 
 
-def resource_type_is_valid(resource_type_class, resource_path):
+def get_resource_type_instance(resource_type_str):
     '''
     When a `Resource.resource_type` is set or edited, we need
     to validate that the type "agrees" with the file format.
@@ -55,6 +63,15 @@ def resource_type_is_valid(resource_type_class, resource_path):
     The bool indicates whether the type was valid for the resource
     The string is a message providing an explanation for any failures.
     '''
-    
-    resource_type = resource_type_class()
-    return resource_type.validate_type(resource_path)
+    try:
+        resource_type_class = RESOURCE_MAPPING[resource_type_str]
+        return resource_type_class()
+    except KeyError as ex:
+        logger.error('Received an unknown resource_type identifier:'
+            ' {resource_type}.  Current types are:'
+            ' {resource_mapping}'.format(
+                resource_mapping = ','.join(RESOURCE_MAPPING.keys()),
+                resource_type = resource_type_str
+            )
+        )
+        raise ex

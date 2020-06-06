@@ -8,7 +8,8 @@ from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.response import Response
 
 from api.models import Resource, Workspace
-from api.serializers import ResourceSerializer, WorkspaceResourceAddSerializer
+from api.serializers.resource import ResourceSerializer
+from api.serializers.workspace_resource_add import WorkspaceResourceAddSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import copy_resource_to_workspace
 

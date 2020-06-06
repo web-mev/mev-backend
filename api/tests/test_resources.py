@@ -337,13 +337,32 @@ class ResourceDetailTests(BaseAPITestCase):
             else:
                 unassociated_resources.append(r)
         
+        # need an active AND unattached resource
+        active_and_unattached = set(
+                [x.pk for x in active_resources]
+            ).intersection(set(
+                [x.pk for x in unassociated_resources]
+            )
+        )
+        if len(active_and_unattached) == 0:
+            raise ImproperlyConfigured('Need at least one active and unattached'
+                ' Resource to run this test.'
+        )
+
         self.regular_user_unattached_resource = unassociated_resources[0]
         self.regular_user_workspace_resource = workspace_resources[0]
         self.populated_workspace = self.regular_user_workspace_resource.workspace
+        active_unattached_resource_pk = list(active_and_unattached)[0]
+        self.regular_user_active_unattached_resource = Resource.objects.get(
+            pk=active_unattached_resource_pk)
 
         self.url_for_unattached = reverse(
             'resource-detail', 
             kwargs={'pk':self.regular_user_unattached_resource.pk}
+        )
+        self.url_for_active_unattached = reverse(
+            'resource-detail', 
+            kwargs={'pk':self.regular_user_active_unattached_resource.pk}
         )
         self.url_for_workspace_resource = reverse(
             'resource-detail', 
@@ -384,11 +403,11 @@ class ResourceDetailTests(BaseAPITestCase):
         Test that admin users can delete an unattached Resource
         """
         mock_file_check.return_value = False
-        response = self.authenticated_admin_client.delete(self.url_for_unattached)
+        response = self.authenticated_admin_client.delete(self.url_for_active_unattached)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         mock_api_tasks.delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
-            Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+            Resource.objects.get(pk=self.regular_user_active_unattached_resource.pk)
 
     @mock.patch('api.views.resource_views.check_for_shared_resource_file')
     @mock.patch('api.views.resource_views.api_tasks')
@@ -449,11 +468,11 @@ class ResourceDetailTests(BaseAPITestCase):
         the Resoure AND the file
         """
         mock_file_check.return_value = False
-        response = self.authenticated_regular_client.delete(self.url_for_unattached)
+        response = self.authenticated_regular_client.delete(self.url_for_active_unattached)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         mock_api_tasks.delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
-            Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+            Resource.objects.get(pk=self.regular_user_active_unattached_resource.pk)
 
     @mock.patch('api.views.resource_views.check_for_shared_resource_file')
     @mock.patch('api.views.resource_views.api_tasks')
@@ -465,15 +484,17 @@ class ResourceDetailTests(BaseAPITestCase):
         NOT associated with a Workspace.
 
         Here, there are somehow other Resources referencing the same 
-        underlying file.  Then we have to assert that the async delete
+        underlying file (via the mocked return from check_for_shared_resource_file).  
+        
+        Then we have to assert that the async delete
         was NOT called, but the Resource database record was.
         """
         mock_file_check.return_value = True
-        response = self.authenticated_regular_client.delete(self.url_for_unattached)
+        response = self.authenticated_regular_client.delete(self.url_for_active_unattached)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         mock_api_tasks.delete_file.delay.assert_not_called()
         with self.assertRaises(Resource.DoesNotExist):
-            Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
+            Resource.objects.get(pk=self.regular_user_active_unattached_resource.pk)
 
     @mock.patch('api.views.resource_views.check_for_shared_resource_file')
     @mock.patch('api.views.resource_views.api_tasks')

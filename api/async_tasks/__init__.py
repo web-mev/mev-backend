@@ -1,12 +1,15 @@
 import logging
 import os
+import json
 
 from celery.decorators import task
 
-from api.models import Resource
+from api.models import Resource, ResourceMetadata
 from api.utilities import basic_utils
 from api.utilities.resource_utilities import move_resource_to_final_location
-from api.resource_types import RESOURCE_MAPPING, resource_type_is_valid
+from api.resource_types import get_resource_type_instance
+from api.serializers.observation_set import ObservationSetSerializer
+from api.serializers.feature_set import FeatureSetSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -41,25 +44,11 @@ def validate_resource(resource_pk, requested_resource_type):
         raise ex
 
     # The resource type is the shorthand identifier.
-    # To get the actual resource class implementation, we 
-    # use the RESOURCE_MAPPING dict
-    try:
-        resource_class = RESOURCE_MAPPING[requested_resource_type]
-    except KeyError as ex:
-        logger.error('Received an unknown resource_type identifier:'
-            ' {requested_resource_type}.  Current types are:'
-            ' {resource_mapping}'.format(
-                resource_mapping = RESOURCE_MAPPING,
-                requested_resource_type = requested_resource_type
-            )
-        )
-        raise ex 
+    # This returns an actual resource class implementation
+    resource_class_instance = get_resource_type_instance(requested_resource_type)
 
-    # check the validity
-    is_valid, message = resource_type_is_valid(
-        resource_class,
-        resource.path
-    )
+    # now validate the type
+    is_valid, message = resource_class_instance.validate_type(resource.path)
 
     if is_valid:
 
@@ -83,9 +72,33 @@ def validate_resource(resource_pk, requested_resource_type):
                     resource = resource
                 ))
 
-        # this is here so that we can check if the resource_type
-        # was previously null/None
         resource.resource_type = requested_resource_type
+
+        # since the resource was valid, we can also fill-in the metadata
+        metadata = resource_class_instance.extract_metadata(resource.path)
+        
+        # need to check if there was already metadata for this Resource:
+        rm = ResourceMetadata.objects.filter(resource=resource)
+        if len(rm) > 1:
+            logger.error('Database corruption-- multiple ResourceMetadata'
+                ' instances associated with Resource: {resource}'.format(
+                    resource=resource
+                )
+            )
+        elif len(rm) == 0:
+            rm = ResourceMetadata.objects.create(
+                resource=resource,
+                parent_operation=metadata['parent_operation'],
+                observation_set=json.dumps(metadata['observation_set']),
+                feature_set=json.dumps(metadata['feature_set']),
+            )
+        else: # had existing ResourceMetadata-- update
+            rm = rm[0]
+            rm.parent_operation=metadata['parent_operation']
+            rm.observation_set=json.dumps(metadata['observation_set'])
+            rm.feature_set=json.dumps(metadata['feature_set'])
+            rm.save()
+
 
     else:
         # again, if resource_type has not been set, then this   

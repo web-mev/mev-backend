@@ -8,10 +8,10 @@ from api.data_structures import Observation, \
     FeatureSet, \
     StringAttribute
 
-from api.serializers import ObservationSerializer, \
-    ObservationSetSerializer, \
-    FeatureSerializer, \
-    FeatureSetSerializer
+from api.serializers.observation import ObservationSerializer
+from api.serializers.observation_set import ObservationSetSerializer
+from api.serializers.feature import FeatureSerializer
+from api.serializers.feature_set import FeatureSetSerializer
 
 class ElementSetTester(object):
     '''

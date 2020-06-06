@@ -1,3 +1,5 @@
+import re
+
 from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
@@ -420,3 +422,20 @@ def create_attribute(attr_key, attribute_dict):
             attr_key: ex.detail
         })
     return attribute_instance
+
+
+def convert_dtype(dtype_str):
+    '''
+    Takes a pandas/numpy dtype and returns an appropriate attribute "type"
+    string.  For instance, if "int64", return Integer.
+
+    Since this function does not have any concept of bounding, etc. it will
+    only return the most basic types like Integer, Float, and String
+    '''
+
+    if re.match('int\d{0,2}', dtype_str):
+        return IntegerAttribute.typename
+    elif re.match('float\d{0,2}', dtype_str):
+        return FloatAttribute.typename
+    else:
+        return StringAttribute.typename

@@ -3,7 +3,6 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework import serializers, exceptions
 
-from api.resource_types import DATABASE_RESOURCE_TYPES
 from api.models import Resource, Workspace
 from api.utilities.resource_utilities import set_resource_to_validation_status
 import api.async_tasks as api_tasks
