@@ -122,7 +122,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if instance.workspace is not None:
-            print('had workspace'*100)
+
             # check if the Resource has been used.  If yes, can't delete
             has_been_used = check_for_resource_operations(instance)
 

@@ -107,6 +107,12 @@ class WorkspaceResourceAdd(APIView):
                 ' is not currently activated, possibly due to pending'
                 ' validation.')
 
+            if resource.resource_type is None:
+                logger.info('Attempted to add a Resource {resource} without'
+                ' a validated type to a workspace.'.format(resource=resource))
+                raise ParseError('The requested Resource'
+                ' has not been successfully validated.')
+
             if resource.workspace:
                 logger.info('Attempted to add a workspace-associated'
                 ' Resource {resource_uuid} to a workspace. Rejecting.'.format(

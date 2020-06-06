@@ -4,7 +4,7 @@ import logging
 
 from django.conf import settings
 
-from api.models import Resource
+from api.models import Resource, ResourceMetadata
 from api.resource_types import RESOURCE_MAPPING
 from .basic_utils import make_local_directory, \
     move_resource, \
@@ -130,6 +130,8 @@ def copy_resource_to_workspace(unattached_resource, workspace):
         )
     )  
 
+    metadata_queryset = ResourceMetadata.objects.filter(resource=unattached_resource)
+
     # we need to create a new Resource with the Workspace 
     # field filled appropriately.  Note that this method of "resetting"
     # the primary key by setting it to None creates an effective copy
@@ -139,6 +141,27 @@ def copy_resource_to_workspace(unattached_resource, workspace):
     r.workspace = workspace
     r.is_public = False # when we copy to a workspace, set private
     r.save()
+
+    # also need to copy the metadata
+    if len(metadata_queryset) == 0:
+        logger.error('Was trying to add Resource {r_uuid}'
+            ' to a Workspace ({w_uuid}), but there was no'
+            ' metadata associated with it'.format(
+                r_uuid = unattached_resource.pk,
+                w_uuid = workspace.pk
+            ))
+    elif len(metadata_queryset) > 1:
+        logger.error('Was trying to add Resource {r_uuid}'
+            ' to a Workspace ({w_uuid}), but there were'
+            ' multiple metadata instances associated with it'.format(
+                r_uuid = unattached_resource.pk,
+                w_uuid = workspace.pk
+            ))
+    else:
+        metadata = metadata_queryset[0]
+        metadata.pk = None
+        metadata.resource = r
+        metadata.save()
 
     return r
 

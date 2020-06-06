@@ -3,7 +3,7 @@ import random
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from api.models import Workspace, Resource
+from api.models import Workspace, Resource, ResourceMetadata
 from api.tests import test_settings
 
 # a global dictionary so that we do not have to pass around the 
@@ -72,7 +72,15 @@ class Command(BaseCommand):
             path='/path/to/public_file.txt',
             is_public = True,
             size = random.randint(size_low, size_high)
-        )        
+        )
+        Resource.objects.create(
+            owner=user_dict[USER1],
+            name='abc.csv',
+            resource_type = None,
+            path='/path/to/abc.csv',
+            is_active = True,
+            size = random.randint(size_low, size_high)
+        )  
         Resource.objects.create(
             owner=user_dict[USER2],
             name='fileC.tsv',
@@ -125,8 +133,20 @@ class Command(BaseCommand):
             is_active = True
         )
 
+    def add_metadata_to_resources(self):
+        all_resources = Resource.objects.all()
+        for r in all_resources:
+            if r.resource_type is not None:
+                rm = ResourceMetadata.objects.create(
+                    resource=r,
+                    parent_operation=None,
+                    observation_set = 'null',
+                    feature_set = 'null'
+                )
+
     def handle(self, *args, **options):
         self.populate_users()
         self.populate_workspaces()
         self.populate_resources()
+        self.add_metadata_to_resources()
         self.add_resources_to_workspace()

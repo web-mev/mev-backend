@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from rest_framework.exceptions import ValidationError
 
-from api.models import Resource, Workspace
+from api.models import Resource, Workspace, ResourceMetadata
 from api.utilities.resource_utilities import create_resource_from_upload, \
     move_resource_to_final_location, \
     copy_resource_to_workspace, \
@@ -133,10 +133,13 @@ class TestResourceUtilities(BaseAPITestCase):
     def test_copy_to_workspace(self):
         '''
         Tests that "attaching" a resource to a workspace creates the
-        appropriate database object.
+        appropriate database objects.
         '''
 
-        unattached_resources = Resource.objects.filter(workspace=None, is_public=True)
+        unattached_resources = Resource.objects.filter(
+            workspace=None, 
+            is_active = True,
+            is_public=True).exclude(resource_type__isnull=True)
         if len(unattached_resources) == 0:
             raise ImproperlyConfigured('Need at least one unattached Resource'
                 ' to test the workspace-add function.')
@@ -159,16 +162,30 @@ class TestResourceUtilities(BaseAPITestCase):
         # now have a workspace and owner.  Check initial state:
         workspace_resources = Resource.objects.filter(workspace=workspace)
         n0 = len(workspace_resources)
+        resource_metadata = ResourceMetadata.objects.all()
+        rm_n0 = len(resource_metadata)
 
         # call the method
         new_resource = copy_resource_to_workspace(r, workspace)
-
 
         # check that there is a new resource and it is associated
         # with the workspace
         workspace_resources = Resource.objects.filter(workspace=workspace)
         n1 = len(workspace_resources)
         self.assertEqual(n1-n0, 1)
+
+        # check that there is new ResourceMetadata added:
+        resource_metadata = ResourceMetadata.objects.all()
+        rm_n1 = len(resource_metadata)
+        self.assertEqual(rm_n1-rm_n0, 1)
+
+        # check that there is metadata associated with the new Resource
+        new_resource_metadata = ResourceMetadata.objects.filter(resource=new_resource)
+        self.assertEqual(len(new_resource_metadata), 1)
+
+        # double-check that the original resource still has its ResourceMetadata
+        orig_resource_metadata = ResourceMetadata.objects.filter(resource=r)
+        self.assertEqual(len(orig_resource_metadata), 1)
 
         # check the contents of the returned "new" Resource
         self.assertEqual(new_resource.path, orig_path)

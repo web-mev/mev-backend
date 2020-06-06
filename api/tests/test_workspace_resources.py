@@ -219,6 +219,29 @@ class WorkpaceResourceAddTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_resource_without_type_cannot_be_added(self):
+        '''
+        Test the situation where a Resource is active but does not have a type set
+        (such as when the upload succeeds, but the type they specified was not
+        compatible with the file's content).  We can't add this Resource to a workspace
+        '''
+        active_unattached_and_unset_resources = Resource.objects.filter(
+            is_active=True,
+            owner = self.regular_user_1,
+            workspace = None,
+            resource_type=None
+        )
+        if len(active_unattached_and_unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' active, unattached, and unset Resource to run'
+                ' this test.'
+            )
+        r = active_unattached_and_unset_resources[0]
+        payload = {'resource_uuid': r.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
 
     def test_workspace_and_resource_owner_different_raises_ex(self):
         '''
@@ -252,9 +275,20 @@ class WorkpaceResourceAddTests(BaseAPITestCase):
             owner = self.regular_user_1,
             workspace = self.workspace_resource.workspace,
             resource_type = 'MTX',
+            is_active = True
         )
         mock_copy.return_value = mock_new_resource
 
-        payload = {'resource_uuid': self.unattached_resource.pk}
+        # need an active, unattached resource with a type:
+        r = Resource.objects.filter(
+            workspace=None,
+            is_active=True
+        ).exclude(resource_type__isnull=True)
+        if len(r) == 0:
+            raise ImproperlyConfigured('Need an active, unattached'
+                ' resource with a type specified to run this test.'
+            )
+        r = r[0]
+        payload = {'resource_uuid': r.pk}
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
