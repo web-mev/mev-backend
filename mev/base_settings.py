@@ -120,6 +120,11 @@ REST_FRAMEWORK = {
     ]
 }
 
+# settings for the DRF JWT app:
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'user_uuid'
+}
+
 # The location of the mkdocs YAML configuration file
 MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 
