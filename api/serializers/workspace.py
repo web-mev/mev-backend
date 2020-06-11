@@ -39,10 +39,12 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         except KeyError as ex:
             workspace_owner = requesting_user
 
+        workspace_name = validated_data.get('workspace_name', None)
+
         # If the user is an admin, they can create a Workspace for anyone.
         # if the user is not an admin, they can only create Workspaces for themself.
         if requesting_user.is_staff or (workspace_owner == requesting_user):
-            return Workspace.objects.create(owner=workspace_owner)
+            return Workspace.objects.create(owner=workspace_owner, workspace_name=workspace_name)
         else:
             raise exceptions.PermissionDenied()
 

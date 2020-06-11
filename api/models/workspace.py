@@ -44,7 +44,8 @@ class Workspace(models.Model):
         This overrides the save method, implementing
         custom behavior upon creation
         '''
-        if self._state.adding:
+
+        if self._state.adding and (self.workspace_name is None):
             # Initially set the workspace_name to the UUID
             # Users can later edit that to something more memorable
             self.workspace_name = str(self.id)

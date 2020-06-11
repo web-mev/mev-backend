@@ -103,7 +103,33 @@ class WorkspaceListTests(BaseAPITestCase):
 
     def test_user_can_create_workspace_for_self(self):
         """
-        Test that users can create a Workpace for themself
+        Test that users can create a Workpace for themself.
+        Here they set the name explicitly
+        """
+        # get all initial instances before anything happens:
+        initial_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
+
+        expected_name = 'foo'
+        payload = {'owner_email': self.regular_user_1.email, 'workspace_name': expected_name}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        j = response.json()
+        new_uuid = j['id']
+
+        # get current instances:
+        current_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
+        difference_set = current_workspace_uuids.difference(initial_workspace_uuids)
+        self.assertEqual(len(difference_set), 1)
+
+        self.assertEqual(list(difference_set)[0], new_uuid)
+        new_workspace = Workspace.objects.get(pk=new_uuid)
+        self.assertEqual(new_workspace.workspace_name, expected_name)
+
+    def test_user_can_create_workspace_for_self_no_name(self):
+        """
+        Test that users can create a Workpace for themself.
+        Here they do NOT set the name and we check that it was auto-assigned
         """
         # get all initial instances before anything happens:
         initial_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
@@ -112,10 +138,18 @@ class WorkspaceListTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+        j = response.json()
+        new_uuid = j['id']
+
         # get current instances:
         current_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
         difference_set = current_workspace_uuids.difference(initial_workspace_uuids)
         self.assertEqual(len(difference_set), 1)
+
+        self.assertEqual(list(difference_set)[0], new_uuid)
+        new_workspace = Workspace.objects.get(pk=new_uuid)
+        self.assertEqual(new_workspace.workspace_name, new_uuid)
+
 
     def test_user_cannot_create_workspace_for_other(self):
         """
