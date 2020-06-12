@@ -140,8 +140,8 @@ class Command(BaseCommand):
                 rm = ResourceMetadata.objects.create(
                     resource=r,
                     parent_operation=None,
-                    observation_set = 'null',
-                    feature_set = 'null'
+                    observation_set = None,
+                    feature_set = None
                 )
 
     def handle(self, *args, **options):
