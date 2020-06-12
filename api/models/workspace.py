@@ -45,7 +45,7 @@ class Workspace(models.Model):
         custom behavior upon creation
         '''
 
-        if self._state.adding and (self.workspace_name is None):
+        if self._state.adding and ((self.workspace_name is None) or (self.workspace_name == '')):
             # Initially set the workspace_name to the UUID
             # Users can later edit that to something more memorable
             self.workspace_name = str(self.id)
