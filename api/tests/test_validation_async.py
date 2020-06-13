@@ -271,8 +271,8 @@ class TestValidateResource(BaseAPITestCase):
         Resource type)
         '''
 
-        # get one of the test resources:
-        rr = Resource.objects.filter(owner=self.regular_user_1)
+        # get one of the test resources (which has type of None):
+        rr = Resource.objects.filter(owner=self.regular_user_1, resource_type=None)
         r = rr[0]
 
         # give that Resource our test integer matrix
