@@ -16,9 +16,9 @@ class ResourceMetadata(models.Model):
 
     # clearly the metadata about a Resource has to be associated
     # with that Resource
-    resource = models.ForeignKey(
+    resource = models.OneToOneField(
         Resource,
-        related_name = 'resource_metadata',
+        primary_key = True,
         on_delete = models.CASCADE
     )
 

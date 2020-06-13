@@ -26,6 +26,7 @@ urlpatterns = [
     path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
     path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
     path('resources/<uuid:pk>/preview/', api.views.ResourcePreview.as_view(), name='resource-preview'),
+    path('resources/<uuid:pk>/metadata/', api.views.ResourceMetadataView.as_view(), name='resource-metadata-detail'),
     path('resources/upload/', api.views.ResourceUpload.as_view(), name='resource-upload'),
     path('resources/upload/progress', 
         api.views.ResourceUploadProgress.as_view(), 
