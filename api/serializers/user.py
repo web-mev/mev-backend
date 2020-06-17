@@ -28,13 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
             'password'
         ]        
 
-
-class UserRegisterSerializer(serializers.Serializer):
-    '''
-    Used when registering a user by email and password
-    '''
-
-    email = serializers.EmailField()
+class PasswordSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)    
     confirm_password = serializers.CharField(write_only=True) 
 
@@ -57,7 +51,14 @@ class UserRegisterSerializer(serializers.Serializer):
                 'The passwords do not match. Please try again.'
             })
         
-        return data
+        return data 
+
+class UserRegisterSerializer(PasswordSerializer):
+    '''
+    Used when registering a user by email and password
+    '''
+
+    email = serializers.EmailField() 
     
     def create(self, validated_data):
         try:
@@ -97,10 +98,10 @@ class ResendActivationSerializer(serializers.Serializer):
             raise ValidationError({'email': 'Unknown user.'})
 
 
-class UserActivateSerializer(serializers.Serializer):
+class UidAndTokenSerializer(serializers.Serializer):
     '''
-    This handles the request to activate a user once they have
-    clicked on a link in their email.
+    This handles payloads where a request includes a UID and token
+    such as for resetting passwords or activating registration
     '''
     uid = serializers.CharField()
     token = serializers.CharField()
@@ -111,22 +112,17 @@ class UserActivateSerializer(serializers.Serializer):
         try:
             uid = decode_uid(validated_data.get('uid', ''))
         except Exception as ex:
-
             raise ValidationError({'uid': 'Could not decode the UID field.'})
 
         token = validated_data.get('token', '')
 
         try:
             self.user = User.objects.get(pk=uid)
-
-            # if the user is already active (e.g. from clicking on the
-            # same link), we don't need to go further.
-            if self.user.is_active:
-                return validated_data
         except (User.DoesNotExist, ValueError, TypeError, OverflowError):
             raise ValidationError(
                 {'uid': 'Invalid UID'}
             )
+
         token_is_valid = default_token_generator.check_token(self.user, token)
         if token_is_valid:
             return validated_data
@@ -134,6 +130,17 @@ class UserActivateSerializer(serializers.Serializer):
             raise ValidationError(
                 {'token': 'Invalid token'}
             )
+
+class UserActivateSerializer(UidAndTokenSerializer):
+    '''
+    This handles the request to activate a user once they have
+    clicked on a link in their email.
+    '''
+
+    def validate(self, data):
+        # validate the UID and token in the parent class
+        return super().validate(data)
+
 
 class PasswordResetSerializer(serializers.Serializer):
     
@@ -151,3 +158,14 @@ class PasswordResetSerializer(serializers.Serializer):
                 raise ValidationError({'email': 'Cannot reset password for this user.'})
         except User.DoesNotExist:
             raise ValidationError({'email': 'Unknown user.'})
+
+class PasswordResetConfirmSerializer(UidAndTokenSerializer, PasswordSerializer):
+    '''
+    This handles the reset the users's password
+    oncce they have clicked on a link in their email.
+    '''
+    
+    def validate(self, data):
+        validated_data = PasswordSerializer.validate(self, data)
+        validated_data = UidAndTokenSerializer.validate(self, validated_data)
+        return validated_data

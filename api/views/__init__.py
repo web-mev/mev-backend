@@ -3,6 +3,7 @@ from .user_views import UserList, \
     UserDetail, \
     UserRegisterView, \
     PasswordResetView, \
+    PasswordResetConfirmView, \
     UserActivateView, \
     ResendActivationView
 from .workspace_views import WorkspaceList, WorkspaceDetail

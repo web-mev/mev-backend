@@ -12,7 +12,8 @@ from api.serializers.user import UserSerializer, \
     UserRegisterSerializer, \
     PasswordResetSerializer, \
     UserActivateSerializer, \
-    ResendActivationSerializer
+    ResendActivationSerializer, \
+    PasswordResetConfirmSerializer
 import api.permissions as api_permissions
 from api.utilities import email_utils
 
@@ -139,7 +140,6 @@ class UserActivateView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)     
 
-    
 
 class PasswordResetView(APIView):
     '''
@@ -156,6 +156,28 @@ class PasswordResetView(APIView):
             validated_data = serializer.validated_data
             user = serializer.user
             email_utils.send_password_reset_email(request, user)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(APIView):
+    '''
+    Used when a user has clicked on a reset link
+    and is sending a UID (encoded), a token, a new password,
+    and a re-typed confirmation of that password
+    '''
+    permission_classes = [framework_permissions.AllowAny]
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            validated_data = serializer.validated_data
+            user = serializer.user
+            print('set password to', validated_data['password'])
+            user.set_password(validated_data['password'])
+            user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

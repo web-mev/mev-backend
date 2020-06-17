@@ -516,3 +516,61 @@ class PasswordResetTests(BaseAPITestCase):
         response = self.regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         mock_email_utils.send_password_reset_email.assert_called()
+
+
+class PasswordResetConfirmTests(BaseAPITestCase):
+    '''
+    Tests the endpont where the user has clicked on the email,
+    and is requesting a reset with a uid, token, pwd, and retyped pwd
+    '''
+    def setUp(self):
+        self.url = reverse('password-reset-confirm')
+        self.establish_clients()
+
+        self.test_user = self.regular_user_1
+
+    def test_bad_payload_raises_exception(self):
+        '''
+        Bad payload, missing required key
+        '''
+        payload = {'uid': 'junk'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        uid = encode_uid(self.test_user.pk)
+        token = default_token_generator.make_token(self.test_user)
+        pwd = 'some_new_password123!'
+
+        payload = {
+            'uid': uid,
+            'token': token,
+            'password' : pwd,
+            'confirm_password': pwd + '!!'
+        }
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_successful_reset(self):
+        '''
+        Tests that a proper rest works.
+        '''
+        uid = encode_uid(self.test_user.pk)
+        token = default_token_generator.make_token(self.test_user)
+        pwd = 'some_new_password123!'
+
+        payload = {
+            'uid': uid,
+            'token': token,
+            'password' : pwd,
+            'confirm_password': pwd
+        }
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # check that a bad password doesn't work
+        logged_in = self.regular_client.login(email=self.test_user.email, password=pwd+'!!!')
+        self.assertFalse(logged_in)
+
+        # and test that the new password allows login
+        logged_in = self.regular_client.login(email=self.test_user.email, password=pwd)
+        self.assertTrue(logged_in)

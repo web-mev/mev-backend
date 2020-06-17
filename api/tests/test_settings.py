@@ -17,7 +17,8 @@ class TestUser(object):
         self.plain_txt_password = plain_txt_password
 
 # create a couple of "regular" users
-REGULAR_USER_1 = TestUser('reguser1@foo.com','abc123xyz!')
+REGULAR_USER_1_PASSWORD = 'abc123xyz!'
+REGULAR_USER_1 = TestUser('reguser1@foo.com',REGULAR_USER_1_PASSWORD)
 REGULAR_USER_2 = TestUser('reguser2@foo.com','!foobarbaz!')
 ADMIN_USER = TestUser('admin@foo.com','@dmin_pAss')
 
