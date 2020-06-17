@@ -22,5 +22,6 @@ REGULAR_USER_2 = TestUser('reguser2@foo.com','!foobarbaz!')
 ADMIN_USER = TestUser('admin@foo.com','@dmin_pAss')
 
 JUNK_EMAIL = 'does_not_exist@foo.com'
+SOCIAL_AUTH_EMAIL = 'email_from_social@foo.com'
 
 TEST_UPLOAD = os.path.join(settings.BASE_DIR, 'api', 'tests', 'test_upload.tsv')

@@ -2,7 +2,7 @@ from .api_root import ApiRoot
 from .user_views import UserList, \
     UserDetail, \
     UserRegisterView, \
-    PasswordReset, \
+    PasswordResetView, \
     UserActivateView, \
     ResendActivationView
 from .workspace_views import WorkspaceList, WorkspaceDetail

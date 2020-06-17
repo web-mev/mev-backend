@@ -138,3 +138,16 @@ class UserActivateSerializer(serializers.Serializer):
 class PasswordResetSerializer(serializers.Serializer):
     
     email = serializers.EmailField()
+
+    def validate(self, data):
+        # validate the input from the DRF serializer class
+        validated_data = super().validate(data)
+
+        try:
+            self.user = User.objects.get(email=validated_data['email'])
+            if self.user.has_usable_password():
+                return validated_data
+            else:
+                raise ValidationError({'email': 'Cannot reset password for this user.'})
+        except User.DoesNotExist:
+            raise ValidationError({'email': 'Unknown user.'})

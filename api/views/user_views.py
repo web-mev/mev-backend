@@ -141,7 +141,7 @@ class UserActivateView(APIView):
 
     
 
-class PasswordReset(APIView):
+class PasswordResetView(APIView):
     '''
     Used when a user has forgotten password and
     wants to reset.  Initiates the reset flow
@@ -151,10 +151,11 @@ class PasswordReset(APIView):
     serializer_class = PasswordResetSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = PasswordResetSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            data = serializer.validated_data
-            email = data['email']
-            return Response({'message': email})
+            validated_data = serializer.validated_data
+            user = serializer.user
+            email_utils.send_password_reset_email(request, user)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

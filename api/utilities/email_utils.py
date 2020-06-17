@@ -101,12 +101,22 @@ class ActivationEmail(BaseEmailMessage):
         context["url"] = settings.ACTIVATION_URL.format(**context)
         return context
 
-def send_activation_email(request, user):
+class PasswordResetEmail(BaseEmailMessage):
+    template_name = "email/password_reset.html"
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        context["url"] = settings.RESET_PASSWORD_URL.format(**context)
+        return context
+
+def send_uid_and_token_link(request, user, message_cls):
     '''
-    Orchestrates sending of the activation email after
-    a user has registered.
+    Common behavior for situations where we send a link to the
+    user with a token and an encoded UID.
+
+    message_cls is a subclass of BaseEmailMessage 
+    (not instantiated- just the type)
     '''
-    logger.info('Sending activation email to {email}'.format(email=user.email))
     token = default_token_generator.make_token(user)
     encoded_uid = encode_uid(user.pk)
 
@@ -116,6 +126,24 @@ def send_activation_email(request, user):
         'token': token
     }
     to = [user.email]
-    ActivationEmail(request, context).send(
+    message(request, context).send(
         to, 
         from_email=settings.FROM_EMAIL)
+
+
+def send_activation_email(request, user):
+    '''
+    Orchestrates sending of the activation email after
+    a user has registered.
+    '''
+    logger.info('Sending activation email to {email}'.format(email=user.email))
+    message_cls = ActivationEmail
+    send_uid_and_token_link(request, user, message_cls)
+
+def send_password_reset_email(request, user):
+    '''
+    Orchestrates sending of the email to reset a user password.
+    '''
+    logger.info('Sending password reset email to {email}'.format(email=user.email))
+    message_cls = PasswordResetEmail
+    send_uid_and_token_link(request, user, message_cls)

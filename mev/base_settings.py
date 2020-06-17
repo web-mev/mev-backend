@@ -245,6 +245,7 @@ from mev import base_logging_config as log_config
 
 FRONTEND_DOMAIN = 'mev.tm4.org'
 ACTIVATION_URL = 'activate/{uid}/{token}'
+RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
 
 
 ###############################################################################

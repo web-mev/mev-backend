@@ -447,3 +447,72 @@ class ResendActivationTests(BaseAPITestCase):
         response = self.regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         mock_email_utils.send_activation_email.assert_called()
+
+
+class PasswordResetTests(BaseAPITestCase):
+
+    def setUp(self):
+        self.url = reverse('password-reset')
+        self.establish_clients()
+
+    def test_bad_payload_raises_exception(self):
+        '''
+        Bad payload, missing required key
+        '''
+        payload = {'email': 'junk'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_passwordless_account_fails(self):
+        '''
+        Accounts generated from social authentication (e.g. google)
+        do not have a password set.  For those, we reject the request
+        since it does not make sense
+        '''
+        # check that we have a user in our test database that makes sense
+        # for this test
+        user = User.objects.create_user(test_settings.SOCIAL_AUTH_EMAIL)
+        users_without_passwords = []
+        for u in User.objects.all():
+            if not u.has_usable_password():
+                users_without_passwords.append(u)
+        if len(users_without_passwords) == 0:
+            raise ImproperlyConfigured('Need at least one user'
+                ' whose `has_usable_password` evaluates to False'
+            )
+        test_user = users_without_passwords[0]
+        payload = {'email': test_user.email}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unknown_email_raises_exception(self):
+        '''
+        The email given in the payload is not found.
+        Returns 400
+        '''
+        payload = {'email': test_settings.JUNK_EMAIL}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+    @mock.patch('api.views.user_views.email_utils')
+    def test_correctly_sends_email(self, mock_email_utils):
+        '''
+        The correct steps are performed when a
+        user requests a password reset
+        '''
+        # get users for whom we can reset a password:
+        users_with_passwords = []
+        for u in User.objects.all():
+            if u.has_usable_password():
+                users_with_passwords.append(u)
+        
+        if len(users_with_passwords) == 0:
+            raise ImproperlyConfigured('Need at least one user'
+                ' whose `has_usable_password` evaluates to True'
+            )
+
+        u = users_with_passwords[0]
+        payload = {'email': u.email}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        mock_email_utils.send_password_reset_email.assert_called()
