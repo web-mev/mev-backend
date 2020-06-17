@@ -5,10 +5,15 @@ from rest_framework.exceptions import APIException
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 
+from api.utilities.basic_utils import decode_uid
+
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -16,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = get_user_model()
+        model = User
         fields = [
             'url',
             'email',
@@ -61,7 +66,7 @@ class UserRegisterSerializer(serializers.Serializer):
                     ' email {email}'.format(
                         email=validated_data['email']
                     ))
-                user = get_user_model().objects.create_user(
+                user = User.objects.create_user(
                     validated_data['email'], 
                     validated_data['password'],
                     is_active=False)
@@ -75,6 +80,60 @@ class UserRegisterSerializer(serializers.Serializer):
                 ))
             raise APIException('Could not register user.')
 
+class ResendActivationSerializer(serializers.Serializer):
+    '''
+    If the user's token expires (the one sent in the email),
+    they can request a new activation link by supplying their email
+    '''
+    email = serializers.EmailField()
+
+    def validate(self, data):
+        # validate the input from the DRF serializer class
+        validated_data = super().validate(data)
+        try:
+            self.user = User.objects.get(email=validated_data['email'])
+            return validated_data
+        except User.DoesNotExist:
+            raise ValidationError({'email': 'Unknown user.'})
+
+
+class UserActivateSerializer(serializers.Serializer):
+    '''
+    This handles the request to activate a user once they have
+    clicked on a link in their email.
+    '''
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    def validate(self, data):
+        # validate the input from the DRF serializer class
+        validated_data = super().validate(data)
+        try:
+            uid = decode_uid(validated_data.get('uid', ''))
+        except Exception as ex:
+
+            raise ValidationError({'uid': 'Could not decode the UID field.'})
+
+        token = validated_data.get('token', '')
+
+        try:
+            self.user = User.objects.get(pk=uid)
+
+            # if the user is already active (e.g. from clicking on the
+            # same link), we don't need to go further.
+            if self.user.is_active:
+                return validated_data
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+            raise ValidationError(
+                {'uid': 'Invalid UID'}
+            )
+        token_is_valid = default_token_generator.check_token(self.user, token)
+        if token_is_valid:
+            return validated_data
+        else:
+            raise ValidationError(
+                {'token': 'Invalid token'}
+            )
 
 class PasswordResetSerializer(serializers.Serializer):
     
