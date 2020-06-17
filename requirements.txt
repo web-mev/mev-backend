@@ -1,6 +1,7 @@
 amqp==2.5.2
 asgiref==3.2.7
 billiard==3.6.3.0
+cachetools==4.1.0
 celery==4.4.2
 certifi==2020.4.5.1
 chardet==3.0.4
@@ -11,7 +12,13 @@ djangorestframework==3.11.0
 djangorestframework-simplejwt==4.4.0
 docker==4.2.1
 future==0.18.2
+google-api-core==1.20.0
+google-api-python-client==1.9.3
+google-auth==1.17.2
+google-auth-httplib2==0.0.3
+googleapis-common-protos==1.52.0
 gunicorn==20.0.4
+httplib2==0.18.1
 idna==2.9
 importlib-metadata==1.6.0
 Jinja2==2.11.2
@@ -26,7 +33,10 @@ mkdocs==1.1
 nltk==3.5
 numpy==1.18.4
 pandas==1.0.3
+protobuf==3.12.2
 psycopg2==2.8.5
+pyasn1==0.4.8
+pyasn1-modules==0.2.8
 PyJWT==1.7.1
 python-dateutil==2.8.1
 pytz==2020.1
@@ -34,6 +44,7 @@ PyYAML==5.3.1
 redis==3.5.2
 regex==2020.4.4
 requests==2.23.0
+rsa==4.6
 six==1.14.0
 sqlparse==0.3.1
 tornado==6.0.4

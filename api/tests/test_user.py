@@ -1,3 +1,5 @@
+import unittest.mock as mock
+
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
@@ -111,3 +113,115 @@ class UserDetailTests(BaseAPITestCase):
         """
         response = self.authenticated_other_client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class UserRegistrationTests(BaseAPITestCase):
+
+    def setUp(self):
+        self.url = reverse('user-register')
+        self.establish_clients()     
+        self.initial_user_uuids = set([str(x.pk) for x in User.objects.all()])
+
+    def test_invalid_payload_rejected(self):
+        '''
+        Tests that payloads without the required keys
+        get a 400 response
+        '''
+
+        # missing "confirm_password"
+        payload = {'email': 'new_email@foo.com', 'password': 'abc123!'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # missing "password"
+        payload = {'email': 'new_email@foo.com', 'confirm_password': 'abc123!'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # missing "email"
+        payload = {'password': 'abc123!'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # check current instances unchanged:
+        current_users = set([str(x.pk) for x in User.objects.all()])
+        difference_set = current_users.difference(self.initial_user_uuids)
+        self.assertEqual(len(difference_set), 0)
+
+
+    def test_junk_password_rejected(self):
+        '''
+        Django has some functions for checking various elements of bad passwords.
+        Check that the request is rejected and it has an appropriate warning
+        '''
+        # password confirm missing the final "!"
+        payload = {'email': 'new_email@foo.com','password': 'abc123!', 'confirm_password': 'abc123'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('password' in response.json())
+
+        # check current instances unchanged:
+        current_users = set([str(x.pk) for x in User.objects.all()])
+        difference_set = current_users.difference(self.initial_user_uuids)
+        self.assertEqual(len(difference_set), 0)
+
+    def test_mismatched_password_rejected(self):
+        '''
+        We have a re-type password field-- so the two pwds must match
+        the error can also be caught on the front-end, but we also 
+        check here in case someone is directly interacting with the API
+        '''
+        # password confirm missing the final "!"
+        payload = {'email': 'new_email@foo.com',
+            'password': 'sksdf8aQ23!', 
+            'confirm_password': 'sksdf8aQ23'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('confirm_password' in response.json())
+
+        # check current instances unchanged:
+        current_users = set([str(x.pk) for x in User.objects.all()])
+        difference_set = current_users.difference(self.initial_user_uuids)
+        self.assertEqual(len(difference_set), 0)
+
+    def test_successful_request_creates_inactive_user(self):
+        '''
+        If the request is properly formatted, a new user should be 
+        created, but they should be marked as "inactive" until they 
+        click on the link sent to their email
+        '''
+        payload = {'email': 'new_email@foo.com',
+            'password': 'sksdf8aQ23!', 
+            'confirm_password': 'sksdf8aQ23!'}
+        response = self.regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # check current instances incremented:
+        current_users = set([str(x.pk) for x in User.objects.all()])
+        difference_set = current_users.difference(self.initial_user_uuids)
+        self.assertEqual(len(difference_set), 1)
+
+        # get that new user:
+        new_user = User.objects.get(pk=list(difference_set)[0])
+        self.assertFalse(new_user.is_active)
+
+    @mock.patch('api.serializers.user.get_user_model')
+    def test_failure_to_create_user(self, mock_user_model):
+        '''
+        If the user cannot be created (for some unspecified reason)
+        then we return 500
+        '''
+        mock_model = mock.MagicMock()
+        mock_ex = mock.MagicMock(side_effect=Exception('something wrong.'))
+        mock_user_model.return_value = mock_model
+        mock_model.objects.create_user = mock_ex
+        payload = {'email': 'new_email@foo.com',
+            'password': 'sksdf8aQ23!', 
+            'confirm_password': 'sksdf8aQ23!'}
+        response = self.regular_client.post(self.url, data=payload, format='json')        
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # check current instances unchanged:
+        current_users = set([str(x.pk) for x in User.objects.all()])
+        difference_set = current_users.difference(self.initial_user_uuids)
+        self.assertEqual(len(difference_set), 0)

@@ -2,6 +2,7 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import global_settings
+from django.utils.module_loading import import_string
 
 # a small helper function for reading environment variables:
 def get_env(variable_name):
@@ -127,6 +128,47 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_uuid'
 }
 
+###############################################################################
+# Parameters for Email functions
+###############################################################################
+
+#  All available backends for sending emails:
+EMAIL_BACKEND_SELECTIONS = {
+    'CONSOLE': 'django.core.mail.backends.console.EmailBackend',
+    'GMAIL': 'mev.gmail_backend.GmailBackend'
+}
+
+# Users can optionally specify an environment variable 
+# to choose their backend.  Defaults to console if not specified.
+try:
+    EMAIL_BACKEND_CHOICE = os.environ['EMAIL_BACKEND_CHOICE']
+except KeyError:
+    EMAIL_BACKEND_CHOICE = 'CONSOLE'
+
+# Now that we have the email backend choice, select the class
+# string so that the we can properly set the required EMAIL_BACKEND
+# django settings variable
+try:
+    EMAIL_BACKEND = EMAIL_BACKEND_SELECTIONS[EMAIL_BACKEND_CHOICE]
+except KeyError:
+    raise ImproperlyConfigured('The email backend specified must be from'
+        ' the set: {options}'.format(
+            options = ', '.join(EMAIL_BACKEND_SELECTIONS.keys())
+        )
+    )
+
+# Import the module to test that any dependencies (i.e. credentials)
+# are correctly specified as environment variables:
+import_string(EMAIL_BACKEND)
+
+# When emails are sent, this will be the "From" field
+# If None, emails are sent as ""
+FROM_EMAIL = os.environ.get('FROM_EMAIL', None)
+
+###############################################################################
+# END Parameters for Email functions
+###############################################################################
+
 # The location of the mkdocs YAML configuration file
 MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 
@@ -190,3 +232,21 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 # Import the logging config:
 from mev import base_logging_config as log_config
+
+
+###############################################################################
+# Parameters for front-end URLs
+###############################################################################
+
+# For some of the auth views, various links (sent via email) such as for account
+# activation, will direct users to the front-end.  There, the front-end will 
+# grab the important components like the token, and send them to the backend, hitting
+# the usual API endpoints.
+
+FRONTEND_DOMAIN = 'mev.tm4.org'
+ACTIVATION_URL = 'activate/{uid}/{token}'
+
+
+###############################################################################
+# END Parameters for front-end URLs
+###############################################################################

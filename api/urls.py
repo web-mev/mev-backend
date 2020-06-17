@@ -14,6 +14,8 @@ urlpatterns = [
     # views for querying User instances
     path('users/', api.views.UserList.as_view(), name='user-list'),
     path('users/<uuid:pk>/', api.views.UserDetail.as_view(), name='user-detail'),
+    path('users/register/', api.views.UserRegisterView.as_view(), name='user-register'),
+    path('users/reset-password/', api.views.PasswordReset.as_view(), name='password-reset'),
 
     ##################### Views for Workspaces ###############################
 

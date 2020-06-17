@@ -2,6 +2,7 @@ import re
 
 import api.exceptions as api_exceptions
 
+
 def normalize_identifier(original_name):
     '''
     A function to help constrain names by removing 
