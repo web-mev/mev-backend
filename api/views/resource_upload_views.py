@@ -27,9 +27,13 @@ class ResourceUpload(APIView):
     parser_classes = [MultiPartParser]
 
     permission_classes = [framework_permissions.IsAuthenticated]
+    serializer_class = UploadSerializer
+
+    def get_serializer(self):
+        return self.serializer_class()
 
     def post(self, request, *args, **kwargs):
-        serializer = UploadSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             # the owner key is optional.  If not specified,
             # the uploaded resource will be assigned to the 

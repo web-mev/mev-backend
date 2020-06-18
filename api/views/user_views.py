@@ -7,6 +7,7 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.schemas.openapi import AutoSchema
 
 from api.serializers.user import UserSerializer, \
     UserRegisterSerializer, \
@@ -21,6 +22,15 @@ from api.utilities import email_utils
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+
+class SchemaMixin(AutoSchema):
+    '''
+    By default, the introspection does not work for APIView
+    unless a get_serializer method is implemented.
+    '''
+    def get_serializer(self):
+        return self.serializer_class()
 
 class UserList(generics.ListCreateAPIView):
     '''
@@ -65,7 +75,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
 
 
-class UserRegisterView(APIView):
+class UserRegisterView(APIView, SchemaMixin):
     '''
     Used to register a new user by email/password
     '''
@@ -94,7 +104,7 @@ class UserRegisterView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)     
 
-class ResendActivationView(APIView):
+class ResendActivationView(APIView, SchemaMixin):
     '''
     If a user's token expires, they exist in our system, but can't
     activate.  This sends them another email with a new token
@@ -121,7 +131,7 @@ class ResendActivationView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)     
 
-class UserActivateView(APIView):
+class UserActivateView(APIView, SchemaMixin):
     '''
     This validates the uid/token and activates the user once they click on
     the link in their email
@@ -142,7 +152,7 @@ class UserActivateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)     
 
 
-class PasswordResetView(APIView):
+class PasswordResetView(APIView, SchemaMixin):
     '''
     Used when a user has forgotten password and
     wants to reset.  Initiates the reset flow
@@ -162,7 +172,7 @@ class PasswordResetView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(APIView, SchemaMixin):
     '''
     Used when a user has clicked on a reset link
     and is sending a UID (encoded), a token, a new password,
@@ -182,7 +192,7 @@ class PasswordResetConfirmView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class PasswordChangeView(APIView):
+class PasswordChangeView(APIView, SchemaMixin):
     '''
     For changing password (once authenticated)
     '''

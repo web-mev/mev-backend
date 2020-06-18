@@ -15,19 +15,19 @@ Sequence-based formats are formats like FastQ, Fasta, or SAM/BAM.
 
 #### Table-based resource types
 
-::: api.resource_types.table_types.TableResource
+::: resource_types.table_types.TableResource
     :docstring:
 
 
-::: api.resource_types.table_types.Matrix
+::: resource_types.table_types.Matrix
     :docstring:
 
 
-::: api.resource_types.table_types.IntegerMatrix
+::: resource_types.table_types.IntegerMatrix
     :docstring:
 
 
-::: api.resource_types.table_types.AnnotationTable
+::: resource_types.table_types.AnnotationTable
     :docstring:
 
 For example, if we received the following table:
@@ -40,19 +40,19 @@ For example, if we received the following table:
 Then this table can be used to create `Attribute`s which can be added to
 the `Observation`s.  After the annotations are uploaded, the users must tell MEV how to interpret the columns (e.g. as a string?  as a bounded float?), but once that type is specified, we can validate the annotations against that choice and subsequently add the `Attribute`s to the `Observation`s. 
 
-::: api.resource_types.table_types.BEDFile
+::: resource_types.table_types.BEDFile
     :docstring:
 
 #### Sequence-based formats
 
-::: api.resource_types.sequence_types.SequenceResource
+::: resource_types.sequence_types.SequenceResource
     :docstring:
 
-::: api.resource_types.sequence_types.FastAResource
+::: resource_types.sequence_types.FastAResource
     :docstring:
 
-::: api.resource_types.sequence_types.FastQResource
+::: resource_types.sequence_types.FastQResource
     :docstring:
 
-::: api.resource_types.sequence_types.AlignedSequenceResource
+::: resource_types.sequence_types.AlignedSequenceResource
     :docstring:
