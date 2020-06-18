@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
+from rest_framework.test import APIClient
+
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
@@ -13,6 +15,25 @@ from api.utilities.basic_utils import encode_uid
 from api.views import ResendActivationView, UserRegisterView
 
 User = get_user_model()
+
+class UserInactiveTests(BaseAPITestCase):
+
+    def test_inactive(self):
+        '''
+        Test that inactive users can't login
+        '''
+        passwd = 'some!dummy!pswd@'
+        new_user = User.objects.create_user(
+            'some_email@gmail.com',
+            passwd
+        )
+        new_user.is_active = False
+        new_user.save()
+
+        client = APIClient()
+        logged_in = client.login(email=new_user.email, password=passwd)
+        self.assertFalse(logged_in)
+       
 
 class UserListTests(BaseAPITestCase):
 
