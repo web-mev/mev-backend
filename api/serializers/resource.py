@@ -118,16 +118,6 @@ class ResourceSerializer(serializers.ModelSerializer):
         # extra insurance
         if internal_call or requesting_user.is_staff:
             params = ResourceSerializer.parse_request_parameters(validated_data)
-            
-            # we require the resource_type.  No guessing types.
-            # Note that we do not actually set the resource_type 
-            # on the "pre-validated" Resource instances created
-            # below.
-            resource_type = params['resource_type']
-            if not resource_type:
-                raise exceptions.ValidationError({
-                    'resource_type': 'This field is required and cannot be null.'
-                })
 
             # for Resources that have not been associated with a Workspace:
             if params['workspace'] is None:
@@ -163,10 +153,15 @@ class ResourceSerializer(serializers.ModelSerializer):
             logger.info('Created a Resource: %s' % resource)
 
             # Now start the validation process (async):
+            resource_type = params['resource_type']
             logger.info('Queueing validation for new resource %s with type %s ' % 
                 (str(resource.pk), resource_type)
             )
             set_resource_to_validation_status(resource)
+
+            # Note that we did not actually set the resource_type 
+            # on the "pre-validated" Resource instances created
+            # above.  If a resource_type was specified, we validate:
             api_tasks.validate_resource.delay(
                 resource.pk, 
                 resource_type 

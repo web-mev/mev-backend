@@ -1,5 +1,6 @@
 import os
 import uuid
+import json
 import logging
 
 from django.conf import settings
@@ -205,6 +206,7 @@ def check_for_shared_resource_file(resource_instance):
         else:
             return True
 
+
 def get_resource_preview(resource_instance):
     '''
     Returns a "preview" of the resource_instance in JSON-format.
@@ -226,3 +228,56 @@ def get_resource_preview(resource_instance):
         }
 
     return get_preview(resource_instance.path, resource_instance.resource_type)
+
+
+def handle_valid_resource(resource, resource_class_instance, requested_resource_type):
+    '''
+    Once a Resource has been successfully validated, this function does some
+    final operations such as moving the file and extracting metadata.
+    '''
+    resource.status = Resource.READY
+
+    # if the existing resource.resource_type field was not set (null/None)
+    # then that means it has never passed validation (e.g. a new file).
+    # Move it to its final location
+    if not resource.resource_type:
+        try:
+            final_path = move_resource_to_final_location(resource)
+            resource.path = final_path
+        except Exception as ex:
+            # a variety of exceptions can be raised due to failure
+            # to create directories/files.  Catch them all here and
+            # set the resource to be inactive.
+            logger.error('An exception was raised following'
+            ' successful validation of reosurce {resource}.'
+            ' Exception trace is {ex}'.format(
+                ex=ex,
+                resource = resource
+            ))
+
+    resource.resource_type = requested_resource_type
+
+    # since the resource was valid, we can also fill-in the metadata
+    metadata = resource_class_instance.extract_metadata(resource.path)
+    
+    # need to check if there was already metadata for this Resource:
+    rm = ResourceMetadata.objects.filter(resource=resource)
+    if len(rm) > 1:
+        logger.error('Database corruption-- multiple ResourceMetadata'
+            ' instances associated with Resource: {resource}'.format(
+                resource=resource
+            )
+        )
+    elif len(rm) == 0:
+        rm = ResourceMetadata.objects.create(
+            resource=resource,
+            parent_operation=metadata['parent_operation'],
+            observation_set=json.dumps(metadata['observation_set']),
+            feature_set=json.dumps(metadata['feature_set']),
+        )
+    else: # had existing ResourceMetadata-- update
+        rm = rm[0]
+        rm.parent_operation=metadata['parent_operation']
+        rm.observation_set=json.dumps(metadata['observation_set'])
+        rm.feature_set=json.dumps(metadata['feature_set'])
+        rm.save()

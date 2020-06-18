@@ -102,7 +102,8 @@ class ResourceListTests(BaseAPITestCase):
 
     def test_bad_admin_request_fails(self):
         """
-        Test that even admins must specify a resource_type.
+        Test that even admins must specify a valid resource_type.
+        The type given below is junk.
         """
         # get all initial instances before anything happens:
         initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
@@ -110,6 +111,7 @@ class ResourceListTests(BaseAPITestCase):
         # payload is missing the resource_type key
         payload = {
             'owner_email': self.regular_user_1.email,
+            'resource_type': 'ASDFADSFASDFASFSD',
             'name': 'some_file.txt',
         }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
@@ -135,11 +137,10 @@ class ResourceListTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-    def test_null_resource_type_is_invalid(self):
+    def test_null_resource_type_is_valid(self):
         """
-        Test that a null resource_type does not work.
-        We need to know what the intended type is-
-        no guessing types.
+        Test that an explicit null resource_type is OK.
+        Users will eventually have to set their own type
         """
         # get all initial instances before anything happens:
         initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
@@ -153,12 +154,12 @@ class ResourceListTests(BaseAPITestCase):
         response = self.authenticated_admin_client.post(
             self.url, data=payload, format='json'
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # check that nothing changed in in the database:
+        # check that we have a new Resource in the database:
         current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
         difference_set = current_resource_uuids.difference(initial_resource_uuids)
-        self.assertEqual(len(difference_set), 0)
+        self.assertEqual(len(difference_set), 1)
 
     @mock.patch('api.serializers.resource.api_tasks')
     @mock.patch('api.serializers.resource.set_resource_to_validation_status')

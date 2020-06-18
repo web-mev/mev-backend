@@ -61,7 +61,7 @@ class ResourceUploadTests(BaseAPITestCase):
 
     def test_upload_requires_auth(self):
         '''
-        Test that general requests to the endpoint generate 401
+        Test that unauthenticated requests to the endpoint generate 401
         '''
         response = self.regular_client.get(self.url)
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
@@ -86,11 +86,10 @@ class ResourceUploadTests(BaseAPITestCase):
         # check that the validation was called:
         mock_api_tasks.validate_resource.delay.assert_called()
 
-
-    def test_missing_resource_type_raises_ex(self):
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_missing_resource_type_is_ok(self, mock_api_tasks):
         '''
-        Missing the `resource_type` key raises a validation 
-        error
+        Missing the `resource_type` is OK- it's just set to None
         '''
         payload = {
             'owner_email': self.regular_user_1.email,
@@ -101,8 +100,12 @@ class ResourceUploadTests(BaseAPITestCase):
             data=payload, 
             format='multipart'
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        print(response.json())
+        # check that the validation was called:
+        mock_api_tasks.validate_resource.delay.assert_called()
 
+        
     def test_incorrect_resource_type_raises_ex(self):
         '''
         The request contained the proper keys, but the

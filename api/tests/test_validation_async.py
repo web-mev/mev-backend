@@ -131,7 +131,7 @@ class TestValidateResource(BaseAPITestCase):
         )
         self.assertEqual(current_resource.status, expected_status)
 
-    @mock.patch('api.async_tasks.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.async_tasks.get_resource_type_instance')
     def test_resource_type_change_succeeds(self, 
         mock_get_resource_type_instance,
@@ -181,7 +181,7 @@ class TestValidateResource(BaseAPITestCase):
 
         mock_move.assert_not_called()
 
-    @mock.patch('api.async_tasks.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.async_tasks.get_resource_type_instance')
     def test_resource_type_change_succeeds_for_new_resource(self, 
         mock_get_resource_type_instance,
@@ -229,7 +229,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance.extract_metadata.assert_called()
 
 
-    @mock.patch('api.async_tasks.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     def test_resource_metadata_entered_in_db(self, 
         mock_move):
         '''
@@ -261,7 +261,7 @@ class TestValidateResource(BaseAPITestCase):
         n1 = len(rm)  
         self.assertTrue(n1 == 1)      
 
-    @mock.patch('api.async_tasks.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     def test_resource_metadata_updated_in_db(self, 
         mock_move):
         '''
