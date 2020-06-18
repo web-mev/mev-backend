@@ -13,7 +13,8 @@ from api.serializers.user import UserSerializer, \
     PasswordResetSerializer, \
     UserActivateSerializer, \
     ResendActivationSerializer, \
-    PasswordResetConfirmSerializer
+    PasswordResetConfirmSerializer, \
+    PasswordChangeSerializer
 import api.permissions as api_permissions
 from api.utilities import email_utils
 
@@ -175,7 +176,24 @@ class PasswordResetConfirmView(APIView):
         if serializer.is_valid():
             validated_data = serializer.validated_data
             user = serializer.user
-            print('set password to', validated_data['password'])
+            user.set_password(validated_data['password'])
+            user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordChangeView(APIView):
+    '''
+    For changing password (once authenticated)
+    '''
+    permission_classes = [framework_permissions.IsAuthenticated]
+    serializer_class = PasswordChangeSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            validated_data = serializer.validated_data
+            user = request.user
             user.set_password(validated_data['password'])
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)

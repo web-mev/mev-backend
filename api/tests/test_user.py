@@ -574,3 +574,87 @@ class PasswordResetConfirmTests(BaseAPITestCase):
         # and test that the new password allows login
         logged_in = self.regular_client.login(email=self.test_user.email, password=pwd)
         self.assertTrue(logged_in)
+
+class PasswordChangeTests(BaseAPITestCase):
+    '''
+    Tests the endpont where the user is authenticated/logged in,
+    and is requesting a password change
+    '''
+    def setUp(self):
+        self.url = reverse('password-change')
+        self.establish_clients()
+
+        self.test_user = self.regular_user_1
+        self.current_password = test_settings.REGULAR_USER_1_PASSWORD
+
+    def test_must_be_authenticated(self):
+        '''
+        To change the password, you need to be authenticated already
+        '''
+
+        new_pwd = 'some_new_password123!'
+        payload = {
+            'current_password': self.current_password,
+            'password': new_pwd,
+            'confirm_password': new_pwd
+        }
+
+        response = self.regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # check that they can still login with the old password
+        logged_in = self.regular_client.login(email=self.test_user.email, password=self.current_password)
+        self.assertTrue(logged_in)
+
+    def test_bad_current_password(self):
+
+        new_pwd = 'some_new_password123!'
+        payload = {
+            'current_password': self.current_password + 'junk',
+            'password': new_pwd,
+            'confirm_password': new_pwd
+        }
+
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('current_password' in response.json())
+
+        # check that they can still login with the old password
+        logged_in = self.regular_client.login(email=self.test_user.email, password=self.current_password)
+        self.assertTrue(logged_in)
+
+    def test_mismatched_new_passwords(self):
+
+        new_pwd = 'some_new_password123!'
+        payload = {
+            'current_password': self.current_password,
+            'password': new_pwd,
+            'confirm_password': new_pwd + '!!' # to make it different
+        }
+
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('confirm_password' in response.json())
+
+        # check that they can still login with the old password
+        logged_in = self.regular_client.login(email=self.test_user.email, password=self.current_password)
+        self.assertTrue(logged_in)
+
+    def test_successful_change(self):
+
+        new_pwd = 'some_new_password123!'
+        payload = {
+            'current_password': self.current_password,
+            'password': new_pwd,
+            'confirm_password': new_pwd
+        }
+
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        logged_in = self.regular_client.login(email=self.test_user.email, password=new_pwd)
+        self.assertTrue(logged_in)

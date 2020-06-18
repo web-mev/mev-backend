@@ -164,8 +164,24 @@ class PasswordResetConfirmSerializer(UidAndTokenSerializer, PasswordSerializer):
     This handles the reset the users's password
     oncce they have clicked on a link in their email.
     '''
-    
+
     def validate(self, data):
         validated_data = PasswordSerializer.validate(self, data)
         validated_data = UidAndTokenSerializer.validate(self, validated_data)
+        return validated_data
+
+class PasswordChangeSerializer(PasswordSerializer):
+    '''
+    This handles the reset the users's password
+    once they have clicked on a link in their email.
+    '''
+    current_password = serializers.CharField(write_only=True) 
+
+    def validate(self, data):
+
+        # the user is authenticated, so the request had some authentication token
+        is_password_valid = self.context['request'].user.check_password(data['current_password'])
+        if not is_password_valid:
+            raise ValidationError({'current_password': 'The current password was not valid.'})
+        validated_data = PasswordSerializer.validate(self, data)
         return validated_data

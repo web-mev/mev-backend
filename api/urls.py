@@ -19,6 +19,7 @@ urlpatterns = [
     path('users/resend-activation/', api.views.ResendActivationView.as_view(), name='resend-activation'),
     path('users/reset-password/confirm/', api.views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('users/reset-password/', api.views.PasswordResetView.as_view(), name='password-reset'),
+    path('users/change-password/', api.views.PasswordChangeView.as_view(), name='password-change'),
 
     ##################### Views for Workspaces ###############################
 
