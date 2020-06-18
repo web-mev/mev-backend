@@ -5,11 +5,11 @@ import logging
 from django.conf import settings
 
 from api.models import Resource, ResourceMetadata
-from api.resource_types import RESOURCE_MAPPING
 from .basic_utils import make_local_directory, \
     move_resource, \
     copy_local_resource, \
     get_filesize
+from resource_types import get_preview
 
 logger = logging.getLogger(__name__)
 
@@ -225,18 +225,4 @@ def get_resource_preview(resource_instance):
             ' type was not set.'
         }
 
-    # The resource type is the shorthand identifier.
-    # To get the actual resource class implementation, we 
-    # use the RESOURCE_MAPPING dict
-    try:
-        resource_class = RESOURCE_MAPPING[resource_instance.resource_type]
-    except KeyError as ex:
-        logger.error('Received a Resource that had a non-null resource_type'
-            ' but was also not in the known resource types.'
-        )
-        return {'error': 'No preview available'}
-        
-    # instantiate the proper class for this type:
-    resource_type = resource_class()
-    preview = resource_type.get_preview(resource_instance.path)
-    return preview
+    return get_preview(resource_instance.path, resource_instance.resource_type)

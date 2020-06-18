@@ -2,7 +2,7 @@ import unittest
 import os
 
 import pandas as pd
-from api.resource_types.table_types import TableResource, \
+from resource_types.table_types import TableResource, \
     Matrix, \
     IntegerMatrix, \
     AnnotationTable, \

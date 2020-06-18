@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 from api.models import Workspace
-from api.resource_types import DATABASE_RESOURCE_TYPES
+from resource_types import DATABASE_RESOURCE_TYPES
 
 class Resource(models.Model):
     '''

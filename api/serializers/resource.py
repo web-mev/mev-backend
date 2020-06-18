@@ -7,6 +7,8 @@ from api.models import Resource, Workspace
 from api.utilities.resource_utilities import set_resource_to_validation_status
 import api.async_tasks as api_tasks
 
+from resource_types import DB_RESOURCE_STRING_TO_HUMAN_READABLE
+
 logger = logging.getLogger(__name__)
 
 class ResourceSerializer(serializers.ModelSerializer):
@@ -24,6 +26,7 @@ class ResourceSerializer(serializers.ModelSerializer):
     )
     path = serializers.CharField(write_only=True, required=False)
     size = serializers.IntegerField(read_only=True)
+    readable_resource_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Resource
@@ -39,8 +42,15 @@ class ResourceSerializer(serializers.ModelSerializer):
             'workspace',
             'created',
             'path',
-            'size'
+            'size',
+            'readable_resource_type'
         ]
+
+    def get_readable_resource_type(self, obj):
+        if obj.resource_type:
+            return DB_RESOURCE_STRING_TO_HUMAN_READABLE[obj.resource_type]
+        else:
+            return None
 
     @staticmethod
     def parse_request_parameters(validated_data):

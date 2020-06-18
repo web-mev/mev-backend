@@ -239,7 +239,8 @@ class TestResourceUtilities(BaseAPITestCase):
 
         self.assertFalse(check_for_shared_resource_file(r[0]))        
 
-    @mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
+    #@mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
+    @mock.patch('resource_types.RESOURCE_MAPPING')
     def test_resource_preview_for_valid_resource_type(self, mock_resource_mapping):
         '''
         Tests that a proper preview dict is returned.  Mocks out the 
@@ -288,7 +289,8 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue('info' in preview_dict)
         
 
-    @mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
+    #@mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
+    @mock.patch('resource_types.RESOURCE_MAPPING')
     def test_resource_preview_for_invalid_resource_type(self, mock_resource_mapping):
         '''
         Tests that a proper preview dict is returned.  Mocks out the 

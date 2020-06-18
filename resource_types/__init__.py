@@ -30,6 +30,12 @@ DATABASE_RESOURCE_TYPES = [
     ('BED','BED-format file')
 ]
 
+
+DB_RESOURCE_STRING_TO_HUMAN_READABLE = {
+    x[0]:x[1] for x in DATABASE_RESOURCE_TYPES
+}
+
+
 HUMAN_READABLE_TO_DB_STRINGS = {
     x[1]:x[0] for x in DATABASE_RESOURCE_TYPES
 }
@@ -75,3 +81,28 @@ def get_resource_type_instance(resource_type_str):
             )
         )
         raise ex
+
+def get_preview(resource_path, resource_type):
+    '''
+    Returns a JSON-format "preview" of the data
+    underlying a Resource.  
+
+    Assumes the resource_path arg is local to the 
+    machine.
+    '''
+
+    # The resource type is the shorthand identifier.
+    # To get the actual resource class implementation, we 
+    # use the RESOURCE_MAPPING dict
+    try:
+        resource_class = RESOURCE_MAPPING[resource_type]
+    except KeyError as ex:
+        logger.error('Received a Resource that had a non-null resource_type'
+            ' but was also not in the known resource types.'
+        )
+        return {'error': 'No preview available'}
+        
+    # instantiate the proper class for this type:
+    resource_type = resource_class()
+    preview = resource_type.get_preview(resource_path)
+    return preview

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from api.resource_types import RESOURCE_MAPPING
+from resource_types import RESOURCE_MAPPING
 
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')

@@ -9,8 +9,7 @@ from django.contrib.auth import get_user_model
 
 from api.async_tasks import validate_resource
 from api.models import Resource, ResourceMetadata
-from api.resource_types import RESOURCE_MAPPING
-from api.resource_types import IntegerMatrix
+from resource_types import RESOURCE_MAPPING, IntegerMatrix
 from api.utilities.resource_utilities import create_resource_from_upload
 from api.tests.base import BaseAPITestCase
 

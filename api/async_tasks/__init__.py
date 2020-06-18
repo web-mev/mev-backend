@@ -7,7 +7,7 @@ from celery.decorators import task
 from api.models import Resource, ResourceMetadata
 from api.utilities import basic_utils
 from api.utilities.resource_utilities import move_resource_to_final_location
-from api.resource_types import get_resource_type_instance
+from resource_types import get_resource_type_instance
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
 
