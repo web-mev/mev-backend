@@ -39,13 +39,12 @@ class ResourceMetadata(models.Model):
     feature_set = JSONField(blank = True, null = True)
 
     def __str__(self):
-        return '''ResourceMetadata ({id})
+        return '''ResourceMetadata
           Resource: {resource_pk}
           Parent Op: {parent_operation}
           Observations: {observation_set}
           Features: {feature_set}'''.format(
                 resource_pk = self.resource.pk,
-                id = str(self.id),
                 observation_set = self.observation_set,
                 feature_set = self.feature_set,
                 parent_operation = self.parent_operation

@@ -6,11 +6,15 @@ import logging
 from django.conf import settings
 
 from api.models import Resource, ResourceMetadata
+from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
     move_resource, \
     copy_local_resource, \
     get_filesize
-from resource_types import get_preview
+from resource_types import get_preview, \
+    PARENT_OP_KEY, \
+    OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +234,17 @@ def get_resource_preview(resource_instance):
     return get_preview(resource_instance.path, resource_instance.resource_type)
 
 
+def add_metadata_to_resource(resource, metadata):
+    metadata['resource'] = resource.pk
+    try:
+        rm = ResourceMetadata.objects.get(resource=resource)
+        rms = ResourceMetadataSerializer(rm, data=metadata)
+    except ResourceMetadata.DoesNotExist:
+        rms = ResourceMetadataSerializer(data=metadata)
+    if rms.is_valid(raise_exception=True):
+        rms.save()
+
+
 def handle_valid_resource(resource, resource_class_instance, requested_resource_type):
     '''
     Once a Resource has been successfully validated, this function does some
@@ -259,25 +274,4 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
 
     # since the resource was valid, we can also fill-in the metadata
     metadata = resource_class_instance.extract_metadata(resource.path)
-    
-    # need to check if there was already metadata for this Resource:
-    rm = ResourceMetadata.objects.filter(resource=resource)
-    if len(rm) > 1:
-        logger.error('Database corruption-- multiple ResourceMetadata'
-            ' instances associated with Resource: {resource}'.format(
-                resource=resource
-            )
-        )
-    elif len(rm) == 0:
-        rm = ResourceMetadata.objects.create(
-            resource=resource,
-            parent_operation=metadata['parent_operation'],
-            observation_set=json.dumps(metadata['observation_set']),
-            feature_set=json.dumps(metadata['feature_set']),
-        )
-    else: # had existing ResourceMetadata-- update
-        rm = rm[0]
-        rm.parent_operation=metadata['parent_operation']
-        rm.observation_set=json.dumps(metadata['observation_set'])
-        rm.feature_set=json.dumps(metadata['feature_set'])
-        rm.save()
+    add_metadata_to_resource(resource, metadata)

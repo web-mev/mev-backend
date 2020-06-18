@@ -1,5 +1,7 @@
 import logging
 
+from .base import DataResource
+
 from .sequence_types import FastAResource, \
     FastQResource, \
     AlignedSequenceResource
@@ -13,6 +15,11 @@ from .table_types import TableResource, \
 
 logger = logging.getLogger(__name__)
 
+# expose these keys for consistent reference outside of this package:
+OBSERVATION_SET_KEY = DataResource.OBSERVATION_SET
+FEATURE_SET_KEY = DataResource.FEATURE_SET
+PARENT_OP_KEY = DataResource.PARENT_OP
+RESOURCE_KEY = DataResource.RESOURCE
 
 # A list of tuples for use in the database.
 # The first item in each tuple is the stored value

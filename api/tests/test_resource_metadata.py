@@ -19,6 +19,10 @@ from api.data_structures import Observation, \
 
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
+from resource_types import OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY, \
+    RESOURCE_KEY, \
+    PARENT_OP_KEY
 from resource_types.table_types import TableResource, \
     Matrix, \
     IntegerMatrix, \
@@ -57,6 +61,28 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         rm = ResourceMetadata.objects.filter(resource=r)
         self.assertTrue(len(rm) == 1)
 
+        pk = r.pk
+        url = reverse(
+            'resource-metadata-detail', 
+            kwargs={'pk':pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_resource_without_type_returns_404_for_metadata(self):
+        '''
+        Until a type has been successfully validated, any requests for the metadata
+        associated with the Resource should return a 404
+        '''
+        unset_resources = Resource.objects.filter(
+            is_active=True, 
+            owner=self.regular_user_1).exclude(resource_type__isnull=False)
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one active Resource without '
+                'a type to run this test')
+        print(unset_resources)
+        r = unset_resources[0]
+        print(r)
         pk = r.pk
         url = reverse(
             'resource-metadata-detail', 
@@ -152,9 +178,9 @@ class TestMatrixMetadata(unittest.TestCase):
         obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
-        self.assertEqual(obs_set, metadata['observation_set'])
-        self.assertEqual(feature_set, metadata['feature_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
+        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])
 
     def test_metadata_correct_case2(self):
         '''
@@ -182,9 +208,9 @@ class TestMatrixMetadata(unittest.TestCase):
         obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
-        self.assertEqual(obs_set, metadata['observation_set'])
-        self.assertEqual(feature_set, metadata['feature_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
+        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])
 
 class TestIntegerMatrixMetadata(unittest.TestCase):
     def test_metadata_correct_case1(self):
@@ -217,9 +243,9 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
-        self.assertEqual(obs_set, metadata['observation_set'])
-        self.assertEqual(feature_set, metadata['feature_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
+        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])
 
     def test_metadata_correct_case2(self):
         '''
@@ -246,9 +272,9 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
-        self.assertEqual(obs_set, metadata['observation_set'])
-        self.assertEqual(feature_set, metadata['feature_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
+        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])
 
 class TestAnnotationTableMetadata(unittest.TestCase):
 
@@ -273,9 +299,9 @@ class TestAnnotationTableMetadata(unittest.TestCase):
                 obs_list.append(obs)
         expected_obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
         metadata = t.extract_metadata(resource_path)
-        self.assertEqual(metadata['observation_set'], expected_obs_set)
-        self.assertIsNone(metadata['feature_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertEqual(metadata[OBSERVATION_SET_KEY], expected_obs_set)
+        self.assertIsNone(metadata[FEATURE_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])
 
 
 class TestFeatureTableMetadata(unittest.TestCase):
@@ -306,9 +332,9 @@ class TestFeatureTableMetadata(unittest.TestCase):
                 feature_list.append(f)
         expected_feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
         metadata = t.extract_metadata(resource_path)
-        self.assertEqual(metadata['feature_set'], expected_feature_set)
-        self.assertIsNone(metadata['observation_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertEqual(metadata[FEATURE_SET_KEY], expected_feature_set)
+        self.assertIsNone(metadata[OBSERVATION_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])
 
 
 class TestBedFileMetadata(unittest.TestCase):
@@ -317,6 +343,6 @@ class TestBedFileMetadata(unittest.TestCase):
         resource_path = os.path.join(TESTDIR, 'example_bed.bed')
         bf = BEDFile()
         metadata = bf.extract_metadata(resource_path)
-        self.assertIsNone(metadata['feature_set'])
-        self.assertIsNone(metadata['observation_set'])
-        self.assertIsNone(metadata['parent_operation'])
+        self.assertIsNone(metadata[FEATURE_SET_KEY])
+        self.assertIsNone(metadata[OBSERVATION_SET_KEY])
+        self.assertIsNone(metadata[PARENT_OP_KEY])

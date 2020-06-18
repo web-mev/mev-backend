@@ -9,7 +9,12 @@ from django.contrib.auth import get_user_model
 
 from api.async_tasks import validate_resource
 from api.models import Resource, ResourceMetadata
-from resource_types import RESOURCE_MAPPING, IntegerMatrix
+from resource_types import RESOURCE_MAPPING, \
+    OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY, \
+    PARENT_OP_KEY, \
+    RESOURCE_KEY, \
+    IntegerMatrix
 from api.utilities.resource_utilities import create_resource_from_upload
 from api.tests.base import BaseAPITestCase
 
@@ -157,18 +162,18 @@ class TestValidateResource(BaseAPITestCase):
         # need to test the reversion of type, so need to know 
         # what it was in the first place.  We then randomly
         # choose a different type
-        current_type = resource.resource_type
-        new_type = current_type
-        while new_type == current_type:
+        original_type = resource.resource_type
+        new_type = original_type
+        while new_type == original_type:
             new_type = random.choice(list(RESOURCE_MAPPING.keys()))
 
         # set the mock return values
         mock_resource_instance = mock.MagicMock()
         mock_resource_instance.validate_type.return_value = (True, 'some string')
         mock_resource_instance.extract_metadata.return_value = {
-            'parent_operation': None,
-            'observation_set': None,
-            'feature_set': None
+            PARENT_OP_KEY: None,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None
         }
         mock_get_resource_type_instance.return_value = mock_resource_instance        
         validate_resource(resource.pk, new_type)
@@ -177,6 +182,7 @@ class TestValidateResource(BaseAPITestCase):
         current_resource = Resource.objects.get(pk=resource.pk)
         self.assertTrue(current_resource.is_active)
         self.assertEqual(current_resource.resource_type, new_type)
+        self.assertFalse(current_resource.resource_type == original_type)
         self.assertEqual(current_resource.status, Resource.READY)
 
         mock_move.assert_not_called()
@@ -202,14 +208,15 @@ class TestValidateResource(BaseAPITestCase):
             )
 
         unset_resource = unset_resources[0]
+        self.assertIsNone(unset_resource.resource_type)
 
         # set the mock return values
         mock_resource_instance = mock.MagicMock()
         mock_resource_instance.validate_type.return_value = (True, 'some string')
         mock_resource_instance.extract_metadata.return_value = {
-            'parent_operation': None,
-            'observation_set': None,
-            'feature_set': None
+            PARENT_OP_KEY: None,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None
         }
         mock_get_resource_type_instance.return_value = mock_resource_instance
         fake_final_path = '/some/final_path/foo.tsv'
