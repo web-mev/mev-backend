@@ -1,7 +1,7 @@
 site_name: MEV REST API
 site_description: Documentation for the MEV RESTful API
 
-repo_url: https://github.com/qbrc-cnap/mev-backend
+repo_url: https://github.com/hsph-qbrc/mev-backend
 
 markdown_extensions:
  - toc:
