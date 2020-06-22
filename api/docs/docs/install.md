@@ -10,7 +10,7 @@ The application is packaged as a Docker for easier management of dependencies.  
 
 To build the application, clone the repository locally:
 ```
-git clone https://github.com/hsph-qbrc/mev-backend.git
+git clone https://github.com/web-mev/mev-backend.git
 ```
 
 Navigate into that cloned directory and build the Docker image with:
