@@ -1,5 +1,6 @@
 import uuid
 import os
+import logging
 
 from django.conf import settings
 from django.core.cache import cache
@@ -10,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.exceptions import APIException
 
 from api.serializers.upload_serializer import UploadSerializer
 from api.serializers.resource import ResourceSerializer
@@ -19,6 +21,8 @@ from api.utilities.resource_utilities import create_resource_from_upload, \
     set_resource_to_validation_status
 
 User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 class ResourceUpload(APIView):
     '''
@@ -69,9 +73,15 @@ class ResourceUpload(APIView):
                 settings.PENDING_FILES_DIR, 
                 tmp_name
             )
-            with open(tmp_path, 'wb+') as destination:
-                for chunk in upload.chunks():
-                    destination.write(chunk)
+
+            try:
+                with open(tmp_path, 'wb+') as destination:
+                    for chunk in upload.chunks():
+                        destination.write(chunk)
+            except Exception as ex:
+                logger.error('An exception was raised when writing a local upload to the tmp directory.')
+                logger.error(ex)
+                raise APIException('The upload process experienced an error.')
 
             # create a Resource instance.
             # Note that this also performs validation
