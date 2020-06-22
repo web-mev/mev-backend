@@ -99,6 +99,7 @@ def move_resource_to_final_location(resource_instance):
             settings.USER_STORAGE_DIR,
             owner_uuid
         )
+        logger.info('USERDIR was: %s' % user_dir)
         if not os.path.exists(user_dir):
             # in the unlikely event the directory cannot be made
             # this function will raise an exception, which will be
@@ -264,7 +265,7 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
             # to create directories/files.  Catch them all here and
             # set the resource to be inactive.
             logger.error('An exception was raised following'
-            ' successful validation of reosurce {resource}.'
+            ' successful validation of resource {resource}.'
             ' Exception trace is {ex}'.format(
                 ex=ex,
                 resource = resource

@@ -50,8 +50,7 @@ class ResourceUpload(APIView):
             except KeyError:
                 owner = request.user
 
-            # The resource type is required and enforced by the 
-            # serializer.
+            # The resource type is NOT required, but may be specified
             resource_type = request.data.get('resource_type')
 
             # get the remainder of the payload parameters
@@ -62,14 +61,21 @@ class ResourceUpload(APIView):
             # and write to a temporary directory where
             # we stage files pre-validation
             filename = upload.name
+            tmp_name = '{uuid}.{filename}'.format(
+                uuid = str(uuid.uuid4()),
+                filename = filename
+            )
             tmp_path = os.path.join(
                 settings.PENDING_FILES_DIR, 
-                str(uuid.uuid4()))
+                tmp_name
+            )
             with open(tmp_path, 'wb+') as destination:
                 for chunk in upload.chunks():
                     destination.write(chunk)
 
             # create a Resource instance.
+            # Note that this also performs validation
+            # and temporarily disables the Resource via the `is_active` flag
             resource = create_resource_from_upload(
                 tmp_path, 
                 filename, 
@@ -79,16 +85,6 @@ class ResourceUpload(APIView):
                 owner
             )
 
-            # ensure the resource is not active for use until
-            # validation is complete:
-            set_resource_to_validation_status(resource)
-
-            # now that we have the file, start the validation process
-            # in the background
-            api_tasks.validate_resource.delay(
-                resource.pk, 
-                resource_type
-            )
             resource_serializer = ResourceSerializer(resource, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:
