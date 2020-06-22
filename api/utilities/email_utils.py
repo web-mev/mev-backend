@@ -126,7 +126,7 @@ def send_uid_and_token_link(request, user, message_cls):
         'token': token
     }
     to = [user.email]
-    message(request, context).send(
+    message_cls(request, context).send(
         to, 
         from_email=settings.FROM_EMAIL)
 
