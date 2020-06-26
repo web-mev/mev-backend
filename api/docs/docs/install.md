@@ -26,9 +26,11 @@ Additionally, specify the same value (an email address) for both `DJANGO_SUPERUS
  
 If you would like some "dummy" data to be entered into the database (e.g. for developing a front-end), you must also specify `POPULUATE_DB=yes` (case-sensitive!).  Any other values for this variable will skip the population of dummy data.
 
+For more information on configuration, see [Configuration](resource_metadata.md)
+
 To run the container:
 ```
-docker run -it --env-file <ENV VARS> -p8000:8000 <DOCKER IMAGE NAME> --bind 0.0.0.0:8000
+docker run -d --env-file <ENV VARS> -p8000:8000 <DOCKER IMAGE NAME> --bind 0.0.0.0:8000
 ```
 
 Note the following:

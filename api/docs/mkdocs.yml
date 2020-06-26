@@ -15,7 +15,9 @@ extra_css: [style.css]
 
 nav:
  - Home: 'index.md'
- - Install: 'install.md'
+ - Setup: 
+   - Installation: 'install.md'
+   - Configuration: 'setup_configuration.md'
  - API: 
    - Intro: 'api.md'
    - Data Structures:
