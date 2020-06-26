@@ -1707,7 +1707,7 @@
     },
     "/api/resources/upload/progress": {
       "get": {
-        "operationId": "listResourceUploadProgress",
+        "operationId": "listServerLocalResourceUploadProgress",
         "description": "Endpoint for checking the progress of an upload.\n\nRequests must contain a \"X-Progress-ID\" header to identify\nthe upload they are monitoring.",
         "parameters": [],
         "responses": {
@@ -2511,7 +2511,7 @@
     },
     "/api/resources/upload/": {
       "post": {
-        "operationId": "CreateResourceUpload",
+        "operationId": "CreateServerLocalResourceUpload",
         "description": "Endpoint for a direct upload to the server.",
         "parameters": [],
         "requestBody": {

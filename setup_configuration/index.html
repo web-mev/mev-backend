@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Configuration - MEV REST API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  <link href="../style.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Configuration";
+    var mkdocs_page_input_path = "setup_configuration.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> MEV REST API</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Setup</span></p>
+                <ul class="current">
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Installation</a>
+                    </li>
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Configuration</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#email-backends-email_backend_choice">Email backends (EMAIL_BACKEND_CHOICE)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#storage-backends-resource_storage_backend">Storage backends (RESOURCE_STORAGE_BACKEND)</a>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">API</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operations</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">MEV REST API</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+        
+          <li>Setup &raquo;</li>
+        
+      
+    
+    <li>Configuration</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/setup_configuration.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h2 id="configuration-options-and-parameters"><a class="toclink" href="#configuration-options-and-parameters">Configuration options and parameters</a></h2>
+<p>As described in the installation section, the WebMEV API depends on environment variables passed to the container using the <code>--env-file</code> argument.  Most variables defined in <code>env_vars.template.txt</code> should be appropriately commented, but we provide some additional instructions or commentary below.</p>
+<h3 id="email-backends-email_backend_choice"><a class="toclink" href="#email-backends-email_backend_choice">Email backends (<code>EMAIL_BACKEND_CHOICE</code>)</a></h3>
+<p>Various operations like user registration and password changes require us to send users emails with encoded tokens to verify their email address and permit changes to their account.  Accordingly, WebMEV needs the ability to send emails.  We allow customization of this email backend through the <code>EMAIL_BACKEND_CHOICE</code> variable in <code>env_vars.template.txt</code>.</p>
+<p>Certain cloud providers, such as GCP, place restrictions on outgoing emails to prevent abuse.  Per their documentation ( https://cloud.google.com/compute/docs/tutorials/sending-mail ), GCP recommends to use a third-party service such as SendGrid.  If you wish to use these, you will have to implement your own email backend per the interface described at the Django project: https://docs.djangoproject.com/en/3.0/topics/email/#defining-a-custom-email-backend</p>
+<p>By default, we provide the following email backends:</p>
+<p><strong>Console (<code>EMAIL_BACKEND_CHOICE=CONSOLE</code>)</strong></p>
+<p><em>Note: This backend is for development purposes only-- no emails are actually sent!</em></p>
+<p>If <code>EMAIL_BACKEND_CHOICE</code> is not set, WebMEV defaults to using Django's "console" backend, which simply prints the emails to stdout.  This is fine for development purposes where the tokens can be copy/pasted for live-testing, but is obviously not suitable for a production environment.</p>
+<p><strong>Gmail (<code>EMAIL_BACKEND_CHOICE=GMAIL</code>)</strong></p>
+<p>Alternatively, one can use the Gmail API to send emails from their personal or institution google account.  In addition to setting <code>EMAIL_BACKEND_CHOICE=GMAIL</code>, you will need to set the following additional variables:</p>
+<pre class="codehilite"><code>GMAIL_ACCESS_TOKEN=
+GMAIL_REFRESH_TOKEN=
+GMAIL_CLIENT_ID=
+GMAIL_CLIENT_SECRET=</code></pre>
+
+
+<p>These variables are obtained after you have created appropriate credentials and performed an Oauth2-based exchange, which we describe.</p>
+<p><em>Steps:</em></p>
+<ul>
+<li>
+<p>Choose a Gmail account (or create one anew) from which you wish to send email notifications.  On your own machine (or wherever you can login to your Google account), go to the Google developers console ( https://console.developers.google.com  or https://console.cloud.google.com ) and head to "APIs &amp; Services" and "Dashboard".  Click on "Enable APIs and Services", search for "Gmail", and enable the Gmail API. </p>
+</li>
+<li>
+<p>Once that is enabled, go to the "Credentials" section under "APIs and Services".  Just as above, we will create a set of OAuth credentials.  Click on the "Create credentials" button and choose "OAuth Client ID".   Choose "Other" from the options and give these credentials a name.</p>
+</li>
+<li>
+<p>Once the credentials are created, download the JSON-format file when it prompts.</p>
+</li>
+<li>
+<p>Using that credential file, run the <code>helpers/exchange_gmail_credentials.py</code> script like:</p>
+</li>
+</ul>
+<pre class="codehilite"><code>python3 helpers/exchange_gmail_credentials.py -i &lt;original_creds_path&gt; -o &lt;final_creds_path&gt;</code></pre>
+
+
+<p>(Note that this script can be run from within the WebMEV Docker container, as it contains the appropriate Python packages.  If you are not using the application container, you can run the script as long as the <code>google-auth-oauthlib</code> library is installed-- https://pypi.org/project/google-auth-oauthlib/ )</p>
+<p>The script will ask you to copy a link into your browser, which you can do on any machine where you can authenticate with Google.  That URL will ask you to choose/log-in to the Gmail account you will be using to send emails.  Finally, if successfully authenticated, it will provide you with a "code" which you will copy into your terminal.  Once complete, the script will write a new JSON-format file at the location specified with the <code>-o</code> argument.</p>
+<ul>
+<li>Using the values in that final JSON file, copy/paste those into the file of environment variables you will be submitting to the WebMEV container upon startup. <em>Be careful with these credentials as they give full access to the Gmail account in question!!</em>  </li>
+</ul>
+<h3 id="storage-backends-resource_storage_backend"><a class="toclink" href="#storage-backends-resource_storage_backend">Storage backends (<code>RESOURCE_STORAGE_BACKEND</code>)</a></h3>
+<p>Storage of user files can be either local (on the MEV server) or in some remote filesystem (such as in a Google storage bucket).  To abstract this, we have storage "backends" that control the behavior for each storage choice.</p>
+<p>Options for storage backends can be found in the <code>storage_backends</code> folder.  To use a particular backend, we supply the "dotted" path for the class that implements the storage interface.  For example, to use the Google bucket storage backend, we would use <code>RESOURCE_STORAGE_BACKEND=storage_backends.google_cloud.GoogleBucketStorage</code> since the <code>GoogleBucketStorage</code> class is located in <code>storage_backends/google_cloud.py</code>.</p>
+<p>Note that each storage backend may require additional environment variables to be set.  We enforce this by attempting an initial import of the storage backend class.  By convention, any configuration parameters required should at the "top-level" of the Python module/file.  This way, when we attempt the import while starting the application, any missing configuration variables will raise an exception.  This (hopefully) prevents errors in runtime due to incomplete/invalid configuration.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../api/" class="btn btn-neutral float-right" title="Intro">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../install/" class="btn btn-neutral" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../install/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../api/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
