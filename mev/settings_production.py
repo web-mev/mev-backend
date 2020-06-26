@@ -12,6 +12,7 @@ SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# TODO get the hosts in here.
 ALLOWED_HOSTS = []
 
 DATABASES = {
@@ -24,6 +25,24 @@ DATABASES = {
         'PORT': int(get_env('DB_PORT')),
     }
 }
+
+###############################################################################
+# START Check for production-specific settings/params
+###############################################################################
+if EMAIL_BACKEND_CHOICE == 'CONSOLE':
+    raise ImproperlyConfigured('In production you cannot use the console email'
+        ' backend, as it does not actually send email!'
+)
+###############################################################################
+# END Check for production-specific settings/params
+###############################################################################
+
+
+
+
+###############################################################################
+# START logging settings
+###############################################################################
 
 # setup some logging options for production:
 production_config_dict = copy.deepcopy(log_config.base_logging_config_dict)
@@ -43,3 +62,6 @@ production_config_dict['loggers']['api']['handlers'].append('sentry')
 # finally, register this config:
 logging.config.dictConfig(production_config_dict)
 
+###############################################################################
+# END logging settings
+###############################################################################

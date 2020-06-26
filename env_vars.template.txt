@@ -5,13 +5,22 @@
 # dev or production status:
 ENVIRONMENT=dev
 
-# Database params:
+###################### Database-related parameters ######################################
+
 DB_PORT=5422
 DB_HOST=localhost
 DB_NAME=
 DB_USER=
 DB_PASSWD=
 PGPASSWORD=
+
+# Should we populate the database with dummy data (the same data we test with)?
+# Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
+POPULATE_DB=
+
+###################### END Database-related parameters ###################################
+
+######################### Django-related parameters ######################################
 
 # The secret key is used to encrypt data when making tokens, etc.
 # Accordingly, make this appropriately long:
@@ -24,25 +33,33 @@ DJANGO_SUPERUSER_PASSWORD=
 DJANGO_SUPERUSER_EMAIL=
 DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 
-# Should we populate the database with dummy data (the same data we test with)?
-# Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
-POPULATE_DB=
+####################### END Django-related parameters ###################################
 
-# When email is sent, this will give the "from" field.  e.g. "some name <some@email.com>"
-FROM_EMAIL=
+###################### Storage-related parameters ######################################
+
+# "dotted" path to the class implementing the storage backend
+# See the storage_backends/ folder for options
+RESOURCE_STORAGE_BACKEND=storage_backends.local.LocalStorage
 
 # If using local storage for all files (not recommended!), set the following:
 # This is relative to the django BASE_DIR
-LOCAL_USER_STORAGE_DIRNAME=
+LOCAL_USER_STORAGE_DIRNAME=user_resources
 
 # If using GCP and bucket storage, set the following:
 # DO NOT inlude the "gs://" prefix
 GOOGLE_BUCKET_URL=
 
+###################### END Storage-related parameters ######################################
+
+############################ Email-related parameters ######################################
+
 # How to send email-- by default, we print emails to the console for dev
 # If you would like to set another email backend (e.g. gmail), set this accordingly.
 # See the docs and/or base_settings.py in the relevant section regarding email.
-EMAIL_BACKEND_CHOICE=
+EMAIL_BACKEND_CHOICE=GMAIL
+
+# When email is sent, this will give the "from" field.  e.g. "some name <some@email.com>" (without the quotes)
+FROM_EMAIL=
 
 # If using Gmail for your email service, specify the following:
 # See docs for how to get these values.
@@ -50,3 +67,5 @@ GMAIL_ACCESS_TOKEN=
 GMAIL_REFRESH_TOKEN=
 GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
+
+########################## END Email-related parameters #####################################

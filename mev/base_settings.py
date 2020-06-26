@@ -249,8 +249,7 @@ RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
 ###############################################################################
 
 # a class that implements our storage backend interface
-RESOURCE_STORAGE_BACKEND = 'storage_backends.google_cloud.GoogleBucketStorage'
-RESOURCE_STORAGE_BACKEND = 'storage_backends.local.LocalStorage'
+RESOURCE_STORAGE_BACKEND = get_env('RESOURCE_STORAGE_BACKEND')
 
 # import the storage backend to ensure we have set the proper environment variables
 import_string(RESOURCE_STORAGE_BACKEND)
