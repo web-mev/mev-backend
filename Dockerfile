@@ -64,6 +64,7 @@ ADD ./api /www/api
 ADD ./resource_types /www/resource_types
 ADD ./storage_backends /www/storage_backends
 ADD ./uploaders /www/uploaders
+ADD ./helpers /www/helpers
 ADD ./mev /www/mev
 ADD ./docker /www/docker
 ADD ./manage.py /www/manage.py
