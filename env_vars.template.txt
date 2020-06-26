@@ -39,11 +39,14 @@ LOCAL_USER_STORAGE_DIRNAME=
 # DO NOT inlude the "gs://" prefix
 GOOGLE_BUCKET_URL=
 
+# How to send email-- by default, we print emails to the console for dev
+# If you would like to set another email backend (e.g. gmail), set this accordingly.
+# See the docs and/or base_settings.py in the relevant section regarding email.
+EMAIL_BACKEND_CHOICE=
+
 # If using Gmail for your email service, specify the following:
 # See docs for how to get these values.
 GMAIL_ACCESS_TOKEN=
 GMAIL_REFRESH_TOKEN=
-GMAIL_TOKEN_URI=
 GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
-GMAIL_SCOPES=

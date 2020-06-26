@@ -49,7 +49,11 @@ class GmailBackend(BaseEmailBackend):
                       client_id=GMAIL_CLIENT_ID, 
                       client_secret=GMAIL_CLIENT_SECRET, 
                       scopes=GMAIL_SCOPES)
-        service = discovery.build('gmail', 'v1', credentials = credentials)
+        service = discovery.build('gmail', \
+            'v1', \
+            credentials = credentials, \
+            cache_discovery=False
+        )
         logger.info('Service created.')
         return service
 
