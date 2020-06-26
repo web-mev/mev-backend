@@ -19,10 +19,17 @@ from api.serializers.observation_set import ObservationSetSerializer
 logger = logging.getLogger(__name__)
 
 # acceptable file extensions which give us a
-# clue about how to parse thefiles.
-TAB_DELIMITED_EXTENSIONS = ['tsv', 'tab', 'bed', 'vcf']
-COMMA_DELIMITED_EXTENSIONS = ['csv']
-EXCEL_EXTENSIONS = ['xls', 'xlsx']
+# clue about how to parse the files.
+CSV = 'csv'
+TSV = 'tsv'
+TAB = 'tab'
+BED = 'bed'
+VCF = 'vcf'
+XLS = 'xls'
+XLSX = 'xlsx'
+TAB_DELIMITED_EXTENSIONS = [TSV, TAB, BED, VCF]
+COMMA_DELIMITED_EXTENSIONS = [CSV]
+EXCEL_EXTENSIONS = [XLS, XLSX]
 
 class ParserNotFoundException(Exception):
     '''
@@ -116,6 +123,15 @@ class TableResource(DataResource):
     for a BED file), then we assume you have features as rows and observables
     as columns.
     '''
+    ACCEPTABLE_EXTENSIONS = [
+        CSV,
+        TSV,
+        TAB,
+        BED,
+        VCF,
+        XLS,
+        XLSX
+    ]
 
     def __init__(self):
         self.table = None
@@ -301,7 +317,13 @@ class Matrix(TableResource):
     A `Matrix` is a delimited table-based file that has only numeric types.
     These types can be mixed, like floats and integers
     '''
-
+    ACCEPTABLE_EXTENSIONS = [
+        CSV,
+        TSV,
+        TAB,
+        XLS,
+        XLSX
+    ]
     # looking for integers OR floats.  Both are acceptable  
     TARGET_PATTERN = '(float|int)\d{0,2}'
 
@@ -401,6 +423,14 @@ class ElementTable(TableResource):
 
     It's effectively an abstract class-- 
     '''
+
+    ACCEPTABLE_EXTENSIONS = [
+        CSV,
+        TSV,
+        TAB,
+        XLS,
+        XLSX
+    ]
 
     def validate_type(self, resource_path):
 
@@ -554,6 +584,9 @@ class BEDFile(TableResource):
 
     By default, BED files do NOT contain headers and we enforce that here.
     '''
+
+    ACCEPTABLE_EXTENSIONS = [BED,]
+    
     def validate_type(self, resource_path):
         reader = TableResource.get_reader(resource_path)
 

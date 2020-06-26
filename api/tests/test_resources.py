@@ -41,8 +41,8 @@ class ResourceListTests(BaseAPITestCase):
         self.assertEqual(all_known_resource_uuids, received_resource_uuids)
 
 
-    @mock.patch('api.serializers.resource.api_tasks')
-    @mock.patch('api.serializers.resource.set_resource_to_validation_status')
+    @mock.patch('api.views.resource_views.api_tasks')
+    @mock.patch('api.views.resource_views.set_resource_to_validation_status')
     def test_admin_can_create_resource(self, 
         mock_set_resource_to_validation_status,
         mock_api_tasks):
@@ -161,8 +161,8 @@ class ResourceListTests(BaseAPITestCase):
         difference_set = current_resource_uuids.difference(initial_resource_uuids)
         self.assertEqual(len(difference_set), 1)
 
-    @mock.patch('api.serializers.resource.api_tasks')
-    @mock.patch('api.serializers.resource.set_resource_to_validation_status')
+    @mock.patch('api.views.resource_views.api_tasks')
+    @mock.patch('api.views.resource_views.set_resource_to_validation_status')
     def test_admin_can_create_resource_assoc_with_workspace(self,
         mock_set_resource_to_validation_status,
         mock_api_tasks):
@@ -180,7 +180,7 @@ class ResourceListTests(BaseAPITestCase):
 
         payload = {
             'owner_email': self.regular_user_1.email,
-            'name': 'some_file.txt',
+            'name': 'some_file.tsv',
             'resource_type': 'MTX',
             'workspace': workspace.pk
         }

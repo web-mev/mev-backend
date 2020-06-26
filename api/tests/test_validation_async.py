@@ -15,8 +15,9 @@ from resource_types import RESOURCE_MAPPING, \
     PARENT_OP_KEY, \
     RESOURCE_KEY, \
     IntegerMatrix
-from api.utilities.resource_utilities import create_resource_from_upload
+from api.utilities.resource_utilities import handle_valid_resource
 from api.tests.base import BaseAPITestCase
+from resource_types import get_resource_type_instance
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -219,8 +220,8 @@ class TestValidateResource(BaseAPITestCase):
             FEATURE_SET_KEY: None
         }
         mock_get_resource_type_instance.return_value = mock_resource_instance
+        
         fake_final_path = '/some/final_path/foo.tsv'
-        mock_move.return_value = fake_final_path
 
         # call the tested function
         validate_resource(unset_resource.pk, 'MTX')
@@ -230,7 +231,8 @@ class TestValidateResource(BaseAPITestCase):
         self.assertTrue(current_resource.is_active)
         self.assertEqual(current_resource.resource_type, 'MTX')
         self.assertEqual(current_resource.status, Resource.READY)
-        self.assertEqual(current_resource.path, fake_final_path)
+        # note that we mocked out the move, so we didn't actually change the path
+        # that functionality is tested elsewhere.
         mock_move.assert_called()
         mock_resource_instance.validate_type.assert_called()
         mock_resource_instance.extract_metadata.assert_called()
@@ -245,16 +247,14 @@ class TestValidateResource(BaseAPITestCase):
         '''
         # create a Resource and give it our test integer matrix
         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
-        r = create_resource_from_upload(
-            resource_path,
-            'foo.tsv',
-            'I_MTX',
-            False,
-            True,
-            get_user_model().objects.all()[0]
+        resource_type = 'I_MTX'
+        r = Resource.objects.create(
+            path = resource_path,
+            name = 'foo.tsv',
+            resource_type = None,
+            size = 1000,
+            owner = get_user_model().objects.all()[0]
         )
-
-        mock_move.return_value = resource_path
 
         # check the original count for ResourceMetadata
         rm = ResourceMetadata.objects.filter(resource=r)
@@ -262,8 +262,10 @@ class TestValidateResource(BaseAPITestCase):
         self.assertTrue(n0 == 0)
 
         # call the tested function
-        validate_resource(r.pk, 'I_MTX')
+        resource_class_instance = get_resource_type_instance(resource_type)
+        handle_valid_resource(r, resource_class_instance, resource_type)
 
+        self.assertTrue(r.resource_type == resource_type)
         rm = ResourceMetadata.objects.filter(resource=r)
         n1 = len(rm)  
         self.assertTrue(n1 == 1)      

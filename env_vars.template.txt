@@ -1,18 +1,46 @@
+# This file is used to set various secrets and configuration parameters
+# Pass a completed version of this template to the Docker container upon
+# startup with the --env-file arg.
+
+# dev or production status:
+ENVIRONMENT=dev
+
+# Database params:
 DB_PORT=5422
 DB_HOST=localhost
 DB_NAME=
 DB_USER=
 DB_PASSWD=
 PGPASSWORD=
-ENVIRONMENT=dev
+
+# The secret key is used to encrypt data when making tokens, etc.
+# Accordingly, make this appropriately long:
 DJANGO_SECRET_KEY=
+
+# For automatically creating an admin, supply the following:
+# username is required, but the user model uses the email field 
+# as the username.  Therefore, we auto-fill that based on the email
 DJANGO_SUPERUSER_PASSWORD=
 DJANGO_SUPERUSER_EMAIL=
-DJANGO_SUPERUSER_USERNAME=
+DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
+
+# Should we populate the database with dummy data (the same data we test with)?
+# Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
 POPULATE_DB=
+
+# When email is sent, this will give the "from" field.  e.g. "some name <some@email.com>"
 FROM_EMAIL=
 
+# If using local storage for all files (not recommended!), set the following:
+# This is relative to the django BASE_DIR
+LOCAL_USER_STORAGE_DIRNAME=
+
+# If using GCP and bucket storage, set the following:
+# DO NOT inlude the "gs://" prefix
+GOOGLE_BUCKET_URL=
+
 # If using Gmail for your email service, specify the following:
+# See docs for how to get these values.
 GMAIL_ACCESS_TOKEN=
 GMAIL_REFRESH_TOKEN=
 GMAIL_TOKEN_URI=

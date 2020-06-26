@@ -61,6 +61,20 @@ RESOURCE_MAPPING = {
     'BED': BEDFile
 } 
 
+# These types are skipped when files are validated.
+# Files are inferred to be of these types based on 
+# their file extensions.  Each resource type has a set
+# of canonical extensions as a class member.  We check
+# against those types when determining whether to skip
+# validation. For example, if a file ends with "fastq.gz"
+# we infer that it is a FastQResource as "fastq.gz" is one
+# of the canonical extensions of the FastQResource class.
+RESOURCE_TYPES_WITHOUT_VALIDATION = set([
+    FastAResource,
+    FastQResource,
+    AlignedSequenceResource
+])
+
 def get_resource_type_instance(resource_type_str):
     '''
     When a `Resource.resource_type` is set or edited, we need
@@ -113,3 +127,26 @@ def get_preview(resource_path, resource_type):
     resource_type = resource_class()
     preview = resource_type.get_preview(resource_path)
     return preview
+
+def extension_is_consistent_with_type(filename, resource_type):
+    '''
+    Checks that the file extension is consistent with the 
+    resource type.  Matching is case-insensitive
+
+    `filename` is the name of the uploaded file (not a full path)
+    `resource_type` is one of the keys in RESOURCE_MAPPING.  It 
+    is assumed to have already been checked (the serializer from the 
+    request validated it already)
+
+    Also checks for a period/dot prior to the suffix.  Thus,
+    if the filename was foobartsv and we were checking the "tsv"
+    extension, this function would return False.  foobar.tsv would
+    return True
+    '''
+    resource_class = RESOURCE_MAPPING[resource_type]
+    for ext in resource_class.ACCEPTABLE_EXTENSIONS:
+        n = len(ext)
+        suffix = filename[(-n-1):].lower()
+        if suffix == '.' + ext.lower():
+            return True
+    return False

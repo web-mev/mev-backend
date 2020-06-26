@@ -12,15 +12,14 @@ from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
 
-class ResourceUploadTests(BaseAPITestCase):
+class ServerLocalResourceUploadTests(BaseAPITestCase):
 
     def setUp(self):
 
         self.url = reverse('resource-upload')
         self.establish_clients()
 
-    #@mock.patch('api.views.resource_upload_views.api_tasks')
-    @mock.patch('api.serializers.resource.api_tasks')
+    @mock.patch('uploaders.base.api_tasks')
     def upload_and_cleanup(self, payload, mock_api_tasks):
         '''
         Same functionality is used by multiple functions, so just
@@ -40,9 +39,12 @@ class ResourceUploadTests(BaseAPITestCase):
         j = response.json()
 
         # check that the validation async task was called
-        mock_api_tasks.validate_resource.delay.assert_called_with(
-            uuid.UUID(j['id']), payload['resource_type'])
+        if 'resource_type' in payload:
+            mock_api_tasks.validate_resource.delay.assert_called_with(
+                uuid.UUID(j['id']), payload['resource_type'])
+        else:
 
+            mock_api_tasks.validate_resource.delay.assert_not_called()
         # assert that we have more Resources now:
         num_current_resources = len(Resource.objects.all())
         self.assertTrue((num_current_resources - num_initial_resources) == 1)
@@ -51,8 +53,13 @@ class ResourceUploadTests(BaseAPITestCase):
         j = response.json()
         r = Resource.objects.get(pk=j['id'])
         self.assertFalse(r.is_active)
-        self.assertFalse(r.is_public)
-        self.assertTrue(r.status == Resource.VALIDATING)
+        if 'is_public' in payload:
+            self.assertTrue(payload['is_public'] == r.is_public)
+    
+        if 'resource_type' in payload:
+            self.assertTrue(r.status == Resource.VALIDATING)
+        else:
+            self.assertTrue(r.status == Resource.READY)
         self.assertIsNone(r.resource_type)
 
         # cleanup:
@@ -94,15 +101,8 @@ class ResourceUploadTests(BaseAPITestCase):
             'owner_email': self.regular_user_1.email,
             'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
         }
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        print(response.json())
-        # check that the validation was called:
-        mock_api_tasks.validate_resource.delay.assert_called()
+
+        self.upload_and_cleanup(payload)
 
         
     def test_incorrect_resource_type_raises_ex(self):
@@ -167,7 +167,7 @@ class ResourceUploadTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class ResourceUploadProgressTests(BaseAPITestCase):
+class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 
     def setUp(self):
 

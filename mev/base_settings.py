@@ -182,14 +182,6 @@ if not os.path.exists(PENDING_FILES_DIR):
         path = PENDING_FILES_DIR)
     )
 
-# A local directory where we store all the user's local files
-USER_STORAGE_DIR = os.path.join(BASE_DIR, 'user_resources')
-if not os.path.exists(USER_STORAGE_DIR):
-    raise ImproperlyConfigured('Please create a directory for the'
-    ' users resources at {path}.'.format(
-        path = USER_STORAGE_DIR)
-    )
-
 # A local directory to be used as a tmp dir
 # Don't write to /tmp since we can't 
 TMP_DIR = '/tmp'
@@ -250,4 +242,19 @@ RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
 
 ###############################################################################
 # END Parameters for front-end URLs
+###############################################################################
+
+###############################################################################
+# START Parameters for configuring resource storage
+###############################################################################
+
+# a class that implements our storage backend interface
+RESOURCE_STORAGE_BACKEND = 'storage_backends.google_cloud.GoogleBucketStorage'
+RESOURCE_STORAGE_BACKEND = 'storage_backends.local.LocalStorage'
+
+# import the storage backend to ensure we have set the proper environment variables
+import_string(RESOURCE_STORAGE_BACKEND)
+
+###############################################################################
+# END Parameters for configuring resource storage
 ###############################################################################

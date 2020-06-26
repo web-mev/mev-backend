@@ -80,9 +80,7 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         if len(unset_resources) == 0:
             raise ImproperlyConfigured('Need at least one active Resource without '
                 'a type to run this test')
-        print(unset_resources)
         r = unset_resources[0]
-        print(r)
         pk = r.pk
         url = reverse(
             'resource-metadata-detail', 

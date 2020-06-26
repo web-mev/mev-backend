@@ -12,7 +12,8 @@ from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
     check_for_shared_resource_file, \
-    get_resource_preview
+    get_resource_preview, \
+    set_resource_to_validation_status
 
 import api.async_tasks as api_tasks
 
@@ -53,7 +54,17 @@ class ResourceList(generics.ListCreateAPIView):
         return Resource.objects.filter(owner=user)
     
     def perform_create(self, serializer):
-        serializer.save(requesting_user=self.request.user)
+        # until the validation is complete, the resource_type should
+        # be None.  Pop that field off the validated data:
+        requested_resource_type = serializer.validated_data.pop('resource_type')
+        resource = serializer.save(requesting_user=self.request.user)
+        if requested_resource_type:
+            set_resource_to_validation_status(resource)
+
+            api_tasks.validate_resource.delay(
+                resource.pk, 
+                requested_resource_type 
+            )
 
 
 class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -113,7 +124,6 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
 
         try:
             file_shared_by_multiple_resources = check_for_shared_resource_file(instance)
-            print(file_shared_by_multiple_resources)
             logger.info('File underlying the deleted Resource is '
             ' referenced by multiple Resource instances: {status}'.format(
                 status=file_shared_by_multiple_resources
@@ -137,7 +147,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if not file_shared_by_multiple_resources:
-            api_tasks.delete_file.delay(instance.path, instance.is_local)
+            api_tasks.delete_file.delay(instance.path)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 

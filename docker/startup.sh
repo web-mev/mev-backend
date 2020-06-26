@@ -15,7 +15,6 @@ mkdir $PG_SOCKET_DIR
 
 # Create directories that Django will use for uploaded files, etc.
 mkdir /www/pending_user_uploads
-mkdir /www/user_resources
 
 # Specify the appropriate settings file:
 if [ $ENVIRONMENT = 'dev' ]; then

@@ -114,10 +114,6 @@ class Resource(models.Model):
         default = ''  
     )
 
-    # Whether the Resource is located locally or in remote
-    # storage (e.g. a bucket)
-    is_local = models.BooleanField(default=True)
-
     # the name of the Resource.  Allows users to create
     # named files but have the backend keep track of it by
     # some unique path.  For instance, we may choose to save
