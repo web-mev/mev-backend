@@ -16,8 +16,7 @@ from rest_framework.exceptions import APIException
 from api.serializers.upload_serializer import UploadSerializer
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
-
-from uploaders import ServerLocalUpload
+from api.uploaders import ServerLocalUpload
 
 User = get_user_model()
 

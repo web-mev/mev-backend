@@ -19,7 +19,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.url = reverse('resource-upload')
         self.establish_clients()
 
-    @mock.patch('uploaders.base.api_tasks')
+    @mock.patch('api.uploaders.base.api_tasks')
     def upload_and_cleanup(self, payload, mock_api_tasks):
         '''
         Same functionality is used by multiple functions, so just

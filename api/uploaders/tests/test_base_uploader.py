@@ -1,6 +1,6 @@
 import unittest
 
-from uploaders.base import BaseUpload
+from api.uploaders.base import BaseUpload
 
 class MockRequest(object):
     def __init__(self, data):
@@ -13,9 +13,4 @@ class TestBaseUpload(unittest.TestCase):
         Check that an invalid resource_type raises an
         exception when calling the validation function.
         '''
-        b = BaseUpload()
-        #mock_request = MockRequest({
-        #    'owner_email': ''
-        #})
-        #b.resource_type = 'JUNK'
-        #b.create_resource_from_upload()
+        pass

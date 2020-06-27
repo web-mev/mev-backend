@@ -62,8 +62,6 @@ RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.g
 # Copy the source files over
 ADD ./api /www/api
 ADD ./resource_types /www/resource_types
-ADD ./storage_backends /www/storage_backends
-ADD ./uploaders /www/uploaders
 ADD ./helpers /www/helpers
 ADD ./mev /www/mev
 ADD ./docker /www/docker

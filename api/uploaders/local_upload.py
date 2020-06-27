@@ -1,7 +1,7 @@
 import logging
 from rest_framework.exceptions import APIException
 
-from uploaders.base import LocalUpload
+from .base import LocalUpload
 
 logger = logging.getLogger(__name__)
 

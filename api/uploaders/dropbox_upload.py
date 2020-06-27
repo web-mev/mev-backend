@@ -1,4 +1,4 @@
-from uploaders.base import LocalUpload, RemoteUpload
+from .base import LocalUpload, RemoteUpload
 
 
 class DropboxLocalUpload(LocalUpload):

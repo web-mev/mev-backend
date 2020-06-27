@@ -24,7 +24,6 @@ class LocalStorage(BaseStorageBackend):
         Handles moving the file described by the `resource_instance`
         arg to its final location.
         '''
-        print('in local.store')
         super().store(resource_instance)
 
         base_storage_dir = os.path.join(settings.BASE_DIR, USER_STORAGE_DIRNAME)

@@ -38,8 +38,8 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 ###################### Storage-related parameters ######################################
 
 # "dotted" path to the class implementing the storage backend
-# See the storage_backends/ folder for options
-RESOURCE_STORAGE_BACKEND=storage_backends.local.LocalStorage
+# See the api/storage_backends/ folder for options
+RESOURCE_STORAGE_BACKEND=api.storage_backends.local.LocalStorage
 
 # If using local storage for all files (not recommended!), set the following:
 # This is relative to the django BASE_DIR
