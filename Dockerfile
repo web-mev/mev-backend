@@ -51,7 +51,7 @@ RUN mkdir /opt/software && \
   make install
 
 # Install redis for queueing and cache
-RUN curl -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.gz \
+RUN curl -L -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.gz \
   && cd /tmp \
   && tar -zxf redis-stable.tar.gz \
   && cd redis-stable \
