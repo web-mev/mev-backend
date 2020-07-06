@@ -25,6 +25,9 @@ POPULATE_DB=
 # Accordingly, make this appropriately long:
 DJANGO_SECRET_KEY=
 
+# A space-delimited list of the hosts.  Add hosts as necessary
+DJANGO_ALLOWED_HOSTS=127.0.0.1 localhost
+
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email

@@ -7,7 +7,7 @@ SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(' ') if len(x) > 0]
 
 CORS_ORIGIN_ALLOW_ALL = True
 
