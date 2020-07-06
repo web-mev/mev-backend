@@ -15,6 +15,7 @@ services:
     environment:
       REDIS_HOST: redis
       DB_HOST: db
+      DB_PORT: 5433
     depends_on:
       - db
       - redis
@@ -22,6 +23,9 @@ services:
   db:
     build:
       context: ./db
+    command: -p 5433
+    expose:
+      - 5433
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
