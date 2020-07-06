@@ -48,16 +48,6 @@ production_config_dict = copy.deepcopy(log_config.base_logging_config_dict)
 
 # make changes to the default logging dict here:
 
-# Add sentry handler:
-production_config_dict['handlers']['sentry'] = {
-    'level': 'WARNING',
-    'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
-},
-
-# add that sentry handler to the loggers:
-production_config_dict['loggers']['']['handlers'].append('sentry')
-production_config_dict['loggers']['api']['handlers'].append('sentry')
-
 # finally, register this config:
 logging.config.dictConfig(production_config_dict)
 
