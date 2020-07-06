@@ -3,15 +3,21 @@
 # This script manages the various services that need to be run on
 # startup of the container.
 
-# First we need to setup the database server and create a database to use
-echo $PGPASSWORD > /tmp/pwd.txt
-/usr/lib/postgresql/12/bin/initdb -D $HOME/postgres_data -A md5 --pwfile /tmp/pwd.txt $USER
-export PG_SOCKET_DIR=$HOME/postgres
-mkdir $PG_SOCKET_DIR
-/usr/lib/postgresql/12/bin/pg_ctl -D $HOME/postgres_data -o "-F -p $DB_PORT -k $PG_SOCKET_DIR" -w start
-/usr/lib/postgresql/12/bin/createdb -h localhost -p $DB_PORT $DB_NAME
-/usr/lib/postgresql/12/bin/psql -h localhost -p $DB_PORT -c "CREATE USER $DB_USER PASSWORD '$DB_PASSWD';" $DB_NAME
-/usr/lib/postgresql/12/bin/psql -h localhost -p $DB_PORT -c "ALTER USER $DB_USER CREATEDB;" $DB_NAME
+# We have to ensure that the database server is up first...
+echo "Waiting for postgres..."
+while ! nc -z $DB_HOST $DB_PORT; do
+  sleep 1
+  echo "Not ready yet..."
+done
+echo "PostgreSQL started!"
+
+# And wait for Redis...
+echo "Waiting for Redis..."
+while ! nc -z $REDIS_HOST 6379; do
+  sleep 0.1
+done
+echo "Redis started!"
+
 
 # Create directories that Django will use for uploaded files, etc.
 mkdir /www/pending_user_uploads
@@ -42,7 +48,13 @@ supervisorctl reread && supervisorctl update
 
 # Start the application server:
 cd /www
-gunicorn mev.wsgi:application $@
+
+# Run the command, but only if in production:
+if [ $ENVIRONMENT = 'dev' ]; then
+    echo "Ignoring startup command.  Login to container to start gunicorn."
+else
+    $@
+fi
 
 
 

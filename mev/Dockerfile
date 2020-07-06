@@ -23,6 +23,7 @@ RUN apt-get update \
     git \
     curl \
     pkg-config \
+    netcat \
     procps
 
 # Docker in Docker!!
@@ -34,12 +35,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
     apt-get update && \
     apt-get install -y docker-ce
 
-# Install postgresql:
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
-  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add && \
-  apt-get update && \
-  apt-get install -y postgresql-12
-
 # Install Python 3.7.6:
 RUN mkdir /opt/software && \
   cd /opt/software && \
@@ -50,24 +45,14 @@ RUN mkdir /opt/software && \
   make && \
   make install
 
-# Install redis for queueing and cache
-RUN curl -L -o /tmp/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.gz \
-  && cd /tmp \
-  && tar -zxf redis-stable.tar.gz \
-  && cd redis-stable \
-  && make \
-  && make install \
-  && cp redis.conf /etc/redis.conf
-
 # Copy the source files over
 ADD ./api /www/api
 ADD ./resource_types /www/resource_types
 ADD ./helpers /www/helpers
 ADD ./mev /www/mev
-ADD ./docker /www/docker
+ADD ./startup.sh /www/startup.sh
 ADD ./manage.py /www/manage.py
 ADD ./requirements.txt /www/requirements.txt
-COPY ./supervisor/redis.conf /etc/supervisor/conf.d/
 COPY ./supervisor/celery_worker.conf /etc/supervisor/conf.d/
 COPY ./supervisor/celery_beat.conf /etc/supervisor/conf.d/
 COPY ./supervisor/supervisord.conf /etc/supervisor/supervisord.conf
@@ -87,12 +72,13 @@ RUN addgroup --system mev && adduser --system --group mev
 
 # Give that user ownership of the code directory and the logging directory
 RUN mkdir /var/log/mev && \
+    mkdir /www/static/ && \
     chown -R mev:mev /www /var/log/mev /var/log/supervisor /etc/supervisor/conf.d
 
 # Give ownership and add execution permissions for startup script
-RUN chown mev:mev /www/docker/startup.sh && chmod +x /www/docker/startup.sh
+RUN chown mev:mev /www/startup.sh && chmod +x /www/startup.sh
 
 # switch to the mev user
 USER mev
 
-ENTRYPOINT ["/www/docker/startup.sh"]
+ENTRYPOINT ["/www/startup.sh"]

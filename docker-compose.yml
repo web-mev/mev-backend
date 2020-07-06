@@ -1,0 +1,55 @@
+version: '3.7'
+
+services:
+
+  api:
+    build:
+      context: ./mev
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    entrypoint: /bin/bash
+    volumes:
+      - static_volume:/www/static
+    expose:
+      - 8000
+    env_file:
+      - ./env_vars.txt
+    environment:
+      REDIS_HOST: redis
+      DB_HOST: db
+      DB_PORT: 5433
+    depends_on:
+      - db
+      - redis
+  
+  db:
+    build:
+      context: ./db
+    command: -p 5433
+    expose:
+      - 5433
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./env_vars.txt
+
+
+  redis:
+    image: redis:6.0.5-alpine
+
+
+  nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - static_volume:/www/static
+    ports:
+      - 8081:80
+    depends_on:
+      - api
+
+
+volumes:
+  postgres_data:
+  static_volume:
+      
