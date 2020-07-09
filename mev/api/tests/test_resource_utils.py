@@ -1,4 +1,5 @@
 import os
+import random
 import unittest
 import unittest.mock as mock
 
@@ -8,11 +9,15 @@ from django.core.exceptions import ImproperlyConfigured
 
 from rest_framework.exceptions import ValidationError
 
+from resource_types import RESOURCE_MAPPING
 from api.models import Resource, Workspace, ResourceMetadata
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     copy_resource_to_workspace, \
     check_for_shared_resource_file, \
-    get_resource_preview
+    get_resource_preview, \
+    validate_resource, \
+    handle_valid_resource, \
+    handle_invalid_resource
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -134,7 +139,6 @@ class TestResourceUtilities(BaseAPITestCase):
 
         self.assertFalse(check_for_shared_resource_file(r[0]))        
 
-    #@mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
     @mock.patch('resource_types.RESOURCE_MAPPING')
     def test_resource_preview_for_valid_resource_type(self, mock_resource_mapping):
         '''
@@ -183,8 +187,6 @@ class TestResourceUtilities(BaseAPITestCase):
         preview_dict = get_resource_preview(r)
         self.assertTrue('info' in preview_dict)
         
-
-    #@mock.patch('api.utilities.resource_utilities.RESOURCE_MAPPING')
     @mock.patch('resource_types.RESOURCE_MAPPING')
     def test_resource_preview_for_invalid_resource_type(self, mock_resource_mapping):
         '''
@@ -206,3 +208,112 @@ class TestResourceUtilities(BaseAPITestCase):
 
         preview_dict = get_resource_preview(r)
         self.assertTrue('error' in preview_dict)
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
+    def test_invalid_handler_called(self, mock_handle_invalid_resource, mock_get_resource_type_instance):
+        '''
+        Here we test that a failure to validate the resource calls the proper
+        handler function.
+        '''
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.validate_type.return_value = (False, 'some string')
+        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+        
+        validate_resource(unset_resource, 'MTX')
+
+        mock_handle_invalid_resource.assert_called()
+
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    def test_valid_invalid_handler_called(self, mock_handle_valid_resource, mock_get_resource_type_instance):
+        '''
+        Here we test that a successful validation calls the proper
+        handler function.
+        '''
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.validate_type.return_value = (True, 'some string')
+        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+        
+        validate_resource(unset_resource, 'MTX')
+
+        mock_handle_valid_resource.assert_called()
+
+    def test_unset_resource_type_does_not_change_if_validation_fails(self):
+        '''
+        If we had previously validated a resource successfully, requesting
+        a change that fails validation results in NO change to the resource_type
+        attribute
+        '''
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        handle_invalid_resource(unset_resource, 'MTX')
+        self.assertIsNone(unset_resource.resource_type)
+
+    def test_resource_type_does_not_change_if_validation_fails(self):
+        '''
+        If we had previously validated a resource successfully, requesting
+        a change that fails validation results in NO change to the resource_type
+        attribute
+        '''
+        all_resources = Resource.objects.all()
+        set_resources = []
+        for r in all_resources:
+            if r.resource_type:
+                set_resources.append(r)
+        
+        if len(set_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource with a type to test properly.'
+            )
+
+        resource = set_resources[0]
+        original_type = resource.resource_type
+        other_type = original_type
+        while other_type == original_type:
+            other_type = random.choice(list(RESOURCE_MAPPING.keys()))
+        handle_invalid_resource(resource, other_type)
+
+        self.assertTrue(resource.resource_type == original_type)
+        self.assertTrue(resource.status == Resource.REVERTED.format(
+            requested_resource_type=other_type,
+            original_resource_type = original_type
+        ))

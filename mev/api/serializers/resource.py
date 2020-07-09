@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers, exceptions
 
 from api.models import Resource, Workspace
-from api.utilities.resource_utilities import set_resource_to_validation_status
+from api.utilities.resource_utilities import set_resource_to_inactive
 import api.async_tasks as api_tasks
 
 from resource_types import DB_RESOURCE_STRING_TO_HUMAN_READABLE
@@ -241,7 +241,7 @@ class ResourceSerializer(serializers.ModelSerializer):
                     )
                 )
                 changing_resource_type = True
-                set_resource_to_validation_status(instance)
+                set_resource_to_inactive(instance)
 
         # save the instance- but only the fields that do not require validation
         instance.save()

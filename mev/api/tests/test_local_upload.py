@@ -40,11 +40,12 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         # check that the validation async task was called
         if 'resource_type' in payload:
-            mock_api_tasks.validate_resource.delay.assert_called_with(
+            mock_api_tasks.validate_resource_and_store.delay.assert_called_with(
                 uuid.UUID(j['id']), payload['resource_type'])
         else:
+            mock_api_tasks.validate_resource_and_store.delay.assert_called_with(
+                uuid.UUID(j['id']), None)
 
-            mock_api_tasks.validate_resource.delay.assert_not_called()
         # assert that we have more Resources now:
         num_current_resources = len(Resource.objects.all())
         self.assertTrue((num_current_resources - num_initial_resources) == 1)
@@ -55,12 +56,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertFalse(r.is_active)
         if 'is_public' in payload:
             self.assertTrue(payload['is_public'] == r.is_public)
-    
-        if 'resource_type' in payload:
-            self.assertTrue(r.status == Resource.VALIDATING)
-        else:
-            self.assertTrue(r.status == Resource.READY)
-        self.assertIsNone(r.resource_type)
 
         # cleanup:
         path = r.path

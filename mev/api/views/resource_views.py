@@ -13,7 +13,7 @@ import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
     check_for_shared_resource_file, \
     get_resource_preview, \
-    set_resource_to_validation_status
+    set_resource_to_inactive
 
 import api.async_tasks as api_tasks
 
@@ -54,12 +54,20 @@ class ResourceList(generics.ListCreateAPIView):
         return Resource.objects.filter(owner=user)
     
     def perform_create(self, serializer):
+        '''
+        This method is called when the serializer creates the class
+        Note that only admins can directly create Resources
+        (other users have to initiate an upload)
+        '''
+
         # until the validation is complete, the resource_type should
         # be None.  Pop that field off the validated data:
         requested_resource_type = serializer.validated_data.pop('resource_type')
+
+
         resource = serializer.save(requesting_user=self.request.user)
         if requested_resource_type:
-            set_resource_to_validation_status(resource)
+            set_resource_to_inactive(resource)
 
             api_tasks.validate_resource.delay(
                 resource.pk, 

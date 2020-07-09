@@ -42,9 +42,9 @@ class ResourceListTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.api_tasks')
-    @mock.patch('api.views.resource_views.set_resource_to_validation_status')
+    @mock.patch('api.views.resource_views.set_resource_to_inactive')
     def test_admin_can_create_resource(self, 
-        mock_set_resource_to_validation_status,
+        mock_set_resource_to_inactive,
         mock_api_tasks):
         """
         Test that admins can create a Resource and that the proper validation
@@ -67,7 +67,7 @@ class ResourceListTests(BaseAPITestCase):
         self.assertEqual(len(difference_set), 1)
 
         # check that the proper validation methods were called
-        mock_set_resource_to_validation_status.assert_called()
+        mock_set_resource_to_inactive.assert_called()
         mock_api_tasks.validate_resource.delay.assert_called()
 
         # check that the resource has the proper members set:
@@ -79,9 +79,9 @@ class ResourceListTests(BaseAPITestCase):
 
 
     @mock.patch('api.serializers.resource.api_tasks')
-    @mock.patch('api.serializers.resource.set_resource_to_validation_status')
+    @mock.patch('api.serializers.resource.set_resource_to_inactive')
     def test_missing_owner_in_admin_resource_request_fails(self, 
-        mock_set_resource_to_validation_status,
+        mock_set_resource_to_inactive,
         mock_api_tasks):
         """
         Test that admins must specify an owner_email field in their request
@@ -162,9 +162,9 @@ class ResourceListTests(BaseAPITestCase):
         self.assertEqual(len(difference_set), 1)
 
     @mock.patch('api.views.resource_views.api_tasks')
-    @mock.patch('api.views.resource_views.set_resource_to_validation_status')
+    @mock.patch('api.views.resource_views.set_resource_to_inactive')
     def test_admin_can_create_resource_assoc_with_workspace(self,
-        mock_set_resource_to_validation_status,
+        mock_set_resource_to_inactive,
         mock_api_tasks):
         """
         Test that giving a valid workspace properly associates
@@ -193,7 +193,7 @@ class ResourceListTests(BaseAPITestCase):
         self.assertEqual(len(difference_set), 1)
 
         # check that the proper validation methods were called
-        mock_set_resource_to_validation_status.assert_called()
+        mock_set_resource_to_inactive.assert_called()
         mock_api_tasks.validate_resource.delay.assert_called()
 
         # check that the resource has the proper members set:
@@ -873,11 +873,6 @@ class ResourceDetailTests(BaseAPITestCase):
 
         # active state set to False
         self.assertFalse(r.is_active)
-
-        # check that the status message changed.  technically possible
-        # that the original and "updated" status messages are the same
-        # but it would be obvious if that happens since the test would fail.
-        self.assertTrue(r.status == Resource.VALIDATING)
 
         # check that the validation method was called.
         mock_api_tasks.validate_resource.delay.assert_called_with(self.active_resource.pk, newtype)

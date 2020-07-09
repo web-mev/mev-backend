@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 from api.serializers.resource import ResourceSerializer
 from api.models import Resource
-from api.utilities.resource_utilities import set_resource_to_validation_status
+from api.utilities.resource_utilities import set_resource_to_inactive
 import api.async_tasks as api_tasks
 
 from resource_types import extension_is_consistent_with_type
@@ -41,10 +41,13 @@ class BaseUpload(object):
 
         self.owner = owner
 
-        # The resource type is NOT required, but may be specified
+        # The resource type is NOT required, but may be specified.
+        # If it's not explicitly set, we skip validation-- don't want
+        # to guess at types.
         self.resource_type = request.data.get('resource_type')
 
         self.is_public = request.data.get('is_public', False)
+
 
     def create_resource_from_upload(self):
 
@@ -88,17 +91,33 @@ class LocalUpload(BaseUpload):
         return tmp_path
 
 
-    def validate(self, resource_instance):
+    def validate_and_store(self, resource_instance):
         '''
         Handles validation of Resources that are located locally 
-        on the server.
+        on the server.  Regardless of validation outcome, moves the
+        uploaded Resource into its final storage.
+
+        Note that we keep the validation and final storage operations 
+        together so we don't spawn multiple async jobs which end up causing
+        race conditions on updating the Resource instance's attributes. 
         '''
+
+        # set and save attributes to prevent "use" of this Resource
+        # before it is validated and in its final storage location:
+        set_resource_to_inactive(resource_instance)
+
+        # call the validation/storage methods async
+        api_tasks.validate_resource_and_store.delay(
+            resource_instance.pk, 
+            self.resource_type 
+        )
 
         # if a resource_type was specified in the upload request,
         # we check that the type is consistent with the file suffix
         # and then validate if they are indeed consistent.
+        '''
         if self.resource_type:
-            logger.info('Resource type was {resource_type}'.format(
+            logger.info('Starting validation.  Resource type was {resource_type}'.format(
                 resource_type=self.resource_type
             ))
             if extension_is_consistent_with_type(resource_instance.name, self.resource_type):
@@ -108,7 +127,7 @@ class LocalUpload(BaseUpload):
                 )
                 set_resource_to_validation_status(resource_instance)
 
-                api_tasks.validate_resource.delay(
+                api_tasks.validate_resource_and_store.delay(
                     resource_instance.pk, 
                     self.resource_type 
                 )
@@ -118,6 +137,7 @@ class LocalUpload(BaseUpload):
                 )
                 resource_instance.status = Resource.READY
                 resource_instance.save()
+        '''
 
 
 class RemoteUpload(BaseUpload):

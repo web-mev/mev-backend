@@ -10,6 +10,9 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .base import BaseStorageBackend
 
+# Look for the necessary environment variables here-- when the application
+# starts, failure to find these environment variables will cause the application
+# startup to fail.
 try:
     GOOGLE_BUCKET_NAME = os.environ['GOOGLE_BUCKET_NAME']
 except KeyError as ex:
@@ -22,6 +25,9 @@ except KeyError as ex:
     warnings.warn('Since you have not specified a region for your storage bucket,'
         ' we will assume it is located in the same region as the VM.')
     GOOGLE_BUCKET_REGION = None
+
+# the prefix for google storage buckets:
+BUCKET_PREFIX = 'gs://'
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +56,12 @@ class GoogleBucketStore(BaseStorageBackend):
             # This will ultimately create a bucket that is multi-region
             return None
             
+    def get_bucket(self, bucket_name):
+        return self.storage_client.get_bucket(bucket_name)
+
     def get_or_create_bucket(self):
         try:
-            bucket = self.storage_client.get_bucket(GOOGLE_BUCKET_NAME)
+            bucket = self.get_bucket(GOOGLE_BUCKET_NAME)
         except google.api_core.exceptions.NotFound as ex:
             logger.info('Google bucket with name {bucket_name} did'
                 ' not exist.  Create.'.format(
@@ -65,17 +74,26 @@ class GoogleBucketStore(BaseStorageBackend):
                     location=region
                 )
             except ValueError as ex:
+                # ValueError can be raised if the bucket name does not conform
+                # to Google's bucket name requirements.
                 logger.error('Could not create bucket.  Reason: {ex}'.format(
                     ex = ex
                 ))
                 raise ex
-            except google.api_core.exceptions.BadRequest as ex:                
+            except google.api_core.exceptions.BadRequest as ex:
+                # These exceptions can be raised, for instance, if the zone
+                # was not specified correctly or if the request was generally
+                # malformed.             
                 logger.error('Could not create bucket due to bad request.'
                     '  Reason: {ex}'.format(
                     ex = ex
                 ))
                 raise ex
         return bucket
+
+    def upload_blob(self, blob, local_path):
+        blob.upload_from_filename(local_path)
+
 
     def store(self, resource_instance):
         '''
@@ -84,31 +102,45 @@ class GoogleBucketStore(BaseStorageBackend):
         '''
         super().store(resource_instance)
 
-        final_url = os.path.join(GOOGLE_BUCKET_NAME, self.relative_path)
-
         bucket = self.get_or_create_bucket()
-        #TODO finish
-        base_storage_dir = os.path.join(settings.BASE_DIR, USER_STORAGE_DIRNAME)
-        if not os.path.exists(base_storage_dir):
 
-            # this function can raise an exception which will get
-            # pushed up to the caller
-            make_local_directory(base_storage_dir)
+        blob = storage.Blob(self.relative_path, bucket)
 
-        # storage directory existed.  Move the file:
-        destination = os.path.join(base_storage_dir, self.relative_path)
-        source = resource_instance.path
-        move_resource(source, destination)
-        resource_instance.path = destination
+        try:
+            self.upload_blob(blob, resource_instance.path)
+            resource_instance.path = os.path.join(
+                BUCKET_PREFIX, GOOGLE_BUCKET_NAME, self.relative_path)
+        except Exception as ex:
+            logger.error('Failed to upload to bucket.  File will'
+                ' remain local on the server at path: {path}'.format(
+                    path=resource_instance.path
+                )
+            )
 
-        #TODO: complete implementation.
 
-        resource_instance.path = final_url
 
     def delete(self, path):
         #TODO: implement
         pass
 
     def get_filesize(self, path):
-        #TODO: implement
-        pass
+        path_contents = path[len(BUCKET_PREFIX):].split('/')
+        bucket_name = path_contents[0]
+        object_name = '/'.join(path_contents[1:])
+        try:
+            bucket = self.get_bucket(bucket_name)
+        except google.api_core.exceptions.NotFound as ex:
+            logger.error('When requesting size of Resource located at'
+                '{path}, the bucket with name {bucket_name} did'
+                ' not exist.'.format(
+                    path=path,
+                    bucket_name = bucket_name
+                ))
+            raise ex
+
+        blob = bucket.get_blob(object_name)
+        size = blob.size
+        if size:
+            return size
+        else:
+            return 0

@@ -7,7 +7,7 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth import get_user_model
 
-from api.async_tasks import validate_resource
+from api.async_tasks import validate_resource, validate_resource_and_store
 from api.models import Resource, ResourceMetadata
 from resource_types import RESOURCE_MAPPING, \
     OBSERVATION_SET_KEY, \
@@ -60,7 +60,7 @@ class TestValidateResource(BaseAPITestCase):
         with self.assertRaises(KeyError):
             validate_resource(r.pk, 'ABC')
 
-    @mock.patch('api.async_tasks.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_invalid_type_remains_invalid_case1(self, mock_get_resource_type_instance):
         '''
         Here we test that a "unset" Resource (one where a resource_type
@@ -82,6 +82,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance = mock.MagicMock()
         mock_resource_instance.validate_type.return_value = (False, 'some string')
         mock_get_resource_type_instance.return_value = mock_resource_instance
+
         validate_resource(unset_resource.pk, 'MTX')
 
         # query the resource to see any changes:
@@ -93,7 +94,7 @@ class TestValidateResource(BaseAPITestCase):
         )
         self.assertEqual(current_resource.status, expected_status)
 
-    @mock.patch('api.async_tasks.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_invalid_type_remains_invalid_case2(self, mock_get_resource_type_instance):
         '''
         Here we test that a Resource change request fails.  The Resource previously
@@ -138,7 +139,7 @@ class TestValidateResource(BaseAPITestCase):
         self.assertEqual(current_resource.status, expected_status)
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    @mock.patch('api.async_tasks.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_resource_type_change_succeeds(self, 
         mock_get_resource_type_instance,
         mock_move):
@@ -160,7 +161,7 @@ class TestValidateResource(BaseAPITestCase):
         # just grab the first resource to use for the test
         resource = set_resources[0]
 
-        # need to test the reversion of type, so need to know 
+        # Need to know 
         # what it was in the first place.  We then randomly
         # choose a different type
         original_type = resource.resource_type
@@ -189,7 +190,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_move.assert_not_called()
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    @mock.patch('api.async_tasks.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_resource_type_change_succeeds_for_new_resource(self, 
         mock_get_resource_type_instance,
         mock_move):
@@ -224,7 +225,7 @@ class TestValidateResource(BaseAPITestCase):
         fake_final_path = '/some/final_path/foo.tsv'
 
         # call the tested function
-        validate_resource(unset_resource.pk, 'MTX')
+        validate_resource_and_store(unset_resource.pk, 'MTX')
 
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)

@@ -38,8 +38,14 @@ class ServerLocalResourceUpload(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             upload_handler = self.upload_handler_class()
+
+            # get the file on the server:
             resource = upload_handler.handle_upload(request)
-            upload_handler.validate(resource)
+
+            # validate the resource, if applicable, and copy the file to 
+            # the storage backend (async process, so response can return quickly)
+            upload_handler.validate_and_store(resource)
+
             resource_serializer = ResourceSerializer(resource, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:

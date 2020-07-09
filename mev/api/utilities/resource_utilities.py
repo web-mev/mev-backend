@@ -13,11 +13,23 @@ from .basic_utils import make_local_directory, \
     copy_local_resource
 
 from resource_types import get_preview, \
+    get_resource_type_instance, \
     PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY
 
 logger = logging.getLogger(__name__)
+
+def get_resource_by_pk(resource_pk):
+    try:
+        resource = Resource.objects.get(pk=resource_pk)
+        return resource
+    except Resource.DoesNotExist as ex:
+        logger.error('Received an unknown/invalid primary key'
+        ' when trying to retrieve a Resource instance in an async'
+        ' task.  PK was {uuid}.'.format(uuid=str(resource_pk))
+    )
+        raise ex
 
 def check_for_resource_operations(resource_instance):
     '''
@@ -28,13 +40,12 @@ def check_for_resource_operations(resource_instance):
     pass
 
 
-def set_resource_to_validation_status(resource_instance):
+def set_resource_to_inactive(resource_instance):
     '''
     Function created to temporarily "disable"
     a Resource while it is pending verification of the
-    type.  
+    type or uploading.  
     '''
-    resource_instance.status = Resource.VALIDATING
     resource_instance.is_active = False
     resource_instance.save()
 
@@ -177,27 +188,53 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     Once a Resource has been successfully validated, this function does some
     final operations such as moving the file and extracting metadata.
     '''
-    resource.status = Resource.READY
-
-    # if the existing resource.resource_type field was not set (null/None)
-    # then that means it has never passed validation (e.g. a new file).
-    # Move it to its final location
-    if not resource.resource_type:
-        try:
-            move_resource_to_final_location(resource)
-        except Exception as ex:
-            # a variety of exceptions can be raised due to failure
-            # to create directories/files.  Catch them all here and
-            # set the resource to be inactive.
-            logger.error('An exception was raised following'
-            ' successful validation of resource {resource}.'
-            ' Exception trace is {ex}'.format(
-                ex=ex,
-                resource = resource
-            ))
-
-    resource.resource_type = requested_resource_type
-
     # since the resource was valid, we can also fill-in the metadata
     metadata = resource_class_instance.extract_metadata(resource.path)
     add_metadata_to_resource(resource, metadata)
+
+    resource.resource_type = requested_resource_type
+    resource.status = Resource.READY
+
+def handle_invalid_resource(resource_instance, requested_resource_type):
+
+    # If resource_type has not been set (i.e. it is None), then this   
+    # Resource has NEVER been verified.  We report a failure
+    # via the status message and set the appropriate flags
+    if not resource_instance.resource_type:
+        resource_instance.status = Resource.FAILED.format(
+            requested_resource_type=requested_resource_type
+        )
+    else:
+        # if a resource_type was previously set, that means
+        # it was previously valid and has now been changed to
+        # an INvalid type.  In this case, revert back to the
+        # valid type and provide a helpful status message
+        # so they understand why the request did not succeed.
+        # Obviously, we don't alter the resource_type member in this case.
+        resource_instance.status = Resource.REVERTED.format(
+            requested_resource_type=requested_resource_type,
+            original_resource_type = resource_instance.resource_type
+        )
+    
+def validate_resource(resource_instance, requested_resource_type):
+    '''
+    This function performs validation against the requested resource
+    type.  If that fails, reverts to the original type (or remains None
+    if the resource has never been successfully validated).
+    '''
+    if requested_resource_type is not None:
+
+        # The resource type is the shorthand identifier.
+        # This returns an actual resource class implementation
+        resource_class_instance = get_resource_type_instance(requested_resource_type)
+
+        # now validate the type
+        is_valid, message = resource_class_instance.validate_type(resource_instance.path)
+
+        if is_valid:
+            handle_valid_resource(resource_instance, resource_class_instance, requested_resource_type)
+        else:
+            handle_invalid_resource(resource_instance, requested_resource_type)
+
+    else: # requested_resource_type was None
+        resource_instance.resource_type = None
