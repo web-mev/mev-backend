@@ -20,8 +20,7 @@ def delete_file(path):
     Deletes a file.  Can be a local or remote resource.
     '''
     logger.info('Requesting deletion of {path}'.format(path=path))
-    resource_storage_backend = import_string(settings.RESOURCE_STORAGE_BACKEND)()
-    resource_storage_backend.delete(path)
+    settings.resource_storage_backend.delete(path)
 
 @task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type):

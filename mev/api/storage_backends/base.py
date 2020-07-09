@@ -2,10 +2,10 @@ import os
 
 class BaseStorageBackend(object):
     
-    def store(self, resource_instance):
+    @staticmethod
+    def construct_relative_path(resource_instance):
         '''
-        Handles moving the file described by the `resource_instance`
-        arg to its final location.
+        Creates a path relative to the storage "root"
         '''
 
         # since we will organize files by user ID, get their unique ID
@@ -19,4 +19,4 @@ class BaseStorageBackend(object):
         )
 
         # make the path relative to the storage "root"
-        self.relative_path = os.path.join(owner_uuid, basename)
+        return os.path.join(owner_uuid, basename)

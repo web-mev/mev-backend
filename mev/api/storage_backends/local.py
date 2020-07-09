@@ -24,17 +24,22 @@ class LocalStorage(BaseStorageBackend):
         Handles moving the file described by the `resource_instance`
         arg to its final location.
         '''
-        super().store(resource_instance)
+        relative_path = BaseStorageBackend.construct_relative_path(resource_instance)
 
+        # where all user files are kept locally:
         base_storage_dir = os.path.join(settings.BASE_DIR, USER_STORAGE_DIRNAME)
-        if not os.path.exists(base_storage_dir):
+
+        # the final location of this file on our local storage:
+        destination = os.path.join(base_storage_dir, relative_path)
+
+        user_storage_dir = os.path.dirname(destination)
+        if not os.path.exists(user_storage_dir):
 
             # this function can raise an exception which will get
             # pushed up to the caller
-            make_local_directory(base_storage_dir)
+            make_local_directory(user_storage_dir)
 
         # storage directory existed.  Move the file:
-        destination = os.path.join(base_storage_dir, self.relative_path)
         source = resource_instance.path
         move_resource(source, destination)
         resource_instance.path = destination

@@ -177,10 +177,7 @@ def add_metadata_to_resource(resource, metadata):
 
 
 def move_resource_to_final_location(resource_instance):
-
-    # initialize the storage backend which handles the placement of the uploads
-    resource_storage_backend = import_string(settings.RESOURCE_STORAGE_BACKEND)()
-    resource_storage_backend.store(resource_instance)
+    settings.resource_storage_backend.store(resource_instance)
 
 
 def handle_valid_resource(resource, resource_class_instance, requested_resource_type):

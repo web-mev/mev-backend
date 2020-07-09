@@ -37,7 +37,7 @@ class GoogleBucketStore(BaseStorageBackend):
         super().__init__()
         self.storage_client = storage.Client()
 
-    def get_instance_region(self):
+    def _get_instance_region(self):
         if GOOGLE_BUCKET_REGION:
             return GOOGLE_BUCKET_REGION
 
@@ -67,7 +67,7 @@ class GoogleBucketStore(BaseStorageBackend):
                 ' not exist.  Create.'.format(
                     bucket_name = GOOGLE_BUCKET_NAME
                 ))
-            region = self.get_instance_region()
+            region = self._get_instance_region()
             try:
                 bucket = storage_client.create_bucket(
                     GOOGLE_BUCKET_NAME
@@ -100,24 +100,22 @@ class GoogleBucketStore(BaseStorageBackend):
         Handles moving the file described by the `resource_instance`
         arg to its final location.
         '''
-        super().store(resource_instance)
+        relative_path = BaseStorageBackend.construct_relative_path(resource_instance)
 
         bucket = self.get_or_create_bucket()
 
-        blob = storage.Blob(self.relative_path, bucket)
+        blob = storage.Blob(relative_path, bucket)
 
         try:
             self.upload_blob(blob, resource_instance.path)
             resource_instance.path = os.path.join(
-                BUCKET_PREFIX, GOOGLE_BUCKET_NAME, self.relative_path)
+                BUCKET_PREFIX, GOOGLE_BUCKET_NAME, relative_path)
         except Exception as ex:
             logger.error('Failed to upload to bucket.  File will'
                 ' remain local on the server at path: {path}'.format(
                     path=resource_instance.path
                 )
             )
-
-
 
     def delete(self, path):
         #TODO: implement

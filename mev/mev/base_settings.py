@@ -253,7 +253,8 @@ RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
 RESOURCE_STORAGE_BACKEND = get_env('RESOURCE_STORAGE_BACKEND')
 
 # import the storage backend to ensure we have set the proper environment variables
-import_string(RESOURCE_STORAGE_BACKEND)
+# and instantiate an instance of the storage backend
+resource_storage_backend = import_string(RESOURCE_STORAGE_BACKEND)()
 
 ###############################################################################
 # END Parameters for configuring resource storage

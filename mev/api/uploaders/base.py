@@ -112,33 +112,6 @@ class LocalUpload(BaseUpload):
             self.resource_type 
         )
 
-        # if a resource_type was specified in the upload request,
-        # we check that the type is consistent with the file suffix
-        # and then validate if they are indeed consistent.
-        '''
-        if self.resource_type:
-            logger.info('Starting validation.  Resource type was {resource_type}'.format(
-                resource_type=self.resource_type
-            ))
-            if extension_is_consistent_with_type(resource_instance.name, self.resource_type):
-                # Now start the validation process (async):
-                logger.info('Queueing validation for new resource %s with type %s ' % 
-                    (str(resource_instance.pk), self.resource_type)
-                )
-                set_resource_to_validation_status(resource_instance)
-
-                api_tasks.validate_resource_and_store.delay(
-                    resource_instance.pk, 
-                    self.resource_type 
-                )
-            else:
-                logger.info('File extension was not consistent with the requested'
-                    ' resource type.'
-                )
-                resource_instance.status = Resource.READY
-                resource_instance.save()
-        '''
-
 
 class RemoteUpload(BaseUpload):
     '''
