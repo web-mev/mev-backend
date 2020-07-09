@@ -72,7 +72,7 @@ class BaseUpload(object):
             # as a read-only field.  Hence, passing it to the ResourceSerializer
             # constructor above would ignore it.
             r.size = self.size
-            r = r.save()
+            r.save()
             return r
 
 
