@@ -162,7 +162,8 @@ def get_resource_preview(resource_instance):
             ' type was not set.'
         }
 
-    return get_preview(resource_instance.path, resource_instance.resource_type)
+    local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
+    return get_preview(local_path, resource_instance.resource_type)
 
 
 def add_metadata_to_resource(resource, metadata):
