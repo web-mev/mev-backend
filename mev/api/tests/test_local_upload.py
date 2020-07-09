@@ -152,8 +152,11 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.upload_and_cleanup(payload)
 
         # ok, now edit the owner_email field so that it's bad:
-        payload['owner_email'] = test_settings.JUNK_EMAIL
-
+        payload = {
+            'owner_email': test_settings.JUNK_EMAIL,
+            'resource_type': 'MTX',
+            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+        }
         response = self.authenticated_regular_client.post(
             self.url, 
             data=payload, 
@@ -161,6 +164,34 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_cannot_upload_for_other_user(self, mock_api_tasks):
+        '''
+        Test that trying to upload a Resource for another user fails
+        '''
+        # first check that the payload is correct by initiating a correct
+        # request 
+        payload = {
+            'owner_email': self.regular_user_1.email,
+            'resource_type': 'MTX',
+            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+        }
+
+        self.upload_and_cleanup(payload)
+
+        # ok, now edit the owner_email field so that it's someone else:
+        payload = {
+            'owner_email': self.regular_user_2.email,
+            'resource_type': 'MTX',
+            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+        }        
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data=payload, 
+            format='multipart'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        print(response.json())
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 

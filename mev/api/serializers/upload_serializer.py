@@ -10,3 +10,8 @@ class UploadSerializer(serializers.Serializer):
     )
     upload_file = serializers.FileField()
     is_public = serializers.BooleanField(required=False)
+
+    def validate_owner_email(self, email):
+        if self.context['requesting_user'].email != email:
+            raise serializers.ValidationError('Can only upload for your user')
+        return email

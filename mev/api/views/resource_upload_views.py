@@ -35,8 +35,11 @@ class ServerLocalResourceUpload(APIView):
         return self.serializer_class()
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(
+            data=request.data, 
+            context={'requesting_user': request.user})
         if serializer.is_valid():
+
             upload_handler = self.upload_handler_class()
 
             # get the file on the server:
