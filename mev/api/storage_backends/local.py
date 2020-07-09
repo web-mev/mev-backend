@@ -59,3 +59,10 @@ class LocalStorage(BaseStorageBackend):
         # since file-size is not "critical", we log the errors and just
         # return 0 since it will still work.
         return 0
+
+    def get_local_resource_path(self, resource_instance):
+        '''
+        Returns the path to the file resource on the local machine.
+        Trivial for this implementation of local storage
+        '''
+        return resource_instance.path

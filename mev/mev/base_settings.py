@@ -254,7 +254,19 @@ RESOURCE_STORAGE_BACKEND = get_env('RESOURCE_STORAGE_BACKEND')
 
 # import the storage backend to ensure we have set the proper environment variables
 # and instantiate an instance of the storage backend
-resource_storage_backend = import_string(RESOURCE_STORAGE_BACKEND)()
+RESOURCE_STORAGE_BACKEND = import_string(RESOURCE_STORAGE_BACKEND)()
+
+# In the case of remote storage backends (e.g. buckets), we want the ability
+# to locally cache the files for faster access.  Files in this directory
+# are temporary and will be removed after some period of inactivity
+RESOURCE_CACHE_DIR = os.path.join(BASE_DIR, 'resource_cache')
+if not os.path.exists(RESOURCE_CACHE_DIR):
+    os.makedirs(RESOURCE_CACHE_DIR)
+
+# How long should the files be kept in the local cache.
+# Check the functions for periodic tasks to see how this
+# parameter is used.
+RESOURCE_CACHE_EXPIRATION_DAYS = 2
 
 ###############################################################################
 # END Parameters for configuring resource storage

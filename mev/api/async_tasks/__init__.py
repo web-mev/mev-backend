@@ -49,10 +49,14 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
 
-    resource_utilities.validate_resource(resource, requested_resource_type)
-
-    # now move the file backing this Resource
+    # move the file backing this Resource.
+    # Note that we do this BEFORE validating so that the validation functions don't
+    # have to contain different steps for handling new uploads or requests to
+    # change the type of a Resource.  By immediately moving the file to its 
+    # final storage backend, we can handle all the variations in the same manner. 
     resource.path = resource_utilities.move_resource_to_final_location(resource)
+    
+    resource_utilities.validate_resource(resource, requested_resource_type)
 
     # regardless of what happened above, set the 
     # status to be active (so changes can be made)

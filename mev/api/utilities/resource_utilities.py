@@ -177,7 +177,7 @@ def add_metadata_to_resource(resource, metadata):
 
 
 def move_resource_to_final_location(resource_instance):
-    return settings.resource_storage_backend.store(resource_instance)
+    return settings.RESOURCE_STORAGE_BACKEND.store(resource_instance)
 
 def handle_valid_resource(resource, resource_class_instance, requested_resource_type):
     '''
@@ -224,8 +224,13 @@ def validate_resource(resource_instance, requested_resource_type):
         # This returns an actual resource class implementation
         resource_class_instance = get_resource_type_instance(requested_resource_type)
 
-        # now validate the type
-        is_valid, message = resource_class_instance.validate_type(resource_instance.path)
+        # Regardless of whether we are validating a new upload or changing the type
+        # of an existing file, the file is already located at its "final" location
+        # which is dependent on the storage backend.  Now, if the storage backend
+        # is remote (e.g. bucket storage), we need to pull the file locally to 
+        # perform validation.
+        local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
+        is_valid, message = resource_class_instance.validate_type(local_path)
 
         if is_valid:
             handle_valid_resource(resource_instance, resource_class_instance, requested_resource_type)
