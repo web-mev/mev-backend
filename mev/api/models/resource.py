@@ -75,6 +75,7 @@ class Resource(models.Model):
     # Some status messages to be displayed.
     UPLOADING = 'Uploading...'
     VALIDATING = 'Validating...'
+    PROCESSING = 'Processing...'
     READY = ''
     FAILED = 'Failed validation for resource type {requested_resource_type}'
     REVERTED = ('Failed validation for type {requested_resource_type}.'

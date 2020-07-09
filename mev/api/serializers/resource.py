@@ -243,9 +243,6 @@ class ResourceSerializer(serializers.ModelSerializer):
                 changing_resource_type = True
                 set_resource_to_inactive(instance)
 
-        # save the instance- but only the fields that do not require validation
-        instance.save()
-
         # if the `resource_type` was changed in the request, start
         # the validation process.  Since it is calling an async, we
         # have to pass the primary key instead of the instance.
@@ -253,10 +250,12 @@ class ResourceSerializer(serializers.ModelSerializer):
             logger.info('Queueing validation for updating resource %s with type %s ' % 
                 (str(instance.pk), new_resource_type)
             )
+            instance.status = Resource.VALIDATING
             api_tasks.validate_resource.delay(
                 instance.pk, 
                 new_resource_type
             )
 
+        instance.save()
         return instance
         

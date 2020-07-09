@@ -60,14 +60,19 @@ class BaseUpload(object):
             'path': self.filepath,
             'name': self.filename,
             'resource_type': None,
-            'is_public': self.is_public,
-            'size': self.size
+            'is_public': self.is_public
         }
         rs = ResourceSerializer(data=d)
 
         # values were checked prior to this, but we enforce this again
         if rs.is_valid(raise_exception=True):
             r = rs.save()
+
+            # set the size here since the ResourceSerializer has size
+            # as a read-only field.  Hence, passing it to the ResourceSerializer
+            # constructor above would ignore it.
+            r.size = self.size
+            r = r.save()
             return r
 
 
@@ -105,6 +110,11 @@ class LocalUpload(BaseUpload):
         # set and save attributes to prevent "use" of this Resource
         # before it is validated and in its final storage location:
         set_resource_to_inactive(resource_instance)
+
+        # since the async method doesn't have a defined time to operate,
+        # set a generic status on the Resource.
+        resource_instance.status = Resource.PROCESSING
+        resource_instance.save()
 
         # call the validation/storage methods async
         api_tasks.validate_resource_and_store.delay(

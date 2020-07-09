@@ -38,8 +38,5 @@ class ServerLocalUpload(LocalUpload):
             logger.error(ex)
             raise APIException('The upload process experienced an error.')
 
-        # create a Resource instance.
-        # Note that this also performs validation
-        # and temporarily disables the Resource via the `is_active` flag
         return self.create_resource_from_upload()
         
