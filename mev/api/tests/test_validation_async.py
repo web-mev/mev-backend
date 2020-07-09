@@ -223,6 +223,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_resource_type_instance.return_value = mock_resource_instance
         
         fake_final_path = '/some/final_path/foo.tsv'
+        mock_move.return_value = fake_final_path
 
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX')
@@ -232,9 +233,8 @@ class TestValidateResource(BaseAPITestCase):
         self.assertTrue(current_resource.is_active)
         self.assertEqual(current_resource.resource_type, 'MTX')
         self.assertEqual(current_resource.status, Resource.READY)
-        # note that we mocked out the move, so we didn't actually change the path
-        # that functionality is tested elsewhere.
-        mock_move.assert_called()
+        self.assertEqual(current_resource.path, fake_final_path)
+
         mock_resource_instance.validate_type.assert_called()
         mock_resource_instance.extract_metadata.assert_called()
 

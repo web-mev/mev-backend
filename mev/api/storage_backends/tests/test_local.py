@@ -37,8 +37,8 @@ class TestLocalStorage(BaseAPITestCase):
             DUMMY_DIRNAME, str(owner_uuid), expected_basename)
 
         storage_backend = LocalStorage()
-        storage_backend.store(r)
+        path = storage_backend.store(r)
 
-        self.assertEqual(r.path, expected_destination)
+        self.assertEqual(path, expected_destination)
 
         

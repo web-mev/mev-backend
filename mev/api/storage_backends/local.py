@@ -42,7 +42,7 @@ class LocalStorage(BaseStorageBackend):
         # storage directory existed.  Move the file:
         source = resource_instance.path
         move_resource(source, destination)
-        resource_instance.path = destination
+        return destination
 
     def delete(self, path):
         delete_local_file(path)

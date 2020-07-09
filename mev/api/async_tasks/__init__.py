@@ -52,7 +52,7 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     resource_utilities.validate_resource(resource, requested_resource_type)
 
     # now move the file backing this Resource
-    resource_utilities.move_resource_to_final_location(resource)
+    resource.path = resource_utilities.move_resource_to_final_location(resource)
 
     # regardless of what happened above, set the 
     # status to be active (so changes can be made)

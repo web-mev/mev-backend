@@ -177,8 +177,7 @@ def add_metadata_to_resource(resource, metadata):
 
 
 def move_resource_to_final_location(resource_instance):
-    settings.resource_storage_backend.store(resource_instance)
-
+    return settings.resource_storage_backend.store(resource_instance)
 
 def handle_valid_resource(resource, resource_class_instance, requested_resource_type):
     '''

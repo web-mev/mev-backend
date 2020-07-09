@@ -29,6 +29,9 @@ class ServerLocalUpload(LocalUpload):
             with open(tmp_path, 'wb+') as destination:
                 for chunk in upload.chunks():
                     destination.write(chunk)
+            # this sets a temporary local path which will be assigned
+            # to the Resource's path.  Eventually that member will be updated
+            # after the file is validated and sent to its final storage
             self.filepath = tmp_path
         except Exception as ex:
             logger.error('An exception was raised when writing a local upload to the tmp directory.')

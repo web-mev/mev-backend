@@ -108,7 +108,9 @@ class GoogleBucketStore(BaseStorageBackend):
 
         try:
             self.upload_blob(blob, resource_instance.path)
-            resource_instance.path = os.path.join(
+
+            # the final path in bucket storage:
+            return os.path.join(
                 BUCKET_PREFIX, GOOGLE_BUCKET_NAME, relative_path)
         except Exception as ex:
             logger.error('Failed to upload to bucket.  File will'
@@ -116,7 +118,8 @@ class GoogleBucketStore(BaseStorageBackend):
                     path=resource_instance.path
                 )
             )
-
+            return resource_instance.path
+            
     def delete(self, path):
         #TODO: implement
         pass
