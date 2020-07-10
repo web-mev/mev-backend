@@ -153,10 +153,14 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
 
             if has_been_used:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-
+        # if the actual file was not shared referenced by multiple
+        # Resources, delete it.
         if not file_shared_by_multiple_resources:
             api_tasks.delete_file.delay(instance.path)
+        
+        # Now delete the database object:
         self.perform_destroy(instance)
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

@@ -70,11 +70,11 @@ class WorkspaceResourceAdd(APIView):
         serializer = WorkspaceResourceAddSerializer(data=request.data)
         if serializer.is_valid():
             workspace_uuid = kwargs['workspace_pk']
-            resource_uuid = serializer.validated_data['resource_uuid']
+            resource_uuid = str(serializer.validated_data['resource_uuid'])
             logger.info('Adding resource ({resource_uuid}) to'
                 ' workspace ({workspace_uuid})'.format(
                     workspace_uuid = str(workspace_uuid),
-                    resource_uuid = str(resource_uuid)
+                    resource_uuid = resource_uuid
                 )
             )
 
@@ -91,8 +91,10 @@ class WorkspaceResourceAdd(APIView):
                 resource = Resource.objects.get(pk=resource_uuid)
             except Resource.DoesNotExist:
                 logger.error('Could not locate Resource ({resource_uuid})'
-                ' when attmepting to add Resource.'.format(
-                    resource_uuid = str(resource_uuid)
+                ' when attmepting to add Resource to'
+                ' Workspace ({workspace_uuid}).'.format(
+                        resource_uuid = resource_uuid,
+                        workspace_uuid = str(workspace_uuid)
                     )
                 )
                 raise ParseError({

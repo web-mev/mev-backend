@@ -37,7 +37,9 @@ def check_for_resource_operations(resource_instance):
     `Resource` instance has been used for any operations within a
     `Workspace`.  If it has, return True.  Otherwise return False.
     '''
-    pass
+    # TODO: implement once Operations have been added.
+    # For the moment, False 
+    return False
 
 
 def set_resource_to_inactive(resource_instance):
@@ -140,6 +142,13 @@ def check_for_shared_resource_file(resource_instance):
                 return False
         else:
             return True
+    else:
+        logger.error('The path attribute of the Resource ({pk})'
+            ' was empty.  This should not happen.'.format(
+                pk=str(resource_instance.pk)
+            )
+        )
+        raise Exception('Path was empty. Error.')
 
 
 def get_resource_preview(resource_instance):
