@@ -29,7 +29,7 @@ def register_by_access_token(request, backend, token):
     try:
         user = request.backend.do_auth(token)
     except Exception as ex:
-        raise ValidationError({'access_token': 'There was a problem'
+        raise ValidationError({'provider_token': 'There was a problem'
             ' encountered during authentication.  Token may be invalid or expired.'
         })
     if user:
@@ -61,7 +61,7 @@ class GoogleOauth2View(APIView, SchemaMixin):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             logger.info('Received data: {data}'.format(data=serializer.validated_data))
-            google_token = serializer.validated_data['access_token']
+            google_token = serializer.validated_data['provider_token']
             user = register_by_access_token(request, self.provider_name, google_token)
             if user:
                 refresh = RefreshToken.for_user(user)
@@ -69,10 +69,11 @@ class GoogleOauth2View(APIView, SchemaMixin):
                 # they keys in this response are consistent with those returned by the simplejwt
                 # package so that username/password and social auth-based accounts return the same
                 # JWT response object
-                return Response({
+                return_serializer = self.serializer_class({
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
                 })
+                return Response(return_serializer.data)
             return Response({
                 'error': 'Could not establish user'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
