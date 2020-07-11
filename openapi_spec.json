@@ -2509,6 +2509,72 @@
         }
       }
     },
+    "/api/users/social/google/": {
+      "post": {
+        "operationId": "CreateGoogleOauth2",
+        "description": "This endpoint allows a client to exchange a google access token\nfor a WebMEV JWT token",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "access_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "access_token"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "access_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "access_token"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "access_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "access_token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "access_token"
+                  ]
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/resources/upload/": {
       "post": {
         "operationId": "CreateServerLocalResourceUpload",
