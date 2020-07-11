@@ -10,6 +10,7 @@ services:
     entrypoint: /bin/bash
     volumes:
       - static_volume:/www/static
+      - .:/workspace
     expose:
       - 8000
     env_file:
