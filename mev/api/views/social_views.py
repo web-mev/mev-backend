@@ -11,6 +11,7 @@ from social_django.utils import psa
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers.social_auth import SocialAuthTokenSerializer
+from api.views.mixins import SchemaMixin
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +46,9 @@ def register_by_access_token(request, backend, token):
             ))
         return None
 
-class GoogleOauth2View(APIView):
+class GoogleOauth2View(APIView, SchemaMixin):
     '''
-    This allows the front-end to exchange a google access token
+    This endpoint allows a client to exchange a google access token
     for a WebMEV JWT token 
     '''
 

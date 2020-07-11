@@ -7,7 +7,6 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.schemas.openapi import AutoSchema
 
 from api.serializers.user import UserSerializer, \
     UserRegisterSerializer, \
@@ -17,20 +16,12 @@ from api.serializers.user import UserSerializer, \
     PasswordResetConfirmSerializer, \
     PasswordChangeSerializer
 import api.permissions as api_permissions
+from api.views.mixins import SchemaMixin
 from api.utilities import email_utils
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-
-
-class SchemaMixin(AutoSchema):
-    '''
-    By default, the introspection does not work for APIView
-    unless a get_serializer method is implemented.
-    '''
-    def get_serializer(self):
-        return self.serializer_class()
 
 class UserList(generics.ListCreateAPIView):
     '''
