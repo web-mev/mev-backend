@@ -6,8 +6,8 @@ from rest_framework.schemas import get_schema_view
 import api.views
 
 urlpatterns = [
-    path('token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/', api.views.TokenObtainView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', api.views.RefreshTokenView.as_view(), name='token_refresh'),
 
     ##########################################################################
 
