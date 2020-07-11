@@ -7,6 +7,7 @@ from .user_views import UserList, \
     UserActivateView, \
     ResendActivationView, \
     PasswordChangeView
+from .social_views import GoogleOauth2View
 from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, ResourceDetail, ResourcePreview
 from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAdd

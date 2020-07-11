@@ -1,4 +1,7 @@
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import global_settings
@@ -35,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'api.apps.ApiConfig',
     'corsheaders',
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -270,4 +274,46 @@ RESOURCE_CACHE_EXPIRATION_DAYS = 2
 
 ###############################################################################
 # END Parameters for configuring resource storage
+###############################################################################
+
+
+
+###############################################################################
+# START Parameters for configuring social authentication/registration
+###############################################################################
+
+GOOGLE = 'GOOGLE'
+
+try:
+    SOCIAL_BACKENDS = os.environ['SOCIAL_BACKENDS']
+    SOCIAL_BACKENDS = [x.strip() for x in SOCIAL_BACKENDS.split(',')]
+except KeyError as ex:
+    logger.info('No social authentication backends specified')
+
+# They keys of this should match the values of the comma-delimited list
+# provided in SOCIAL_BACKENDS.  Each key points at a specific backend.
+IMPLEMENTED_SOCIAL_BACKENDS = {
+    GOOGLE:'social_core.backends.google.GoogleOAuth2'
+}
+
+AUTHENTICATION_BACKENDS = []
+for provider in SOCIAL_BACKENDS:
+    try:
+        backend = IMPLEMENTED_SOCIAL_BACKENDS[provider]
+        AUTHENTICATION_BACKENDS.append(backend)
+    except KeyError as ex:
+        raise ImproperlyConfigured('Could not find an appropriate'
+            ' social auth backend implementation for the provider'
+            ' identified by: {provider}.  Available implementations'
+            ' provided for {options}'.format(
+                provider = provider,
+                options = ','.join(IMPLEMENTED_SOCIAL_BACKENDS.keys())
+            )
+        )
+    
+# required for usual username/password authentication:
+AUTHENTICATION_BACKENDS.append('django.contrib.auth.backends.ModelBackend')
+
+###############################################################################
+# END Parameters for configuring social authentication/registration
 ###############################################################################

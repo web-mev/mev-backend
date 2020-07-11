@@ -71,3 +71,12 @@ GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
 
 ########################## END Email-related parameters #####################################
+
+
+############################ Social auth-related parameters ######################################
+
+# a comma-delimited list giving the social auth providers to use.  Check the available
+# implementations in mev/api/base_settings.py
+SOCIAL_BACKENDS=GOOGLE
+
+########################## END Social-auth-related parameters #####################################

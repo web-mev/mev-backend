@@ -20,6 +20,7 @@ urlpatterns = [
     path('users/reset-password/confirm/', api.views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('users/reset-password/', api.views.PasswordResetView.as_view(), name='password-reset'),
     path('users/change-password/', api.views.PasswordChangeView.as_view(), name='password-change'),
+    path('users/social/google/', api.views.GoogleOauth2View.as_view(), name='google-social'),
 
     ##################### Views for Workspaces ###############################
 
