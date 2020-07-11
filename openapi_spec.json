@@ -2519,36 +2519,39 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "access_token": {
-                    "type": "string"
+                  "provider_token": {
+                    "type": "string",
+                    "writeOnly": true
                   }
                 },
                 "required": [
-                  "access_token"
+                  "provider_token"
                 ]
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
                 "properties": {
-                  "access_token": {
-                    "type": "string"
+                  "provider_token": {
+                    "type": "string",
+                    "writeOnly": true
                   }
                 },
                 "required": [
-                  "access_token"
+                  "provider_token"
                 ]
               }
             },
             "multipart/form-data": {
               "schema": {
                 "properties": {
-                  "access_token": {
-                    "type": "string"
+                  "provider_token": {
+                    "type": "string",
+                    "writeOnly": true
                   }
                 },
                 "required": [
-                  "access_token"
+                  "provider_token"
                 ]
               }
             }
@@ -2560,13 +2563,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "access_token": {
-                      "type": "string"
+                    "access": {
+                      "type": "string",
+                      "readOnly": true
+                    },
+                    "refresh": {
+                      "type": "string",
+                      "readOnly": true
                     }
                   },
-                  "required": [
-                    "access_token"
-                  ]
+                  "required": []
                 }
               }
             },
