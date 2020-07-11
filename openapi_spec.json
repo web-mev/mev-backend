@@ -1837,8 +1837,8 @@
     },
     "/api/token/": {
       "post": {
-        "operationId": "CreateTokenObtainPair",
-        "description": "Takes a set of user credentials and returns an access and refresh JSON web\ntoken pair to prove the authentication of those credentials.",
+        "operationId": "CreateAuthToken",
+        "description": "This endpoint allows a client to submit an email/password\nand receive a JWT token (and refresh token)",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -1846,7 +1846,8 @@
               "schema": {
                 "properties": {
                   "email": {
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                   },
                   "password": {
                     "type": "string",
@@ -1863,7 +1864,8 @@
               "schema": {
                 "properties": {
                   "email": {
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                   },
                   "password": {
                     "type": "string",
@@ -1880,7 +1882,8 @@
               "schema": {
                 "properties": {
                   "email": {
-                    "type": "string"
+                    "type": "string",
+                    "writeOnly": true
                   },
                   "password": {
                     "type": "string",
@@ -1901,13 +1904,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "email": {
-                      "type": "string"
+                    "access": {
+                      "type": "string",
+                      "readOnly": true
+                    },
+                    "refresh": {
+                      "type": "string",
+                      "readOnly": true
                     }
                   },
-                  "required": [
-                    "email"
-                  ]
+                  "required": []
                 }
               }
             },
@@ -1918,8 +1924,8 @@
     },
     "/api/token/refresh/": {
       "post": {
-        "operationId": "CreateTokenRefresh",
-        "description": "Takes a refresh type JSON web token and returns an access type JSON web\ntoken if the refresh token is valid.",
+        "operationId": "CreateRefreshAuthToken",
+        "description": "Endpoint for refreshing the JWT auth token.",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -1969,6 +1975,10 @@
                   "properties": {
                     "refresh": {
                       "type": "string"
+                    },
+                    "access": {
+                      "type": "string",
+                      "readOnly": true
                     }
                   },
                   "required": [
