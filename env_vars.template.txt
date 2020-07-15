@@ -25,8 +25,13 @@ POPULATE_DB=
 # Accordingly, make this appropriately long:
 DJANGO_SECRET_KEY=
 
-# A space-delimited list of the hosts.  Add hosts as necessary
-DJANGO_ALLOWED_HOSTS=127.0.0.1 localhost
+# A comma-delimited list of the hosts.  Add hosts as necessary
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
+
+# A comma-delimited list of the origins for cors requests
+# Needed to hookup to front-end frameworks which may be 
+# at a different domain.
+DJANGO_CORS_ORIGINS=http://127.0.0.1
 
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 

@@ -12,8 +12,6 @@ SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(' ') if len(x) > 0]
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
