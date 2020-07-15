@@ -8,6 +8,7 @@ from rest_framework.settings import api_settings as drf_api_settings
 
 from rest_framework_simplejwt.views import TokenObtainPairView, \
     TokenRefreshView
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 from api.serializers.jwt_tokens import AuthTokenSerializer, \
     RefreshAuthTokenSerializer
@@ -39,3 +40,24 @@ class RefreshTokenView(TokenRefreshView):
     Endpoint for refreshing the JWT auth token.
     '''
     serializer_class = RefreshAuthTokenSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except ValidationError as ex:
+            raise ex
+        except InvalidToken as ex:
+            return Response(
+                {'refresh': ex.detail['detail']},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as ex:
+            logger.error('Caught some unexpected error when refreshing'
+                ' the authentication token.  Ex={ex}'.format(
+                    ex=ex
+                )
+            )
+            return Response(
+                {drf_api_settings.NON_FIELD_ERRORS_KEY: ex},
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
