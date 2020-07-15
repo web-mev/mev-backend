@@ -317,3 +317,7 @@ AUTHENTICATION_BACKENDS.append('django.contrib.auth.backends.ModelBackend')
 ###############################################################################
 # END Parameters for configuring social authentication/registration
 ###############################################################################
+
+# For remote services (like checking auth with google), how many 
+# times should be attempt to communicate before failing:
+MAX_RETRIES = 3

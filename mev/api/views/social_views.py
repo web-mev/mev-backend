@@ -1,6 +1,9 @@
 import logging
 
+import backoff
+
 from django.contrib.auth import login
+from django.conf import settings
 
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
@@ -8,12 +11,35 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
 from social_django.utils import psa
+import social_core.exceptions
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers.social_auth import SocialAuthTokenSerializer
 from api.views.mixins import SchemaMixin
 
 logger = logging.getLogger(__name__)
+
+@backoff.on_predicate(backoff.expo, lambda x: x is None, max_tries=settings.MAX_RETRIES)
+def do_auth(request, token):
+    try:
+        user = request.backend.do_auth(token)
+        return user
+    except social_core.exceptions.AuthForbidden as ex:
+        # this exception is raised if the token is invalid
+        logger.info('Exception of type social_core.exceptions.AuthForbidden'
+            ' was raised. Token likely invalid.'
+        )
+        raise ValidationError({'provider_token': 'There was a problem'
+            ' encountered during authentication.  Token may be invalid or expired.'
+        })
+    except Exception as ex:
+        # Catch other types of exception.  Return None so that this
+        # function is tried again.
+        logger.info('Caught another type of exception when attempting'
+            ' to authenticate with social auth provider.  Will retry.'
+            ' Exception was: {ex}.'.format(ex=ex)
+        )
+        return None
 
 # This function can be used by multiple oauth2 providers if necessary.
 @psa()
@@ -26,12 +52,10 @@ def register_by_access_token(request, backend, token):
     of the registration flow can happen in social_django
     '''
     logger.info('Starting social authentication')
-    try:
-        user = request.backend.do_auth(token)
-    except Exception as ex:
-        raise ValidationError({'provider_token': 'There was a problem'
-            ' encountered during authentication.  Token may be invalid or expired.'
-        })
+
+    # Get the authenticated user.  The do_auth function does retries.
+    user = do_auth(request, token)
+
     if user:
         logger.info('User={user}'.format(user=user))
         login(request, user)
