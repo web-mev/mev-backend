@@ -27,7 +27,7 @@ ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(','
 
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
-    x for x in os.environ.get('DJANGO_CORS_ORIGINS', '').split(' ') if len(x) > 0
+    x for x in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',') if len(x) > 0
 ]
 
 
