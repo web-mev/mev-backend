@@ -11,7 +11,7 @@ class AuthTokenSerializer(TokenObtainPairSerializer):
     '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields[self.username_field] = serializers.CharField(write_only=True)
+        self.fields['email'] = serializers.EmailField(write_only=True)
         self.fields['password'] = PasswordField(write_only=True)
         self.fields['access'] = serializers.CharField(required=False, read_only=True)
         self.fields['refresh'] = serializers.CharField(required=False, read_only=True)
