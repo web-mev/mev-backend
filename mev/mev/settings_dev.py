@@ -1,9 +1,11 @@
 import copy
 import logging.config
 
-from .base_settings import * 
+from .settings_helpers import get_env
 
 SECRET_KEY = get_env('DJANGO_SECRET_KEY')
+
+from .base_settings import * 
 
 DEBUG = True
 

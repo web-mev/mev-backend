@@ -317,3 +317,84 @@ class TestValidateResource(BaseAPITestCase):
         
         # check that the observation_set changed as expected:
         self.assertFalse(rm_original.observation_set == rm_final.observation_set)
+
+
+    @mock.patch('api.utilities.resource_utilities.settings')
+    @mock.patch('api.utilities.resource_utilities.validate_resource')
+    def test_storage_failure_handled_gracefully(self, 
+        mock_validate_resource, mock_settings):
+        '''
+        Here we test that we handle storage failures gracefully.
+
+        In our workflow, newly uploaded files are pushed to the storage 
+        "backend" before validating.  If we are dependent on an external 
+        storage service (e.g. bucket), it is possible that this service
+        could be unavailable or fail for some reason.  If an exception
+        is raised, we want to set the appropriate fields on the Resource
+        so that the Resource cannot be used.
+
+
+        '''
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+        self.assertIsNone(unset_resource.resource_type)
+        
+        mock_settings.RESOURCE_STORAGE_BACKEND.store.side_effect = Exception('problem!')
+
+        # call the tested function
+        validate_resource_and_store(unset_resource.pk, 'MTX')
+
+        mock_validate_resource.assert_not_called()
+        
+        # query the resource to see any changes:
+        current_resource = Resource.objects.get(pk=unset_resource.pk)
+        self.assertTrue(current_resource.is_active)
+        self.assertIsNone(current_resource.resource_type)
+        self.assertEqual(current_resource.status, Resource.UNEXPECTED_STORAGE_ERROR)
+
+    @mock.patch('api.utilities.resource_utilities.settings')
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.async_tasks.resource_utilities.move_resource_to_final_location')
+    def test_validation_failure_handled_gracefully(self, 
+        mock_move_resource_to_final_location,
+        mock_get_resource_type_instance, mock_settings):
+        '''
+        Here we test that we handle validation failures gracefully.
+        '''
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+        self.assertIsNone(unset_resource.resource_type)
+        mock_move_resource_to_final_location.return_value = '/some/path.foo.txt'
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.validate_type.side_effect = Exception('validation ex!')
+        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+        mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.return_value = '/some/path/bar.txt'
+
+        # call the tested function
+        validate_resource_and_store(unset_resource.pk, 'MTX')
+
+        # query the resource to see any changes:
+        current_resource = Resource.objects.get(pk=unset_resource.pk)
+        self.assertTrue(current_resource.is_active)
+        self.assertIsNone(current_resource.resource_type)
+        self.assertEqual(current_resource.status, Resource.UNEXPECTED_VALIDATION_ERROR)

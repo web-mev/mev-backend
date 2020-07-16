@@ -11,7 +11,7 @@ from django.conf import settings
 
 from .base import BaseStorageBackend
 
-from api.utilities.basic_utils import make_local_directory
+from api.utilities.basic_utils import make_local_directory, get_with_retry
 
 # Look for the necessary environment variables here-- when the application
 # starts, failure to find these environment variables will cause the application
@@ -46,7 +46,7 @@ class GoogleBucketStorage(BaseStorageBackend):
 
         #TODO: write some general re-try function
         try:
-            response = requests.get(
+            response = get_with_retry(
                 'http://metadata/computeMetadata/v1/instance/zone', 
                 headers={'Metadata-Flavor': 'Google'}
             )

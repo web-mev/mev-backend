@@ -80,7 +80,8 @@ class Resource(models.Model):
     FAILED = 'Failed validation for resource type {requested_resource_type}'
     REVERTED = ('Failed validation for type {requested_resource_type}.'
         ' Reverting back to the valid type of {original_resource_type}')
-    UNEXPECTED_ERROR = 'There was an unexpected error during validation.'
+    UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation.'
+    UNEXPECTED_STORAGE_ERROR = 'An unexpected error occurred during upload and storage.'
 
     # Resource instances will be referenced by their UUID instead of a PK
     id = models.UUIDField(

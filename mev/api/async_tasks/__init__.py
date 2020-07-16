@@ -42,9 +42,9 @@ def validate_resource(resource_pk, requested_resource_type):
 def validate_resource_and_store(resource_pk, requested_resource_type):
     '''
     This function handles the background validation of uploaded
-    files.  Also handles validation when a "type change" is requested.
+    files.
 
-    Previous to calling this function, we set the `is_valid` flag
+    Previous to calling this function, we set the `is_active` flag
     to False so that the `Resource` is disabled for use.
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
@@ -53,10 +53,19 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     # Note that we do this BEFORE validating so that the validation functions don't
     # have to contain different steps for handling new uploads or requests to
     # change the type of a Resource.  By immediately moving the file to its 
-    # final storage backend, we can handle all the variations in the same manner. 
-    resource.path = resource_utilities.move_resource_to_final_location(resource)
-    
-    resource_utilities.validate_resource(resource, requested_resource_type)
+    # final storage backend, we can handle all the variations in the same manner.
+    try:
+        resource.path = resource_utilities.move_resource_to_final_location(resource)
+    except Exception as ex:
+        logger.error('Caught an exception when moving the Resource {pk} to its'
+            ' final location.  Exception was: {ex}'.format(
+                pk = resource_pk,
+                ex = ex
+            )
+        )
+        resource.status = Resource.UNEXPECTED_STORAGE_ERROR
+    else:    
+        resource_utilities.validate_resource(resource, requested_resource_type)
 
     # regardless of what happened above, set the 
     # status to be active (so changes can be made)

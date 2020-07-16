@@ -2,11 +2,27 @@ import os
 import shutil
 import errno
 import logging
+import requests
+import backoff
 
+from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 logger = logging.getLogger(__name__)
+
+
+def is_fatal_code(e):
+    return 400 <= e.response.status_code < 500
+
+# a function that wraps requests.get for multiple tries
+@backoff.on_exception(backoff.expo,
+                      requests.exceptions.RequestException,
+                      max_time=30,
+                      max_tries = 5,
+                      giveup=is_fatal_code)
+def get_with_retry(*args, **kwargs):
+    return requests.get(*args, **kwargs)
 
 def encode_uid(pk):
     return force_str(urlsafe_base64_encode(force_bytes(pk)))

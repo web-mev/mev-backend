@@ -240,7 +240,17 @@ def validate_resource(resource_instance, requested_resource_type):
         # is remote (e.g. bucket storage), we need to pull the file locally to 
         # perform validation.
         local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
-        is_valid, message = resource_class_instance.validate_type(local_path)
+        try:
+            is_valid, message = resource_class_instance.validate_type(local_path)
+        except Exception as ex:
+            logger.error('An exception was raised when attempting to validate'
+                ' the Resource {pk} located at {local_path}'.format(
+                    pk = str(resource_instance.pk),
+                    local_path = local_path
+                )
+            )
+            resource_instance.status = Resource.UNEXPECTED_VALIDATION_ERROR
+            return
 
         if is_valid:
             handle_valid_resource(resource_instance, resource_class_instance, requested_resource_type)

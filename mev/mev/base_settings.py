@@ -7,14 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.conf import global_settings
 from django.utils.module_loading import import_string
 
-# a small helper function for reading environment variables:
-def get_env(variable_name):
-    try:
-        return os.environ[variable_name]
-    except KeyError as ex:
-        raise ImproperlyConfigured('You need to specify the {var}'
-            ' environment variable.'.format(var=variable_name)
-        )
+from .settings_helpers import get_env
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +22,6 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
     x for x in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',') if len(x) > 0
 ]
-
 
 # Application definition
 
