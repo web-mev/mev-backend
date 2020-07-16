@@ -143,40 +143,61 @@
 <h4 id="dockerhub-image"><a class="toclink" href="#dockerhub-image">Dockerhub image</a></h4>
 <p>TODO</p>
 <h4 id="local-build"><a class="toclink" href="#local-build">Local build</a></h4>
-<p>The application is packaged as a Docker for easier management of dependencies.  To build the Docker image yourself, you will need to have Docker installed locally.</p>
+<p>The application is packaged as a series of Docker images for easier management of dependencies.  The collective behavior and interdependencies is managed by <code>docker-compose</code>.  To build the application image yourself, you will need to have Docker and docker-compose installed locally.</p>
 <p>To build the application, clone the repository locally:</p>
 <pre class="codehilite"><code>git clone https://github.com/web-mev/mev-backend.git</code></pre>
 
 
-<p>Navigate into that cloned directory and build the Docker image with:</p>
-<pre class="codehilite"><code>docker build -t &lt;image name&gt; .</code></pre>
-
-
-<p>To run the container, you will need to supply some environment variables for things like passwords and other sensitive information.  In the repository is a file named <code>env_vars.template.txt</code>.  Fill that in with the various usernames and passwords as you like.  In particular, if you are running a local development version, you will need to specify:</p>
-<pre class="codehilite"><code>ENVIRONMENT=dev</code></pre>
-
-
-<p>Additionally, specify the same value (an email address) for both <code>DJANGO_SUPERUSER_EMAIL</code> and <code>DJANGO_SUPERUSER_USERNAME</code>.  This is because MEV uses emails as the unique usernames.</p>
+<p>To run the container, you will need to supply some environment variables for things like passwords and other sensitive information.  In the root of the repository is a file named <code>env_vars.template.txt</code>.  Fill that in with the various usernames and passwords as you like.  Each variable has a description to help.  In particular, note the following:</p>
+<ul>
+<li><code>DJANGO_ALLOWED_HOSTS</code>: If you are deploying on a host that is not your own computer (e.g. on a cloud machine), supply the IP address or domain.</li>
+<li><code>DJANGO_CORS_ORIGINS</code>: If you are using a front-end framework located on a different domain, you will need to add this to the comma-delimited list.  Otherwise you will get failures due to violoating same-origin policy.</li>
+<li><code>RESOURCE_STORAGE_BACKEND</code>: This configures where user files are stored.  By default, it is local.  Other storage backends may be configured (i.e. for cloud bucket-based storage).  Given as a "dotted" path to the storage class implementation.</li>
+<li><code>EMAIL_BACKEND_CHOICE</code>: Email-based registration depends on the ability to send emails, so a viable email backend must be chosen.  Refer to the settings file to see available options.  Currently only <code>GMAIL</code>.</li>
+<li><code>SOCIAL_BACKENDS</code>: A list of social auth providers you wish to use.  Currently only Google.</li>
+</ul>
 <p>If you would like some "dummy" data to be entered into the database (e.g. for developing a front-end), you must also specify <code>POPULUATE_DB=yes</code> (case-sensitive!).  Any other values for this variable will skip the population of dummy data.</p>
 <p>For more information on configuration, see <a href="../resource_metadata/">Configuration</a></p>
-<p>To run the container:</p>
-<pre class="codehilite"><code>docker run -d --env-file &lt;ENV VARS&gt; -p8000:8000 &lt;DOCKER IMAGE NAME&gt; --bind 0.0.0.0:8000</code></pre>
+<p><strong>To start the application in <em>development</em> mode:</strong></p>
+<p>In development mode, the application server (gunicorn) does not start automatically as the container starts.  Rather, all the containers are started but the application container (<code>api</code>) remains idle.  This allows us to mount a local directory where we can dynamically edit the code and immediately see changes.  Note that the Django <code>DEBUG</code> argument is set to <code>True</code> in this case, so be mindful of using development mode if the server is exposed to the public.</p>
+<p>In the root of the repository (where the <code>docker-compose.yml</code> file resides) run:</p>
+<pre class="codehilite"><code>docker-compose up -d --build</code></pre>
 
 
-<p>Note the following:</p>
-<ul>
-<li>We bind port 8000 <em>inside</em> the container to 8000 <em>outside</em> the container.</li>
-<li>Due to the use of <code>ENTRYPOINT</code> in the Dockerfile, the commands following the image name (e.g. <code>--bind 0.0.0.0:8000</code> above) will be appended to the command:</li>
-</ul>
-<pre class="codehilite"><code>gunicorn mev.wsgi:application</code></pre>
+<p>This builds all the containers and runs in "detached" mode.  By default, <code>docker-compose</code> will look for the <code>docker-compose.yml</code> file which, by design, puts us in <em>development</em> mode.  The current directory on the host machine will be mounted at <code>/workspace</code> inside the <code>api</code> container.</p>
+<p>Next, enter the container with:</p>
+<pre class="codehilite"><code>docker-compose exec api /bin/bash</code></pre>
 
 
-<p>Therefore, for the example given above, the full command on startup would then be,</p>
-<pre class="codehilite"><code>gunicorn mev.wsgi:application --bind 0.0.0.0:8000</code></pre>
+<p>You may optionally choose to add the <code>-u 0</code> flag which logs you into the <code>api</code> container as root.</p>
+<p>Once inside, run the following:</p>
+<pre class="codehilite"><code>cd /workspace/mev
+source startup.sh</code></pre>
 
 
-<p>which starts <code>gunicorn</code> and listens for connections on <code>0.0.0.0:8000</code>.  This allows one to access the API from outside the container. Note that additional gunicorn configuration parameters can be specified (see https://docs.gunicorn.org/en/latest/configure.html). </p>
-<p>At this point you may go to your browser and navigate to http://127.0.0.1:8000/api/.  You will need to login with the username (email) and password you gave in your file of environment variables.</p>
+<p>This will run some database migrations and other preliminaries, but will <strong>not</strong> actually start the gunicorn application server.  To do that, you must then run:</p>
+<pre class="codehilite"><code>cd /workspace/mev
+gunicorn mev.wsgi:application --bind 0.0.0.0:8000</code></pre>
+
+
+<p>(note the <code>cd</code> at the top since the <code>startup.sh</code> script ends up moving you into the <code>/www</code> directory).  The <code>bind</code> argument should have the port set to 8000 as this is how the NGINX container communicates over the internal docker-compose network.</p>
+<p>Following all that, the application should be running on port 8081 (e.g. http://127.0.0.1:8081/api/)</p>
+<p>If you are interested, note that additional gunicorn configuration parameters can be specified (see https://docs.gunicorn.org/en/latest/configure.html). </p>
+<p>By stopping the gunicorn server (Ctrl+C), you can make local edits to your code (again, connected <em>into</em> the container via the volume mount) and immediately restart the server to see the changes.  The unit test suite can also be run in this manner with</p>
+<pre class="codehilite"><code>python3 /workspace/mev/manage.py test</code></pre>
+
+
+<p><strong>To start the application in <em>production</em> mode:</strong></p>
+<p>In production mode, the application server <em>will</em> be started following the usual startup steps contained in <code>startup.sh</code>.</p>
+<p>In the root of the repository (where the <code>docker-compose.prod.yml</code> file resides) run:</p>
+<pre class="codehilite"><code>docker-compose -f docker-compose.prod.yml up -d --build</code></pre>
+
+
+<p>This should start everything up.  On occasion, if you are very quick to navigate to the site, NGINX will issue a 502 bad gateway error.  However, a refresh should open the site correctly.  </p>
+<p>In production mode, Django debugging is turned off, so any errors will be reported as generic 500 server errors without any corresponding details.</p>
+<p><strong>Stopping the application</strong></p>
+<p>To shut down the application (in verbose mode), run</p>
+<pre class="codehilite"><code>docker-compose down -v</code></pre>
               
             </div>
           </div>
