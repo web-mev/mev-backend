@@ -16,6 +16,7 @@ services:
     env_file:
       - ./env_vars.txt
     environment:
+      ENVIRONMENT: dev
       REDIS_HOST: redis
       DB_HOST: db
       DB_PORT: 5433

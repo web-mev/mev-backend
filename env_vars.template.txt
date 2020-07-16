@@ -2,9 +2,6 @@
 # Pass a completed version of this template to the Docker container upon
 # startup with the --env-file arg.
 
-# dev or production status:
-ENVIRONMENT=dev
-
 ###################### Database-related parameters ######################################
 
 DB_NAME=

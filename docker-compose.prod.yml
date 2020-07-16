@@ -13,6 +13,7 @@ services:
     env_file:
       - ./env_vars.txt
     environment:
+      ENVIRONMENT: prod
       REDIS_HOST: redis
       DB_HOST: db
       DB_PORT: 5433
@@ -42,7 +43,7 @@ services:
     volumes:
       - static_volume:/www/static
     ports:
-      - 8081:80
+      - 80:80
     depends_on:
       - api
 
