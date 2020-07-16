@@ -1727,7 +1727,7 @@
     },
     "/api/workspaces/{workspace_pk}/resources/": {
       "get": {
-        "operationId": "listResources",
+        "operationId": "listWorkspaceResources",
         "description": "Lists available Resource instances for a particular Workspace.\n\nAdmins can list all available Resources, but non-admin users \ncan only view their own Resources.",
         "parameters": [
           {
@@ -1847,6 +1847,7 @@
                 "properties": {
                   "email": {
                     "type": "string",
+                    "format": "email",
                     "writeOnly": true
                   },
                   "password": {
@@ -1865,6 +1866,7 @@
                 "properties": {
                   "email": {
                     "type": "string",
+                    "format": "email",
                     "writeOnly": true
                   },
                   "password": {
@@ -1883,6 +1885,7 @@
                 "properties": {
                   "email": {
                     "type": "string",
+                    "format": "email",
                     "writeOnly": true
                   },
                   "password": {
