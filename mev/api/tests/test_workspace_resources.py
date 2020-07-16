@@ -291,4 +291,5 @@ class WorkpaceResourceAddTests(BaseAPITestCase):
         r = r[0]
         payload = {'resource_uuid': r.pk}
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        print(response.json())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from api.models import Resource, Workspace
 from api.serializers.resource import ResourceSerializer
+from api.serializers.workspace_resource import WorkspaceResourceSerializer
 from api.serializers.workspace_resource_add import WorkspaceResourceAddSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import copy_resource_to_workspace
@@ -35,7 +36,7 @@ class WorkspaceResourceList(generics.ListAPIView):
         api_permissions.ReadOnly)
     ]
 
-    serializer_class = ResourceSerializer
+    serializer_class = WorkspaceResourceSerializer
 
     def get_queryset(self):
         '''
@@ -153,10 +154,11 @@ class WorkspaceResourceAdd(APIView):
                     return Response(rs.data, status=status.HTTP_201_CREATED)
                 except Exception as ex:
                     logger.error('An exception was raised when adding a resource'
-                    ' {resource_uuid} to workspace {workspace_uuid}.' 
-                    ' See related logs.'.format(
+                    ' {resource_uuid} to workspace {workspace_uuid}.  Exception was:' 
+                    ' {ex}. \nSee related logs.'.format(
                         workspace_uuid = str(workspace_uuid),
-                        resource_uuid = str(resource_uuid)
+                        resource_uuid = str(resource_uuid),
+                        ex=ex
                     ))
                     return Response({}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             else:

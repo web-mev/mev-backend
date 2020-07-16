@@ -44,7 +44,6 @@ class GoogleBucketStorage(BaseStorageBackend):
         if GOOGLE_BUCKET_REGION:
             return GOOGLE_BUCKET_REGION
 
-        #TODO: write some general re-try function
         try:
             response = get_with_retry(
                 'http://metadata/computeMetadata/v1/instance/zone', 
