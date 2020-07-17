@@ -24,6 +24,10 @@ class ResourceSerializer(serializers.ModelSerializer):
         queryset=Workspace.objects.all(),
         required=False
     )
+    workspace_name = serializers.CharField(
+        source='workspace.workspace_name', 
+        default = '', 
+        read_only = True)
     path = serializers.CharField(write_only=True, required=False)
     size = serializers.IntegerField(read_only=True)
     readable_resource_type = serializers.SerializerMethodField()
@@ -40,6 +44,7 @@ class ResourceSerializer(serializers.ModelSerializer):
             'is_public',
             'status',
             'workspace',
+            'workspace_name',
             'created',
             'path',
             'size',
