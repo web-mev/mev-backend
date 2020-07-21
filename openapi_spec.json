@@ -812,6 +812,8 @@
                           "FT",
                           "MTX",
                           "I_MTX",
+                          "EXP_MTX",
+                          "RNASEQ_COUNT_MTX",
                           "ANN",
                           "BED"
                         ],
@@ -834,6 +836,10 @@
                       },
                       "workspace": {
                         "type": "string"
+                      },
+                      "workspace_name": {
+                        "type": "string",
+                        "readOnly": true
                       },
                       "created": {
                         "type": "string",
@@ -878,6 +884,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -923,6 +931,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -968,6 +978,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1027,6 +1039,8 @@
                         "FT",
                         "MTX",
                         "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED"
                       ],
@@ -1049,6 +1063,10 @@
                     },
                     "workspace": {
                       "type": "string"
+                    },
+                    "workspace_name": {
+                      "type": "string",
+                      "readOnly": true
                     },
                     "created": {
                       "type": "string",
@@ -1114,6 +1132,8 @@
                         "FT",
                         "MTX",
                         "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED"
                       ],
@@ -1136,6 +1156,10 @@
                     },
                     "workspace": {
                       "type": "string"
+                    },
+                    "workspace_name": {
+                      "type": "string",
+                      "readOnly": true
                     },
                     "created": {
                       "type": "string",
@@ -1189,6 +1213,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1234,6 +1260,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1279,6 +1307,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1338,6 +1368,8 @@
                         "FT",
                         "MTX",
                         "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED"
                       ],
@@ -1360,6 +1392,10 @@
                     },
                     "workspace": {
                       "type": "string"
+                    },
+                    "workspace_name": {
+                      "type": "string",
+                      "readOnly": true
                     },
                     "created": {
                       "type": "string",
@@ -1413,6 +1449,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1458,6 +1496,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1503,6 +1543,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ],
@@ -1562,6 +1604,8 @@
                         "FT",
                         "MTX",
                         "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED"
                       ],
@@ -1584,6 +1628,10 @@
                     },
                     "workspace": {
                       "type": "string"
+                    },
+                    "workspace_name": {
+                      "type": "string",
+                      "readOnly": true
                     },
                     "created": {
                       "type": "string",
@@ -1725,6 +1773,26 @@
         }
       }
     },
+    "/api/resource-types/": {
+      "get": {
+        "operationId": "listResourceTypes",
+        "description": "Lists available Resource types.\n\nUsers can set their files to one of these types.\n\nTypically used for populating selections.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/workspaces/{workspace_pk}/resources/": {
       "get": {
         "operationId": "listWorkspaceResources",
@@ -1769,6 +1837,8 @@
                           "FT",
                           "MTX",
                           "I_MTX",
+                          "EXP_MTX",
+                          "RNASEQ_COUNT_MTX",
                           "ANN",
                           "BED"
                         ],
@@ -1791,6 +1861,10 @@
                       },
                       "workspace": {
                         "type": "string"
+                      },
+                      "workspace_name": {
+                        "type": "string",
+                        "readOnly": true
                       },
                       "created": {
                         "type": "string",
@@ -2616,6 +2690,8 @@
                       "FT",
                       "MTX",
                       "I_MTX",
+                      "EXP_MTX",
+                      "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED"
                     ]
@@ -2653,6 +2729,8 @@
                         "FT",
                         "MTX",
                         "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED"
                       ]
