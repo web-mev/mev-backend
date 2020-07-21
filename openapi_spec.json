@@ -1784,7 +1784,27 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {}
+                  "items": {
+                    "properties": {
+                      "resource_type_key": {
+                        "type": "string",
+                        "maxLength": 50
+                      },
+                      "resource_type_title": {
+                        "type": "string",
+                        "maxLength": 250
+                      },
+                      "resource_type_description": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "resource_type_key",
+                      "resource_type_title",
+                      "resource_type_description"
+                    ]
+                  }
                 }
               }
             },
