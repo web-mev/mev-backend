@@ -25,14 +25,20 @@ RESOURCE_KEY = DataResource.RESOURCE
 # The first item in each tuple is the stored value
 # in the database.  The second is the "human-readable"
 # strings that will be used in the UI:
+
+# Note that some of the types are redundant (e.g. integer table
+# and rna-seq count matrix).  This is so users can have an easier selection
+# if they know they have rna-seq abundance, but do not recognize it as a 
+# integer count matrix
 DATABASE_RESOURCE_TYPES = [
     ('FQ', 'Fastq'),
     ('FA','Fasta'),
     ('ALN','Alignment (SAM/BAM)'),
-    #('TBL','General data table'),
     ('FT', 'Feature table'),
     ('MTX','Numeric table'),
     ('I_MTX','Integer table'),
+    ('EXP_MTX','Expression matrix'),
+    ('RNASEQ_COUNT_MTX','RNA-seq count matrix'),
     ('ANN','Annotation table'),
     ('BED','BED-format file')
 ]
@@ -53,10 +59,11 @@ RESOURCE_MAPPING = {
     'FQ': FastQResource, 
     'FA': FastAResource,
     'ALN': AlignedSequenceResource,
-    #'TBL': TableResource,
     'FT': FeatureTable,
     'MTX': Matrix,
     'I_MTX': IntegerMatrix,
+    'EXP_MTX': Matrix,
+    'RNASEQ_COUNT_MTX': IntegerMatrix,
     'ANN': AnnotationTable,
     'BED': BEDFile
 } 

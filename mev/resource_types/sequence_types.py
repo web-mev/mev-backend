@@ -30,6 +30,8 @@ class FastAResource(SequenceResource):
     - fa.gz
 
     '''
+    DESCRIPTION = 'FASTA-format sequence file.'
+
     file_extensions = [
         'fasta',
         'fasta.gz',
@@ -53,6 +55,9 @@ class FastQResource(SequenceResource):
     - fq.gz
 
     '''
+    DESCRIPTION = 'FASTQ-format sequence file.  The most common format'\
+        ' used for sequencing experiments.'
+
     file_extensions = [
         'fastq',
         'fastq.gz',
@@ -74,6 +79,10 @@ class AlignedSequenceResource(SequenceResource):
     - ".sam" for SAM files
     
     '''
+    DESCRIPTION = 'BAM or SAM-format aligned sequence files.  Typically the' \
+        ' output of an alignment process.'
+
+
     file_extensions = [
         'bam',
         'sam'

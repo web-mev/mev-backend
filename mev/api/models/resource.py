@@ -138,7 +138,7 @@ class Resource(models.Model):
     # as an input to various analyses.
     resource_type = models.CharField(
         choices = DATABASE_RESOURCE_TYPES, 
-        max_length = 5,
+        max_length = 25,
         null = True,
         blank = True
     )

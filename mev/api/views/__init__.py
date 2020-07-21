@@ -14,3 +14,4 @@ from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAd
 from .resource_upload_views import ServerLocalResourceUpload, ServerLocalResourceUploadProgress
 from .resource_metadata import ResourceMetadataView
 from .token_views import TokenObtainView, RefreshTokenView
+from .resource_type_views import ResourceTypeList

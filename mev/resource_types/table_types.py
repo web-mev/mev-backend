@@ -324,6 +324,12 @@ class Matrix(TableResource):
         XLS,
         XLSX
     ]
+
+    DESCRIPTION = 'A table of where all the entries are numbers'\
+        ' except the first column (which names the rows) and the' \
+        ' first line (which gives the column names). The cell at the' \
+        ' first row and column may be left blank.'
+
     # looking for integers OR floats.  Both are acceptable  
     TARGET_PATTERN = '(float|int)\d{0,2}'
 
@@ -380,6 +386,11 @@ class IntegerMatrix(Matrix):
     # looking for only integers. 
     TARGET_PATTERN = 'int\d{0,2}'
 
+    DESCRIPTION = 'A table of where all the entries are integers'\
+        ' except the first column (which names the rows) and the' \
+        ' first line (which gives the column names). The cell at the' \
+        ' first row and column may be left blank.'
+
     def validate_type(self, resource_path):
 
         # first check that it has all numeric types.  If that fails
@@ -414,6 +425,16 @@ class IntegerMatrix(Matrix):
                 return (False, error_message)
             
         return (True, None)
+
+class RnaSeqCountMatrix(IntegerMatrix):
+    '''
+    A very-explicit class (mainly for making things user-friendly)
+    where we provide specialized behavior/messages specific to count matrices
+    generated from RNA-seq data
+    '''
+    DESCRIPTION = 'A table of integer-based counts corresponding to'\
+        ' the number of sequencing reads associated with a particular' \
+        ' gene or transcript.'
 
 
 class ElementTable(TableResource):
@@ -494,6 +515,12 @@ class AnnotationTable(ElementTable):
     The first column will give the sample names and the remaining columns will
     each individually represent different covariates associated with that sample.
     '''
+
+    DESCRIPTION = 'This type of file is used to add metadata to your samples.' \
+        ' The first column has the sample name and the remaining columns contain' \
+        ' metadata about each sample (for instance, experimental group,'\
+        ' treatment, or similar.'
+
     def validate_type(self, resource_path):
 
         # check that file can be parsed:
@@ -555,6 +582,13 @@ class FeatureTable(ElementTable):
     have information about that gene
     '''
 
+    DESCRIPTION = 'This type of file describes the "features" of your data.  In the genomics' \
+        ' context, one example of a feature is a gene.  Therefore, you could use this table' \
+        ' to give additional information about each gene, such as alternative symbols,' \
+        ' oncogene status, or similar.  Each row contains information about a single gene.' \
+        ' Note, however, that this concept is completely general and not restricted' \
+        ' to information about genes or transcripts.'
+
     def extract_metadata(self, resource_path, parent_op_pk=None):
         '''
         When we extract the metadata from a FeatureTable, we 
@@ -584,6 +618,8 @@ class BEDFile(TableResource):
 
     By default, BED files do NOT contain headers and we enforce that here.
     '''
+
+    DESCRIPTION = 'A three-column BED-format file'
 
     ACCEPTABLE_EXTENSIONS = [BED,]
     

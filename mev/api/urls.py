@@ -40,6 +40,9 @@ urlpatterns = [
         name='resource-upload-progress'
     ),
 
+    # For querying the available types of Resources:
+    path('resource-types/', api.views.ResourceTypeList.as_view(), name='resource-type-list'),
+
     # Resources that are associated with specific Workspaces
     path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-list'),
     path('workspaces/<uuid:workspace_pk>/resources/add/', api.views.WorkspaceResourceAdd.as_view(), name='workspace-resource-add'),
