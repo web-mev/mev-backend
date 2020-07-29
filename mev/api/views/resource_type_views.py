@@ -24,6 +24,9 @@ class ResourceTypeList(APIView):
     permission_classes = [framework_permissions.AllowAny]
     serializer_class = ResourceTypeSerializer
 
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         all_types = []
         for key, title in DATABASE_RESOURCE_TYPES:
@@ -34,5 +37,5 @@ class ResourceTypeList(APIView):
                 'resource_type_title': title,
                 'resource_type_description': description
             })
-        rs = ResourceTypeSerializer(all_types, many=True)
+        rs = self.get_serializer(all_types, many=True)
         return Response(rs.data)
