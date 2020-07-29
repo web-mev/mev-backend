@@ -331,10 +331,11 @@ SENTRY_URL = get_env('SENTRY_URL')
 if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
-
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    
     sentry_sdk.init(
         dsn=SENTRY_URL,
-        integrations=[DjangoIntegration()],
+        integrations=[DjangoIntegration(), CeleryIntegration()],
 
         # If you wish to associate users to errors (assuming you are using
         # django.contrib.auth) you may enable sending PII data.
