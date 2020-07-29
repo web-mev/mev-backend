@@ -82,3 +82,13 @@ GMAIL_CLIENT_SECRET=
 SOCIAL_BACKENDS=GOOGLE
 
 ########################## END Social-auth-related parameters #####################################
+
+############################ Sentry parameters ######################################
+
+# After starting the sentry instance, tell it to configure for Django.  When you do 
+# that, it will give a code snippet.  Note the "dsn" it provides, which is a URL
+# that typically looks like http://<string>@<ip>:<port>/1
+# Copy that url below (including the http/https prefix)
+SENTRY_URL=
+
+########################## END Sentry parameters #####################################

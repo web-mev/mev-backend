@@ -1,4 +1,5 @@
 from django.urls import path
+from django.conf import settings
 
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework.schemas import get_schema_view
@@ -51,3 +52,9 @@ urlpatterns = [
 
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
+
+# add a path for checking that Sentry tracking is integrated
+if settings.USING_SENTRY:
+    urlpatterns.append(
+        path('sentry-debug/', api.views.sentry_debug, name='sentry-debug')
+    )

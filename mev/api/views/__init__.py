@@ -15,3 +15,11 @@ from .resource_upload_views import ServerLocalResourceUpload, ServerLocalResourc
 from .resource_metadata import ResourceMetadataView
 from .token_views import TokenObtainView, RefreshTokenView
 from .resource_type_views import ResourceTypeList
+
+def sentry_debug(request):
+    '''
+    A function guaranteed to raise an exception to 
+    test that we have configured Sentry correctly
+    and it is receiving exceptions.
+    '''
+    bad_op = 1/0

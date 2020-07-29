@@ -319,3 +319,30 @@ AUTHENTICATION_BACKENDS.append('django.contrib.auth.backends.ModelBackend')
 # For remote services (like checking auth with google), how many 
 # times should be attempt to communicate before failing:
 MAX_RETRIES = 3
+
+
+###############################################################################
+# START Hooks/setup for Sentry (if used)
+###############################################################################
+
+USING_SENTRY = False # by default, do NOT enable sentry
+SENTRY_URL = get_env('SENTRY_URL')
+
+if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_URL,
+        integrations=[DjangoIntegration()],
+
+        # If you wish to associate users to errors (assuming you are using
+        # django.contrib.auth) you may enable sending PII data.
+        send_default_pii=True
+    )
+
+    USING_SENTRY = True
+
+###############################################################################
+# END Hooks/setup for Sentry (if used)
+###############################################################################
