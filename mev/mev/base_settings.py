@@ -230,7 +230,7 @@ from mev import base_logging_config as log_config
 
 
 ###############################################################################
-# Parameters for front-end URLs
+# Parameters for domains and front-end URLs
 ###############################################################################
 
 # For some of the auth views, various links (sent via email) such as for account
@@ -238,13 +238,16 @@ from mev import base_logging_config as log_config
 # grab the important components like the token, and send them to the backend, hitting
 # the usual API endpoints.
 
-FRONTEND_DOMAIN = 'mev.tm4.org'
+FRONTEND_DOMAIN = get_env('FRONTEND_DOMAIN')
+BACKEND_DOMAIN = get_env('BACKEND_DOMAIN')
+SITE_NAME = get_env('SITE_NAME')
+
 ACTIVATION_URL = 'activate/{uid}/{token}'
 RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
 
 
 ###############################################################################
-# END Parameters for front-end URLs
+# END Parameters for domains and front-end URLs
 ###############################################################################
 
 ###############################################################################

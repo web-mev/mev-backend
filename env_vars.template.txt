@@ -92,3 +92,21 @@ SOCIAL_BACKENDS=GOOGLE
 SENTRY_URL=
 
 ########################## END Sentry parameters #####################################
+
+
+############################ Domain parameters ######################################
+
+# The frontend can be located on a different server.
+# This is used for communications, etc. (such as verification emails)
+# which will direct the user to a link on the front-end
+FRONTEND_DOMAIN=
+
+# The domain of the API:
+BACKEND_DOMAIN=
+
+# This setting gives a "human readable" name to the site for contacts
+# For instance, could be "WebMEV" or other so that emails will have a subject
+# like "Registration details for WebMEV"
+SITE_NAME=
+
+########################## END Domain parameters #####################################

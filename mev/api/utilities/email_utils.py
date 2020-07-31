@@ -36,7 +36,7 @@ class BaseEmailMessage(mail.EmailMultiAlternatives):
         if self.request:
             site = get_current_site(self.request)
             domain = context.get('domain') or (
-                getattr(settings, 'DOMAIN', '') or site.domain
+                getattr(settings, 'BACKEND_DOMAIN', '') or site.domain
             )
             protocol = context.get('protocol') or (
                 'https' if self.request.is_secure() else 'http'
