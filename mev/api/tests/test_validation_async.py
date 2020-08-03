@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from api.async_tasks import validate_resource, validate_resource_and_store
 from api.models import Resource, ResourceMetadata
 from resource_types import RESOURCE_MAPPING, \
+    DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
     PARENT_OP_KEY, \
@@ -133,8 +134,8 @@ class TestValidateResource(BaseAPITestCase):
         self.assertTrue(current_resource.is_active)
         self.assertEqual(current_resource.resource_type, current_type)
         expected_status = Resource.REVERTED.format(
-            requested_resource_type = other_type,
-            original_resource_type = current_type
+            requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
+            original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[current_type]
         )
         self.assertEqual(current_resource.status, expected_status)
 

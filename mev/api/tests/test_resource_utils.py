@@ -9,7 +9,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 from rest_framework.exceptions import ValidationError
 
-from resource_types import RESOURCE_MAPPING
+from resource_types import RESOURCE_MAPPING, \
+    DB_RESOURCE_STRING_TO_HUMAN_READABLE
 from api.models import Resource, Workspace, ResourceMetadata
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     copy_resource_to_workspace, \
@@ -314,6 +315,6 @@ class TestResourceUtilities(BaseAPITestCase):
 
         self.assertTrue(resource.resource_type == original_type)
         self.assertTrue(resource.status == Resource.REVERTED.format(
-            requested_resource_type=other_type,
-            original_resource_type = original_type
+            requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
+            original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[original_type]
         ))
