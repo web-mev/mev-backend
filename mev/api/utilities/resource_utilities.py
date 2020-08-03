@@ -195,7 +195,9 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     final operations such as moving the file and extracting metadata.
     '''
     # since the resource was valid, we can also fill-in the metadata
-    metadata = resource_class_instance.extract_metadata(resource.path)
+    # Extraction of the metadata requires local access to the file:
+    local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource)
+    metadata = resource_class_instance.extract_metadata(local_path)
     add_metadata_to_resource(resource, metadata)
 
     resource.resource_type = requested_resource_type
