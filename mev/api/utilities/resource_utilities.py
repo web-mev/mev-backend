@@ -261,3 +261,4 @@ def validate_resource(resource_instance, requested_resource_type):
 
     else: # requested_resource_type was None
         resource_instance.resource_type = None
+        resource_instance.status = Resource.READY
