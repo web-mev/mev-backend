@@ -29,7 +29,7 @@ class TestResourcePreview(unittest.TestCase):
             'values': values.tolist()
         }
         df = pd.DataFrame(values, index=rows, columns=columns)
-        path = os.path.join(TESTDIR, 'test_preview_matrix.tsv')
+        path = os.path.join('/tmp', 'test_preview_matrix.tsv')
         df.to_csv(path, sep='\t')
 
         mtx_class = RESOURCE_MAPPING['MTX']
