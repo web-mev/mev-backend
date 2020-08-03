@@ -13,6 +13,7 @@ from .basic_utils import make_local_directory, \
     copy_local_resource
 
 from resource_types import get_preview, \
+    DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
     get_resource_type_instance, \
     PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
@@ -219,9 +220,17 @@ def handle_invalid_resource(resource_instance, requested_resource_type):
         # valid type and provide a helpful status message
         # so they understand why the request did not succeed.
         # Obviously, we don't alter the resource_type member in this case.
+
+        # get the "human-readable" types:
+        hr_requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[
+            requested_resource_type]
+        hr_original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[
+            resource_instance.resource_type]
+
+        # ...and compose the status message
         resource_instance.status = Resource.REVERTED.format(
-            requested_resource_type=requested_resource_type,
-            original_resource_type = resource_instance.resource_type
+            requested_resource_type= hr_requested_resource_type,
+            original_resource_type = hr_original_resource_type
         )
     
 def validate_resource(resource_instance, requested_resource_type):
