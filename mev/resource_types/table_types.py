@@ -629,7 +629,7 @@ class BEDFile(TableResource):
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
         # the proper integer type.
-        table = pd.read_table(resource_path, 
+        table = reader(resource_path, 
             names=['chrom','start','stop'],
             usecols=[0,1,2])
         start_col_int = re.match('int\d{0,2}', str(table['start'].dtype))
