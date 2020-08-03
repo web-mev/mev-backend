@@ -242,8 +242,10 @@ FRONTEND_DOMAIN = get_env('FRONTEND_DOMAIN')
 BACKEND_DOMAIN = get_env('BACKEND_DOMAIN')
 SITE_NAME = get_env('SITE_NAME')
 
-ACTIVATION_URL = 'activate/{uid}/{token}'
-RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
+# Note that the leading "#" is used for setting up the route
+# in the front-end correctly.
+ACTIVATION_URL = '#/activate/{uid}/{token}'
+RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
 
 
 ###############################################################################
