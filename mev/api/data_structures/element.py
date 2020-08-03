@@ -32,8 +32,13 @@ class BaseElement(object):
         '''
         # This is a unique identifer.  One could think of this in the same way
         # they would a sample "name"
-        normalized_id = api_utils.normalize_identifier(id)
-        self.id = normalized_id
+
+        if type(id) == str:
+            self.id = id
+        else:
+            raise api_exceptions.StringIdentifierException(
+                'The name "{name}" was not'
+                ' a string.'.format(name=id))
 
         # we permit arbitrary attributes to be associated with `Element`s
         # They have to be formatted as a dictionary.  Typically, the associated
