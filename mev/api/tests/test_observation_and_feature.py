@@ -88,11 +88,20 @@ class ElementSerializerTester(object):
 
     def test_expected_deserialization_case6(self, testcase):
         '''
-        Tests when the identifier "name" is invalid
+        This tests when the identifier "name" is invalid.
+        We ultimately decided, however, to remove the 
+        "normalization" of identifiers.
+
+        Still, we keep this test in case we ever want to re-implement
+        controls on the naming conventions. In that case, ensure that
+        the ensure<Bool> call below is correct for the test.
         '''
         data = {'id': 'my-bad-id-', 'attributes':{}}
         element_serializer = self.element_serializer_class(data=data)
-        testcase.assertFalse(element_serializer.is_valid())
+        # if we want to impose constraints on the identifier names,
+        # then uncomment the line below:
+        #testcase.assertFalse(element_serializer.is_valid())
+        testcase.assertTrue(element_serializer.is_valid())
 
     def test_expected_deserialization_case7(self, testcase):
         '''

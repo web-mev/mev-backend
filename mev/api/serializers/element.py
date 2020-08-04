@@ -14,8 +14,7 @@ class BaseElementSerializer(serializers.Serializer):
     attributes = AttributeSerializer(required=False)
 
     def validate_id(self, id):
-        normalized_id = normalize_identifier(id)
-        return normalized_id
+        return id
 
     def validate(self, data):
         '''

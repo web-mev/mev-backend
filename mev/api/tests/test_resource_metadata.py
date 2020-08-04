@@ -17,6 +17,12 @@ from api.data_structures import Observation, \
     StringAttribute, \
     IntegerAttribute
 
+from api.serializers.resource_metadata import ResourceMetadataSerializer, \
+    ResourceMetadataObservationsSerializer, \
+    ResourceMetadataFeaturesSerializer, \
+    ResourceMetadataParentOperationSerializer
+from api.serializers.observation import ObservationSerializer
+from api.serializers.feature import FeatureSerializer
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
 from resource_types import OBSERVATION_SET_KEY, \
@@ -34,6 +40,50 @@ from api.tests.base import BaseAPITestCase
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
+
+def create_observation_set():
+    # create a couple Observations to use and a corresponding serializer
+    el1 = Observation('sampleA', {
+        'phenotype': StringAttribute('WT')
+    })
+    el1_serializer = ObservationSerializer(el1)
+
+    el2 = Observation('sampleB', {
+        'phenotype': StringAttribute('KO')
+    })
+    el2_serializer = ObservationSerializer(el2)
+
+    # the correct serialized representation of an ElementSet instance
+    observation_set_data = {
+        'multiple': True,
+        'elements': [
+            el1_serializer.data,
+            el2_serializer.data
+        ]
+    }
+    return observation_set_data
+
+def create_feature_set():
+    # create a couple Features to use and a corresponding serializer
+    el1 = Feature('featureA', {
+        'pathway': StringAttribute('foo')
+    })
+    el1_serializer = FeatureSerializer(el1)
+
+    el2 = Feature('sampleB', {
+        'pathway': StringAttribute('bar')
+    })
+    el2_serializer = FeatureSerializer(el2)
+
+    # the correct serialized representation of an ElementSet instance
+    feature_set_data = {
+        'multiple': True,
+        'elements': [
+            el1_serializer.data,
+            el2_serializer.data
+        ]
+    }
+    return feature_set_data
 
 class TestRetrieveResourceMetadata(BaseAPITestCase):
 
@@ -143,7 +193,98 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def prepare_metadata(self):
+        '''
+        This is a helper function which creates a new Resource and associates
+        some mock metadata with it. Used by multiple testing functions.
+        '''
+        new_resource = Resource.objects.create(
+            name = 'foo.txt',
+            owner = self.regular_user_1,
+            is_active=True
+        )
+        self.new_resource_pk = new_resource.pk
 
+        self.expected_observation_set = create_observation_set()
+        self.expected_feature_set = create_feature_set()
+        self.expected_parent_operation = None
+        metadata = {
+            RESOURCE_KEY: self.new_resource_pk,
+            OBSERVATION_SET_KEY: self.expected_observation_set,
+            FEATURE_SET_KEY: self.expected_feature_set,
+            PARENT_OP_KEY: self.expected_parent_operation
+        }
+        rms = ResourceMetadataSerializer(data=metadata)
+        if rms.is_valid(raise_exception=True):
+            rms.save()
+        
+
+    def test_retrieve_full_metadata(self):
+        '''
+        Test that we retrieve the proper metadata from a request to the 
+        endpoint for the full metadata object
+        '''
+        self.prepare_metadata()
+        url = reverse(
+            'resource-metadata-detail', 
+            kwargs={'pk':self.new_resource_pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        self.assertEqual(response_json[OBSERVATION_SET_KEY], self.expected_observation_set)
+        self.assertEqual(response_json[FEATURE_SET_KEY], self.expected_feature_set)
+        self.assertEqual(response_json[PARENT_OP_KEY], self.expected_parent_operation)
+
+    def test_retrieve_observation_metadata(self):
+        '''
+        Test that we retrieve the proper metadata from a request to 
+        get only the observations from the full metadata
+        '''
+        self.prepare_metadata()
+        url = reverse(
+            'resource-metadata-observations', 
+            kwargs={'pk':self.new_resource_pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        response_keys = response_json.keys()
+        self.assertTrue(len(response_keys) == 1)
+        self.assertTrue(list(response_keys)[0] == OBSERVATION_SET_KEY)
+        self.assertEqual(response_json[OBSERVATION_SET_KEY], self.expected_observation_set)
+
+    def test_retrieve_feature_metadata(self):
+        '''
+        Test that we retrieve the proper metadata from a request to 
+        get only the features from the full metadata
+        '''
+        self.prepare_metadata()
+        url = reverse(
+            'resource-metadata-features', 
+            kwargs={'pk':self.new_resource_pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        response_keys = response_json.keys()
+        self.assertTrue(len(response_keys) == 1)
+        self.assertTrue(list(response_keys)[0] == FEATURE_SET_KEY)
+        self.assertEqual(response_json[FEATURE_SET_KEY], self.expected_feature_set)
+
+    def test_retrieve_parent_operation_metadata(self):
+        '''
+        Test that we retrieve the proper metadata from a request to 
+        get only the parent_operation from the full metadata
+        '''
+        self.prepare_metadata()
+        url = reverse(
+            'resource-metadata-parent-operation', 
+            kwargs={'pk':self.new_resource_pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        response_keys = response_json.keys()
+        self.assertTrue(len(response_keys) == 1)
+        self.assertTrue(list(response_keys)[0] == PARENT_OP_KEY)
+        self.assertEqual(response_json[PARENT_OP_KEY], self.expected_parent_operation)
 
 class TestMatrixMetadata(unittest.TestCase):
     def test_metadata_correct_case1(self):

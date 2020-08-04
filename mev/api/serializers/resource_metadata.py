@@ -18,3 +18,18 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
             'observation_set',
             'feature_set'
         ]
+
+class ResourceMetadataObservationsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResourceMetadata
+        fields = ['observation_set',]
+
+class ResourceMetadataFeaturesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResourceMetadata
+        fields = ['feature_set',]
+
+class ResourceMetadataParentOperationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResourceMetadata
+        fields = ['parent_operation',]

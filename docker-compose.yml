@@ -14,7 +14,7 @@ services:
     expose:
       - 8000
     env_file:
-      - ./env_vars.txt
+      - ./env_vars.for_testing.txt
     environment:
       ENVIRONMENT: dev
       REDIS_HOST: redis

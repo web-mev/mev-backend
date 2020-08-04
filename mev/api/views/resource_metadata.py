@@ -6,7 +6,10 @@ from rest_framework import generics
 from rest_framework.response import Response
 
 from api.models import Resource, ResourceMetadata
-from api.serializers.resource_metadata import ResourceMetadataSerializer
+from api.serializers.resource_metadata import ResourceMetadataSerializer, \
+    ResourceMetadataObservationsSerializer, \
+    ResourceMetadataFeaturesSerializer, \
+    ResourceMetadataParentOperationSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -40,3 +43,12 @@ class ResourceMetadataView(generics.RetrieveAPIView):
                     resource_uuid=self.kwargs['pk'])
             )
             raise APIException()
+
+class ResourceMetadataObservationsView(ResourceMetadataView):
+    serializer_class = ResourceMetadataObservationsSerializer
+
+class ResourceMetadataFeaturesView(ResourceMetadataView):
+    serializer_class = ResourceMetadataFeaturesSerializer
+
+class ResourceMetadataParentOperationView(ResourceMetadataView):
+    serializer_class = ResourceMetadataParentOperationSerializer

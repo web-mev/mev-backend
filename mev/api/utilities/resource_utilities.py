@@ -17,7 +17,8 @@ from resource_types import get_preview, \
     get_resource_type_instance, \
     PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
-    FEATURE_SET_KEY
+    FEATURE_SET_KEY, \
+    RESOURCE_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +178,7 @@ def get_resource_preview(resource_instance):
 
 
 def add_metadata_to_resource(resource, metadata):
-    metadata['resource'] = resource.pk
+    metadata[RESOURCE_KEY] = resource.pk
     try:
         rm = ResourceMetadata.objects.get(resource=resource)
         rms = ResourceMetadataSerializer(rm, data=metadata)

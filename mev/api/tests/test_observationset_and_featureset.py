@@ -191,7 +191,21 @@ class ElementSetSerializerTester(object):
         )
 
     def test_deserialization(self, testcase):
+        '''
+        This tests that the deserialization happens 
+        as expected.
 
+        Initially we had constraints on the "id" field of the items in the 
+        `elements` list. That is, we prevented certain identifiers from being used
+        as identifying names for Observation and Feature instances.
+
+        We ultimately decided, however, to remove that 
+        "normalization" of identifiers.
+
+        Still, we keep this test in case we ever want to re-implement
+        controls on the naming conventions. In that case, ensure that
+        the ensure<Bool> call below is correct for the test.
+        '''
         # deserialize the payload dict
         s = self.element_set_serializer_class(data=testcase.expected_element_set_data)
         testcase.assertTrue(s.is_valid())
@@ -202,7 +216,7 @@ class ElementSetSerializerTester(object):
             'multiple': True,
             'elements': [
                 {
-                    'id':'-foo', # bad ID
+                    'id':'-foo', # potentially bad ID
                     'attributes': {
                         'keyA': {
                             'attribute_type': 'String',
@@ -213,7 +227,10 @@ class ElementSetSerializerTester(object):
             ]
         }
         s = self.element_set_serializer_class(data=bad_data)
-        testcase.assertFalse(s.is_valid())
+        # if we want to impose constraints on the identifier names,
+        # then uncomment the line below:
+        #testcase.assertFalse(s.is_valid())
+        testcase.assertTrue(s.is_valid())
 
     def test_conflicting_multiple_option(self, testcase):
         '''
