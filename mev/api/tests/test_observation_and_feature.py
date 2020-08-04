@@ -309,38 +309,6 @@ class ElementTester(object):
     def __init__(self, element_class):
         self.element_class = element_class
 
-    def test_bad_identifier_raises_exception(self, testcase):
-        '''
-        Test that names with incompatible
-        characters are rejected
-        '''
-
-        # cannot have strange characters:
-        with testcase.assertRaises(StringIdentifierException):
-            o = self.element_class('a#b')
-
-        # cannot start with a number
-        with testcase.assertRaises(StringIdentifierException):
-            o = self.element_class('9a')
-
-        # Can't start or end with the dash or dot.
-        # The question mark is just a "generic" out-of-bound character
-        chars = ['-', '.', '?'] 
-        for c in chars:
-            # cannot start with this char
-            test_name = c + 'abc'
-            with testcase.assertRaises(StringIdentifierException):
-                o = self.element_class(test_name)
-
-            # cannot end with this char
-            test_name = 'abc' + c
-            with testcase.assertRaises(StringIdentifierException):
-                o = self.element_class(test_name)
-
-    def test_name_with_space_normalized(self, testcase):
-        o = self.element_class('A name')
-        testcase.assertEqual(o.id, 'A_name')
-
     def test_adding_duplicate_attribute_raises_error(self, testcase):
         '''
         Test that trying to add an attribute fails when the key
