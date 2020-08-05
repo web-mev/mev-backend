@@ -1753,6 +1753,108 @@
         }
       }
     },
+    "/api/resources/{id}/metadata/observations/": {
+      "get": {
+        "operationId": "RetrieveResourceMetadataObservations",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "observation_set": {
+                      "type": "object",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/resources/{id}/metadata/features/": {
+      "get": {
+        "operationId": "RetrieveResourceMetadataFeatures",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "feature_set": {
+                      "type": "object",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/resources/{id}/metadata/parent/": {
+      "get": {
+        "operationId": "RetrieveResourceMetadataParentOperation",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "parent_operation": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/resources/upload/progress": {
       "get": {
         "operationId": "listServerLocalResourceUploadProgress",
