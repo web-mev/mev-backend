@@ -256,8 +256,20 @@ RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
 # START Parameters for configuring resource storage
 ###############################################################################
 
-# a class that implements our storage backend interface
-RESOURCE_STORAGE_BACKEND = get_env('RESOURCE_STORAGE_BACKEND')
+AVAILABLE_STORAGE_BACKENDS = {
+    'local': 'api.storage_backends.local.LocalStorage',
+    'google': 'api.storage_backends.google_cloud.GoogleBucketStorage'
+}
+
+STORAGE_LOCATION = get_env('STORAGE_LOCATION')
+if STORAGE_LOCATION in AVAILABLE_STORAGE_BACKENDS:
+    RESOURCE_STORAGE_BACKEND = AVAILABLE_STORAGE_BACKENDS[STORAGE_LOCATION]
+else:
+    raise ImproperlyConfigured('Please use on of the following for specifying'
+        ' the storage backend: {csv}'.format(
+            csv=','.join(AVAILABLE_STORAGE_BACKENDS.keys())
+        )
+    )
 
 # import the storage backend to ensure we have set the proper environment variables
 # and instantiate an instance of the storage backend

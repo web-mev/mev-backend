@@ -17,7 +17,7 @@ from api.utilities.basic_utils import make_local_directory, get_with_retry
 # starts, failure to find these environment variables will cause the application
 # startup to fail.
 try:
-    GOOGLE_BUCKET_NAME = os.environ['GOOGLE_BUCKET_NAME']
+    GOOGLE_BUCKET_NAME = os.environ['BUCKET_NAME']
 except KeyError as ex:
     raise ImproperlyConfigured('Need to supply the following environment'
         ' variable: {k}'.format(k=ex))

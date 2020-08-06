@@ -2,6 +2,10 @@
 # Pass a completed version of this template to the Docker container upon
 # startup with the --env-file arg.
 
+# The cloud platform determines which classes are used to hook up to 
+# storage buckets, etc.
+CLOUD_PLATFORM=google
+
 ###################### Database-related parameters ######################################
 
 DB_NAME=
@@ -41,17 +45,22 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 
 ###################### Storage-related parameters ######################################
 
-# "dotted" path to the class implementing the storage backend
-# See the api/storage_backends/ folder for options
-RESOURCE_STORAGE_BACKEND=api.storage_backends.local.LocalStorage
+# the storage backend dictates where the "absolute" source of the files is. Of course,
+# to perform many operations we need to move files back and forth between local and
+# cloud storage. However, only one location serves as the "ground truth", and this is
+# the path that is reflected in the Resource database instances.
+# Can be local, or the name of one of the cloud providers (which then allows us 
+# to link up the appropriate storage class) 
+STORAGE_LOCATION=
 
 # If using local storage for all files (not recommended!), set the following:
 # This is relative to the django BASE_DIR
 LOCAL_USER_STORAGE_DIRNAME=user_resources
 
-# If using GCP and bucket storage, set the following:
-# DO NOT inlude the "gs://" prefix
-GOOGLE_BUCKET_NAME=
+# Even if not using bucket storage as the primary storage area, we need to have access 
+# to a cloud storage bucket for the remote jobs to work.
+# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
+BUCKET_NAME=
 
 ###################### END Storage-related parameters ######################################
 
