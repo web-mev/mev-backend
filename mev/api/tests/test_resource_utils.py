@@ -18,7 +18,8 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_preview, \
     validate_resource, \
     handle_valid_resource, \
-    handle_invalid_resource
+    handle_invalid_resource, \
+    check_extension
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -318,3 +319,40 @@ class TestResourceUtilities(BaseAPITestCase):
             requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
             original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[original_type]
         ))
+
+    @mock.patch.dict('api.utilities.resource_utilities.DB_RESOURCE_STRING_TO_HUMAN_READABLE', \
+        {'foo_type': 'Table'})
+    @mock.patch('api.utilities.resource_utilities.extension_is_consistent_with_type')
+    @mock.patch('api.utilities.resource_utilities.get_acceptable_extensions')
+    def test_inconsistent_file_extension_sets_status(self,
+        mock_get_acceptable_extensions,
+        mock_extension_is_consistent_with_type):
+        '''
+        This tests the case where a user selects a resource type but the
+        file does not have a name that is consistent with that type. We need
+        to enforce consistent extensions so we know how to try parsing files.
+        For instance, a name like "file.txt" does not help us, and we do not want
+        to try all different parsers.
+        '''
+        mock_extension_is_consistent_with_type.return_value = False
+        mock_get_acceptable_extensions.return_value = ['tsv', 'csv', 'abc']
+        requested_type = 'foo_type'
+        human_readable_type = 'Table'
+        resource = Resource.objects.all()[0]
+        check_extension(resource, requested_type)
+        expected_status = Resource.UNKNOWN_EXTENSION_ERROR.format(
+            readable_resource_type = human_readable_type,
+            filename = resource.name,
+            extensions_csv = 'tsv,csv,abc'
+        )
+        self.assertEqual(resource.status, expected_status)
+
+    # def test_all_resources_have_acceptable_extensions(self):
+    #     '''
+    #     This tests that all the known Resource types have the required
+    #     ACCEPTABLE_EXTENSIONS key. Could more appropriately be placed
+    #     inside the resource_types folder, but that would require 
+    #     '''
+    #     pass
+
+

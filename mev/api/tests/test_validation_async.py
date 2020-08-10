@@ -95,8 +95,10 @@ class TestValidateResource(BaseAPITestCase):
         )
         self.assertEqual(current_resource.status, expected_status)
 
+    @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    def test_invalid_type_remains_invalid_case2(self, mock_get_resource_type_instance):
+    def test_invalid_type_remains_invalid_case2(self, mock_get_resource_type_instance,
+        mock_check_extension):
         '''
         Here we test that a Resource change request fails.  The Resource previously
         had a valid type (or it would not have been set) and we check that a failed
@@ -127,6 +129,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance = mock.MagicMock()
         mock_resource_instance.validate_type.return_value = (False, 'some string')
         mock_get_resource_type_instance.return_value = mock_resource_instance
+        mock_check_extension.return_value = True
         validate_resource(resource.pk, other_type)
 
         # query the resource to see any changes:
@@ -139,11 +142,13 @@ class TestValidateResource(BaseAPITestCase):
         )
         self.assertEqual(current_resource.status, expected_status)
 
+    @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_resource_type_change_succeeds(self, 
         mock_get_resource_type_instance,
-        mock_move):
+        mock_move,
+        mock_check_extension):
         '''
         Here we test that a Resource change request succeeds on a Resource
         that had an existing type.
@@ -178,7 +183,8 @@ class TestValidateResource(BaseAPITestCase):
             OBSERVATION_SET_KEY: None,
             FEATURE_SET_KEY: None
         }
-        mock_get_resource_type_instance.return_value = mock_resource_instance        
+        mock_get_resource_type_instance.return_value = mock_resource_instance
+        mock_check_extension.return_value = True       
         validate_resource(resource.pk, new_type)
 
         # query the resource to see any changes:
@@ -190,11 +196,13 @@ class TestValidateResource(BaseAPITestCase):
 
         mock_move.assert_not_called()
 
+    @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_resource_type_change_succeeds_for_new_resource(self, 
         mock_get_resource_type_instance,
-        mock_move):
+        mock_move,
+        mock_check_extension):
         '''
         Here we test that a "unset" Resource (one where a resource_type
         has NEVER been set) changes once the validation succeeds
@@ -222,6 +230,7 @@ class TestValidateResource(BaseAPITestCase):
             FEATURE_SET_KEY: None
         }
         mock_get_resource_type_instance.return_value = mock_resource_instance
+        mock_check_extension.return_value = True
         
         fake_final_path = '/some/final_path/foo.tsv'
         mock_move.return_value = fake_final_path

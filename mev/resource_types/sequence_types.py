@@ -32,15 +32,14 @@ class FastAResource(SequenceResource):
     '''
     DESCRIPTION = 'FASTA-format sequence file.'
 
-    file_extensions = [
+    ACCEPTABLE_EXTENSIONS = [
         'fasta',
         'fasta.gz',
         'fa',
         'fa.gz'
     ]
 
-    @classmethod
-    def validate_type(cls, resource_path):
+    def validate_type(self, resource_path):
         pass
 
 class FastQResource(SequenceResource):
@@ -58,15 +57,14 @@ class FastQResource(SequenceResource):
     DESCRIPTION = 'FASTQ-format sequence file.  The most common format'\
         ' used for sequencing experiments.'
 
-    file_extensions = [
+    ACCEPTABLE_EXTENSIONS = [
         'fastq',
         'fastq.gz',
         'fq',
         'fq.gz'
     ]
 
-    @classmethod
-    def validate_type(cls, resource_path):
+    def validate_type(self, resource_path):
         pass
 
 
@@ -83,11 +81,10 @@ class AlignedSequenceResource(SequenceResource):
         ' output of an alignment process.'
 
 
-    file_extensions = [
+    ACCEPTABLE_EXTENSIONS = [
         'bam',
         'sam'
     ]
 
-    @classmethod
-    def validate_type(cls, resource_path):
+    def validate_type(self, resource_path):
         pass

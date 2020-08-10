@@ -13,6 +13,8 @@ from .basic_utils import make_local_directory, \
     copy_local_resource
 
 from resource_types import get_preview, \
+    extension_is_consistent_with_type, \
+    get_acceptable_extensions, \
     DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
     get_resource_type_instance, \
     PARENT_OP_KEY, \
@@ -205,6 +207,26 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     resource.resource_type = requested_resource_type
     resource.status = Resource.READY
 
+
+def check_extension(resource, requested_resource_type):
+    '''
+    Checks that the file extension is consistent with the requested
+    resource type. Uses another function to check the extension, 
+    and this function sets the necessary members on the resource
+    instance if there is a problem.
+    '''
+    consistent_extension = extension_is_consistent_with_type(resource.name, requested_resource_type)
+    if not consistent_extension:
+        acceptable_extensions = ','.join(get_acceptable_extensions(requested_resource_type))
+        resource.status = Resource.UNKNOWN_EXTENSION_ERROR.format(
+            readable_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[requested_resource_type],
+            filename = resource.name,
+            extensions_csv = acceptable_extensions
+        )
+        return False
+    return True
+
+
 def handle_invalid_resource(resource_instance, requested_resource_type):
 
     # If resource_type has not been set (i.e. it is None), then this   
@@ -241,6 +263,12 @@ def validate_resource(resource_instance, requested_resource_type):
     if the resource has never been successfully validated).
     '''
     if requested_resource_type is not None:
+
+        # check the file extension is consistent with the requested type:
+        type_is_consistent = check_extension(resource_instance, requested_resource_type)
+        if not type_is_consistent:
+            print('WAS NOT CONSIST'*20)
+            return
 
         # The resource type is the shorthand identifier.
         # This returns an actual resource class implementation

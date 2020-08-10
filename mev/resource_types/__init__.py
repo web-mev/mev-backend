@@ -135,6 +135,14 @@ def get_preview(resource_path, resource_type):
     preview = resource_type.get_preview(resource_path)
     return preview
 
+def get_acceptable_extensions(resource_type):
+    '''
+    Given the resource type "string", return a list of
+    acceptable file extensions for that type.
+    '''
+    resource_class = RESOURCE_MAPPING[resource_type]
+    return resource_class.ACCEPTABLE_EXTENSIONS
+
 def extension_is_consistent_with_type(filename, resource_type):
     '''
     Checks that the file extension is consistent with the 
@@ -150,8 +158,7 @@ def extension_is_consistent_with_type(filename, resource_type):
     extension, this function would return False.  foobar.tsv would
     return True
     '''
-    resource_class = RESOURCE_MAPPING[resource_type]
-    for ext in resource_class.ACCEPTABLE_EXTENSIONS:
+    for ext in get_acceptable_extensions(resource_type):
         n = len(ext)
         suffix = filename[(-n-1):].lower()
         if suffix == '.' + ext.lower():
