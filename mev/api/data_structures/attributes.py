@@ -27,7 +27,7 @@ class BaseAttribute(object):
             ' accept additional keyword arguments.'
             ' Received: {keys}'.format(keys=','.join(kwargs.keys())))
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         raise NotImplementedError('You must override this method.')
 
     def to_representation(self):
@@ -125,9 +125,10 @@ class IntegerAttribute(BaseAttribute):
 
     typename = 'Integer'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         if type(val) == int:
-            self.value = val
+            if set_value:
+                self.value = val
         else:
             raise ValidationError(
                 'An integer attribute was expected, but the'
@@ -147,10 +148,11 @@ class PositiveIntegerAttribute(BaseAttribute):
     '''
     typename = 'PositiveInteger'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         if type(val) == int:
             if val > 0:
-                self.value = val
+                if set_value:
+                    self.value = val
             else:
                 raise ValidationError(
                     'The value {val} was not a' 
@@ -173,10 +175,11 @@ class NonnegativeIntegerAttribute(BaseAttribute):
     '''
     typename = 'NonNegativeInteger'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         if type(val) == int:
             if val >= 0:
-                self.value = val
+                if set_value:
+                    self.value = val
             else:
                 raise ValidationError(
                     'The value {val} is not a non-' 
@@ -201,7 +204,7 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
     '''
     typename = 'BoundedInteger'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
 
         # here we also validate that the bounds are of
         # the same integer type
@@ -209,7 +212,8 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
 
         if type(val) == int:
             if (val >= self.min_value) and (val <= self.max_value):
-                self.value = val
+                if set_value:
+                    self.value = val
             else:
                 raise ValidationError(
                     'The value {val} is not within the bounds' 
@@ -236,9 +240,10 @@ class FloatAttribute(BaseAttribute):
     '''
     typename = 'Float'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         if (type(val) == float) or (type(val) == int):
-            self.value = float(val)
+            if set_value:
+                self.value = float(val)
         else:
             raise ValidationError(
                 'A float attribute was expected, but'
@@ -257,11 +262,12 @@ class PositiveFloatAttribute(BaseAttribute):
     '''
     typename = 'PositiveFloat'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         
         if (type(val) == float) or (type(val) == int):
             if val > 0:
-                self.value = float(val)
+                if set_value:
+                    self.value = float(val)
             else:
                 raise ValidationError('Received a valid float, but'
                     ' it was not > 0.')
@@ -283,11 +289,12 @@ class NonnegativeFloatAttribute(BaseAttribute):
     '''
     typename = 'NonNegativeFloat'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         
         if (type(val) == float) or (type(val) == int):
             if val >= 0:
-                self.value = float(val)
+                if set_value:
+                    self.value = float(val)
             else:
                 raise ValidationError('Received a valid float, but'
                     ' it was not >= 0.')
@@ -310,7 +317,7 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
     '''
     typename = 'BoundedFloat'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
 
         # here we also validate that the bounds are of
         # the same integer type
@@ -318,7 +325,8 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
 
         if (type(val) == float) or (type(val) == int):
             if (val >= self.min_value) and (val <= self.max_value):
-                self.value = val
+                if set_value:
+                    self.value = val
             else:
                 raise ValidationError(
                     'The value {val} is not within the bounds' 
@@ -346,13 +354,62 @@ class StringAttribute(BaseAttribute):
     '''
     typename = 'String'
 
-    def value_validator(self, val):
+    def value_validator(self, val, set_value=True):
         try:
             val = api_utils.normalize_identifier(val)
-            self.value = val
+            if set_value:
+                self.value = val
         except api_exceptions.StringIdentifierException as ex:
             raise ValidationError(str(ex))
 
+
+class BooleanAttribute(BaseAttribute):
+    '''
+    Basic boolean
+    ```
+    {
+        "attribute_type": "Boolean",
+        "value": <bool>
+    }
+    ```
+    '''
+    typename = 'Boolean'
+
+    def value_validator(self, val, set_value=True):
+        '''
+        Validates that the value can be interpreted
+        as a boolean.  Either true/false or 1/0
+        '''
+        val_type = type(val)
+        final_val = None
+        if val_type == str:
+            if val.lower() in ['true', 'false']:
+                final_val = val.lower()
+        elif val_type == bool:
+            final_val = val
+        elif val_type == int:
+            if val in [0,1]:
+                final_val = val
+
+        if final_val is not None:
+            if final_val in ['true', 1, True]:
+                if set_value:
+                    self.value = True
+            elif final_val in ['false', 0, False]:
+                if set_value:
+                    self.value = False
+            else:
+                raise Exception('Hit an edge case when trying to validate'
+                    ' boolean value.  Value was {val} and the "final value"'
+                    ' was {final_val}'.format(
+                        val = val,
+                        final_val = final_val
+                    )
+                )
+        else:
+            raise ValidationError(
+                'A boolean attribute was expected,'
+                ' but "{val}" cannot be interpreted as such.'.format(val=val)) 
 
 # collect the types into logical groupings so we can 
 # map the typenames (e.g. "PositiveFloat") to their
@@ -366,7 +423,7 @@ numeric_attribute_types = [
     BoundedFloatAttribute
 ]
 numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
-all_attribute_types = numeric_attribute_types + [StringAttribute,]
+all_attribute_types = numeric_attribute_types + [StringAttribute, BooleanAttribute]
 all_attribute_typenames = [x.typename for x in all_attribute_types]
 attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))
 

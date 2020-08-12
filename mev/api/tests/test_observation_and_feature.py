@@ -1,4 +1,5 @@
 import unittest
+import copy
 
 from rest_framework.exceptions import ValidationError
 
@@ -8,7 +9,8 @@ from api.data_structures import Observation, \
     FloatAttribute, \
     StringAttribute, \
     BoundedFloatAttribute, \
-    BoundedIntegerAttribute
+    BoundedIntegerAttribute, \
+    BooleanAttribute
 from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
 from api.exceptions import StringIdentifierException
@@ -32,8 +34,10 @@ class ElementSerializerTester(object):
         '''
         Tests a full-featured Element
         '''
-        element_serializer = self.element_serializer_class(data=testcase.demo_element_data)
+        data = copy.deepcopy(testcase.demo_element_data)
+        element_serializer = self.element_serializer_class(data=data)
         testcase.assertTrue(element_serializer.is_valid())
+
         element = element_serializer.get_instance()
 
         # note that equality of Elements is only determined by the 
@@ -94,7 +98,7 @@ class ElementSerializerTester(object):
 
         Still, we keep this test in case we ever want to re-implement
         controls on the naming conventions. In that case, ensure that
-        the ensure<Bool> call below is correct for the test.
+        the assert<Bool> call below is correct for the test.
         '''
         data = {'id': 'my-bad-id-', 'attributes':{}}
         element_serializer = self.element_serializer_class(data=data)
@@ -108,7 +112,8 @@ class ElementSerializerTester(object):
         Tests a full-featured Observation where one of the attributes
         is a bounded float
         '''
-        element_serializer = self.element_serializer_class(data=testcase.demo_element_data_w_bounds)
+        data = copy.deepcopy(testcase.demo_element_data_w_bounds)
+        element_serializer = self.element_serializer_class(data=data)
         testcase.assertTrue(element_serializer.is_valid())
 
         element = element_serializer.get_instance()
@@ -125,8 +130,42 @@ class ElementSerializerTester(object):
         Tests a full-featured Observation where one of the attributes
         is a bounded float, BUT it is out-of-bounds
         '''
-        element_serializer = self.element_serializer_class(data=testcase.bad_demo_element_data_w_bounds)
+        data = copy.deepcopy(testcase.bad_demo_element_data_w_bounds)
+        element_serializer = self.element_serializer_class(data=data)
         testcase.assertFalse(element_serializer.is_valid())
+
+    def test_expected_deserialization_case9(self, testcase):
+        '''
+        Tests a full-featured Observation where one of the attributes
+        is a valid boolean
+        '''
+        # this version has the "value" of the bool set to True (the python-native boolean)
+        expected_result = testcase.demo_element_data_w_bool3 
+
+        data = copy.deepcopy(testcase.demo_element_data_w_bool1)
+        element_serializer = self.element_serializer_class(data=data)
+        testcase.assertTrue(element_serializer.is_valid())
+        testcase.assertDictEqual(element_serializer.data, expected_result)
+
+        data = copy.deepcopy(testcase.demo_element_data_w_bool2)
+        element_serializer = self.element_serializer_class(data=data)
+        testcase.assertTrue(element_serializer.is_valid())
+        testcase.assertDictEqual(element_serializer.data, expected_result)
+
+        data = copy.deepcopy(testcase.demo_element_data_w_bool3)
+        element_serializer = self.element_serializer_class(data=data)
+        testcase.assertTrue(element_serializer.is_valid())
+        testcase.assertDictEqual(element_serializer.data, expected_result)
+
+    def test_expected_deserialization_case10(self, testcase):
+        '''
+        Tests a full-featured Observation where one of the attributes
+        is an INvalid boolean
+        '''
+        data = copy.deepcopy(testcase.bad_demo_element_data_w_bool)
+        element_serializer = self.element_serializer_class(data=data)
+        testcase.assertFalse(element_serializer.is_valid())
+
 
     def test_attribute_with_missing_value_is_invalid(self, testcase):
         '''
@@ -153,7 +192,8 @@ class ElementSerializerTester(object):
         testcase.assertDictEqual(s.data, testcase.demo_element_data2)
         s = self.element_serializer_class(testcase.demo_element_w_bounds)
         testcase.assertDictEqual(s.data, testcase.demo_element_data_w_bounds)
-
+        s = self.element_serializer_class(testcase.demo_element_w_bool)
+        testcase.assertDictEqual(s.data, testcase.demo_element_data_w_bool3)
 
 
 
@@ -162,6 +202,7 @@ class TestObservationSerializer(unittest.TestCase):
     def setUp(self):
         float_attr = FloatAttribute(0.01)
         int_attr = IntegerAttribute(3)
+        boolean_attr = BooleanAttribute(True)
         bounded_float_attr = BoundedFloatAttribute(0.1, min=0.0, max=1.0)
 
         self.demo_element = Observation(
@@ -223,6 +264,70 @@ class TestObservationSerializer(unittest.TestCase):
             }
         }
 
+        self.demo_element_w_bool = Observation(
+            'my_identifier', 
+            {
+                'keyA': int_attr,
+                'some_bool': boolean_attr
+            }
+        )
+
+
+        self.demo_element_data_w_bool1 = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': 'true'
+                }
+            }
+        }
+
+        self.demo_element_data_w_bool2 = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': 1
+                }
+            }
+        }
+
+        self.demo_element_data_w_bool3 = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': True
+                }
+            }
+        }
+
+        self.bad_demo_element_data_w_bool = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': -1
+                }
+            }
+        }
         # the class that will execute the tests
         self.tester_class = ElementSerializerTester(ObservationSerializer)
 
@@ -238,6 +343,7 @@ class TestFeatureSerializer(unittest.TestCase):
     def setUp(self):
         float_attr = FloatAttribute(0.01)
         int_attr = IntegerAttribute(3)
+        boolean_attr = BooleanAttribute(True)
         bounded_float_attr = BoundedFloatAttribute(0.1, min=0.0, max=1.0)
 
         self.demo_element = Feature(
@@ -299,10 +405,73 @@ class TestFeatureSerializer(unittest.TestCase):
             }
         }
 
+        self.demo_element_w_bool = Feature(
+            'my_identifier', 
+            {
+                'keyA': int_attr,
+                'some_bool': boolean_attr
+            }
+        )
+
+        self.demo_element_data_w_bool1 = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': 'true'
+                }
+            }
+        }
+
+        self.demo_element_data_w_bool2 = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': 1
+                }
+            }
+        }
+
+        self.demo_element_data_w_bool3 = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': True
+                }
+            }
+        }
+
+        self.bad_demo_element_data_w_bool = {
+            'id': 'my_identifier', 
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                },
+                'some_bool':{
+                    'attribute_type':'Boolean', 
+                    'value': -1
+                }
+            }
+        }
         # the class that will execute the tests
         self.tester_class = ElementSerializerTester(FeatureSerializer)
 
-    def test_observation_serializer(self):
+    def test_feature_serializer(self):
         test_methods = [x for x in dir(self.tester_class) if x.startswith('test_')]
         for t in test_methods:
             m = getattr(self.tester_class, t)

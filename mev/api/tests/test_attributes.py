@@ -10,7 +10,8 @@ from api.data_structures import IntegerAttribute, \
     NonnegativeFloatAttribute, \
     StringAttribute, \
     BoundedIntegerAttribute, \
-    BoundedFloatAttribute
+    BoundedFloatAttribute, \
+    BooleanAttribute
 
 
 class TestAttributes(unittest.TestCase):
@@ -181,3 +182,30 @@ class TestAttributes(unittest.TestCase):
         # you CAN specify integer bounds for bounded floats
         f = BoundedFloatAttribute(2.2, min=0, max=10)
         f = BoundedFloatAttribute(2.2, min=0.2, max=10.5)
+
+    def test_boolean_attribute(self):
+        '''
+        Tests that a range of canonical values can be used to specify
+        whether a boolean attribute is true or false.
+        '''
+        b = BooleanAttribute('true')
+        self.assertTrue(b.value)
+        b = BooleanAttribute('True')
+        self.assertTrue(b.value)
+        b = BooleanAttribute(1)
+        self.assertTrue(b.value)
+        b = BooleanAttribute(True)
+        self.assertTrue(b.value)
+        with self.assertRaises(ValidationError):
+            b = BooleanAttribute(2)
+
+        b = BooleanAttribute('false')
+        self.assertFalse(b.value)
+        b = BooleanAttribute('False')
+        self.assertFalse(b.value)
+        b = BooleanAttribute(0)
+        self.assertFalse(b.value)
+        b = BooleanAttribute(False)
+        self.assertFalse(b.value)
+        with self.assertRaises(ValidationError):
+            b = BooleanAttribute(-1)

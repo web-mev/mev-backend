@@ -25,17 +25,19 @@ class AttributeSerializer(serializers.BaseSerializer):
         if type(data) != dict:
             raise serializers.ValidationError('Attributes must be '
                 ' formatted as a mapping.  For example, {"phenotype":'
-                ' <BaseAttribute>}')        
+                ' <BaseAttribute>}')  
         for k in data.keys():
-            attr_dict = data[k]
-            api_ds.create_attribute(k, attr_dict)
+            v = data[k]
+            if type(v) == dict:
+                v=api_ds.create_attribute(k, v)
+            data[k]=v
         return data
 
     def create(self, validated_data):
         final_attr_dict = {}
         for k in validated_data.keys():
             attr_dict = validated_data[k]
-            attribute_type = api_ds.attribute_mapping[attr_dict['attribute_type']]
+            attribute_type = api_ds.attributes.attribute_mapping[attr_dict['attribute_type']]
             attribute_instance = attribute_type(attr_dict['value'])
             final_attr_dict[k] = attribute_instance
         return final_attr_dict

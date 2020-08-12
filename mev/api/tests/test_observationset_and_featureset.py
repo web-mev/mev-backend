@@ -1,4 +1,5 @@
 import unittest
+import copy
 
 from rest_framework.exceptions import ValidationError
 
@@ -207,7 +208,8 @@ class ElementSetSerializerTester(object):
         the ensure<Bool> call below is correct for the test.
         '''
         # deserialize the payload dict
-        s = self.element_set_serializer_class(data=testcase.expected_element_set_data)
+        data = copy.deepcopy(testcase.expected_element_set_data)
+        s = self.element_set_serializer_class(data=data)
         testcase.assertTrue(s.is_valid())
         element_set = s.get_instance()
         testcase.assertEqual(element_set, testcase.element_set)

@@ -267,7 +267,6 @@ def validate_resource(resource_instance, requested_resource_type):
         # check the file extension is consistent with the requested type:
         type_is_consistent = check_extension(resource_instance, requested_resource_type)
         if not type_is_consistent:
-            print('WAS NOT CONSIST'*20)
             return
 
         # The resource type is the shorthand identifier.

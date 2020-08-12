@@ -32,8 +32,11 @@ class BaseElementSerializer(serializers.Serializer):
         `ObservationSerializer`
         '''
         attr_dict = {}
-        for k, val_dict in validated_data['attributes'].items():
-            attr = create_attribute(k, val_dict)
+        for k, v in validated_data['attributes'].items():
+            if type(v) == dict:
+                attr = create_attribute(k, val_dict)
+            else:
+                attr = v
             attr_dict[k] = attr   
         return attr_dict 
 
