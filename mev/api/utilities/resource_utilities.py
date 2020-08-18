@@ -30,8 +30,8 @@ def get_resource_by_pk(resource_pk):
         return resource
     except Resource.DoesNotExist as ex:
         logger.error('Received an unknown/invalid primary key'
-        ' when trying to retrieve a Resource instance in an async'
-        ' task.  PK was {uuid}.'.format(uuid=str(resource_pk))
+        ' when trying to retrieve a Resource instance.'
+        ' PK was {uuid}.'.format(uuid=str(resource_pk))
     )
         raise ex
 

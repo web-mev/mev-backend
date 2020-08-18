@@ -1,10 +1,10 @@
 import re
+import uuid
 
 from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
 import api.exceptions as api_exceptions
-
 
 class BaseAttribute(object):
     '''
@@ -18,6 +18,10 @@ class BaseAttribute(object):
     '''
     typename = None
 
+    # add any additional parameters (which are specified as kwargs to the
+    # constructor) to this list.
+    REQUIRED_PARAMS = []
+
     def __init__(self, value, **kwargs):
         self.value_validator(value)
         
@@ -29,6 +33,22 @@ class BaseAttribute(object):
 
     def value_validator(self, val, set_value=True):
         raise NotImplementedError('You must override this method.')
+
+    def check_keys(self, keys):
+        '''
+        Given a list of provided parameters (`keys`),
+        check this against the required parameters for the
+        attribute class.
+        '''
+        s1 = set(keys)
+        if not s1 == set(self.REQUIRED_PARAMS):
+            raise ValidationError('The parameters for this attribute'
+                ' ({given_keys}) do not match the required parameters:'
+                ' {required_keys}'.format(
+                    required_keys = ', '.join(self.REQUIRED_PARAMS),
+                    given_keys = ', '.join(keys),
+                )
+            )
 
     def to_representation(self):
         return {
@@ -63,15 +83,22 @@ class BoundedBaseAttribute(BaseAttribute):
     MINIMUM_KEY = 'min'
     MAXIMUM_KEY = 'max'
 
+    # add any additional parameters (which are specified as kwargs to the
+    # constructor) to this list.
+    REQUIRED_PARAMS = [MINIMUM_KEY, MAXIMUM_KEY]
+
     def __init__(self, value, **kwargs):
+        self.set_bounds(kwargs)
+        super().__init__(value, **kwargs)
+
+    def set_bounds(self, kwargs_dict):
         try: 
-            self.min_value = kwargs[self.MINIMUM_KEY]
-            self.max_value = kwargs[self.MAXIMUM_KEY]
+            self.min_value = kwargs_dict.pop(self.MINIMUM_KEY)
+            self.max_value = kwargs_dict.pop(self.MAXIMUM_KEY)
         except KeyError as ex:
             missing_key = str(ex)
             raise ValidationError('Need bounds to specify a BoundedInteger.'
                 ' Was missing {key}'.format(key=missing_key))
-        super().__init__(value)
 
     def check_bound_types(self, primitive_type_list):
         '''
@@ -411,6 +438,100 @@ class BooleanAttribute(BaseAttribute):
                 'A boolean attribute was expected,'
                 ' but "{val}" cannot be interpreted as such.'.format(val=val)) 
 
+
+class DataResourceAttribute(BaseAttribute):
+    '''
+    Used to specify a reference to one or more Resource
+    instances.
+    ```
+    {
+        "attribute_type": "DataResource",
+        "value": <one or more Resource UUIDs>,
+        "many": <bool>,
+        "resource_types": <list of valid resource types>
+    }
+    ```
+    Note that "many" controls whether >1 are allowed. It's not an indicator
+    for whether there are multiple Resources specified in the "value" key.
+    '''
+    typename = 'DataResource'
+
+    MANY_KEY = 'many'
+    RESOURCE_TYPES_KEY = 'resource_types'
+    REQUIRED_PARAMS = [MANY_KEY, RESOURCE_TYPES_KEY]
+
+    def __init__(self, value, **kwargs):
+        self.check_keys(kwargs.keys())  
+        kwargs = self.validate_keyword_args(kwargs)
+        super().__init__(value, **kwargs)
+
+    def validate_keyword_args(self, kwargs_dict):
+ 
+        # use the BooleanAttribute to validate the 'many' key:
+        b = BooleanAttribute(kwargs_dict.pop(self.MANY_KEY))
+        self.many = b.value
+        
+        self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPES_KEY)
+
+        if not type(self.resource_types) == list:
+            raise ValidationError('The {key} key needs to be a list.'.format(
+                key=self.RESOURCE_TYPES_KEY
+                )
+            )
+
+        from resource_types import RESOURCE_MAPPING
+        for r in self.resource_types:
+            if not r in RESOURCE_MAPPING.keys():
+                raise ValidationError('The resource type {rt} is not valid.'
+                    ' Needs to be one of the following: {csv}.'.format(
+                        rt=r,
+                        csv=', '.join(RESOURCE_MAPPING.keys())
+                    )
+                )
+        return kwargs_dict
+         
+    def value_validator(self, val, set_value=True):
+        '''
+        Validates that the value (a list of UUIDs)
+        can be properly mapped to existing Resource instances
+        '''
+        # if a single UUID was passed, place it into a list:
+        if type(val) == str:
+            val = [val,]
+        elif type(val) == uuid.UUID:
+            val = [str(val),]
+
+        # ensure all members of the list as cast as strings:
+        val = [str(x) for x in val]
+
+        if self.many is False and len(val) > 1:
+            raise ValidationError('The "{many_key}" value was False,'
+                ' but multiple values were specified.'.format(
+                    many_key = self.MANY_KEY
+                )
+            )
+
+        for v in val:
+            try:
+                # check that it is a UUID
+                # Note that we can't explicitly check that a UUID
+                # corresponds to a Resource database instance
+                # as that creates a circular import dependency.
+                uuid.UUID(v)
+            except ValueError as ex:
+                raise ValidationError('One of the passed values ({u}) was'
+                    ' not a valid UUID.'.format(u=v)
+                )
+            except Exception as ex:
+                raise ValidationError('Encountered an unknown exception'
+                    ' when validating a DataResourceAttribute instance. Value was'
+                    ' {value}'.format(
+                        value = val
+                    )
+                ) 
+
+
+
 # collect the types into logical groupings so we can 
 # map the typenames (e.g. "PositiveFloat") to their
 # class implementation
@@ -423,7 +544,8 @@ numeric_attribute_types = [
     BoundedFloatAttribute
 ]
 numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
-all_attribute_types = numeric_attribute_types + [StringAttribute, BooleanAttribute]
+other_attribute_types = [StringAttribute, BooleanAttribute, DataResourceAttribute]
+all_attribute_types = numeric_attribute_types + other_attribute_types
 all_attribute_typenames = [x.typename for x in all_attribute_types]
 attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))
 
