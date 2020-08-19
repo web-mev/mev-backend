@@ -35,7 +35,9 @@ class OperationInput(object):
 
         # a nested object which describes the input itself (e.g. 
         # a number, a string, a file). Of type `InputSpec`
-        self.spec = spec
+        
+        self.input_spec = spec
+        
 
 
 class InputSpec(object):
@@ -59,7 +61,7 @@ class InputSpec(object):
     ```
     When we are creating an `Operation` using this specification, we don't
     have a value-- we simply want to check that the specification is correct
-    for the intended type. That is, given that we are stating it should be a
+    for the intended attribute_type. That is, given that we are stating it should be a
     BoundedFloat, we need to check that there are min and max values specified.
     We also need to ensure that the default value (if given) is sensible for those
     bounds.
@@ -70,6 +72,10 @@ class InputSpec(object):
     another class.
     '''
     def __init__(self, **kwargs):
+
+        # to allow us to work with the serializers from the underlying
+        # Attribute classes, we set the `value` attribute to None
+        self.value = None
         self.full_kwargs = kwargs.copy()
 
     def handle_common_kwargs(self, kwargs_dict):
@@ -99,6 +105,9 @@ class InputSpec(object):
         '''
         try:
             implementation_class.__init__(self, self.default, **kwargs)
+
+            # now reset the value to None:
+            self.value = None
         except ValidationError as ex:
             logger.error('Error when inspecting an operation input.'
             ' Called with: {kwargs}.\nError was: {ex}'.format(
@@ -107,6 +116,12 @@ class InputSpec(object):
             ))
             raise ex
 
+    def to_representation(self, parent_class):
+        d = parent_class.to_representation(self)
+        if self.default is not None:
+            d['default'] = self.default
+        return d
+
 
 class IntegerInputSpec(InputSpec, IntegerAttribute):
     '''
@@ -114,7 +129,7 @@ class IntegerInputSpec(InputSpec, IntegerAttribute):
     e.g.
     ```
     {
-        "type": "Integer",
+        "attribute_type": "Integer",
         "default": <int>
     }
     ```
@@ -125,13 +140,16 @@ class IntegerInputSpec(InputSpec, IntegerAttribute):
         if self.default is not None:
             self.check_default(IntegerAttribute, **kwargs)
 
+    def to_representation(self):
+        return InputSpec.to_representation(self, IntegerAttribute)
+
 class PositiveIntegerInputSpec(InputSpec, PositiveIntegerAttribute):
     '''
     PositiveIntegerInputSpec is an integer > 0 and can specify a default.
     e.g.
     ```
     {
-        "type": "PositiveInteger",
+        "attribute_type": "PositiveInteger",
         "default": <int>
     }
     ```
@@ -142,6 +160,8 @@ class PositiveIntegerInputSpec(InputSpec, PositiveIntegerAttribute):
         if self.default is not None:
             self.check_default(PositiveIntegerAttribute, **kwargs)
 
+    def to_representation(self):
+        return InputSpec.to_representation(self, PositiveIntegerAttribute)
 
 class NonnegativeIntegerInputSpec(InputSpec, NonnegativeIntegerAttribute):
     '''
@@ -149,7 +169,7 @@ class NonnegativeIntegerInputSpec(InputSpec, NonnegativeIntegerAttribute):
     e.g.
     ```
     {
-        "type": "NonnegativeInteger",
+        "attribute_type": "NonnegativeInteger",
         "default": <int>
     }
     ```
@@ -160,6 +180,8 @@ class NonnegativeIntegerInputSpec(InputSpec, NonnegativeIntegerAttribute):
         if self.default is not None:
             self.check_default(NonnegativeIntegerAttribute, **kwargs)
 
+    def to_representation(self):
+        return InputSpec.to_representation(self, NonnegativeIntegerAttribute)
 
 class BoundedIntegerInputSpec(InputSpec, BoundedIntegerAttribute):
     '''
@@ -167,7 +189,7 @@ class BoundedIntegerInputSpec(InputSpec, BoundedIntegerAttribute):
     can specify a default. e.g.
     ```
     {
-        "type": "BoundedInteger",
+        "attribute_type": "BoundedInteger",
         "min": <int>,
         "max": <int>,
         "default": <int>
@@ -180,8 +202,11 @@ class BoundedIntegerInputSpec(InputSpec, BoundedIntegerAttribute):
         if self.default is not None:
             self.check_default(BoundedIntegerAttribute, **kwargs)
         self.set_bounds(kwargs)
+
         self.check_bound_types([int])
 
+    def to_representation(self):
+        return InputSpec.to_representation(self, BoundedIntegerAttribute)
 
 class FloatInputSpec(InputSpec, FloatAttribute):
     '''
@@ -189,7 +214,7 @@ class FloatInputSpec(InputSpec, FloatAttribute):
     e.g.
     ```
     {
-        "type": "Float",
+        "attribute_type": "Float",
         "default": <float>
     }
     ```
@@ -200,6 +225,8 @@ class FloatInputSpec(InputSpec, FloatAttribute):
         if self.default is not None:
             self.check_default(FloatAttribute, **kwargs)
 
+    def to_representation(self):
+        return InputSpec.to_representation(self, FloatAttribute)
 
 class PositiveFloatInputSpec(InputSpec, PositiveFloatAttribute):
     '''
@@ -207,7 +234,7 @@ class PositiveFloatInputSpec(InputSpec, PositiveFloatAttribute):
     e.g.
     ```
     {
-        "type": "PositiveFloat",
+        "attribute_type": "PositiveFloat",
         "default": <float>
     }
     ```
@@ -218,14 +245,16 @@ class PositiveFloatInputSpec(InputSpec, PositiveFloatAttribute):
         if self.default is not None:
             self.check_default(PositiveFloatAttribute, **kwargs)
 
-
+    def to_representation(self):
+        return InputSpec.to_representation(self, PositiveFloatAttribute)
+        
 class NonnegativeFloatInputSpec(InputSpec, NonnegativeFloatAttribute):
     '''
     NonnegativeFloatInputSpec is a float >=0 and can specify a default.
     e.g.
     ```
     {
-        "type": "NonnegativeFloat",
+        "attribute_type": "NonnegativeFloat",
         "default": <float>
     }
     ```
@@ -236,14 +265,16 @@ class NonnegativeFloatInputSpec(InputSpec, NonnegativeFloatAttribute):
         if self.default is not None:
             self.check_default(NonnegativeFloatAttribute, **kwargs)
 
-
+    def to_representation(self):
+        return InputSpec.to_representation(self, NonnegativeFloatAttribute)
+        
 class BoundedFloatInputSpec(InputSpec, BoundedFloatAttribute):
     '''
     BoundedFloatInputSpec is an integer with defined bounds and 
     can specify a default. e.g.
     ```
     {
-        "type": "BoundedFloat",
+        "attribute_type": "BoundedFloat",
         "min": <float>,
         "max": <float>,
         "default": <float>
@@ -256,7 +287,9 @@ class BoundedFloatInputSpec(InputSpec, BoundedFloatAttribute):
         if self.default is not None:
             self.check_default(BoundedFloatAttribute, **kwargs)
 
-
+    def to_representation(self):
+        return InputSpec.to_representation(self, BoundedFloatAttribute)
+        
 class StringInputSpec(InputSpec, StringAttribute):
     '''
     StringInputSpec is a string with some basic checking for
@@ -264,7 +297,7 @@ class StringInputSpec(InputSpec, StringAttribute):
     for the specific implementation that controls that behavior.
     ```
     {
-        "type": "String",
+        "attribute_type": "String",
         "default": <str>
     }
     ```
@@ -275,13 +308,15 @@ class StringInputSpec(InputSpec, StringAttribute):
         if self.default is not None:
             self.check_default(StringAttribute, **kwargs)
 
-
+    def to_representation(self):
+        return InputSpec.to_representation(self, StringAttribute)
+        
 class BooleanInputSpec(InputSpec, BooleanAttribute):
     '''
     Basic boolean.
     ```
     {
-        "type": "Boolean",
+        "attribute_type": "Boolean",
         "default": <bool>
     }
     ```
@@ -292,7 +327,9 @@ class BooleanInputSpec(InputSpec, BooleanAttribute):
         if self.default is not None:
             self.check_default(BooleanAttribute, **kwargs)
 
-
+    def to_representation(self):
+        return InputSpec.to_representation(self, BooleanAttribute)
+        
 class DataResourceInputSpec(InputSpec, DataResourceAttribute):
     '''
     This InputSpec is used for displaying/capturing
@@ -303,7 +340,7 @@ class DataResourceInputSpec(InputSpec, DataResourceAttribute):
 
     ```
     {
-        "type": "DataResource",
+        "attribute_type": "DataResource",
         "many": <bool>,
         "resource_types": <list of valid resource types>
     }
@@ -315,5 +352,25 @@ class DataResourceInputSpec(InputSpec, DataResourceAttribute):
         kwargs = self.handle_common_kwargs(kwargs)
         kwargs = self.validate_keyword_args(kwargs)
 
+    def to_representation(self):
+        return InputSpec.to_representation(self, DataResourceAttribute)
+        
     #TODO when deserializing the instance, validation will check that
     # the resource types of the UUIDs are valid.
+
+# So we can just the `typename` to retrieve the proper class:
+all_input_spec_types = [
+    IntegerInputSpec,
+    PositiveIntegerInputSpec,
+    NonnegativeIntegerInputSpec,
+    BoundedIntegerInputSpec,
+    FloatInputSpec,
+    PositiveFloatInputSpec,
+    NonnegativeFloatInputSpec,
+    BoundedFloatInputSpec,
+    StringInputSpec,
+    BooleanInputSpec,
+    DataResourceInputSpec,
+]
+all_input_spec_typenames = [x.typename for x in all_input_spec_types]
+input_spec_mapping = dict(zip(all_input_spec_typenames, all_input_spec_types))

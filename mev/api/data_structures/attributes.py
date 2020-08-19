@@ -23,6 +23,11 @@ class BaseAttribute(object):
     REQUIRED_PARAMS = []
 
     def __init__(self, value, **kwargs):
+
+        # set to None so we do not get attribute errors:
+        self.value = None
+
+        # go ahead and validate
         self.value_validator(value)
         
         # if kwargs is not an empty dict, raise an exception
@@ -530,7 +535,13 @@ class DataResourceAttribute(BaseAttribute):
                     )
                 ) 
 
-
+    def to_representation(self):
+        return {
+            'attribute_type': self.typename,
+            'value': self.value,
+            self.MANY_KEY: self.many,
+            self.RESOURCE_TYPES_KEY: self.resource_types
+        }
 
 # collect the types into logical groupings so we can 
 # map the typenames (e.g. "PositiveFloat") to their

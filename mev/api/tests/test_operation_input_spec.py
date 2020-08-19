@@ -14,8 +14,9 @@ from api.data_structures import IntegerInputSpec, \
     BoundedFloatInputSpec, \
     StringInputSpec, \
     BooleanInputSpec, \
-    DataResourceInputSpec
-
+    DataResourceInputSpec, \
+    OperationInput
+from api.serializers.input_spec import InputSpecSerializer
 
 class TestInputSpec(unittest.TestCase):
     '''
@@ -209,3 +210,86 @@ class TestInputSpec(unittest.TestCase):
         # `resource_types` key is not a list
         with self.assertRaises(ValidationError):
             ds = DataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
+
+
+
+class InputSpecSerializerTester(unittest.TestCase):
+
+    def setUp(self):
+
+        self.min_val = 0
+        self.max_val = 4
+        self.default=2
+        self.input_spec_dict = {
+            'attribute_type': 'BoundedInteger', 
+            'min': self.min_val, 
+            'max': self.max_val, 
+            'default':self.default
+        }
+        self.input_spec = BoundedIntegerInputSpec(
+            min=self.min_val, 
+            max=self.max_val, 
+            default=self.default
+        )
+        self.expected_spec_result = {
+            'attribute_type': 'BoundedInteger',
+            'value': None, 
+            'min': self.min_val, 
+            'max': self.max_val, 
+            'default':self.default
+        }   
+
+    def test_serialization(self):
+        '''
+        Test that an InputSpec instance serializes to the expected
+        dictionary representation
+        '''
+        i = InputSpecSerializer(self.input_spec)
+        self.assertDictEqual(i.data, self.expected_spec_result)
+
+    def test_deserialization(self):
+        '''
+        Test that a JSON-like representation properly creates an OperationInput
+        instance, or issues appropriate errors if malformatted.
+        '''
+        i = InputSpecSerializer(data=self.input_spec_dict)
+        self.assertTrue(i.is_valid())
+        self.assertDictEqual(i.data, self.expected_spec_result)
+
+        # missing default is ok.
+        input_spec_dict = {
+            'attribute_type': 'BoundedInteger', 
+            'min': self.min_val, 
+            'max': self.max_val
+        }
+        i = InputSpecSerializer(data=input_spec_dict)
+        self.assertTrue(i.is_valid())
+
+        # the attribute_type is not valid
+        invalid_input_spec_dict = {
+            'attribute_type': 'Some bad type', 
+            'min': self.min_val, 
+            'max': self.max_val, 
+            'default':self.default
+        }
+        i = InputSpecSerializer(data=invalid_input_spec_dict)
+        self.assertFalse(i.is_valid())
+
+        # default is not within the bounds
+        invalid_input_spec_dict = {
+            'attribute_type': 'BoundedInteger', 
+            'min': self.min_val, 
+            'max': self.max_val, 
+            'default':self.max_val + 1
+        }
+        i = InputSpecSerializer(data=invalid_input_spec_dict)
+        self.assertFalse(i.is_valid())
+
+        # missing 'min' key
+        invalid_input_spec_dict = {
+            'attribute_type': 'BoundedInteger', 
+            'max': self.max_val, 
+            'default':self.default
+        }
+        i = InputSpecSerializer(data=invalid_input_spec_dict)
+        self.assertFalse(i.is_valid())

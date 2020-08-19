@@ -15,7 +15,8 @@ from .attributes import IntegerAttribute, \
     DataResourceAttribute, \
     create_attribute, \
     convert_dtype
-from .operation_input import IntegerInputSpec, \
+from .operation_input import OperationInput, \
+    IntegerInputSpec, \
     PositiveIntegerInputSpec, \
     NonnegativeIntegerInputSpec, \
     BoundedIntegerInputSpec, \
