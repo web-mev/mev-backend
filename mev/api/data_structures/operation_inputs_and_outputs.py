@@ -2,6 +2,7 @@ import logging
 
 from rest_framework.exceptions import ValidationError
 
+from api.data_structures import Observation, Feature, ObservationSet, FeatureSet
 from api.data_structures.attributes import IntegerAttribute, \
     PositiveIntegerAttribute, \
     NonnegativeIntegerAttribute, \
@@ -29,7 +30,7 @@ class InputOutputSpec(object):
     In the JSON file specifying the inputs to this `Operation`, we have:
     ```
     "spec":{
-        "type": "BoundedFloat",
+        "attribute_type": "BoundedFloat",
         "min": <float>,
         "max": <float>,
         "default": <float>
@@ -333,3 +334,51 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
     def to_representation(self):
         i = InputOutputSpec.to_representation(self, DataResourceAttribute)
         return i
+
+
+class ObservationInputOutputSpec(InputOutputSpec, Observation):
+    '''
+    Allows input/output fields that are based on our Observation
+    objects.
+    '''
+
+    typename = "Observation"
+
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+
+
+class FeatureInputOutputSpec(InputOutputSpec, Feature):
+    '''
+    Allows input/output fields that are based on our Feature
+    objects.
+    '''
+
+    typename = "Feature"
+
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+
+
+class ObservationSetInputOutputSpec(InputOutputSpec, ObservationSet):
+    '''
+    Allows input/output fields that are based on our ObservationSet
+    objects.
+    '''
+
+    typename = "ObservationSet"
+
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+
+
+class FeatureSetInputOutputSpec(InputOutputSpec, FeatureSet):
+    '''
+    Allows input/output fields that are based on our FeatureSet
+    objects.
+    '''
+
+    typename = "FeatureSet"
+
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)

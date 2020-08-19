@@ -14,7 +14,12 @@ from api.data_structures.operation_inputs_and_outputs import InputOutputSpec, \
     BoundedFloatInputOutputSpec, \
     StringInputOutputSpec, \
     BooleanInputOutputSpec, \
-    DataResourceInputOutputSpec
+    DataResourceInputOutputSpec, \
+    ObservationInputOutputSpec, \
+    FeatureInputOutputSpec, \
+    ObservationSetInputOutputSpec, \
+    FeatureSetInputOutputSpec
+
 
 logger = logging.getLogger(__name__)
 
@@ -149,8 +154,21 @@ class DataResourceInputSpec(DataResourceInputOutputSpec):
         i[self.RESOURCE_TYPES_KEY] = self.resource_types
         return i
         
-    #TODO when deserializing the instance, validation will check that
-    # the resource types of the UUIDs are valid.
+
+class ObservationInputSpec(ObservationInputOutputSpec):
+    pass
+
+
+class FeatureInputSpec(FeatureInputOutputSpec):
+    pass
+
+
+class ObservationSetInputSpec(ObservationSetInputOutputSpec):
+    pass
+
+
+class FeatureSetInputSpec(FeatureSetInputOutputSpec):
+    pass
 
 # So we can just the `typename` to retrieve the proper class:
 all_input_spec_types = [
@@ -165,6 +183,10 @@ all_input_spec_types = [
     StringInputSpec,
     BooleanInputSpec,
     DataResourceInputSpec,
+    ObservationInputSpec,
+    FeatureInputSpec,
+    ObservationSetInputSpec,
+    FeatureSetInputSpec
 ]
 all_input_spec_typenames = [x.typename for x in all_input_spec_types]
 input_spec_mapping = dict(zip(all_input_spec_typenames, all_input_spec_types))

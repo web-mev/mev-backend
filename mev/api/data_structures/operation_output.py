@@ -14,7 +14,11 @@ from api.data_structures.operation_inputs_and_outputs import InputOutputSpec, \
     BoundedFloatInputOutputSpec, \
     StringInputOutputSpec, \
     BooleanInputOutputSpec, \
-    DataResourceInputOutputSpec
+    DataResourceInputOutputSpec, \
+    ObservationInputOutputSpec, \
+    FeatureInputOutputSpec, \
+    ObservationSetInputOutputSpec, \
+    FeatureSetInputOutputSpec
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +146,22 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
         i[self.RESOURCE_TYPE_KEY] = self.resource_type
         return i
 
+
+class ObservationOutputSpec(ObservationInputOutputSpec):
+    pass
+
+
+class FeatureOutputSpec(FeatureInputOutputSpec):
+    pass
+
+
+class ObservationSetOutputSpec(ObservationSetInputOutputSpec):
+    pass
+
+
+class FeatureSetOutputSpec(FeatureSetInputOutputSpec):
+    pass
+
 # So we can just the `typename` to retrieve the proper class:
 all_output_spec_types = [
     IntegerOutputSpec,
@@ -155,6 +175,10 @@ all_output_spec_types = [
     StringOutputSpec,
     BooleanOutputSpec,
     DataResourceOutputSpec,
+    ObservationOutputSpec,
+    FeatureOutputSpec,
+    ObservationSetOutputSpec,
+    FeatureSetOutputSpec
 ]
 all_output_spec_typenames = [x.typename for x in all_output_spec_types]
 output_spec_mapping = dict(zip(all_output_spec_typenames, all_output_spec_types))
