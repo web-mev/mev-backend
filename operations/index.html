@@ -143,27 +143,121 @@
 <p><code>Operation</code>s should maintain the following data:</p>
 <ul>
 <li>unique identifier (UUID)</li>
-<li>a simplier "version" identifier (e.g. "v1").  This allows us to change analyses over time but let users recreate earlier analyses so that their processing is consistent/reproducible.</li>
 <li>name</li>
 <li>description of the analysis</li>
-<li>Inputs to the analysis.  These are the acceptable types and potentially some parameters.  For instance, a DESeq2 analysis should take an <code>IntegerMatrix</code>, two <code>ObservationSet</code> instances (defining the contrast groups), and a string "name" for the contrast.</li>
-<li>Outputs of the analysis.  This would be the "types" of outputs.  Again, using the DESEq2 example, the outputs could be a <code>TableResource</code> giving the table of differentially expressed genes (e.g. fold-change, p-values) and a normalized expression matrix of type <code>Matrix</code>.</li>
+<li>Inputs to the analysis.  These are the acceptable types and potentially some parameters.  For instance, a DESeq2 analysis should take an <code>IntegerMatrix</code>, two <code>ObservationSet</code> instances (defining the contrast groups), and a string "name" for the contrast. See below for a concrete example.</li>
+<li>Outputs of the analysis.  This would be similar to the inputs in that it describes the "types" of outputs.  Again, using the DESEq2 example, the outputs could be a "feature table" (<code>FT</code>, <code>FeatureTable</code>) giving the table of differentially expressed genes (e.g. fold-change, p-values) and a normalized expression matrix of type "expression matrix" (<code>EXP_MTX</code>).</li>
 <li>github repo/Docker info (commit hashes) so that the backend analysis code may be traced</li>
-<li>whether the <code>Operation</code> is a "local" one or requires use of the Cromwell engine.</li>
+<li>whether the <code>Operation</code> is a "local" one or requires use of the Cromwell engine. The front-end users don't need to know that, but internally MEV needs to know how to run the analysis.</li>
 </ul>
+<p>Note that some of these will be specified by whoever creates the analysis. However, some information (like the UUID identifier, git hash, etc.) will be populated when the analysis is "ingested". It should not be the job of the analysis developer to maintain those pieces of information and we can create them on the fly during ingestion.</p>
+<p>Therefore, an <code>Operation</code> has the following structure:</p>
+<pre class="codehilite"><code>{
+    &quot;id&quot;: &lt;UUID&gt;,
+    &quot;name&quot;: &lt;string&gt;,
+    &quot;description&quot;: &lt;string&gt;,
+    &quot;inputs&quot;: Object&lt;OperationInput&gt;,
+    &quot;outputs&quot;: Object&lt;OperationOutput&gt;,
+    &quot;mode&quot;: &lt;string&gt;,
+    &quot;repository&quot;: &lt;string url&gt;,
+    &quot;git_hash&quot;: &lt;string&gt;
+}</code></pre>
+
+
+<p>where:
+- <code>mode</code>: identifies <em>how</em> the analysis is run. Will be one of an enum of strings (e.g. <code>local_docker</code>, <code>cromwell</code>)
+- <code>repository</code>: identifies the github repo used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. 
+- <code>git_hash</code>: This is the commit hash which uniquely identifies the code state. This way the analysis code can be exactly traced back.</p>
+<p>Both <code>inputs</code> and <code>outputs</code> address nested objects. For inputs, we have an <code>OperationInput</code> which looks like:</p>
+<pre class="codehilite"><code>{
+    &quot;description&quot;: &lt;string&gt;,
+    &quot;name&quot;: &lt;string&gt;,
+    &quot;required&quot;: &lt;bool&gt;,
+    &quot;spec&quot;: &lt;InputSpec&gt;
+}</code></pre>
+
+
+<p>e.g. to specify a p-value for thresholding:</p>
+<pre class="codehilite"><code>{
+    &quot;description&quot;: &quot;The filtering threshold for the p-value&quot;,
+    &quot;name&quot;: &quot;P-value threshold:&quot;,
+    &quot;required&quot;: false,
+    &quot;spec&quot;: {
+        &quot;type&quot;: &quot;BoundedFloat&quot;,
+        &quot;min&quot;: 0,
+        &quot;max&quot;: 1.0,
+        &quot;default&quot;: 0.05
+    }
+}</code></pre>
+
+
+<p>The <code>spec</code> key addresses a child class of <code>InputSpec</code> whose behavior is specific to each "type" (above, a <code>BoundedFloat</code>). There are only a limited number of those so defining a set of options for each is straightforward.</p>
+<p>Also note that the repository will contain the Dockerfile(s) needed for the analysis. In the case of local runs, we can actually build and push the containers during ingestion, tagging them appropriately in the process. For WDL-based processes, the docker tag (in the WDL <code>runtime</code> section) has to be set beforehand. So in that case the ingestion process will only check for the existence of the proper tagged image on Dockerhub.</p>
 <p><code>ExecutedOperation</code>s should maintain the following data:</p>
 <ul>
 <li>The <code>Workspace</code> (which also gives access to the user/owner)</li>
 <li>a foreign-key to the <code>Operation</code> "type"</li>
 <li>unique identifier (UUID) for the execution</li>
-<li>a job identifier if the analysis is run remotely (on Cromwell).  We need the Cromwell job UUID to track the progress as we query the Cromwell server.</li>
-<li>The inputs to the analysis (e.g. the UUIDs of the <code>Resource</code>s that were input)</li>
-<li>The outputs (more UUIDs of the <code>Resource</code>s created) once complete</li>
+<li>a job identifier. We need the Cromwell job UUID to track the progress as we query the Cromwell server. For Docker-based jobs, we can set the tag on the container and then query its status (e.g. if it's still "up", then the job is still going)</li>
+<li>The inputs to the analysis (a JSON document)</li>
+<li>The outputs (another JSON document) once complete</li>
 <li>Job execution status (e.g. "running", "complete", "failed", etc.)</li>
 <li>Start time</li>
 <li>Completion time</li>
 <li>Any errors or warnings</li>
 </ul>
+<hr />
+<h3 id="a-concrete-example"><a class="toclink" href="#a-concrete-example">A concrete example</a></h3>
+<p>For this, consider a differential expression analysis (e.g. like DESeq2). In this simplified analysis, we will take a count matrix, a p-value (for filtering significance based on some hypothesis test), and an output file name. For outputs, we have a single file which has the results of the differential expression testing on each gene.  Since each row concerns a gene (and the columns give information about that gene), the output file is a "feature table" in our nomenclature.</p>
+<p>Thus, the <code>Operation</code> object could look like:</p>
+<pre class="codehilite"><code>{
+    &quot;name&quot;:&quot;DESeq2 differential gene expression&quot;,
+    &quot;description&quot;: &quot;Find genes which are differentially expressed and filter...&quot;
+    &quot;inputs&quot;: {
+        &quot;count_matrix&quot;: {
+            &quot;description&quot;: &quot;The count matrix of expressions&quot;,
+            &quot;name&quot;: &quot;Count matrix:&quot;,
+            &quot;required&quot;: true,
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;DataResource&quot;,
+                &quot;resource_types&quot;: [&quot;RNASEQ_COUNT_MTX&quot;, &quot;I_MTX&quot;],
+                &quot;many&quot;: false
+            }
+        },
+        &quot;p_val&quot;: {
+            &quot;description&quot;: &quot;The filtering threshold for the p-value&quot;,
+            &quot;name&quot;: &quot;P-value threshold:&quot;,
+            &quot;required&quot;: false,
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;BoundedFloat&quot;,
+                &quot;min&quot;: 0,
+                &quot;max&quot;: 1.0,
+                &quot;default&quot;: 0.05
+            },
+        }
+        &quot;output_filename&quot;: {
+            &quot;description&quot;: &quot;The name of the contrast for your own reference.&quot;,
+            &quot;name&quot;: &quot;Contrast name:&quot;,
+            &quot;required&quot;: false,
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;String&quot;,
+                &quot;default&quot;: &quot;deseq2_results&quot;
+            }
+        }
+    },
+    &quot;outputs&quot;: {
+        &quot;dge_table&quot;: {
+            &quot;spec&quot;:{
+                &quot;attribute_type&quot;: &quot;DataResource&quot;,
+                &quot;resource_type&quot;: &quot;FT&quot;
+            } 
+        }
+    }
+}</code></pre>
+
+
+<p>This specification will be placed into a file. In the repo, there will be a Dockerfile and possibly other files (e.g. scripts). Upon ingestion, MEV will read this inputs file, get the commit hash, assign a UUID, build the container, push the container, etc. </p>
+<p>The UUID will be placed into the database, and the repository files will be saved into a folder. The UUID will allow MEV to locate the appropriate files when needed.</p>
               
             </div>
           </div>
