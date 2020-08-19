@@ -12,7 +12,7 @@ class OperationOutputSerializer(serializers.Serializer):
         Returns an OperationOutput instance from the validated
         data.
         '''
-        return OperationOutput(validated_data['output_spec'])
+        return OperationOutput(validated_data['spec'])
 
     def get_instance(self):
         '''

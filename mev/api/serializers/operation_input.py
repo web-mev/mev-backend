@@ -8,7 +8,7 @@ class OperationInputSerializer(serializers.Serializer):
     description = serializers.CharField(max_length=5000, required=True)
     name = serializers.CharField(max_length=100, required=True)
     required = serializers.BooleanField(required=True)
-    input_spec = InputSpecSerializer(required=True)
+    spec = InputSpecSerializer(required=True)
 
     def create(self, validated_data):
         '''
@@ -17,7 +17,7 @@ class OperationInputSerializer(serializers.Serializer):
         '''
         return OperationInput(validated_data['description'], 
             validated_data['name'], 
-            validated_data['input_spec'], 
+            validated_data['spec'], 
             validated_data['required']
         )
 

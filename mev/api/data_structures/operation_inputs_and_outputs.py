@@ -28,7 +28,7 @@ class InputOutputSpec(object):
     For example, an `Operation` may require a bounded float value (e.g. for a p-value). 
     In the JSON file specifying the inputs to this `Operation`, we have:
     ```
-    "input_spec":{
+    "spec":{
         "type": "BoundedFloat",
         "min": <float>,
         "max": <float>,

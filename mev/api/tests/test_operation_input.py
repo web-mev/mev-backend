@@ -36,12 +36,12 @@ class OperationInputTester(unittest.TestCase):
             'description': self.description, 
             'name': self.name, 
             'required': True, 
-            'input_spec': self.input_spec_dict
+            'spec': self.input_spec_dict
         }
 
 
         self.expected_result = self.valid_operation_input.copy()
-        self.expected_result['input_spec'] = self.expected_spec_result
+        self.expected_result['spec'] = self.expected_spec_result
 
     def test_serialization(self):
         '''
@@ -65,7 +65,7 @@ class OperationInputTester(unittest.TestCase):
         invalid_operation_input1={
             'name': self.name, 
             'required': True, 
-            'input_spec': self.input_spec_dict
+            'spec': self.input_spec_dict
         }
         os = OperationInputSerializer(data=invalid_operation_input1)
         self.assertFalse(os.is_valid())
@@ -74,7 +74,7 @@ class OperationInputTester(unittest.TestCase):
         invalid_operation_input2={
             'description': self.description, 
             'required': True, 
-            'input_spec': self.input_spec_dict
+            'spec': self.input_spec_dict
         }
         os = OperationInputSerializer(data=invalid_operation_input2)
         self.assertFalse(os.is_valid())
@@ -83,7 +83,7 @@ class OperationInputTester(unittest.TestCase):
         invalid_operation_input3={
             'description': self.description, 
             'name': self.name, 
-            'input_spec': self.input_spec_dict
+            'spec': self.input_spec_dict
         }
         os = OperationInputSerializer(data=invalid_operation_input3)
         self.assertFalse(os.is_valid())
@@ -93,7 +93,7 @@ class OperationInputTester(unittest.TestCase):
             'description': self.description, 
             'name': self.name, 
             'required': True, 
-            'input_spec': {'type':'foo'}
+            'spec': {'type':'foo'}
         }
         os = OperationInputSerializer(data=invalid_operation_input4)
         self.assertFalse(os.is_valid())

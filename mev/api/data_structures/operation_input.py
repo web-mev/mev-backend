@@ -37,8 +37,7 @@ class OperationInput(object):
 
         # a nested object which describes the input itself (e.g. 
         # a number, a string, a file). Of type `InputSpec`
-        
-        self.input_spec = spec
+        self.spec = spec
         
 
 

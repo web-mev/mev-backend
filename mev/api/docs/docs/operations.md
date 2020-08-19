@@ -20,23 +20,127 @@ Also note that ALL `Operation`s (even basic table filtering) are executed in Doc
 `Operation`s should maintain the following data:
 
 - unique identifier (UUID)
-- a simplier "version" identifier (e.g. "v1").  This allows us to change analyses over time but let users recreate earlier analyses so that their processing is consistent/reproducible.
 - name
 - description of the analysis
-- Inputs to the analysis.  These are the acceptable types and potentially some parameters.  For instance, a DESeq2 analysis should take an `IntegerMatrix`, two `ObservationSet` instances (defining the contrast groups), and a string "name" for the contrast.
-- Outputs of the analysis.  This would be the "types" of outputs.  Again, using the DESEq2 example, the outputs could be a `TableResource` giving the table of differentially expressed genes (e.g. fold-change, p-values) and a normalized expression matrix of type `Matrix`.
+- Inputs to the analysis.  These are the acceptable types and potentially some parameters.  For instance, a DESeq2 analysis should take an `IntegerMatrix`, two `ObservationSet` instances (defining the contrast groups), and a string "name" for the contrast. See below for a concrete example.
+- Outputs of the analysis.  This would be similar to the inputs in that it describes the "types" of outputs.  Again, using the DESEq2 example, the outputs could be a "feature table" (`FT`, `FeatureTable`) giving the table of differentially expressed genes (e.g. fold-change, p-values) and a normalized expression matrix of type "expression matrix" (`EXP_MTX`).
 - github repo/Docker info (commit hashes) so that the backend analysis code may be traced
-- whether the `Operation` is a "local" one or requires use of the Cromwell engine.
+- whether the `Operation` is a "local" one or requires use of the Cromwell engine. The front-end users don't need to know that, but internally MEV needs to know how to run the analysis.
+
+Note that some of these will be specified by whoever creates the analysis. However, some information (like the UUID identifier, git hash, etc.) will be populated when the analysis is "ingested". It should not be the job of the analysis developer to maintain those pieces of information and we can create them on the fly during ingestion.
+
+Therefore, an `Operation` has the following structure:
+```
+{
+    "id": <UUID>,
+    "name": <string>,
+    "description": <string>,
+    "inputs": Object<OperationInput>,
+    "outputs": Object<OperationOutput>,
+    "mode": <string>,
+    "repository": <string url>,
+    "git_hash": <string>
+}
+```
+where:
+- `mode`: identifies *how* the analysis is run. Will be one of an enum of strings (e.g. `local_docker`, `cromwell`)
+- `repository`: identifies the github repo used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. 
+- `git_hash`: This is the commit hash which uniquely identifies the code state. This way the analysis code can be exactly traced back.
+
+Both `inputs` and `outputs` address nested objects. For inputs, we have an `OperationInput` which looks like:
+```
+{
+    "description": <string>,
+    "name": <string>,
+    "required": <bool>,
+    "spec": <InputSpec>
+}
+```
+e.g. to specify a p-value for thresholding:
+```
+{
+    "description": "The filtering threshold for the p-value",
+    "name": "P-value threshold:",
+    "required": false,
+    "spec": {
+        "type": "BoundedFloat",
+        "min": 0,
+        "max": 1.0,
+        "default": 0.05
+    }
+}
+```
+The `spec` key addresses a child class of `InputSpec` whose behavior is specific to each "type" (above, a `BoundedFloat`). There are only a limited number of those so defining a set of options for each is straightforward.
+
+Also note that the repository will contain the Dockerfile(s) needed for the analysis. In the case of local runs, we can actually build and push the containers during ingestion, tagging them appropriately in the process. For WDL-based processes, the docker tag (in the WDL `runtime` section) has to be set beforehand. So in that case the ingestion process will only check for the existence of the proper tagged image on Dockerhub.
 
 `ExecutedOperation`s should maintain the following data:
 
 - The `Workspace` (which also gives access to the user/owner)
 - a foreign-key to the `Operation` "type"
 - unique identifier (UUID) for the execution
-- a job identifier if the analysis is run remotely (on Cromwell).  We need the Cromwell job UUID to track the progress as we query the Cromwell server.
-- The inputs to the analysis (e.g. the UUIDs of the `Resource`s that were input)
-- The outputs (more UUIDs of the `Resource`s created) once complete
+- a job identifier. We need the Cromwell job UUID to track the progress as we query the Cromwell server. For Docker-based jobs, we can set the tag on the container and then query its status (e.g. if it's still "up", then the job is still going)
+- The inputs to the analysis (a JSON document)
+- The outputs (another JSON document) once complete
 - Job execution status (e.g. "running", "complete", "failed", etc.)
 - Start time
 - Completion time
 - Any errors or warnings
+
+--- 
+
+### A concrete example
+
+For this, consider a differential expression analysis (e.g. like DESeq2). In this simplified analysis, we will take a count matrix, a p-value (for filtering significance based on some hypothesis test), and an output file name. For outputs, we have a single file which has the results of the differential expression testing on each gene.  Since each row concerns a gene (and the columns give information about that gene), the output file is a "feature table" in our nomenclature.
+
+Thus, the `Operation` object could look like:
+
+```
+{
+    "name":"DESeq2 differential gene expression",
+    "description": "Find genes which are differentially expressed and filter..."
+    "inputs": {
+        "count_matrix": {
+            "description": "The count matrix of expressions",
+            "name": "Count matrix:",
+            "required": true,
+            "spec": {
+                "attribute_type": "DataResource",
+                "resource_types": ["RNASEQ_COUNT_MTX", "I_MTX"],
+                "many": false
+            }
+        },
+        "p_val": {
+            "description": "The filtering threshold for the p-value",
+            "name": "P-value threshold:",
+            "required": false,
+            "spec": {
+                "attribute_type": "BoundedFloat",
+                "min": 0,
+                "max": 1.0,
+                "default": 0.05
+            },
+        }
+        "output_filename": {
+            "description": "The name of the contrast for your own reference.",
+            "name": "Contrast name:",
+            "required": false,
+            "spec": {
+                "attribute_type": "String",
+                "default": "deseq2_results"
+            }
+        }
+    },
+    "outputs": {
+        "dge_table": {
+            "spec":{
+                "attribute_type": "DataResource",
+                "resource_type": "FT"
+            } 
+        }
+    }
+}
+```
+This specification will be placed into a file. In the repo, there will be a Dockerfile and possibly other files (e.g. scripts). Upon ingestion, MEV will read this inputs file, get the commit hash, assign a UUID, build the container, push the container, etc. 
+
+The UUID will be placed into the database, and the repository files will be saved into a folder. The UUID will allow MEV to locate the appropriate files when needed.

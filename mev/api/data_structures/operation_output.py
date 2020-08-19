@@ -141,9 +141,6 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPE_KEY] = self.resource_type
         return i
-        
-    #TODO when deserializing the instance, validation will check that
-    # the resource types of the UUIDs are valid.
 
 # So we can just the `typename` to retrieve the proper class:
 all_output_spec_types = [
