@@ -461,87 +461,40 @@ class DataResourceAttribute(BaseAttribute):
     '''
     typename = 'DataResource'
 
-    MANY_KEY = 'many'
-    RESOURCE_TYPES_KEY = 'resource_types'
-    REQUIRED_PARAMS = [MANY_KEY, RESOURCE_TYPES_KEY]
+    REQUIRED_PARAMS = []
 
     def __init__(self, value, **kwargs):
         self.check_keys(kwargs.keys())  
-        kwargs = self.validate_keyword_args(kwargs)
         super().__init__(value, **kwargs)
-
-    def validate_keyword_args(self, kwargs_dict):
- 
-        # use the BooleanAttribute to validate the 'many' key:
-        b = BooleanAttribute(kwargs_dict.pop(self.MANY_KEY))
-        self.many = b.value
         
-        self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPES_KEY)
-
-        if not type(self.resource_types) == list:
-            raise ValidationError('The {key} key needs to be a list.'.format(
-                key=self.RESOURCE_TYPES_KEY
-                )
-            )
-
-        from resource_types import RESOURCE_MAPPING
-        for r in self.resource_types:
-            if not r in RESOURCE_MAPPING.keys():
-                raise ValidationError('The resource type {rt} is not valid.'
-                    ' Needs to be one of the following: {csv}.'.format(
-                        rt=r,
-                        csv=', '.join(RESOURCE_MAPPING.keys())
-                    )
-                )
-        return kwargs_dict
-         
     def value_validator(self, val, set_value=True):
         '''
-        Validates that the value (a list of UUIDs)
-        can be properly mapped to existing Resource instances
+        Validates that the value
+        is a proper UUID. 
         '''
         # if a single UUID was passed, place it into a list:
         if type(val) == str:
-            val = [val,]
+            pass
         elif type(val) == uuid.UUID:
-            val = [str(val),]
+            val = (val)
 
-        # ensure all members of the list as cast as strings:
-        val = [str(x) for x in val]
-
-        if self.many is False and len(val) > 1:
-            raise ValidationError('The "{many_key}" value was False,'
-                ' but multiple values were specified.'.format(
-                    many_key = self.MANY_KEY
-                )
+        try:
+            # check that it is a UUID
+            # Note that we can't explicitly check that a UUID
+            # corresponds to a Resource database instance
+            # as that creates a circular import dependency.
+            uuid.UUID(val)
+        except ValueError as ex:
+            raise ValidationError('The passed value ({val}) was'
+                ' not a valid UUID.'.format(val=val)
             )
-
-        for v in val:
-            try:
-                # check that it is a UUID
-                # Note that we can't explicitly check that a UUID
-                # corresponds to a Resource database instance
-                # as that creates a circular import dependency.
-                uuid.UUID(v)
-            except ValueError as ex:
-                raise ValidationError('One of the passed values ({u}) was'
-                    ' not a valid UUID.'.format(u=v)
+        except Exception as ex:
+            raise ValidationError('Encountered an unknown exception'
+                ' when validating a DataResourceAttribute instance. Value was'
+                ' {value}'.format(
+                    value = val
                 )
-            except Exception as ex:
-                raise ValidationError('Encountered an unknown exception'
-                    ' when validating a DataResourceAttribute instance. Value was'
-                    ' {value}'.format(
-                        value = val
-                    )
-                ) 
-
-    def to_representation(self):
-        return {
-            'attribute_type': self.typename,
-            'value': self.value,
-            self.MANY_KEY: self.many,
-            self.RESOURCE_TYPES_KEY: self.resource_types
-        }
+            ) 
 
 # collect the types into logical groupings so we can 
 # map the typenames (e.g. "PositiveFloat") to their

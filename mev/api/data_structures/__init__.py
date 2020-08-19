@@ -27,4 +27,15 @@ from .operation_input import OperationInput, \
     StringInputSpec, \
     BooleanInputSpec, \
     DataResourceInputSpec
-
+from .operation_output import OperationOutput, \
+    IntegerOutputSpec, \
+    PositiveIntegerOutputSpec, \
+    NonnegativeIntegerOutputSpec, \
+    BoundedIntegerOutputSpec, \
+    FloatOutputSpec, \
+    PositiveFloatOutputSpec, \
+    NonnegativeFloatOutputSpec, \
+    BoundedFloatOutputSpec, \
+    StringOutputSpec, \
+    BooleanOutputSpec, \
+    DataResourceOutputSpec

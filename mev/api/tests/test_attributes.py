@@ -218,39 +218,10 @@ class TestAttributes(unittest.TestCase):
         Tests the DataResourceAttribute, which is used when specifying files
         for use in analysis `Operation`s.
         '''
-        from resource_types import RESOURCE_MAPPING
-        all_resource_types = list(RESOURCE_MAPPING.keys())
-        random.shuffle(all_resource_types)
-        n = 2
-        valid_resource_types = [all_resource_types[i] for i in range(n)]
 
-        d = DataResourceAttribute(str(uuid.uuid4()), many=True, resource_types=valid_resource_types)
-        d = DataResourceAttribute(uuid.uuid4(), many=True, resource_types=valid_resource_types)
-        d = DataResourceAttribute(uuid.uuid4(), many=False, resource_types=valid_resource_types)
-        d = DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many=True, resource_types=valid_resource_types)
-        d = DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many=1, resource_types=valid_resource_types)
+        # works:
+        d = DataResourceAttribute(str(uuid.uuid4()))
 
-        # try where resource_types is not a list.  Should fail:
-        rt = 'abc' # invalid type AND not a list
+        # the "value" is not a UUID. Should fail:
         with self.assertRaises(ValidationError):
-            DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many=True, resource_types=rt)
-
-        rt = all_resource_types[0] # valid type, but still not a list
-        with self.assertRaises(ValidationError):
-            DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many=True, resource_types=rt)
-
-        rt = [all_resource_types[0], 'abc'] # a list, but one item is not a valid type
-        with self.assertRaises(ValidationError):
-            DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many=True, resource_types=rt)
-
-        # bad specification for 'many' key
-        with self.assertRaises(ValidationError):
-            DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many='x', resource_types=valid_resource_types)
-
-        # test with an invalid uuid:
-        with self.assertRaises(ValidationError):
-            DataResourceAttribute(['abc',], many=True, resource_types=valid_resource_types)
-
-        # inconsistent 'many' key-- only supposed to allow a single value, but a list of UUID was passed
-        with self.assertRaises(ValidationError):
-            DataResourceAttribute([uuid.uuid4(),uuid.uuid4()], many=False, resource_types=valid_resource_types)
+            DataResourceAttribute('abc')
