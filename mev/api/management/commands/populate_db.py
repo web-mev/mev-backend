@@ -1,9 +1,13 @@
 import random 
+import os
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.conf import settings
 
 from api.models import Workspace, Resource, ResourceMetadata
+from api.utilities import ingest_operation
 from api.tests import test_settings
 
 # a global dictionary so that we do not have to pass around the 
@@ -144,9 +148,27 @@ class Command(BaseCommand):
                     feature_set = None
                 )
 
+    def add_dummy_operation(self):
+        # use a valid operation spec contained in the test folder
+        op_spec_file = os.path.join(
+            settings.BASE_DIR, 
+            'api', 
+            'tests', 
+            'operation_test_files',
+            'valid_operation.json'
+        )
+        d=ingest_operation.read_operation_json(op_spec_file)
+        d['id'] = str(uuid.uuid4())
+        d['git_hash'] = 'abcd'
+        d['repository_url'] = 'https://github.com/some-repo/'
+        op_serializer = ingest_operation.validate_operation(d)
+        ingest_operation.save_operation(op_serializer)
+
+
     def handle(self, *args, **options):
         self.populate_users()
         self.populate_workspaces()
         self.populate_resources()
         self.add_metadata_to_resources()
         self.add_resources_to_workspace()
+        self.add_dummy_operation()

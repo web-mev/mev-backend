@@ -47,7 +47,16 @@ where:
 - `repository`: identifies the github repo used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. 
 - `git_hash`: This is the commit hash which uniquely identifies the code state. This way the analysis code can be exactly traced back.
 
-Both `inputs` and `outputs` address nested objects. For inputs, we have an `OperationInput` which looks like:
+Both `inputs` and `outputs` address nested objects. That is, they are mappings of string identifiers to `OperationInput` or `OperationOutput` instances:
+
+```
+{
+    'abc': <OperationInput/OperationOutput>,
+    'def': <OperationInput/OperationOutput>
+}
+```
+
+An `OperationInput` looks like:
 ```
 {
     "description": <string>,
@@ -56,7 +65,9 @@ Both `inputs` and `outputs` address nested objects. For inputs, we have an `Oper
     "spec": <InputSpec>
 }
 ```
-e.g. to specify a p-value for thresholding:
+(and similarly for `OperationOutput`, which has fewer keys).
+
+As an example of an `OperationInputs`, consider a p-value for thresholding:
 ```
 {
     "description": "The filtering threshold for the p-value",
@@ -72,7 +83,6 @@ e.g. to specify a p-value for thresholding:
 ```
 The `spec` key addresses a child class of `InputSpec` whose behavior is specific to each "type" (above, a `BoundedFloat`). There are only a limited number of those so defining a set of options for each is straightforward.
 
-Also note that the repository will contain the Dockerfile(s) needed for the analysis. In the case of local runs, we can actually build and push the containers during ingestion, tagging them appropriately in the process. For WDL-based processes, the docker tag (in the WDL `runtime` section) has to be set beforehand. So in that case the ingestion process will only check for the existence of the proper tagged image on Dockerhub.
 
 `ExecutedOperation`s should maintain the following data:
 

@@ -1,0 +1,46 @@
+{
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "count_matrix": {
+            "description": "The count matrix of expressions", 
+            "name": "Count matrix:", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_types": ["I_MTX", "EXP_MTX"], 
+                "many": false
+            }
+        }, 
+        "p_val": {
+            "description": "The filtering threshold for the p-value", 
+            "name": "P-value threshold:", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "BoundedFloat", 
+                "min": 0, 
+                "max": 1.0, 
+                "default": 0.05
+            }
+        }
+    }, 
+    "outputs": {
+        "norm_counts": {
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "EXP_MTX", 
+                "many": false
+            }
+        }, 
+        "dge_table": {
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "EXP_MTX", 
+                "many": false
+            }
+        }
+    }, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/some-repo/", 
+    "git_hash": "abcd1234"
+}

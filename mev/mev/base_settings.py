@@ -364,3 +364,20 @@ if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
 ###############################################################################
 # END Hooks/setup for Sentry (if used)
 ###############################################################################
+
+
+###############################################################################
+# START Settings for ingestion of Operations
+###############################################################################
+
+# the name of the file that contains the specification for an Operation:
+OPERATION_SPEC_FILENAME = 'operation_spec.json'
+
+# a local directory where the various Operations are stashed
+OPERATION_LIBRARY_DIR = os.path.join(BASE_DIR, 'operations')
+if not os.path.exists(OPERATION_LIBRARY_DIR):
+    os.makedirs(OPERATION_LIBRARY_DIR)
+
+###############################################################################
+# END Settings for ingestion of Operations
+###############################################################################

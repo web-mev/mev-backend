@@ -1,10 +1,13 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from api.data_structures import Operation
 from api.serializers.operation_input import OperationInputSerializer
 from api.serializers.operation_output import OperationOutputSerializer
 from api.serializers.operation_input_dict import OperationInputDictSerializer
 from api.serializers.operation_output_dict import OperationOutputDictSerializer
+
+from api.runners import AVAILABLE_RUN_MODES
 
 class OperationSerializer(serializers.Serializer):
 
@@ -17,7 +20,19 @@ class OperationSerializer(serializers.Serializer):
     inputs = OperationInputDictSerializer(required=True)
     outputs = OperationOutputDictSerializer(required=True)
 
+    def validate_mode(self, mode):
+        if not mode in AVAILABLE_RUN_MODES:
+            raise ValidationError('The selected mode ({mode}) is invalid.'
+                ' Please choose from among: {choices}'.format(
+                    mode = mode,
+                    choices = ', '.join(AVAILABLE_RUN_MODES)
+                )
+            )
+        return mode
+
     def to_representation(self, instance):
+        print(instance)
+        print('*'*100)
         input_dict_rep = {}
         output_dict_rep = {}
         for key, item in instance.inputs.items():
@@ -26,7 +41,7 @@ class OperationSerializer(serializers.Serializer):
         for key, item in instance.outputs.items():
             output_dict_rep[key] = OperationOutputSerializer(item).data
         return {
-            'id': instance.id,
+            'id': str(instance.id),
             'name': instance.name,
             'description': instance.description,
             'repository_url': instance.repository_url,

@@ -173,3 +173,22 @@ def delete_local_file(path):
         logger.error('General exception handled.'
             'Could not delete the file at {path}'.format(path=path))
         raise ex
+
+def read_local_file(filepath):
+    '''
+    Reads a local file, returning a file handle.
+
+    Basically this wraps the file read with logging
+    and error-catching.
+    '''
+    try:
+        logger.info('Read file at {path}'.format(
+            path=filepath
+        ))
+        return open(filepath, 'r')
+    except Exception as ex:
+        logger.error('Could not read file at {path}. Exception was {ex}'.format(
+            path = filepath,
+            ex = ex
+        ))
+        raise ex

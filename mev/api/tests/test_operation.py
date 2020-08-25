@@ -1,8 +1,9 @@
 import unittest
 import uuid
 import random
-import json
+import copy
 
+from api.runners import AVAILABLE_RUN_MODES
 from resource_types import RESOURCE_MAPPING
 from api.serializers.operation import OperationSerializer
 from api.data_structures.operation import Operation
@@ -58,10 +59,10 @@ class OperationTester(unittest.TestCase):
         op_output1 = OperationOutputSerializer(data=self.op_output1_dict).get_instance()
         op_output2 = OperationOutputSerializer(data=self.op_output2_dict).get_instance()
 
-        self.op_id = uuid.uuid4()
+        self.op_id = str(uuid.uuid4())
         self.op_name = 'Some name'
         self.description = 'Here is some desc.'
-        self.mode = 'local'
+        self.mode = AVAILABLE_RUN_MODES[0]
         self.repository_url = 'https://github.com/some-repo/'
         self.git_hash = 'abcd1234'
         self.operation_dict = {
@@ -119,16 +120,25 @@ class OperationTester(unittest.TestCase):
         self.assertDictEqual(new_instance.inputs, self.operation_instance.inputs)
 
         # bad identifier (not a UUID):
-        bad_dict = self.operation_dict.copy()
+        bad_dict = copy.deepcopy(self.operation_dict)
         bad_dict['id'] = 'abc'
         o = OperationSerializer(data=bad_dict)
         self.assertFalse(o.is_valid()) 
 
         # mess up one of the inputs:
-        bad_dict  = self.operation_dict.copy()
+        bad_dict = copy.deepcopy(self.operation_dict)
         o = OperationSerializer(data=bad_dict) # just check that it starts out OK
         self.assertTrue(o.is_valid()) 
         max_val = bad_dict['inputs']['p_val']['spec']['max']
         bad_dict['inputs']['p_val']['spec']['default'] = max_val + 0.1
         o = OperationSerializer(data=bad_dict)
         self.assertFalse(o.is_valid()) 
+
+        # change the mode to something invalid, check that it fails validation:
+        bad_mode = 'foo'
+        bad_dict = copy.deepcopy(self.operation_dict)
+        o = OperationSerializer(data=bad_dict) # just check that it starts out OK
+        self.assertTrue(o.is_valid(raise_exception=True)) 
+        bad_dict['mode'] = bad_mode
+        o = OperationSerializer(data=bad_dict)
+        self.assertFalse(o.is_valid())  
