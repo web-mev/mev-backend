@@ -10,6 +10,13 @@ class OperationInputSerializer(serializers.Serializer):
     required = serializers.BooleanField(required=True)
     spec = InputSpecSerializer(required=True)
 
+    def to_representation(self, instance):
+        if type(instance) == OperationInput:
+            return instance.to_representation()
+        else:
+            instance['spec'] = instance['spec'].to_representation()           
+            return instance
+
     def create(self, validated_data):
         '''
         Returns an OperationInput instance from the validated

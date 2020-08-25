@@ -103,6 +103,8 @@ class InputOutputSpec(object):
             d['default'] = self.default
         return d
 
+    def __eq__(self, other):
+        return self.full_kwargs == other.full_kwargs
 
 class IntegerInputOutputSpec(InputOutputSpec, IntegerAttribute):
     '''
@@ -323,8 +325,6 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
     }
     ```
     '''
-    MANY_KEY = 'many'
-    RESOURCE_TYPES_KEY = 'resource_types'
 
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)

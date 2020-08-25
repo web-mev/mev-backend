@@ -15,8 +15,8 @@ from .attributes import IntegerAttribute, \
     DataResourceAttribute, \
     create_attribute, \
     convert_dtype
-from .operation_input import OperationInput, \
-    IntegerInputSpec, \
+from .operation_input import OperationInput
+from .operation_input_spec import IntegerInputSpec, \
     PositiveIntegerInputSpec, \
     NonnegativeIntegerInputSpec, \
     BoundedIntegerInputSpec, \
@@ -27,8 +27,8 @@ from .operation_input import OperationInput, \
     StringInputSpec, \
     BooleanInputSpec, \
     DataResourceInputSpec
-from .operation_output import OperationOutput, \
-    IntegerOutputSpec, \
+from .operation_output import OperationOutput
+from .operation_output_spec import IntegerOutputSpec, \
     PositiveIntegerOutputSpec, \
     NonnegativeIntegerOutputSpec, \
     BoundedIntegerOutputSpec, \
@@ -39,3 +39,4 @@ from .operation_output import OperationOutput, \
     StringOutputSpec, \
     BooleanOutputSpec, \
     DataResourceOutputSpec
+from .operation import Operation

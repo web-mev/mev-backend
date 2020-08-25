@@ -2,7 +2,8 @@ import unittest
 
 from rest_framework.exceptions import ValidationError
 
-from api.data_structures.operation_input import OperationInput, BoundedIntegerInputSpec
+from api.data_structures.operation_input import OperationInput
+from api.data_structures.operation_input_spec import BoundedIntegerInputSpec
 from api.serializers.operation_input import OperationInputSerializer
 
 class OperationInputTester(unittest.TestCase):

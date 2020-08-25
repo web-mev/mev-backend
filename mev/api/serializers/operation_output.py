@@ -5,7 +5,7 @@ from api.serializers.output_spec import OutputSpecSerializer
 
 class OperationOutputSerializer(serializers.Serializer):
 
-    output_spec = OutputSpecSerializer(required=True)
+    spec = OutputSpecSerializer(required=True)
 
     def create(self, validated_data):
         '''

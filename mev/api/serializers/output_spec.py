@@ -1,6 +1,7 @@
+import copy
 from rest_framework.exceptions import ValidationError
 
-import api.data_structures as api_ds
+from api.data_structures.operation_output_spec import output_spec_mapping
 from api.serializers.input_output_spec import InputOutputSpecSerializer
 
 class OutputSpecSerializer(InputOutputSpecSerializer):
@@ -9,21 +10,22 @@ class OutputSpecSerializer(InputOutputSpecSerializer):
     '''
 
     def to_internal_value(self, data):
+        data_copy = copy.deepcopy(data)
         try:
-            output_spec_type_str = data.pop('attribute_type')
+            output_spec_type_str = data_copy.pop('attribute_type')
         except KeyError as ex:
             raise ValidationError('Need to supply an "attribute_type" key.')
 
         try:
-            output_spec_type = api_ds.operation_output.output_spec_mapping[output_spec_type_str]
+            output_spec_type = output_spec_mapping[output_spec_type_str]
         except KeyError as ex:
             raise ValidationError('The "attribute_type" key does not reference a'
                 ' valid type. Choices are: {choices}'.format(
-                    choices=', '.join(api_ds.operation_output.output_spec_mapping.keys())
+                    choices=', '.join(output_spec_mapping.keys())
                 ))
-        return output_spec_type(**data)
+        return output_spec_type(**data_copy)
 
     def create(self, validated_data):
         output_spec_type_str = validated_data.pop('attribute_type')
-        output_spec_type = api_ds.operation_output.output_spec_mapping[output_spec_type_str]
+        output_spec_type = output_spec_mapping[output_spec_type_str]
         return output_spec_type(data=validated_data)
