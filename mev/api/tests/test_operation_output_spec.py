@@ -15,7 +15,11 @@ from api.data_structures import IntegerOutputSpec, \
     StringOutputSpec, \
     BooleanOutputSpec, \
     DataResourceOutputSpec, \
-    OperationInput
+    ObservationOutputSpec, \
+    ObservationSetOutputSpec, \
+    FeatureOutputSpec, \
+    FeatureSetOutputSpec, \
+    OperationOutput
 from api.serializers.output_spec import OutputSpecSerializer
 
 class TestOutputSpec(unittest.TestCase):
@@ -248,7 +252,7 @@ class OutputSpecSerializerTester(unittest.TestCase):
 
     def test_deserialization(self):
         '''
-        Test that a JSON-like representation properly creates an OperationInput
+        Test that a JSON-like representation properly creates an OperationOutput
         instance, or issues appropriate errors if malformatted.
         '''
         i = OutputSpecSerializer(data=self.output_spec_dict)
@@ -292,3 +296,26 @@ class OutputSpecSerializerTester(unittest.TestCase):
         }
         i = OutputSpecSerializer(data=invalid_output_spec_dict)
         self.assertFalse(i.is_valid())
+
+    def test_non_native_types(self):
+        '''
+        The other tests use the children of the Attribute classes to 
+        produce their serialized/deserialized representation.
+
+        Here, we test the "other" input spec types, such as those for
+        Observations, ObservationSets, etc.
+        '''
+        types_to_test = {'Observation':ObservationOutputSpec, 
+            'ObservationSet':ObservationSetOutputSpec,
+            'Feature': FeatureOutputSpec,
+            'FeatureSet': FeatureSetOutputSpec
+        }
+        for t,tt in types_to_test.items():
+            spec_dict = {
+                'attribute_type': t
+            }
+            x = OutputSpecSerializer(data=spec_dict)
+            self.assertTrue(x.is_valid())
+            i = tt()
+            x = OutputSpecSerializer(i)
+            self.assertEqual(x.data, spec_dict)

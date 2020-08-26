@@ -15,6 +15,10 @@ from api.data_structures import IntegerInputSpec, \
     StringInputSpec, \
     BooleanInputSpec, \
     DataResourceInputSpec, \
+    ObservationInputSpec, \
+    ObservationSetInputSpec, \
+    FeatureInputSpec, \
+    FeatureSetInputSpec, \
     OperationInput
 from api.serializers.input_spec import InputSpecSerializer
 
@@ -236,7 +240,7 @@ class InputSpecSerializerTester(unittest.TestCase):
             'min': self.min_val, 
             'max': self.max_val, 
             'default':self.default
-        }   
+        }
 
     def test_serialization(self):
         '''
@@ -292,3 +296,26 @@ class InputSpecSerializerTester(unittest.TestCase):
         }
         i = InputSpecSerializer(data=invalid_input_spec_dict)
         self.assertFalse(i.is_valid())
+
+    def test_non_native_types(self):
+        '''
+        The other tests use the children of the Attribute classes to 
+        produce their serialized/deserialized representation.
+
+        Here, we test the "other" input spec types, such as those for
+        Observations, ObservationSets, etc.
+        '''
+        types_to_test = {'Observation':ObservationInputSpec, 
+            'ObservationSet':ObservationSetInputSpec,
+            'Feature': FeatureInputSpec,
+            'FeatureSet': FeatureSetInputSpec
+        }
+        for t,tt in types_to_test.items():
+            spec_dict = {
+                'attribute_type': t
+            }
+            x = InputSpecSerializer(data=spec_dict)
+            self.assertTrue(x.is_valid())
+            i = tt()
+            x = InputSpecSerializer(i)
+            self.assertEqual(x.data, spec_dict)

@@ -351,6 +351,10 @@ class ObservationInputOutputSpec(InputOutputSpec, Observation):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
+    def to_representation(self):
+        return {
+            'attribute_type': self.typename
+        }
 
 class FeatureInputOutputSpec(InputOutputSpec, Feature):
     '''
@@ -363,6 +367,10 @@ class FeatureInputOutputSpec(InputOutputSpec, Feature):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
+    def to_representation(self):
+        return {
+            'attribute_type': self.typename
+        }
 
 class ObservationSetInputOutputSpec(InputOutputSpec, ObservationSet):
     '''
@@ -375,6 +383,11 @@ class ObservationSetInputOutputSpec(InputOutputSpec, ObservationSet):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
+    def to_representation(self):
+        return {
+            'attribute_type': self.typename
+        }
+
 
 class FeatureSetInputOutputSpec(InputOutputSpec, FeatureSet):
     '''
@@ -386,3 +399,8 @@ class FeatureSetInputOutputSpec(InputOutputSpec, FeatureSet):
 
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
+    
+    def to_representation(self):
+        return {
+            'attribute_type': self.typename
+        }

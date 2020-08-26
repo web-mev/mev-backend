@@ -26,6 +26,10 @@ from .operation_input_spec import IntegerInputSpec, \
     BoundedFloatInputSpec, \
     StringInputSpec, \
     BooleanInputSpec, \
+    ObservationInputSpec, \
+    ObservationSetInputSpec, \
+    FeatureInputSpec, \
+    FeatureSetInputSpec, \
     DataResourceInputSpec
 from .operation_output import OperationOutput
 from .operation_output_spec import IntegerOutputSpec, \
@@ -38,5 +42,9 @@ from .operation_output_spec import IntegerOutputSpec, \
     BoundedFloatOutputSpec, \
     StringOutputSpec, \
     BooleanOutputSpec, \
+    ObservationOutputSpec, \
+    ObservationSetOutputSpec, \
+    FeatureOutputSpec, \
+    FeatureSetOutputSpec, \
     DataResourceOutputSpec
 from .operation import Operation
