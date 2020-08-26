@@ -103,7 +103,7 @@ The `spec` key addresses a child class of `InputSpec` whose behavior is specific
 
 For this, consider a differential expression analysis (e.g. like DESeq2). In this simplified analysis, we will take a count matrix, a p-value (for filtering significance based on some hypothesis test), and an output file name. For outputs, we have a single file which has the results of the differential expression testing on each gene.  Since each row concerns a gene (and the columns give information about that gene), the output file is a "feature table" in our nomenclature.
 
-Thus, the `Operation` object could look like:
+Thus, the file which defines this analysis would look like:
 
 ```
 {
@@ -153,4 +153,31 @@ Thus, the `Operation` object could look like:
 ```
 This specification will be placed into a file. In the repo, there will be a Dockerfile and possibly other files (e.g. scripts). Upon ingestion, MEV will read this inputs file, get the commit hash, assign a UUID, build the container, push the container, etc. 
 
-The UUID will be placed into the database, and the repository files will be saved into a folder. The UUID will allow MEV to locate the appropriate files when needed.
+As mentioned before, we note that the JSON above does not contain all of the required fields to create an `Operation` instance; it is missing `id`, `git_hash`, and`repository_url`. Note that when the API endpoint `/api/operations/` is requested, the returned object will match that above, but will also contain those required additional fields.
+
+### Executing an Operation
+
+The `Operation` objects above are typically used to populate the user interface such that the proper input fields can be displayed (e.g. a file chooser for an input that specifies it requires a `DataResource`). To actually initiate the `Operation`, thus creating an `ExecutedOperation`, the front-end (or API request) will need to POST a payload with the proper parameters/inputs. The backend will check those inputs against the specification.
+
+As an example, a valid payload for the above would be:
+```
+{
+    "operation_id": <UUID>,
+    "workspace_id": <UUID>,
+    "inputs": {
+        "count_matrix": <UUID of Resource>
+        "p_val": 0.01
+    }
+}
+```
+
+The `operation_id` allows us to locate the `Operation` that we wish to run and the `workspace_id` allows us to associate the eventual `ExecutedOperation` with a `Workspace`. Finally, the `inputs` key is an object of key-value pairs. Depending on the "type" of the input, the values can be effectively arbitrary.
+
+**Walking through the backend logic**
+In the backend, we locate the proper `Operation` by its UUID. In our example, we see that this `Operation` expects two required inputs: `"count_matrix"` and `"p_val"`. Below, we walk though how these are validated.
+
+For the `count_matrix` input, we see the `spec` field says it accepts `"DataResource"`s (files) with resource types of `["RNASEQ_COUNT_MTX", "I_MTX"]`. It also says `"many": false`, so we only will accept a single file. The payload example above provided a single UUID (so it is validated for `"many": false`). Then, we will take that UUID and query our database to see if it corresponds to a `Resource` instance that has a `resource_type` member that is either `"RNASEQ_COUNT_MTX"` or `"I_MTX"`. If that is indeed the case, then the `"count_matrix"` field is successfully validated.
+
+For the `"p_val"` field, we receive a value of 0.01. The `spec` states that this input should be of type `BoundedFloat` with a min of 0.0 and a max of 1.0. The backend validates that 0.01 is indeed in the range [0.0,1.0].
+
+Given that all the inputs successfully validate, we can move on to create an `ExecutedOperation` and actually run the analysis.
