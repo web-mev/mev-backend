@@ -168,7 +168,14 @@
 - <code>mode</code>: identifies <em>how</em> the analysis is run. Will be one of an enum of strings (e.g. <code>local_docker</code>, <code>cromwell</code>)
 - <code>repository</code>: identifies the github repo used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. 
 - <code>git_hash</code>: This is the commit hash which uniquely identifies the code state. This way the analysis code can be exactly traced back.</p>
-<p>Both <code>inputs</code> and <code>outputs</code> address nested objects. For inputs, we have an <code>OperationInput</code> which looks like:</p>
+<p>Both <code>inputs</code> and <code>outputs</code> address nested objects. That is, they are mappings of string identifiers to <code>OperationInput</code> or <code>OperationOutput</code> instances:</p>
+<pre class="codehilite"><code>{
+    'abc': &lt;OperationInput/OperationOutput&gt;,
+    'def': &lt;OperationInput/OperationOutput&gt;
+}</code></pre>
+
+
+<p>An <code>OperationInput</code> looks like:</p>
 <pre class="codehilite"><code>{
     &quot;description&quot;: &lt;string&gt;,
     &quot;name&quot;: &lt;string&gt;,
@@ -177,7 +184,8 @@
 }</code></pre>
 
 
-<p>e.g. to specify a p-value for thresholding:</p>
+<p>(and similarly for <code>OperationOutput</code>, which has fewer keys).</p>
+<p>As an example of an <code>OperationInputs</code>, consider a p-value for thresholding:</p>
 <pre class="codehilite"><code>{
     &quot;description&quot;: &quot;The filtering threshold for the p-value&quot;,
     &quot;name&quot;: &quot;P-value threshold:&quot;,
@@ -192,7 +200,6 @@
 
 
 <p>The <code>spec</code> key addresses a child class of <code>InputSpec</code> whose behavior is specific to each "type" (above, a <code>BoundedFloat</code>). There are only a limited number of those so defining a set of options for each is straightforward.</p>
-<p>Also note that the repository will contain the Dockerfile(s) needed for the analysis. In the case of local runs, we can actually build and push the containers during ingestion, tagging them appropriately in the process. For WDL-based processes, the docker tag (in the WDL <code>runtime</code> section) has to be set beforehand. So in that case the ingestion process will only check for the existence of the proper tagged image on Dockerhub.</p>
 <p><code>ExecutedOperation</code>s should maintain the following data:</p>
 <ul>
 <li>The <code>Workspace</code> (which also gives access to the user/owner)</li>
@@ -209,7 +216,7 @@
 <hr />
 <h3 id="a-concrete-example"><a class="toclink" href="#a-concrete-example">A concrete example</a></h3>
 <p>For this, consider a differential expression analysis (e.g. like DESeq2). In this simplified analysis, we will take a count matrix, a p-value (for filtering significance based on some hypothesis test), and an output file name. For outputs, we have a single file which has the results of the differential expression testing on each gene.  Since each row concerns a gene (and the columns give information about that gene), the output file is a "feature table" in our nomenclature.</p>
-<p>Thus, the <code>Operation</code> object could look like:</p>
+<p>Thus, the file which defines this analysis would look like:</p>
 <pre class="codehilite"><code>{
     &quot;name&quot;:&quot;DESeq2 differential gene expression&quot;,
     &quot;description&quot;: &quot;Find genes which are differentially expressed and filter...&quot;
@@ -257,7 +264,26 @@
 
 
 <p>This specification will be placed into a file. In the repo, there will be a Dockerfile and possibly other files (e.g. scripts). Upon ingestion, MEV will read this inputs file, get the commit hash, assign a UUID, build the container, push the container, etc. </p>
-<p>The UUID will be placed into the database, and the repository files will be saved into a folder. The UUID will allow MEV to locate the appropriate files when needed.</p>
+<p>As mentioned before, we note that the JSON above does not contain all of the required fields to create an <code>Operation</code> instance; it is missing <code>id</code>, <code>git_hash</code>, and<code>repository_url</code>. Note that when the API endpoint <code>/api/operations/</code> is requested, the returned object will match that above, but will also contain those required additional fields.</p>
+<h3 id="executing-an-operation"><a class="toclink" href="#executing-an-operation">Executing an Operation</a></h3>
+<p>The <code>Operation</code> objects above are typically used to populate the user interface such that the proper input fields can be displayed (e.g. a file chooser for an input that specifies it requires a <code>DataResource</code>). To actually initiate the <code>Operation</code>, thus creating an <code>ExecutedOperation</code>, the front-end (or API request) will need to POST a payload with the proper parameters/inputs. The backend will check those inputs against the specification.</p>
+<p>As an example, a valid payload for the above would be:</p>
+<pre class="codehilite"><code>{
+    &quot;operation_id&quot;: &lt;UUID&gt;,
+    &quot;workspace_id&quot;: &lt;UUID&gt;,
+    &quot;inputs&quot;: {
+        &quot;count_matrix&quot;: &lt;UUID of Resource&gt;
+        &quot;p_val&quot;: 0.01
+    }
+}</code></pre>
+
+
+<p>The <code>operation_id</code> allows us to locate the <code>Operation</code> that we wish to run and the <code>workspace_id</code> allows us to associate the eventual <code>ExecutedOperation</code> with a <code>Workspace</code>. Finally, the <code>inputs</code> key is an object of key-value pairs. Depending on the "type" of the input, the values can be effectively arbitrary.</p>
+<p><strong>Walking through the backend logic</strong>
+In the backend, we locate the proper <code>Operation</code> by its UUID. In our example, we see that this <code>Operation</code> expects two required inputs: <code>"count_matrix"</code> and <code>"p_val"</code>. Below, we walk though how these are validated.</p>
+<p>For the <code>count_matrix</code> input, we see the <code>spec</code> field says it accepts <code>"DataResource"</code>s (files) with resource types of <code>["RNASEQ_COUNT_MTX", "I_MTX"]</code>. It also says <code>"many": false</code>, so we only will accept a single file. The payload example above provided a single UUID (so it is validated for <code>"many": false</code>). Then, we will take that UUID and query our database to see if it corresponds to a <code>Resource</code> instance that has a <code>resource_type</code> member that is either <code>"RNASEQ_COUNT_MTX"</code> or <code>"I_MTX"</code>. If that is indeed the case, then the <code>"count_matrix"</code> field is successfully validated.</p>
+<p>For the <code>"p_val"</code> field, we receive a value of 0.01. The <code>spec</code> states that this input should be of type <code>BoundedFloat</code> with a min of 0.0 and a max of 1.0. The backend validates that 0.01 is indeed in the range [0.0,1.0].</p>
+<p>Given that all the inputs successfully validate, we can move on to create an <code>ExecutedOperation</code> and actually run the analysis.</p>
               
             </div>
           </div>

@@ -2011,6 +2011,139 @@
         }
       }
     },
+    "/api/operations/": {
+      "get": {
+        "operationId": "listOperations",
+        "description": "Lists available Operation instances.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 5000
+                      },
+                      "repository_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                      },
+                      "git_hash": {
+                        "type": "string"
+                      },
+                      "mode": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "inputs": {
+                        "type": "string"
+                      },
+                      "outputs": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "description",
+                      "repository_url",
+                      "git_hash",
+                      "mode",
+                      "inputs",
+                      "outputs"
+                    ]
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operations/{operation_uuid}/": {
+      "get": {
+        "operationId": "RetrieveOperationDetail",
+        "description": "Returns specific Operation instances.",
+        "parameters": [
+          {
+            "name": "operation_uuid",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 5000
+                    },
+                    "repository_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                    },
+                    "git_hash": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "inputs": {
+                      "type": "string"
+                    },
+                    "outputs": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "repository_url",
+                    "git_hash",
+                    "mode",
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/": {
       "get": {
         "operationId": "listApiRoots",
