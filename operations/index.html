@@ -278,6 +278,7 @@
 }</code></pre>
 
 
+<p>(note that the <code>"output_filename"</code> field was not required so we do not need it here)</p>
 <p>The <code>operation_id</code> allows us to locate the <code>Operation</code> that we wish to run and the <code>workspace_id</code> allows us to associate the eventual <code>ExecutedOperation</code> with a <code>Workspace</code>. Finally, the <code>inputs</code> key is an object of key-value pairs. Depending on the "type" of the input, the values can be effectively arbitrary.</p>
 <p><strong>Walking through the backend logic</strong>
 In the backend, we locate the proper <code>Operation</code> by its UUID. In our example, we see that this <code>Operation</code> expects two required inputs: <code>"count_matrix"</code> and <code>"p_val"</code>. Below, we walk though how these are validated.</p>
