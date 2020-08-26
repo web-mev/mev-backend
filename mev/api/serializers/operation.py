@@ -31,8 +31,6 @@ class OperationSerializer(serializers.Serializer):
         return mode
 
     def to_representation(self, instance):
-        print(instance)
-        print('*'*100)
         input_dict_rep = {}
         output_dict_rep = {}
         for key, item in instance.inputs.items():

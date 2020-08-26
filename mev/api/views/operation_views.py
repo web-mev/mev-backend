@@ -33,11 +33,7 @@ class OperationList(APIView):
         for d in os.listdir(settings.OPERATION_LIBRARY_DIR):
             f = os.path.join(settings.OPERATION_LIBRARY_DIR,d, settings.OPERATION_SPEC_FILENAME)
             j = read_operation_json(f)
-            print(j)
             op_serializer = validate_operation(j)
             ret.append(op_serializer.get_instance())
-        print('A'*100)
-        print(ret)
-        print('A'*100)
         s = self.get_serializer(ret, many=True)
         return Response(s.data)

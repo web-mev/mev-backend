@@ -122,9 +122,6 @@ def validate_operation(operation_dict):
     '''
     logger.info('Validate the dictionary against the definition'
     ' of an Operation...')
-    print('X'*40)
-    print(operation_dict)
-    print('X'*40)
     op_serializer = OperationSerializer(data=operation_dict)
     op_serializer.is_valid(raise_exception=True)
     return op_serializer

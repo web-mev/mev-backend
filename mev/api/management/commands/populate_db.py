@@ -162,8 +162,7 @@ class Command(BaseCommand):
         d['git_hash'] = 'abcd'
         d['repository_url'] = 'https://github.com/some-repo/'
         op_serializer = ingest_operation.validate_operation(d)
-        ingest_operation.save_operation(op_serializer)
-
+        ingest_operation.save_operation(op_serializer.get_instance())
 
     def handle(self, *args, **options):
         self.populate_users()
