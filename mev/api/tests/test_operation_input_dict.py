@@ -51,9 +51,6 @@ class OperationInputDictTester(unittest.TestCase):
             'p_val': self.op_input2
         })
         expected_data = self.operation_input_dict.copy()
-        # the serialization adds a 'value=None' key to the spec
-        expected_data['count_matrix']['spec']['value'] = None
-        expected_data['p_val']['spec']['value'] = None
         self.assertDictEqual(o.data, expected_data)
 
     def test_deserialization(self):

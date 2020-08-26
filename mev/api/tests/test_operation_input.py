@@ -28,7 +28,6 @@ class OperationInputTester(unittest.TestCase):
         )
         self.expected_spec_result = {
             'attribute_type': 'BoundedInteger',
-            'value': None, 
             'min': self.min_val, 
             'max': self.max_val, 
             'default':self.default

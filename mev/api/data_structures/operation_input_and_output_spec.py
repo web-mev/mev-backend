@@ -99,6 +99,10 @@ class InputOutputSpec(object):
 
     def to_representation(self, parent_class):
         d = parent_class.to_representation(self)
+        # pop off the null value key-- input/output specs should not have
+        # them. They were only added to aid with using the underlying
+        # attribute classes
+        d.pop('value')
         if self.default is not None:
             d['default'] = self.default
         return d

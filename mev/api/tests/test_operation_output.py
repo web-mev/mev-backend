@@ -25,7 +25,6 @@ class OperationOutputTester(unittest.TestCase):
         )
         self.expected_spec_result1 = {
             'attribute_type': 'BoundedInteger',
-            'value': None, 
             'min': self.min_val, 
             'max': self.max_val 
         }   
@@ -49,7 +48,6 @@ class OperationOutputTester(unittest.TestCase):
         )
         self.expected_spec_result2 = {
             'attribute_type': 'DataResource',
-            'value': None, 
             'many': False, 
             'resource_type': self.rt
         }   

@@ -101,15 +101,6 @@ class OperationTester(unittest.TestCase):
     def test_serialization(self):
         o = OperationSerializer(self.operation_instance)
         expected_data = self.operation_dict.copy()
-        # the serialization adds a 'value=None' key to the spec
-        i1 = self.op_input1_dict.copy()
-        i2 = self.op_input2_dict.copy()
-        o1 = self.op_output1_dict.copy()
-        o2 = self.op_output2_dict.copy()
-        expected_data['inputs']['count_matrix']['spec']['value'] = None
-        expected_data['inputs']['p_val']['spec']['value'] = None
-        expected_data['outputs']['norm_counts']['spec']['value'] = None
-        expected_data['outputs']['dge_table']['spec']['value'] = None
         self.assertDictEqual(expected_data,o.data)
 
 
