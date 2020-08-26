@@ -170,6 +170,7 @@ As an example, a valid payload for the above would be:
     }
 }
 ```
+(note that the `"output_filename"` field was not required so we do not need it here)
 
 The `operation_id` allows us to locate the `Operation` that we wish to run and the `workspace_id` allows us to associate the eventual `ExecutedOperation` with a `Workspace`. Finally, the `inputs` key is an object of key-value pairs. Depending on the "type" of the input, the values can be effectively arbitrary.
 
