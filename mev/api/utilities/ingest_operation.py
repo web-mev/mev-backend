@@ -129,7 +129,8 @@ def perform_operation_ingestion(repository_url):
 
     # create a database instance so we don't pick up other 'junk'
     # that may end up in the operations directory
-    OperationDbModel.objects.create(id=op.id, name=op.name)
+    o = OperationDbModel.objects.create(id=op.id, name=op.name)
+    return o.id
 
 def save_operation(operation_instance, staging_dir):
     logger.info('Save the operation')

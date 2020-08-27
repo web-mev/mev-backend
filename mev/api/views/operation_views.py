@@ -34,12 +34,20 @@ class OperationList(APIView):
         all_ops = OperationDbModel.objects.all()
         uuid_set = [str(x.id) for x in all_ops]
         ret = []
-        for d in os.listdir(settings.OPERATION_LIBRARY_DIR):
-            if d in uuid_set:
-                f = os.path.join(settings.OPERATION_LIBRARY_DIR, d, settings.OPERATION_SPEC_FILENAME)
+        operation_dirs = os.listdir(settings.OPERATION_LIBRARY_DIR)
+        for u in uuid_set:
+            if u in operation_dirs:
+                f = os.path.join(settings.OPERATION_LIBRARY_DIR, u, settings.OPERATION_SPEC_FILENAME)
                 j = read_operation_json(f)
                 op_serializer = validate_operation(j)
                 ret.append(op_serializer.get_instance())
+            else:
+                logger.error('Integrity error: the queried Operation with'
+                    ' id={uuid} did not have a corresponding folder.'.format(
+                        uuid=u
+                    )
+                )
+                return Response({}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
         s = self.get_serializer(ret, many=True)
         return Response(s.data)
 
@@ -74,5 +82,5 @@ class OperationDetail(APIView):
                     )
                 )
                 return Response({}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except api.models.operation.Operation.DoesNotExist:
+        except OperationDbModel.DoesNotExist:
             return Response({}, status=status.HTTP_404_NOT_FOUND)
