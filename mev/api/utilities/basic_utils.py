@@ -192,3 +192,32 @@ def read_local_file(filepath):
             ex = ex
         ))
         raise ex
+
+def recursive_copy(src, dest, include_hidden=False):
+    '''
+    Performs a recursive copy from src to dest
+
+    Simply adds logging to basic python utils.
+
+    By default, this skips "hidden" directories (defined
+    as those that begin with a dot ".").
+    '''
+    logger.info('Perform a recursive copy from {src}-->{dest}'.format(
+        src=src,
+        dest=dest
+    ))
+
+    def skip_hidden(dir, listing):
+        ret = []
+        for x in listing:
+            if x.startswith('.'):
+                ret.append(x)
+        return ret 
+
+    if not include_hidden:
+        logger.info('Will skip hidden files.')
+        shutil.copytree(src, dest, ignore=skip_hidden)
+    else:
+        logger.info('Copying all, including hidden files.')
+        shutil.copytree(src, dest)
+

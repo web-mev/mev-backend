@@ -370,6 +370,12 @@ if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
 # START Settings for ingestion of Operations
 ###############################################################################
 
+# the name of a directory where new Operation specifications will be cloned
+# and staged for ingestion
+CLONE_STAGING_DIR = os.path.join(BASE_DIR, 'operation_staging')
+if not os.path.exists(CLONE_STAGING_DIR):
+    os.makedirs(CLONE_STAGING_DIR)
+
 # the name of the file that contains the specification for an Operation:
 OPERATION_SPEC_FILENAME = 'operation_spec.json'
 
