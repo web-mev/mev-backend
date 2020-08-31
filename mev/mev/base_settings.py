@@ -384,6 +384,11 @@ OPERATION_LIBRARY_DIR = os.path.join(BASE_DIR, 'operations')
 if not os.path.exists(OPERATION_LIBRARY_DIR):
     os.makedirs(OPERATION_LIBRARY_DIR)
 
+# This is a list of domains from which we will pull repositories
+# If the domains are not in this list, then we will block any attempts
+# to clone repositories.
+ACCEPTABLE_REPOSITORY_DOMAINS = ['github.com',]
+
 ###############################################################################
 # END Settings for ingestion of Operations
 ###############################################################################

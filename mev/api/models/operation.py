@@ -12,5 +12,5 @@ class Operation(models.Model):
         default = uuid.uuid4, 
         editable = False
     )
-
+    active = models.BooleanField(default=False)
     name = models.CharField(max_length = 100)

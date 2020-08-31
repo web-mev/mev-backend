@@ -8,6 +8,7 @@ from celery.decorators import task
 
 from api.models import Resource, ResourceMetadata
 from api.utilities import basic_utils
+from api.utilities.ingest_operation import perform_operation_ingestion
 import api.utilities.resource_utilities as resource_utilities
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
@@ -72,3 +73,10 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     # and save the instance
     resource.is_active = True
     resource.save()
+
+@task(name='ingest_new_operation')
+def ingest_new_operation(operation_uuid_str, repository_url):
+    '''
+    This function kicks off the ingestion process for a new Operation
+    '''
+    perform_operation_ingestion(repository_url, operation_uuid_str)

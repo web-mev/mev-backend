@@ -3,6 +3,7 @@ import os
 import uuid
 import logging
 import subprocess as sp
+import shutil
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
@@ -30,7 +31,7 @@ def retrieve_commit_hash(git_dir):
     Retrieves the git commit ID given a directory
     '''
     logger.info('Retrieve commit ID.')
-    cmd = 'git --git-dir {git_dir}/.git show -s --format=%%H'.format(
+    cmd = 'git --git-dir {git_dir}/.git show -s --format=%H'.format(
         git_dir=git_dir
     )
     logger.info('Retrieve git commit with: {cmd}'.format(
@@ -80,7 +81,7 @@ def clone_repository(url):
     logger.info('Completed clone.')
     return dest
     
-def perform_operation_ingestion(repository_url):
+def perform_operation_ingestion(repository_url, op_uuid):
     '''
     This function is the main entrypoint for the ingestion of a new `Operation`
     '''
@@ -94,7 +95,7 @@ def perform_operation_ingestion(repository_url):
 
     # extra parameters for an Operation that are not required
     # to be specified by the developer who wrote the `Operation`
-    add_required_keys_to_operation(j, id=str(uuid.uuid4()),
+    add_required_keys_to_operation(j, id=op_uuid,
         git_hash = git_hash,
         repository_url = repository_url
     )
@@ -127,10 +128,23 @@ def perform_operation_ingestion(repository_url):
     op = op_serializer.get_instance()
     save_operation(op, staging_dir)
 
-    # create a database instance so we don't pick up other 'junk'
-    # that may end up in the operations directory
-    o = OperationDbModel.objects.create(id=op.id, name=op.name)
-    return o.id
+    # update the database instance.
+    try:
+        o = OperationDbModel.objects.get(id=op.id)
+        o.name=op.name
+        o.active=True
+        o.save()
+    except OperationDbModel.DoesNotExist:
+        logger.error('Could not find the Operation corresponding to'
+            ' id={u}'.format(u=op_uuid)
+        )
+        raise Exception('Encountered issue when trying update an Operation'
+            ' database instance after ingesting from repository.'
+        )
+
+    # remove the staging dir:
+    shutil.rmtree(staging_dir)
+
 
 def save_operation(operation_instance, staging_dir):
     logger.info('Save the operation')

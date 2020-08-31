@@ -52,7 +52,10 @@ class OperationIngestionTester(unittest.TestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
-    def test_operation_validates(self, mock_read_operation_json, 
+    @mock.patch('api.utilities.ingest_operation.shutil')
+    def test_operation_validates(self, 
+        mock_shutil,
+        mock_read_operation_json, 
         mock_clone_repository,
         mock_retrieve_commit_hash,
         mock_save_operation):
@@ -66,14 +69,24 @@ class OperationIngestionTester(unittest.TestCase):
 
         n0 = len(OperationDbModel.objects.all())
 
-        perform_operation_ingestion(repo_url)
+        op_uuid = uuid.uuid4()
+        o = OperationDbModel.objects.create(id=str(op_uuid))
+        n1 = len(OperationDbModel.objects.all())
+        n2 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n1-n0,1)
+
+        perform_operation_ingestion(
+            repo_url, 
+            str(op_uuid)
+        )
 
         mock_clone_repository.assert_called_with(repo_url)
         mock_retrieve_commit_hash.assert_called_with(mock_dir)
         mock_save_operation.assert_called()
+        mock_shutil.rmtree.assert_called_with(mock_dir)
 
-        n1 = len(OperationDbModel.objects.all())
-        self.assertEqual(n1-n0,1)
+        n3 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n3-n2,1)
 
     def test_save_operation(self):
         op_input_dict = {
