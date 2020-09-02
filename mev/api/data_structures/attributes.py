@@ -476,7 +476,7 @@ class DataResourceAttribute(BaseAttribute):
         if type(val) == str:
             pass
         elif type(val) == uuid.UUID:
-            val = (val)
+            val = str(val)
 
         try:
             # check that it is a UUID

@@ -11,9 +11,12 @@ from rest_framework import status
 
 from api.serializers.operation import OperationSerializer
 from api.models import Operation as OperationDbModel
+from api.models import Workspace
 import api.permissions as api_permissions
-from api.utilities.ingest_operation import read_operation_json, \
-    validate_operation
+from api.utilities.operations import read_operation_json, \
+    validate_operation, \
+    validate_operation_inputs, \
+    get_operation_instance_data
 from api.async_tasks import ingest_new_operation as async_ingest_new_operation    
 
 logger = logging.getLogger(__name__)
@@ -72,18 +75,10 @@ class OperationDetail(APIView):
         try:
             o = OperationDbModel.objects.get(id=op_uuid)
             if o.active:
-                f = os.path.join(settings.OPERATION_LIBRARY_DIR, str(op_uuid), settings.OPERATION_SPEC_FILENAME)
-                if os.path.exists(f):
-                    j = read_operation_json(f)
-                    op_serializer = validate_operation(j)
-                    s = self.get_serializer(op_serializer.get_instance())
-                    return Response(s.data)
-                else:
-                    logger.error('Integrity error: the queried Operation with'
-                        ' id={uuid} did not have a corresponding folder.'.format(
-                            uuid=op_uuid
-                        )
-                    )
+                data = get_operation_instance_data(o)
+                if data:
+                    return Response(data)
+                else:            
                     return Response({}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             else:
                 return Response({}, status=status.HTTP_404_NOT_FOUND)
@@ -131,3 +126,101 @@ class OperationCreate(APIView):
                 )
             )
             return Response({self.REPO_URL: message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OperationRun(APIView):
+
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
+
+    OP_UUID = 'operation_id'
+    WORKSPACE_UUID = 'workspace_id'
+    INPUTS = 'inputs'
+    REQUIRED_KEYS = [OP_UUID, WORKSPACE_UUID, INPUTS]
+    REQUIRED_MESSAGE = 'This field is required.'
+    BAD_UUID_MESSAGE = ('{field}: {uuid} could not'
+        ' be cast as a valid UUID')
+    NOT_FOUND_MESSAGE = ('An instance with identifier {uuid}'
+        ' was not found.')
+
+    def post(self, request, *args, **kwargs):
+        logger.info('POSTing to run an Operation with data={data}'.format(
+            data=request.data
+        ))
+
+        payload = request.data
+        user = request.user
+
+        # first check that all the proper keys are present
+        # in the payload
+        missing_keys = []
+        for k in self.REQUIRED_KEYS:
+            try:
+                payload[k]
+            except KeyError as ex:
+                missing_keys.append(k)
+                
+        if len(missing_keys) > 0:
+            response_payload = {}
+            for k in missing_keys:
+                response_payload[k] = self.REQUIRED_MESSAGE
+            return Response(response_payload, 
+                status=status.HTTP_400_BAD_REQUEST)
+
+        # check that the operation_id was indeed a valid operation.
+        try:
+            op_uuid = uuid.UUID(payload[self.OP_UUID])
+        except Exception as ex:
+            message = self.BAD_UUID_MESSAGE.format(
+                field=self.OP_UUID,
+                uuid=payload[self.OP_UUID]
+            )
+            return Response({self.OP_UUID: message}, 
+                status=status.HTTP_400_BAD_REQUEST)
+        
+        # ok, so the op_uuid was indeed a valid UUID. Does it match anything?
+        matching_ops = OperationDbModel.objects.filter(id=op_uuid)
+        if len(matching_ops) != 1:
+            message = ('Operation ID: {op_uuid} did not'
+                ' match any known operations'.format(
+                    op_uuid=op_uuid
+                )
+            )
+            return Response({self.OP_UUID: message}, 
+                status=status.HTTP_404_NOT_FOUND)
+        matching_op = matching_ops[0]
+
+        # check workspace uuid:
+        try:
+            workspace_uuid = uuid.UUID(payload[self.WORKSPACE_UUID])
+        except Exception as ex:
+            message = self.BAD_UUID_MESSAGE.format(
+                field=self.WORKSPACE_UUID,
+                uuid=payload[self.WORKSPACE_UUID]
+            )
+            return Response({self.WORKSPACE_UUID: message}, 
+                status=status.HTTP_400_BAD_REQUEST)
+
+        # ensure that there is a Workspace corresponding to that UUID:
+        try:
+            workspace = Workspace.objects.get(id=workspace_uuid, owner=user)
+        except Workspace.DoesNotExist:
+            message = self.NOT_FOUND_MESSAGE.format(
+                uuid=payload[self.WORKSPACE_UUID]
+            )
+            return Response({self.WORKSPACE_UUID: message}, 
+                status=status.HTTP_404_NOT_FOUND)
+
+        # we can now validate the inputs:
+        inputs = payload[self.INPUTS]
+        inputs_are_valid = validate_operation_inputs(inputs, matching_op, workspace)
+
+        # now that the inputs are validated against the spec, create an
+        # ExecutedOperation instance and return it
+        if inputs_are_valid:
+            # TODO: create ExecutedOp
+            # TODO: submit to runner
+            return Response({}, status=status.HTTP_200_OK)
+        else:
+            return Response({}, status=status.HTTP_400_BAD_REQUEST)

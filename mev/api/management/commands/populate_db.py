@@ -8,7 +8,7 @@ from django.conf import settings
 
 from api.models import Workspace, Resource, ResourceMetadata
 from api.models import Operation as OperationDbModel
-from api.utilities import ingest_operation
+from api.utilities.operations import read_operation_json
 from api.tests import test_settings
 
 # a global dictionary so that we do not have to pass around the 
@@ -158,7 +158,7 @@ class Command(BaseCommand):
             'operation_test_files',
             'valid_operation.json'
         )
-        d=ingest_operation.read_operation_json(op_spec_file)
+        d=read_operation_json(op_spec_file)
         d['id'] = str(uuid.uuid4())
         d['git_hash'] = 'abcd'
         d['repository_url'] = 'https://github.com/some-repo/'

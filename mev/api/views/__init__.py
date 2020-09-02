@@ -18,7 +18,10 @@ from .resource_metadata import ResourceMetadataView, \
     ResourceMetadataParentOperationView
 from .token_views import TokenObtainView, RefreshTokenView
 from .resource_type_views import ResourceTypeList
-from .operation_views import OperationList, OperationDetail, OperationCreate
+from .operation_views import OperationList, \
+    OperationDetail, \
+    OperationCreate, \
+    OperationRun
 
 def sentry_debug(request):
     '''

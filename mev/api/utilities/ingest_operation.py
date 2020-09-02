@@ -10,9 +10,9 @@ from rest_framework.exceptions import ValidationError
 
 from api.models import Operation as OperationDbModel
 from api.serializers.operation import OperationSerializer
-from api.utilities.basic_utils import read_local_file, \
-    make_local_directory, \
-    recursive_copy
+from api.utilities.basic_utils import recursive_copy
+from api.utilities.operations import read_operation_json, \
+    validate_operation
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,6 @@ def perform_operation_ingestion(repository_url, op_uuid):
     # remove the staging dir:
     shutil.rmtree(staging_dir)
 
-
 def save_operation(operation_instance, staging_dir):
     logger.info('Save the operation')
     data = OperationSerializer(operation_instance).data
@@ -167,37 +166,3 @@ def save_operation(operation_instance, staging_dir):
     op_fileout = os.path.join(dest_dir, settings.OPERATION_SPEC_FILENAME)
     with open(op_fileout, 'w') as fout:
         fout.write(json.dumps(data))
-
-def read_operation_json(filepath):
-    '''
-    Performs ingestion of a JSON-format file defining an `Operation`
-
-    Accepts a local filepath for the JSON file, returns a dict
-    '''
-    try:
-        logger.info('Parse Operation definition file at {path}'.format(
-            path=filepath
-        ))
-        fp = read_local_file(filepath)
-        j = json.load(fp)
-        fp.close()
-        logger.info('Done reading file.')
-        return j
-    except Exception as ex:
-        logger.error('Could not read the operation JSON-format file at {path}.'
-            ' Exception was {ex}'.format(
-                path = filepath,
-                ex = ex
-            )
-        )
-
-def validate_operation(operation_dict):
-    '''
-    Takes a dictionary and validates it against the definition
-    of an `Operation`. Returns an instance of an `OperationSerializer`.
-    '''
-    logger.info('Validate the dictionary against the definition'
-    ' of an Operation...')
-    op_serializer = OperationSerializer(data=operation_dict)
-    op_serializer.is_valid(raise_exception=True)
-    return op_serializer

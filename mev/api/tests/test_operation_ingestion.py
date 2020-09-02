@@ -30,19 +30,11 @@ class OperationIngestionTester(unittest.TestCase):
         self.valid_dict = json.load(fp)
         fp.close()
 
-    @mock.patch('api.utilities.ingest_operation.read_local_file')
-    def test_read_operation_json(self, mock_read_local_file):
-
-        # test that a properly formatted file returns 
-        # a dict as expected:
-
-        fp = open(self.filepath)
-        mock_read_local_file.return_value = fp
-        d = read_operation_json(self.filepath)
-        self.assertDictEqual(d, self.valid_dict)
-
     def test_update_op_dict(self):
-        
+        '''
+        Tests that the expected keys are added when we use the 
+        add_required_keys_to_operation function
+        '''
         d = copy.deepcopy(self.valid_dict)
         add_required_keys_to_operation(d, abc=1, xyz='foo')
         self.assertTrue(d['abc'] == 1)

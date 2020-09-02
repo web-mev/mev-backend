@@ -11,10 +11,14 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
 from api.models import Operation as OperationDbModel
+from api.models import Workspace
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.ingest_operation import perform_operation_ingestion
+
+from api.views.operation_views import OperationRun
+
 
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
@@ -214,3 +218,158 @@ class OperationAddTests(BaseAPITestCase):
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_ingest.delay.assert_not_called()
+
+
+class OperationRunTests(BaseAPITestCase):
+
+    def setUp(self):
+        setup_db_elements(self)
+        self.url = reverse('operation-run')
+        self.establish_clients()
+
+    def test_missing_keys_returns_400_error(self):
+        '''
+        We require certain keys in the payload. If any are
+        missing, check that we return 400
+        '''
+        payload = {OperationRun.OP_UUID: 'abc'}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        s = response.json()
+        expected_response = {
+            OperationRun.WORKSPACE_UUID: OperationRun.REQUIRED_MESSAGE,
+            OperationRun.INPUTS: OperationRun.REQUIRED_MESSAGE
+        }
+        self.assertDictEqual(s, expected_response)
+
+    def test_bad_uuid_returns_400_error(self):
+        '''
+        The UUID for the operation or workspace is not a real UUID.
+        '''
+        payload = {
+            OperationRun.OP_UUID: 'abc',
+            OperationRun.INPUTS: [],
+            OperationRun.WORKSPACE_UUID: 'abc'
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        s = response.json()
+        expected_response = {
+            OperationRun.OP_UUID: OperationRun.BAD_UUID_MESSAGE.format(
+                field=OperationRun.OP_UUID,
+                uuid='abc'   
+            )
+        }
+        self.assertDictEqual(s, expected_response)
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        op = ops[0]
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: [],
+            OperationRun.WORKSPACE_UUID: 'abc'
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        s = response.json()
+        expected_response = {
+            OperationRun.WORKSPACE_UUID: OperationRun.BAD_UUID_MESSAGE.format(
+                field=OperationRun.WORKSPACE_UUID,
+                uuid='abc'   
+            )
+        }
+        self.assertDictEqual(s, expected_response)
+
+    def test_not_found_workspace_uuid(self):
+        '''
+        Test the case where a valid UUID is given for the workspace field, 
+        but there is no database object for that
+        '''
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        workspace_uuid = uuid.uuid4()
+
+        op = ops[0]
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: [],
+            OperationRun.WORKSPACE_UUID: str(workspace_uuid)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        s = response.json()
+        expected_response = {
+            OperationRun.WORKSPACE_UUID: OperationRun.NOT_FOUND_MESSAGE.format(
+                uuid=str(workspace_uuid)  
+            )
+        }
+        self.assertDictEqual(s, expected_response)
+
+    def test_valid_op_and_other_workspace_uuid(self):
+        '''
+        Test that a request with a valid workspace UUID
+        owned by another user fails.
+        '''
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        # get a workspace for a different user. The Workspace is valid, but is
+        # not owned by the client making the request.
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_2)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' the OTHER non-admin user.')
+
+        workspace = user_workspaces[0]
+        op = ops[0]
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: [],
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        s = response.json()
+        expected_response = {
+            OperationRun.WORKSPACE_UUID: OperationRun.NOT_FOUND_MESSAGE.format(
+                uuid=str(workspace.id)  
+            )
+        }
+        self.assertDictEqual(s, expected_response)
+
+    def test_valid_op_and_workspace_uuid(self):
+        '''
+        Test that a request with a valid workspace UUID
+        and valid operation UUID passes
+        '''
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' a non-admin user.')
+
+        workspace = user_workspaces[0]
+        op = ops[0]
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {'foo': 1, 'bar':'abc'},
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
