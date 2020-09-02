@@ -1,0 +1,104 @@
+{
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "int_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "Integer",
+                "default": 2
+            }
+        },
+        "positive_int_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "PositiveInteger",
+                "default": 2
+            }
+        },
+        "nonnegative_int_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "NonNegativeInteger",
+                "default": 2
+            }
+        },
+        "bounded_int_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "BoundedInteger",
+                "min": 0,
+                "max": 10,
+                "default": 5
+            }
+        },
+        "float_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "Float",
+                "default": 1.2
+            }
+        },
+        "bounded_float_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "BoundedFloat",
+                "min": 0,
+                "max": 1.0,
+                "default": 0.05
+            }
+        },
+        "positive_float_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "PositiveFloat",
+                "default": 0.05
+            }
+        },
+        "nonnegative_float_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "NonNegativeFloat",
+                "default": 0.05
+            }
+        },
+        "string_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "String",
+                "default": "abc"
+            }
+        },
+        "boolean_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "Boolean",
+                "default": true
+            }
+        }
+    }, 
+    "outputs": {}, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/some-repo/", 
+    "git_hash": "abcd1234"
+}

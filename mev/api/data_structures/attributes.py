@@ -505,7 +505,9 @@ numeric_attribute_types = [
     NonnegativeIntegerAttribute,
     FloatAttribute,
     BoundedIntegerAttribute,
-    BoundedFloatAttribute
+    BoundedFloatAttribute,
+    PositiveFloatAttribute,
+    NonnegativeFloatAttribute,
 ]
 numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
 other_attribute_types = [StringAttribute, BooleanAttribute, DataResourceAttribute]
@@ -546,9 +548,9 @@ def create_attribute(attr_key, attribute_dict):
         ' an "attribute_type" key.'})
 
     if not attribute_typename in all_attribute_typenames:
-        raise ValidationError({attr_dict:'Attributes must supply'
+        raise ValidationError({attr_key:'Attributes must supply'
         ' a valid "attribute_type" from the choices of: {typelist}'.format(
-            typelist='\n'.join(all_attribute_typenames)
+            typelist=', '.join(all_attribute_typenames)
         )})
     attribute_type = attribute_mapping[attribute_typename]
 

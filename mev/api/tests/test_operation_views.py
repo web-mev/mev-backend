@@ -348,12 +348,15 @@ class OperationRunTests(BaseAPITestCase):
         }
         self.assertDictEqual(s, expected_response)
 
-    def test_valid_op_and_workspace_uuid(self):
+    @mock.patch('api.views.operation_views.validate_operation_inputs')
+    def test_valid_op_and_workspace_uuid(self, mock_validate_operation_inputs):
         '''
         Test that a request with a valid workspace UUID
         and valid operation UUID passes
         '''
-
+        # set the mock to return True so that we mock the inputs passing validation
+        mock_validate_operation_inputs.return_value = True
+        
         # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:

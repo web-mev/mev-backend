@@ -1,0 +1,94 @@
+{
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "int_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "Integer"
+            }
+        },
+        "positive_int_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "PositiveInteger"
+            }
+        },
+        "nonnegative_int_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "NonNegativeInteger"
+            }
+        },
+        "bounded_int_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "BoundedInteger",
+                "min": 0,
+                "max": 10
+            }
+        },
+        "float_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "Float"
+            }
+        },
+        "bounded_float_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "BoundedFloat",
+                "min": 0,
+                "max": 1.0
+            }
+        },
+        "positive_float_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "PositiveFloat"
+            }
+        },
+        "nonnegative_float_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "NonNegativeFloat"
+            }
+        },
+        "string_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "String"
+            }
+        },
+        "boolean_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "Boolean"
+            }
+        }
+    }, 
+    "outputs": {}, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/some-repo/", 
+    "git_hash": "abcd1234"
+}

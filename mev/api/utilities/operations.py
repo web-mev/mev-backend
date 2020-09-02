@@ -3,11 +3,12 @@ import json
 import logging
 
 from django.conf import settings
+from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation import OperationSerializer
 from api.utilities.basic_utils import read_local_file
-from api.data_structures import create_attribute, \
-    user_operation_input_mapping
+from api.data_structures import create_attribute
+from api.data_structures.user_operation_input import user_operation_input_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +78,12 @@ def get_operation_instance_data(operation_db_model):
         )
         return None
 
-def validate_operation_inputs(inputs, operation, workspace):
+def validate_operation_inputs(user, inputs, operation, workspace):
     '''
     This function validates the inputs to check that they are compatible
     with the Operation that a user wishes to run.
 
+    `user` is the user (database object) requesting the executed Operation
     `inputs` is a dictionary of input parameters for the Operation
     `operation` is an instance of Operation (the database model)
     `workspace` is an instance of Workspace (database model)
@@ -93,6 +95,8 @@ def validate_operation_inputs(inputs, operation, workspace):
     operation_spec_dict = get_operation_instance_data(operation)
 
     final_inputs = {}
+    print(operation_spec_dict['inputs'])
+    print(inputs)
     for key, op_input in operation_spec_dict['inputs'].items():
         required = op_input['required']
         spec = op_input['spec']
@@ -101,12 +105,12 @@ def validate_operation_inputs(inputs, operation, workspace):
         if key_is_present:
             supplied_input = inputs[key]
         elif required: # key not there, but it is required
-            raise Exception('ack')
+            logger.info('The key ({key}) was not among the inputs, but it'
+                ' is required.'.format(key=key)
+            )
+            raise ValidationError({key: 'This is a required input field.'})
         else: # key not there, but NOT required
-            try:
-                supplied_input = spec['default']
-            except KeyError as ex:
-                supplied_input = None
+            supplied_input = None
 
         # now validate that supplied input against the spec
         attribute_typename = spec['attribute_type']
@@ -118,4 +122,5 @@ def validate_operation_inputs(inputs, operation, workspace):
                     t=attribute_typename
                 )
             )
-        final_inputs[key] = user_operation_input_class(key, supplied_input, spec)
+        final_inputs[key] = user_operation_input_class(user, key, supplied_input, spec)
+    return final_inputs

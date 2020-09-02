@@ -48,4 +48,3 @@ from .operation_output_spec import IntegerOutputSpec, \
     FeatureSetOutputSpec, \
     DataResourceOutputSpec
 from .operation import Operation
-from .user_operation_input import user_operation_input_mapping

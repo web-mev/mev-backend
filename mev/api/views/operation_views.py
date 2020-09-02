@@ -214,7 +214,8 @@ class OperationRun(APIView):
 
         # we can now validate the inputs:
         inputs = payload[self.INPUTS]
-        inputs_are_valid = validate_operation_inputs(inputs, matching_op, workspace)
+        inputs_are_valid = validate_operation_inputs(request.user,
+            inputs, matching_op, workspace)
 
         # now that the inputs are validated against the spec, create an
         # ExecutedOperation instance and return it

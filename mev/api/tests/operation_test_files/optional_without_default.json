@@ -1,0 +1,18 @@
+{
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "optional_int_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "Integer"
+            }
+        }
+    }, 
+    "outputs": {}, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/some-repo/", 
+    "git_hash": "abcd1234"
+}
