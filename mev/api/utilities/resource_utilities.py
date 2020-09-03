@@ -29,7 +29,7 @@ def get_resource_by_pk(resource_pk):
         resource = Resource.objects.get(pk=resource_pk)
         return resource
     except Resource.DoesNotExist as ex:
-        logger.error('Received an unknown/invalid primary key'
+        logger.info('Received an unknown/invalid primary key'
         ' when trying to retrieve a Resource instance.'
         ' PK was {uuid}.'.format(uuid=str(resource_pk))
     )
