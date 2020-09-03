@@ -334,6 +334,7 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
         InputOutputSpec.__init__(self, **kwargs)
         kwargs = self.validate_keyword_args(kwargs)
         kwargs = self.handle_common_kwargs(kwargs)
+        self.validate_many_key(kwargs.pop(self.MANY_KEY))
 
     def to_representation(self):
         i = InputOutputSpec.to_representation(self, DataResourceAttribute)
@@ -345,7 +346,6 @@ class ObservationInputOutputSpec(InputOutputSpec, Observation):
     Allows input/output fields that are based on our Observation
     objects.
     '''
-
     typename = "Observation"
 
     def __init__(self, **kwargs):

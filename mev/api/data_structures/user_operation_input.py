@@ -17,6 +17,10 @@ from api.data_structures import create_attribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
     DataResourceInputSpec
+from api.serializers.observation import ObservationSerializer
+from api.serializers.feature import FeatureSerializer
+from api.serializers.observation_set import ObservationSetSerializer
+from api.serializers.feature_set import FeatureSetSerializer
 from api.models import Resource
 
 logger = logging.getLogger(__name__)
@@ -122,8 +126,7 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         # the following function will raise a ValidationError
         # if the submitted value is not sensible for the specific
         # input type.
-        print('Create attr with:', d)
-        instance = create_attribute(key, d)
+        self.instance = create_attribute(key, d)
 
 
 class DataResourceUserOperationInput(UserOperationInput):
@@ -136,10 +139,11 @@ class DataResourceUserOperationInput(UserOperationInput):
     def __init__(self, user, key, submitted_value, input_spec):
         super().__init__(user, key, submitted_value, input_spec)
 
-        # The DataResourceInputSpec has a key to indicate
+        # The DataResourceAttribute has a key to indicate
         # whether multiple values are permitted. Depending on that
-        # value, we expect a different 'submitted_value'
-        expect_many = self.input_spec[DataResourceInputSpec.MANY_KEY]
+        # value, we expect a different 'submitted_value' (i.e. if many=True
+        # then we expect a list.)
+        expect_many = self.input_spec[DataResourceAttribute.MANY_KEY]
         if expect_many:
             if not type(self.submitted_value) == list:
                 logger.info('Invalid payload for an input expecting'
@@ -152,6 +156,8 @@ class DataResourceUserOperationInput(UserOperationInput):
                 })
             else:
                 tmp_val = self.submitted_value
+                DataResourceAttribute(self.submitted_value, many=True)
+
         else: # only single value permitted-- needs to be a string
             if not type(self.submitted_value) == str: 
                 logger.info('Invalid payload for an input expecting'
@@ -165,24 +171,8 @@ class DataResourceUserOperationInput(UserOperationInput):
             else:
                 # to handle both cases (single or multiple resources) 
                 # in the same manner, put the single value into a list
-                tmp_val = [self.submitted_value,]    
-
-        # use the DataResourceAttribute type to validate
-        # that the value is a UUID (and possibly other
-        # logic necessary to create a DataResourceAttribute)
-        # Technically, the database query will catch IDs that are not
-        # valid UUIDs, but the DataResourceAttribute constructor could
-        # also contain additional validation, etc.
-        for v in tmp_val:
-            try:
-                DataResourceAttribute(v)
-            except ValidationError as ex:
-                logger.info('Could not validate the user submitted value'
-                    ' for a DataResource input: {val}'.format(
-                        val=v
-                    )
-                )
-                raise ex   
+                tmp_val = [self.submitted_value,]
+                DataResourceAttribute(self.submitted_value, many=False)
 
         # so we have one or more valid UUIDs-- do they correspond to both:
         # - a known Resource owned by the user
@@ -236,6 +226,101 @@ class DataResourceUserOperationInput(UserOperationInput):
                 })
 
 
+class ElementUserOperationInput(UserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a subclass of `BaseElement`, such as an
+    `Observation`.
+    '''
+    typename = None
+
+    def __init__(self, user, key, submitted_value, input_spec):
+        super().__init__(user, key, submitted_value, input_spec)
+
+
+class ObservationUserOperationInput(ElementUserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a `Observation`.
+    '''
+    typename = 'Observation'
+
+    def __init__(self, user, key, submitted_value, input_spec):
+        super().__init__(user, key, submitted_value, input_spec)
+
+        # verify that the Observation is valid by using the serializer
+        obs_s = ObservationSerializer(data=self.submitted_value)
+        try:
+            obs_s.is_valid(raise_exception=True)
+        except ValidationError as ex:
+            raise ValidationError({key: ex.detail})
+
+
+class FeatureUserOperationInput(ElementUserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a `Feature`.
+    '''
+    typename = 'Feature'
+
+    def __init__(self, user, key, submitted_value, input_spec):
+        super().__init__(user, key, submitted_value, input_spec)
+
+        # verify that the Feature is valid by using the serializer
+        fs = FeatureSerializer(data=self.submitted_value)
+        try:
+            fs.is_valid(raise_exception=True)
+        except ValidationError as ex:
+            raise ValidationError({key: ex.detail})
+
+
+class ElementSetUserOperationInput(UserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a subclass of `BaseElementSet`, such as an
+    `ObservationSet`.
+    '''
+    typename = None
+
+    def __init__(self, user, key, submitted_value, input_spec):
+        super().__init__(user, key, submitted_value, input_spec)
+
+
+class ObservationSetUserOperationInput(ElementSetUserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a `ObservationSet`.
+    '''
+    typename = 'ObservationSet'
+
+    def __init__(self, user, key, submitted_value, input_spec):
+        super().__init__(user, key, submitted_value, input_spec)
+
+        # verify that the ObservationSet is valid by using the serializer
+        obs_s = ObservationSetSerializer(data=self.submitted_value)
+        try:
+            obs_s.is_valid(raise_exception=True)
+        except ValidationError as ex:
+            raise ValidationError({key: ex.detail})
+
+
+class FeatureSetUserOperationInput(ElementSetUserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a `FeatureSet`.
+    '''
+    typename = 'FeatureSet'
+
+    def __init__(self, user, key, submitted_value, input_spec):
+        super().__init__(user, key, submitted_value, input_spec)
+
+        # verify that the FeatureSet is valid by using the serializer
+        fs = FeatureSetSerializer(data=self.submitted_value)
+        try:
+            fs.is_valid(raise_exception=True)
+        except ValidationError as ex:
+            raise ValidationError({key: ex.detail})
+
 # now map the typenames to the class that will be used.
 # Recall that the input spec will have an 'attribute_type'
 # field that will give us the typename for each input. Then, the dict
@@ -247,3 +332,11 @@ for t in AttributeBasedUserOperationInput.typenames:
 # add the other types
 user_operation_input_mapping[
     DataResourceUserOperationInput.typename] = DataResourceUserOperationInput
+user_operation_input_mapping[
+    ObservationUserOperationInput.typename] = ObservationUserOperationInput
+user_operation_input_mapping[
+    FeatureUserOperationInput.typename] = FeatureUserOperationInput
+user_operation_input_mapping[
+    ObservationSetUserOperationInput.typename] = ObservationSetUserOperationInput
+user_operation_input_mapping[
+    FeatureSetUserOperationInput.typename] = FeatureSetUserOperationInput

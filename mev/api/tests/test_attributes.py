@@ -220,7 +220,22 @@ class TestAttributes(unittest.TestCase):
         '''
 
         # works:
-        d = DataResourceAttribute(str(uuid.uuid4()))
+        d = DataResourceAttribute(str(uuid.uuid4()), many=True)
+        d = DataResourceAttribute(str(uuid.uuid4()), many=False)
+
+        # should fail since multiple UUID passed, but many=False
+        with self.assertRaises(ValidationError):
+            DataResourceAttribute(
+                [str(uuid.uuid4()), str(uuid.uuid4())], 
+                many=False
+            )
+
+        # should fail since one of the vals is NOT a UUID
+        with self.assertRaises(ValidationError):
+            DataResourceAttribute(
+                [str(uuid.uuid4()), 'abc'], 
+                many=True
+            )
 
         # the "value" is not a UUID. Should fail:
         with self.assertRaises(ValidationError):

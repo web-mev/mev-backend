@@ -8,6 +8,7 @@ from rest_framework import permissions as framework_permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation import OperationSerializer
 from api.models import Operation as OperationDbModel
@@ -214,14 +215,19 @@ class OperationRun(APIView):
 
         # we can now validate the inputs:
         inputs = payload[self.INPUTS]
-        inputs_are_valid = validate_operation_inputs(request.user,
-            inputs, matching_op, workspace)
+        try:
+            inputs_are_valid = validate_operation_inputs(request.user,
+                inputs, matching_op, workspace)
+        except ValidationError as ex:
+            raise ValidationError({self.INPUTS: ex.detail})
 
         # now that the inputs are validated against the spec, create an
         # ExecutedOperation instance and return it
         if inputs_are_valid:
+            # temporary:
+            u = uuid.uuid4()
             # TODO: create ExecutedOp
             # TODO: submit to runner
-            return Response({}, status=status.HTTP_200_OK)
+            return Response({'executed_operation_id': str(u)}, status=status.HTTP_200_OK)
         else:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)

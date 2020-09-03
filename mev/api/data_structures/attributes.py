@@ -1,10 +1,13 @@
 import re
 import uuid
+import logging
 
 from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
 import api.exceptions as api_exceptions
+
+logger = logging.getLogger(__name__)
 
 class BaseAttribute(object):
     '''
@@ -453,7 +456,6 @@ class DataResourceAttribute(BaseAttribute):
         "attribute_type": "DataResource",
         "value": <one or more Resource UUIDs>,
         "many": <bool>,
-        "resource_types": <list of valid resource types>
     }
     ```
     Note that "many" controls whether >1 are allowed. It's not an indicator
@@ -461,40 +463,79 @@ class DataResourceAttribute(BaseAttribute):
     '''
     typename = 'DataResource'
 
-    REQUIRED_PARAMS = []
+    MANY_KEY = 'many'
+    REQUIRED_PARAMS = [MANY_KEY,]
 
     def __init__(self, value, **kwargs):
-        self.check_keys(kwargs.keys())  
+        self.check_keys(kwargs.keys())
+        self.validate_many_key(kwargs.pop(self.MANY_KEY))
         super().__init__(value, **kwargs)
         
+    def validate_many_key(self, v):
+        '''
+        Checks that the value passed can be cast as a proper boolean 
+        '''
+        # use the BooleanAttribute to validate:
+        b = BooleanAttribute(v)
+        self.many = b.value
+
     def value_validator(self, val, set_value=True):
         '''
-        Validates that the value
-        is a proper UUID. 
+        Validates that the value (or values)
+        are proper UUIDs. 
         '''
         # if a single UUID was passed, place it into a list:
-        if type(val) == str:
-            pass
-        elif type(val) == uuid.UUID:
-            val = str(val)
+        
+        if (type(val) == str) or (type(val) == uuid.UUID):
+            all_vals = [val,]
+        elif type(val) == list:
+            if self.many == False:
+                raise ValidationError('The values ({val})'
+                    ' are inconsistent with the many=False'
+                    ' parameter.'.format(
+                        val=val
+                    )
+                )
+            all_vals = val
+        else:
+            raise ValidationError('Value needs to be either'
+                ' a single UUID or a list of UUIDs'
+            )
 
         try:
-            # check that it is a UUID
-            # Note that we can't explicitly check that a UUID
-            # corresponds to a Resource database instance
-            # as that creates a circular import dependency.
-            uuid.UUID(val)
-        except ValueError as ex:
-            raise ValidationError('The passed value ({val}) was'
-                ' not a valid UUID.'.format(val=val)
-            )
+            all_vals = [str(x) for x in all_vals]
         except Exception as ex:
-            raise ValidationError('Encountered an unknown exception'
-                ' when validating a DataResourceAttribute instance. Value was'
-                ' {value}'.format(
-                    value = val
+            logger.error('An unexpected exception occurred when trying'
+                ' to validate a DataResource attribute.'
+            )
+            raise ex
+
+        for v in all_vals:
+            try:
+                # check that it is a UUID
+                # Note that we can't explicitly check that a UUID
+                # corresponds to a Resource database instance
+                # as that creates a circular import dependency.
+                uuid.UUID(v)
+            except ValueError as ex:
+                raise ValidationError('The passed value ({val}) was'
+                    ' not a valid UUID.'.format(val=v)
                 )
-            ) 
+            except Exception as ex:
+                raise ValidationError('Encountered an unknown exception'
+                    ' when validating a DataResourceAttribute instance. Value was'
+                    ' {value}'.format(
+                        value = v
+                    )
+                )
+        
+        if set_value:
+            self.value = val
+
+    def to_representation(self):
+        d = super().to_representation()
+        d[self.MANY_KEY] = self.many
+        return d
 
 # collect the types into logical groupings so we can 
 # map the typenames (e.g. "PositiveFloat") to their

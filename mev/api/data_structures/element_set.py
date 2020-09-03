@@ -74,7 +74,8 @@ class BaseElementSet(object):
 
     def add_element(self, new_element):
         '''
-        Adds a new `Observation` to the `ObservationSet`
+        Adds a new `Observation` to the `ObservationSet` 
+        (or `Feature` to `FeatureSet`)
         '''
 
         # if it's a singleton (multiple=False), prevent adding more

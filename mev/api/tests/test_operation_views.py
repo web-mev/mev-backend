@@ -11,12 +11,12 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
 from api.models import Operation as OperationDbModel
-from api.models import Workspace
+from api.models import Workspace, Resource
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.ingest_operation import perform_operation_ingestion
-
+from api.utilities.operations import read_operation_json
 from api.views.operation_views import OperationRun
 
 
@@ -353,10 +353,11 @@ class OperationRunTests(BaseAPITestCase):
         '''
         Test that a request with a valid workspace UUID
         and valid operation UUID passes
+        Note that the validation of the inputs is mocked out
         '''
         # set the mock to return True so that we mock the inputs passing validation
         mock_validate_operation_inputs.return_value = True
-        
+
         # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
@@ -376,3 +377,87 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_valid_op_inputs(self, mock_get_operation_instance_data):
+        '''
+        The workspace and Operation IDs are fine and this test also checks that the 
+        validation of the inputs works.
+        '''
+        # set the mock to return True so that we mock the inputs passing validation
+        f = os.path.join(
+            TESTDIR,
+            'valid_operation.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' a non-admin user.')
+
+        workspace = user_workspaces[0]
+        op = ops[0]
+
+        acceptable_resource_types = d['inputs']['count_matrix']['spec']['resource_types']
+        acceptable_resources = []
+        for t in acceptable_resource_types:
+            r = Resource.objects.filter(
+                owner=self.regular_user_1,
+                is_active=True,
+                resource_type=t
+            )
+            if len(r) > 0:
+                acceptable_resources.extend(r)
+
+        if len(acceptable_resources) == 0:
+            raise ImproperlyConfigured('Need to have at least one resource with types'
+                ' in: {typelist}'.format(
+                    typelist=', '.join(acceptable_resource_types)
+                )
+            )
+
+        valid_inputs = {
+            'count_matrix': str(acceptable_resources[0].id),
+            'p_val': 0.1
+        }
+
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: valid_inputs,
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        invalid_inputs = {
+            'count_matrix': str(acceptable_resources[0].id),
+            'p_val': 1.1 # too high for limits
+        }
+
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: invalid_inputs,
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        invalid_inputs = {
+            'count_matrix': str(uuid.uuid4()),
+        }
+
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: invalid_inputs,
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        print(response.json())
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

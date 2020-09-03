@@ -87,16 +87,12 @@ def validate_operation_inputs(user, inputs, operation, workspace):
     `inputs` is a dictionary of input parameters for the Operation
     `operation` is an instance of Operation (the database model)
     `workspace` is an instance of Workspace (database model)
-
-    #TODO: what about non-required keys that do NOT have defaults? what then?
     '''
 
     # get the Operation data structure given the operation database instance:
     operation_spec_dict = get_operation_instance_data(operation)
 
     final_inputs = {}
-    print(operation_spec_dict['inputs'])
-    print(inputs)
     for key, op_input in operation_spec_dict['inputs'].items():
         required = op_input['required']
         spec = op_input['spec']
@@ -122,5 +118,10 @@ def validate_operation_inputs(user, inputs, operation, workspace):
                     t=attribute_typename
                 )
             )
+        #try:
+        #    final_inputs[key] = user_operation_input_class(user, key, supplied_input, spec)
+        #except ValidationError as ex:
+        #    raise ValidationError({key: ex.detail})
         final_inputs[key] = user_operation_input_class(user, key, supplied_input, spec)
+
     return final_inputs

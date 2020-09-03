@@ -90,8 +90,8 @@ class DataResourceInputSpec(DataResourceInputOutputSpec):
         "resource_types": <list of valid resource types>
     }
     ```
+    Note that the `many` key is a field of the underlying DataResourceAttribute
     '''
-    MANY_KEY = 'many'
     RESOURCE_TYPES_KEY = 'resource_types'
 
     def __init__(self, **kwargs):
@@ -100,9 +100,6 @@ class DataResourceInputSpec(DataResourceInputOutputSpec):
     def validate_keyword_args(self, kwargs_dict):
  
         try:
-            # use the BooleanAttribute to validate the 'many' key:
-            b = BooleanAttribute(kwargs_dict.pop(self.MANY_KEY))
-            self.many = b.value
             self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPES_KEY)
         except KeyError as ex:
             raise ValidationError('The "{key}" key is required.'.format(
@@ -127,6 +124,7 @@ class DataResourceInputSpec(DataResourceInputOutputSpec):
         return kwargs_dict
 
     def to_representation(self):
+        print('in op_input_spec.to_rep'*20)
         i = DataResourceInputOutputSpec.to_representation(self)
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPES_KEY] = self.resource_types

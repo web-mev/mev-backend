@@ -219,3 +219,220 @@ class UserOperationInputTester(BaseAPITestCase):
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, 'xyz', 
                 str(r.id), single_resource_input_spec)
+
+        # handle the case where we have a list of UUIDs. They all identify
+        # files, but for one of them, it is not the correct type
+        r0 = user_resource_list[0]
+        r1 = user_resource_list[1]
+        rts = [r0.resource_type, r1.resource_type]
+        other_resource_types = [x for x in RESOURCE_MAPPING.keys() if not x in rts]
+        resource_input_spec = {
+            'attribute_type': 'DataResource',
+            'many': True,
+            'resource_types': other_resource_types
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, 'xyz', 
+                [str(r0.id), str(r1.id)], resource_input_spec)
+
+    def test_observation_set_inputs(self):
+        '''
+        Tests that the inputs are properly validated when they
+        correspond to an input type of `ObservationSet`
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'obs_set_test.json'
+        )
+        d = read_operation_json(f)
+
+        clazz = user_operation_input_mapping['ObservationSet']
+
+        valid_obs_1 = {
+            'id': 'foo',
+            'attributes': {
+                'treatment': 'A'
+            }
+        }
+        valid_obs_2 = {
+            'id': 'bar',
+            'attributes': {
+                'treatment': 'B'
+            }
+        }
+
+        valid_obs_set = {
+            'multiple': True,
+            'elements': [
+                valid_obs_1,
+                valid_obs_2
+            ]
+        }
+
+        # test that we are fine with a valid input:
+        clazz(self.regular_user_1, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
+
+        invalid_obs_set = {
+            'multiple': False,
+            'elements': [
+                valid_obs_1,
+                valid_obs_2
+            ]
+        }
+        # the >1 elements coupled with multiple=False makes this an invalid ObservationSet
+        with self.assertRaises(ValidationError):
+            clazz(self.regular_user_1, 'xyz', invalid_obs_set, d['inputs']['obs_set_type'])
+
+        valid_obs_set = {
+            'multiple': True,
+            'elements': [
+                valid_obs_1,
+                {'id': 'baz'} # missing the 'attributes' key, but that is OK
+            ]
+        }
+        clazz(self.regular_user_1, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
+
+        invalid_obs_set = {
+            'multiple': True,
+            'elements': [
+                valid_obs_1,
+                {} # missing the 'id' key, which is required
+            ]
+        }
+        # missing 'id' causes the nested Observation to be invalid
+        with self.assertRaises(ValidationError):
+            clazz(self.regular_user_1, 'xyz', invalid_obs_set, d['inputs']['obs_set_type'])
+
+    def test_feature_set_inputs(self):
+        '''
+        Tests that the inputs are properly validated when they
+        correspond to an input type of `FeatureSet`
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'feature_set_test.json'
+        )
+        d = read_operation_json(f)
+
+        clazz = user_operation_input_mapping['FeatureSet']
+
+        valid_feature_1 = {
+            'id': 'foo',
+            'attributes': {}
+        }
+        valid_feature_2 = {
+            'id': 'bar',
+            'attributes': {}
+        }
+
+        valid_feature_set = {
+            'multiple': True,
+            'elements': [
+                valid_feature_1,
+                valid_feature_2
+            ]
+        }
+
+        # test that we are fine with a valid input:
+        clazz(self.regular_user_1, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
+
+        invalid_feature_set = {
+            'multiple': False,
+            'elements': [
+                valid_feature_1,
+                valid_feature_2
+            ]
+        }
+        # the >1 elements coupled with multiple=False makes this an invalid FeatureSet
+        with self.assertRaises(ValidationError):
+            clazz(self.regular_user_1, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
+
+        valid_feature_set = {
+            'multiple': True,
+            'elements': [
+                valid_feature_1,
+                {'id': 'baz'} # missing the 'attributes' key, but that is OK
+            ]
+        }
+        clazz(self.regular_user_1, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
+
+        invalid_feature_set = {
+            'multiple': True,
+            'elements': [
+                valid_feature_1,
+                {} # missing the 'id' key, which is required
+            ]
+        }
+        # missing 'id' causes the nested Feature to be invalid
+        with self.assertRaises(ValidationError):
+            clazz(self.regular_user_1, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
+
+    def test_observation_inputs(self):
+        '''
+        Tests that the inputs are properly validated when they
+        correspond to an input type of `Observation`
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'obs_set_test.json'
+        )
+        d = read_operation_json(f)
+
+        clazz = user_operation_input_mapping['Observation']
+
+        valid_obs_1 = {
+            'id': 'foo',
+            'attributes': {
+                'treatment': 'A'
+            }
+        }
+        valid_obs_2 = {
+            'id': 'foo'
+        }
+        invalid_obs = {
+            'attributes': {
+                'treatment': 'A'
+            }
+        }
+
+        # test that we are fine with a valid input:
+        clazz(self.regular_user_1, 'xyz', valid_obs_1, d['inputs']['obs_type'])
+        clazz(self.regular_user_1, 'xyz', valid_obs_2, d['inputs']['obs_type'])
+
+        with self.assertRaises(ValidationError):
+            clazz(self.regular_user_1, 'xyz', invalid_obs, d['inputs']['obs_type'])
+
+    def test_feature_inputs(self):
+        '''
+        Tests that the inputs are properly validated when they
+        correspond to an input type of `Feature`
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'feature_set_test.json'
+        )
+        d = read_operation_json(f)
+
+        clazz = user_operation_input_mapping['Feature']
+
+        valid_feature_1 = {
+            'id': 'foo',
+            'attributes': {
+                'treatment': 'A'
+            }
+        }
+        valid_feature_2 = {
+            'id': 'foo'
+        }
+        invalid_feature = {
+            'attributes': {
+                'treatment': 'A'
+            }
+        }
+
+        # test that we are fine with a valid input:
+        clazz(self.regular_user_1, 'xyz', valid_feature_1, d['inputs']['feature_type'])
+        clazz(self.regular_user_1, 'xyz', valid_feature_2, d['inputs']['feature_type'])
+
+        with self.assertRaises(ValidationError):
+            clazz(self.regular_user_1, 'xyz', invalid_feature, d['inputs']['feature_type'])
