@@ -8,7 +8,9 @@ from django.conf import settings
 
 from api.models import Workspace, Resource, ResourceMetadata
 from api.models import Operation as OperationDbModel
-from api.utilities.operations import read_operation_json
+from api.utilities.operations import read_operation_json, \
+    validate_operation
+from api.utilities.ingest_operation import save_operation
 from api.tests import test_settings
 
 # a global dictionary so that we do not have to pass around the 
@@ -162,14 +164,14 @@ class Command(BaseCommand):
         d['id'] = str(uuid.uuid4())
         d['git_hash'] = 'abcd'
         d['repository_url'] = 'https://github.com/some-repo/'
-        op_serializer = ingest_operation.validate_operation(d)
+        op_serializer = validate_operation(d)
 
         # need to make a directory with dummy files to use the 
         # `save_operation` function
         dummy_dir_path = os.path.join(settings.BASE_DIR, 'dummy_op')
         os.mkdir(dummy_dir_path)
         op = op_serializer.get_instance()
-        ingest_operation.save_operation(op, dummy_dir_path)
+        save_operation(op, dummy_dir_path)
         OperationDbModel.objects.create(id=op.id, name=op.name)
         
 
