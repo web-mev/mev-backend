@@ -39,7 +39,7 @@ class UserOperationInput(object):
     logic that will be implemented in the children classes. 
     '''
 
-    def __init__(self, user, key, submitted_value, input_spec):
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
         '''
         The `submitted_value` is the python representation
         of the value provided by the user. For an input corresponding
@@ -96,14 +96,14 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         BooleanAttribute.typename
     ]
 
-    def __init__(self, user, key, submitted_value, input_spec):
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
         logger.info('Check validity of value {val}'
             ' against input specification: {spec}'.format(
                 val=submitted_value,
                 spec=input_spec
             )
         )
-        super().__init__(user, key, submitted_value, input_spec)
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
         d = copy.deepcopy(self.input_spec)
 
@@ -136,8 +136,8 @@ class DataResourceUserOperationInput(UserOperationInput):
     '''
     typename = DataResourceAttribute.typename
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
         # The DataResourceAttribute has a key to indicate
         # whether multiple values are permitted. Depending on that
@@ -175,29 +175,28 @@ class DataResourceUserOperationInput(UserOperationInput):
                 DataResourceAttribute(self.submitted_value, many=False)
 
         # so we have one or more valid UUIDs-- do they correspond to both:
-        # - a known Resource owned by the user
+        # - a known Resource owned by the user AND in the workspace?
         # - the correct resource types given the input spec?
         expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
         for v in tmp_val:
             try:
-                r = get_resource_by_pk(v)
-            except Resource.DoesNotExist as ex:
-                raise ValidationError({
-                    key: 'The UUID ({resource_uuid}) did not match'
-                    ' any known resource.'.format(
-                        resource_uuid = v
-                    )
-                })
-            # if somehow a user was attempting to use another user's Resource
-            if not (r.owner == self.user):
-                # don't want to admit that such a file exists (and belongs to 
-                # someone else)-- just report that it was not found
-                raise ValidationError({
-                    key: 'The UUID ({resource_uuid}) did not match'
-                    ' any known resource.'.format(
-                        resource_uuid = v
-                    )
-                })
+                matching_resources = Resource.objects.filter(
+                    owner=user,
+                    id=v, 
+                    workspace=workspace)
+                if len(matching_resources) != 1:
+                    raise ValidationError({
+                        key: 'The UUID ({resource_uuid}) did not match'
+                        ' any known resource in your workspace.'.format(
+                            resource_uuid = v
+                        )
+                    })
+                r = matching_resources[0]
+            except Exception as ex:
+                # will catch things like bad UUIDs and also other unexpected errors
+                raise ValidationError({key: ex})
+
+
             if not r.resource_type in expected_resource_types:
                 logger.info('The resource type {rt} is not compatible'
                     ' with the expected resource types of {all_types}'.format(
@@ -234,8 +233,8 @@ class ElementUserOperationInput(UserOperationInput):
     '''
     typename = None
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
 
 class ObservationUserOperationInput(ElementUserOperationInput):
@@ -245,8 +244,8 @@ class ObservationUserOperationInput(ElementUserOperationInput):
     '''
     typename = 'Observation'
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
         # verify that the Observation is valid by using the serializer
         obs_s = ObservationSerializer(data=self.submitted_value)
@@ -263,8 +262,8 @@ class FeatureUserOperationInput(ElementUserOperationInput):
     '''
     typename = 'Feature'
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
         # verify that the Feature is valid by using the serializer
         fs = FeatureSerializer(data=self.submitted_value)
@@ -282,8 +281,8 @@ class ElementSetUserOperationInput(UserOperationInput):
     '''
     typename = None
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
 
 class ObservationSetUserOperationInput(ElementSetUserOperationInput):
@@ -293,8 +292,8 @@ class ObservationSetUserOperationInput(ElementSetUserOperationInput):
     '''
     typename = 'ObservationSet'
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
         # verify that the ObservationSet is valid by using the serializer
         obs_s = ObservationSetSerializer(data=self.submitted_value)
@@ -311,8 +310,8 @@ class FeatureSetUserOperationInput(ElementSetUserOperationInput):
     '''
     typename = 'FeatureSet'
 
-    def __init__(self, user, key, submitted_value, input_spec):
-        super().__init__(user, key, submitted_value, input_spec)
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
 
         # verify that the FeatureSet is valid by using the serializer
         fs = FeatureSetSerializer(data=self.submitted_value)

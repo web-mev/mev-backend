@@ -118,10 +118,6 @@ def validate_operation_inputs(user, inputs, operation, workspace):
                     t=attribute_typename
                 )
             )
-        #try:
-        #    final_inputs[key] = user_operation_input_class(user, key, supplied_input, spec)
-        #except ValidationError as ex:
-        #    raise ValidationError({key: ex.detail})
-        final_inputs[key] = user_operation_input_class(user, key, supplied_input, spec)
+        final_inputs[key] = user_operation_input_class(user, workspace, key, supplied_input, spec)
 
     return final_inputs
