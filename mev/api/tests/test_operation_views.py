@@ -513,5 +513,103 @@ class OperationRunTests(BaseAPITestCase):
             OperationRun.WORKSPACE_UUID: str(workspace.id)
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
-        print(response.json())
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_observation_and_feature_set_payloads(self, mock_get_operation_instance_data):
+        '''
+        Test payloads where the "inputs" key addresses an ObservationSet or FeatureSet
+        input.
+        '''
+        # set the mock to return True so that we mock the inputs passing validation
+        f = os.path.join(
+            TESTDIR,
+            'obs_set_test.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+
+        valid_obs_1 = {
+            'id': 'foo',
+            'attributes': {
+                'treatment': 'A'
+            }
+        }
+        valid_obs_2 = {
+            'id': 'bar',
+            'attributes': {
+                'treatment': 'B'
+            }
+        }
+
+        valid_obs_set = {
+            'multiple': True,
+            'elements': [
+                valid_obs_1,
+                valid_obs_2
+            ]
+        }
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' a non-admin user.')
+
+        workspace = user_workspaces[0]
+        op = ops[0]
+
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'obs_set_type': valid_obs_set,
+                'obs_type': valid_obs_1
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # test where the payload is bad:
+        invalid_obs_set = {
+            'multiple': False, # inconsistent with the >1 elements below
+            'elements': [
+                valid_obs_1,
+                valid_obs_2
+            ]
+        }
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'obs_set_type': invalid_obs_set,
+                'obs_type': valid_obs_1
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+        # test where the payload is bad:
+        invalid_obs_set = {
+            'multiple': False, # inconsistent with the >1 elements below
+            'elements': [
+                {    # missing 'id' key
+                    'attributes': {}
+                }
+            ]
+        }
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'obs_set_type': invalid_obs_set,
+                'obs_type': valid_obs_1
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
