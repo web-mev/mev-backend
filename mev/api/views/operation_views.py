@@ -215,6 +215,10 @@ class OperationRun(APIView):
 
         # we can now validate the inputs:
         inputs = payload[self.INPUTS]
+        if not (type(inputs) == dict):
+            raise ValidationError({self.INPUTS: 'The "inputs"'
+                ' key must be a JSON object.'
+            })
         try:
             inputs_are_valid = validate_operation_inputs(request.user,
                 inputs, matching_op, workspace)
