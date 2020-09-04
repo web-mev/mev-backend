@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 from api.serializers.resource import ResourceSerializer
 from api.models import Resource
@@ -31,13 +32,16 @@ class BaseUpload(object):
     def handle_upload(self, request):
         try:
             owner_email = request.data['owner_email']
-            try:
-                owner = User.objects.get(email=owner_email)
-            except User.DoesNotExist:
-                return Response(
-                    {'owner_email': 'Owner email not found.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            if len(owner_email) == 0:
+                owner = request.user
+            else: # length of the owner_email field was non-zero
+                try:
+                    owner = User.objects.get(email=owner_email)
+                except User.DoesNotExist:
+                    raise ValidationError({'owner_email': 'Could not find owner'
+                        ' with email: {owner}'.format(
+                            owner=owner_email
+                        )})
         except KeyError:
             owner = request.user
 

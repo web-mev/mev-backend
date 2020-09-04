@@ -86,6 +86,21 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         self.upload_and_cleanup(payload)
 
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_owner_is_empty_string(self, mock_api_tasks):
+        '''
+        Test that a request with `owner`
+        key as an emtpy string is OK and the upload assigns to the 
+        requesting user
+        '''
+
+        payload = {
+            'owner_email':'',
+            'resource_type': 'MTX',
+            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+        }
+
+        self.upload_and_cleanup(payload)
 
     @mock.patch('api.serializers.resource.api_tasks')
     def test_missing_resource_type_is_ok(self, mock_api_tasks):
