@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
+from rest_framework import status
 
 from api.serializers.resource import ResourceSerializer
 from api.models import Resource
