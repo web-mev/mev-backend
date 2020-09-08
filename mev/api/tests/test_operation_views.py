@@ -356,7 +356,7 @@ class OperationRunTests(BaseAPITestCase):
         Note that the validation of the inputs is mocked out
         '''
         # set the mock to return True so that we mock the inputs passing validation
-        mock_validate_operation_inputs.return_value = True
+        mock_validate_operation_inputs.return_value = {}
 
         # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
@@ -378,8 +378,9 @@ class OperationRunTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    @mock.patch('api.views.operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_valid_op_inputs(self, mock_get_operation_instance_data):
+    def test_valid_op_inputs(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
         The workspace and Operation IDs are fine and this test also checks that the 
         validation of the inputs works.
@@ -435,6 +436,8 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called()
+        mock_submit_async_job.delay.reset_mock()
 
         invalid_inputs = {
             'count_matrix': str(acceptable_resources[0].id),
@@ -448,6 +451,8 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_submit_async_job.delay.assert_not_called()
+        mock_submit_async_job.delay.reset_mock()
 
         invalid_inputs = {
             'count_matrix': str(uuid.uuid4()),
@@ -459,11 +464,12 @@ class OperationRunTests(BaseAPITestCase):
             OperationRun.WORKSPACE_UUID: str(workspace.id)
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
-        print(response.json())
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_submit_async_job.delay.assert_not_called()
 
+    @mock.patch('api.views.operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_bad_inputs_payload(self, mock_get_operation_instance_data):
+    def test_bad_inputs_payload(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
         The "inputs" key needs to be a dict. When strings were passed, then it 
         caused uncaught errors
@@ -514,9 +520,11 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_submit_async_job.delay.assert_not_called()
 
+    @mock.patch('api.views.operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_observation_and_feature_set_payloads(self, mock_get_operation_instance_data):
+    def test_observation_and_feature_set_payloads(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
         Test payloads where the "inputs" key addresses an ObservationSet or FeatureSet
         input.
@@ -573,6 +581,8 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called()
+        mock_submit_async_job.delay.reset_mock()
 
         # test where the payload is bad:
         invalid_obs_set = {
@@ -592,6 +602,8 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_submit_async_job.delay.assert_not_called()
+        mock_submit_async_job.delay.reset_mock()
 
 
         # test where the payload is bad:
@@ -613,3 +625,5 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_submit_async_job.delay.assert_not_called()
+        mock_submit_async_job.delay.reset_mock()

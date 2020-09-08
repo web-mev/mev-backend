@@ -97,8 +97,8 @@ class InputOutputSpec(object):
             ))
             raise ex
 
-    def to_representation(self, parent_class):
-        d = parent_class.to_representation(self)
+    def to_dict(self, parent_class):
+        d = parent_class.to_dict(self)
         # pop off the null value key-- input/output specs should not have
         # them. They were only added to aid with using the underlying
         # attribute classes
@@ -127,8 +127,8 @@ class IntegerInputOutputSpec(InputOutputSpec, IntegerAttribute):
         if self.default is not None:
             self.check_default(IntegerAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, IntegerAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, IntegerAttribute)
 
 class PositiveIntegerInputOutputSpec(InputOutputSpec, PositiveIntegerAttribute):
     '''
@@ -147,8 +147,8 @@ class PositiveIntegerInputOutputSpec(InputOutputSpec, PositiveIntegerAttribute):
         if self.default is not None:
             self.check_default(PositiveIntegerAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, PositiveIntegerAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, PositiveIntegerAttribute)
 
 class NonnegativeIntegerInputOutputSpec(InputOutputSpec, NonnegativeIntegerAttribute):
     '''
@@ -167,8 +167,8 @@ class NonnegativeIntegerInputOutputSpec(InputOutputSpec, NonnegativeIntegerAttri
         if self.default is not None:
             self.check_default(NonnegativeIntegerAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, NonnegativeIntegerAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, NonnegativeIntegerAttribute)
 
 class BoundedIntegerInputOutputSpec(InputOutputSpec, BoundedIntegerAttribute):
     '''
@@ -192,8 +192,8 @@ class BoundedIntegerInputOutputSpec(InputOutputSpec, BoundedIntegerAttribute):
 
         self.check_bound_types([int])
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, BoundedIntegerAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, BoundedIntegerAttribute)
 
 class FloatInputOutputSpec(InputOutputSpec, FloatAttribute):
     '''
@@ -212,8 +212,8 @@ class FloatInputOutputSpec(InputOutputSpec, FloatAttribute):
         if self.default is not None:
             self.check_default(FloatAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, FloatAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, FloatAttribute)
 
 class PositiveFloatInputOutputSpec(InputOutputSpec, PositiveFloatAttribute):
     '''
@@ -232,8 +232,8 @@ class PositiveFloatInputOutputSpec(InputOutputSpec, PositiveFloatAttribute):
         if self.default is not None:
             self.check_default(PositiveFloatAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, PositiveFloatAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, PositiveFloatAttribute)
         
 class NonnegativeFloatInputOutputSpec(InputOutputSpec, NonnegativeFloatAttribute):
     '''
@@ -252,8 +252,8 @@ class NonnegativeFloatInputOutputSpec(InputOutputSpec, NonnegativeFloatAttribute
         if self.default is not None:
             self.check_default(NonnegativeFloatAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, NonnegativeFloatAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, NonnegativeFloatAttribute)
         
 class BoundedFloatInputOutputSpec(InputOutputSpec, BoundedFloatAttribute):
     '''
@@ -274,8 +274,8 @@ class BoundedFloatInputOutputSpec(InputOutputSpec, BoundedFloatAttribute):
         if self.default is not None:
             self.check_default(BoundedFloatAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, BoundedFloatAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, BoundedFloatAttribute)
         
 class StringInputOutputSpec(InputOutputSpec, StringAttribute):
     '''
@@ -295,8 +295,8 @@ class StringInputOutputSpec(InputOutputSpec, StringAttribute):
         if self.default is not None:
             self.check_default(StringAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, StringAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, StringAttribute)
         
 class BooleanInputOutputSpec(InputOutputSpec, BooleanAttribute):
     '''
@@ -314,8 +314,8 @@ class BooleanInputOutputSpec(InputOutputSpec, BooleanAttribute):
         if self.default is not None:
             self.check_default(BooleanAttribute, **kwargs)
 
-    def to_representation(self):
-        return InputOutputSpec.to_representation(self, BooleanAttribute)
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, BooleanAttribute)
         
 class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
     '''
@@ -336,8 +336,8 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
         kwargs = self.handle_common_kwargs(kwargs)
         self.validate_many_key(kwargs.pop(self.MANY_KEY))
 
-    def to_representation(self):
-        i = InputOutputSpec.to_representation(self, DataResourceAttribute)
+    def to_dict(self):
+        i = InputOutputSpec.to_dict(self, DataResourceAttribute)
         return i
 
 
@@ -351,7 +351,7 @@ class ObservationInputOutputSpec(InputOutputSpec, Observation):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
-    def to_representation(self):
+    def to_dict(self):
         return {
             'attribute_type': self.typename
         }
@@ -367,7 +367,7 @@ class FeatureInputOutputSpec(InputOutputSpec, Feature):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
-    def to_representation(self):
+    def to_dict(self):
         return {
             'attribute_type': self.typename
         }
@@ -383,7 +383,7 @@ class ObservationSetInputOutputSpec(InputOutputSpec, ObservationSet):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
-    def to_representation(self):
+    def to_dict(self):
         return {
             'attribute_type': self.typename
         }
@@ -400,7 +400,7 @@ class FeatureSetInputOutputSpec(InputOutputSpec, FeatureSet):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
     
-    def to_representation(self):
+    def to_dict(self):
         return {
             'attribute_type': self.typename
         }

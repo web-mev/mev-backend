@@ -176,8 +176,11 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': False,
             'resource_types': [rt, ]
         }
-        user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
+        x = user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
             str(r.id), single_resource_input_spec)
+        y = single_resource_input_spec.copy()
+        y['value'] = str(r.id)
+        self.assertDictEqual(x.to_dict(), y)
 
         # handle a good case with multiple files
         r0 = user_resource_list[0]
@@ -188,9 +191,12 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': True,
             'resource_types': list(typeset)
         }
-        user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
+        x = user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
             [str(r0.id), str(r1.id)], 
             multiple_resource_input_spec)
+        y = multiple_resource_input_spec.copy()
+        y['value'] = [str(r0.id), str(r1.id)]
+        self.assertDictEqual(x.to_dict(), y)
 
         # handle a single file with an invalid UUID; uuid is fine, but no Resource
         r = user_resource_list[0]
@@ -305,7 +311,10 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        clazz(self.regular_user_1, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
+        x=clazz(self.regular_user_1, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
+        x_as_dict = x.to_dict()
+        self.assertEqual(x_as_dict['multiple'], valid_obs_set['multiple'])
+        self.assertCountEqual(x_as_dict['elements'], valid_obs_set['elements'])
 
         invalid_obs_set = {
             'multiple': False,
@@ -369,7 +378,10 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        clazz(self.regular_user_1, None, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
+        x = clazz(self.regular_user_1, None, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
+        x_as_dict = x.to_dict()
+        self.assertEqual(x_as_dict['multiple'], valid_feature_set['multiple'])
+        self.assertCountEqual(x_as_dict['elements'], valid_feature_set['elements'])
 
         invalid_feature_set = {
             'multiple': False,
@@ -382,14 +394,21 @@ class UserOperationInputTester(BaseAPITestCase):
         with self.assertRaises(ValidationError):
             clazz(self.regular_user_1, None, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
 
-        valid_feature_set = {
+        valid_feature_set2 = {
             'multiple': True,
             'elements': [
                 valid_feature_1,
-                {'id': 'baz'} # missing the 'attributes' key, but that is OK
+                {'id': 'bar'} # missing the 'attributes' key, but that is OK
             ]
         }
-        clazz(self.regular_user_1, None, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
+        x = clazz(self.regular_user_1, None, 'xyz', valid_feature_set2, d['inputs']['feature_set_type'])
+        # note that we compare against the original valid_feature_set.
+        # This is because our methods add the empty 'attributes' key.
+        # Therefore, a strict comparison of valid_feature_set2 would not be possible
+        # as we designed THAT dict to be missing the 'attributes' key.
+        x_as_dict = x.to_dict()
+        self.assertEqual(x_as_dict['multiple'], valid_feature_set['multiple'])
+        self.assertCountEqual(x_as_dict['elements'], valid_feature_set['elements'])
 
         invalid_feature_set = {
             'multiple': True,
@@ -431,8 +450,14 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        clazz(self.regular_user_1, None, 'xyz', valid_obs_1, d['inputs']['obs_type'])
-        clazz(self.regular_user_1, None, 'xyz', valid_obs_2, d['inputs']['obs_type'])
+        x = clazz(self.regular_user_1, None, 'xyz', valid_obs_1, d['inputs']['obs_type'])
+        y = clazz(self.regular_user_1, None, 'xyz', valid_obs_2, d['inputs']['obs_type'])
+        self.assertDictEqual(x.to_dict(), valid_obs_1)
+        self.assertDictEqual(
+            y.to_dict(), 
+            {'id': 'foo', 'attributes':{} }
+        )
+
 
         with self.assertRaises(ValidationError):
             clazz(self.regular_user_1, None, 'xyz', invalid_obs, d['inputs']['obs_type'])
@@ -466,8 +491,12 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        clazz(self.regular_user_1, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
-        clazz(self.regular_user_1, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
-
+        x = clazz(self.regular_user_1, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
+        y = clazz(self.regular_user_1, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
+        self.assertDictEqual(x.to_dict(), valid_feature_1)
+        self.assertDictEqual(
+            y.to_dict(), 
+            {'id': 'foo', 'attributes':{} }
+        )
         with self.assertRaises(ValidationError):
             clazz(self.regular_user_1, None, 'xyz', invalid_feature, d['inputs']['feature_type'])

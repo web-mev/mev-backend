@@ -65,6 +65,18 @@ class UserOperationInput(object):
         self.key = key
         self.submitted_value = submitted_value
         self.input_spec = input_spec
+        self.instance = None
+
+    def to_dict(self):
+        if self.instance:
+            return self.instance.to_dict()
+        else:
+            logger.error('The instance atribute was not set when calling'
+                ' for the representation of a UserOperationInput as a dict.'
+            )
+            raise ValidationError('Could not represent a UserOperationInput'
+                ' since the instance field was not set.'
+            )
 
     def __repr__(self):
         return 'Value: {val} for spec: {spec}'.format(
@@ -154,9 +166,8 @@ class DataResourceUserOperationInput(UserOperationInput):
                     ' permits multiple values, we expect a list'
                     ' of values.'
                 })
-            else:
+            else: # if many and the type of the submission was indeed a list
                 tmp_val = self.submitted_value
-                DataResourceAttribute(self.submitted_value, many=True)
 
         else: # only single value permitted-- needs to be a string
             if not type(self.submitted_value) == str: 
@@ -172,12 +183,11 @@ class DataResourceUserOperationInput(UserOperationInput):
                 # to handle both cases (single or multiple resources) 
                 # in the same manner, put the single value into a list
                 tmp_val = [self.submitted_value,]
-                DataResourceAttribute(self.submitted_value, many=False)
 
         # so we have one or more valid UUIDs-- do they correspond to both:
         # - a known Resource owned by the user AND in the workspace?
         # - the correct resource types given the input spec?
-        expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
+        self.expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
         for v in tmp_val:
             try:
                 matching_resources = Resource.objects.filter(
@@ -197,11 +207,11 @@ class DataResourceUserOperationInput(UserOperationInput):
                 raise ValidationError({key: ex})
 
 
-            if not r.resource_type in expected_resource_types:
+            if not r.resource_type in self.expected_resource_types:
                 logger.info('The resource type {rt} is not compatible'
                     ' with the expected resource types of {all_types}'.format(
                         rt=r.resource_type,
-                        all_types = ', '.join(expected_resource_types)
+                        all_types = ', '.join(self.expected_resource_types)
                     )
                 )
                 raise ValidationError({
@@ -209,7 +219,7 @@ class DataResourceUserOperationInput(UserOperationInput):
                     ' the expected type(s) of {all_types}'.format(
                         resource_uuid = v,
                         rt = r.resource_type,
-                        all_types = ', '.join(expected_resource_types)
+                        all_types = ', '.join(self.expected_resource_types)
                     )
                 })
             if not r.is_active:
@@ -224,6 +234,17 @@ class DataResourceUserOperationInput(UserOperationInput):
                     )
                 })
 
+        # if we are here, then we have passed all the checks-- assign the
+        # self.instance variable 
+        self.instance = DataResourceAttribute(self.submitted_value, many=expect_many)
+
+    def to_dict(self):
+        # gets the dict representation by using the DataResourceAttribute class
+        d = super().to_dict()
+
+        # adds on:
+        d[DataResourceInputSpec.RESOURCE_TYPES_KEY] = self.expected_resource_types
+        return d
 
 class ElementUserOperationInput(UserOperationInput):
     '''
@@ -254,6 +275,9 @@ class ObservationUserOperationInput(ElementUserOperationInput):
         except ValidationError as ex:
             raise ValidationError({key: ex.detail})
 
+        # set the instance:
+        self.instance = obs_s.get_instance()
+
 
 class FeatureUserOperationInput(ElementUserOperationInput):
     '''
@@ -272,6 +296,8 @@ class FeatureUserOperationInput(ElementUserOperationInput):
         except ValidationError as ex:
             raise ValidationError({key: ex.detail})
 
+        # set the instance:
+        self.instance = fs.get_instance()
 
 class ElementSetUserOperationInput(UserOperationInput):
     '''
@@ -302,6 +328,8 @@ class ObservationSetUserOperationInput(ElementSetUserOperationInput):
         except ValidationError as ex:
             raise ValidationError({key: ex.detail})
 
+        # set the instance:
+        self.instance = obs_s.get_instance()
 
 class FeatureSetUserOperationInput(ElementSetUserOperationInput):
     '''
@@ -319,6 +347,9 @@ class FeatureSetUserOperationInput(ElementSetUserOperationInput):
             fs.is_valid(raise_exception=True)
         except ValidationError as ex:
             raise ValidationError({key: ex.detail})
+        # set the instance:
+        self.instance = fs.get_instance()
+
 
 # now map the typenames to the class that will be used.
 # Recall that the input spec will have an 'attribute_type'

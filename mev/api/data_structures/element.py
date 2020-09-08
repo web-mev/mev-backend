@@ -82,3 +82,9 @@ class BaseElement(object):
 
     def __repr__(self):
         return 'Element ({id})'.format(id=self.id)
+
+    def to_dict(self):
+        d = {}
+        d['id'] = self.id
+        d['attributes'] = self.attributes
+        return d

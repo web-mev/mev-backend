@@ -133,3 +133,9 @@ class BaseElementSet(object):
             obs=s, 
             element_type=self.element_typename.capitalize()
         )
+
+    def to_dict(self):
+        d = {}
+        d['multiple'] = self.multiple
+        d['elements'] = [x.to_dict() for x in self.elements]
+        return d

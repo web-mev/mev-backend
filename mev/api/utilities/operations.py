@@ -5,7 +5,6 @@ import logging
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
-from api.serializers.operation import OperationSerializer
 from api.utilities.basic_utils import read_local_file
 from api.data_structures import create_attribute
 from api.data_structures.user_operation_input import user_operation_input_mapping
@@ -43,6 +42,7 @@ def validate_operation(operation_dict):
     '''
     logger.info('Validate the dictionary against the definition'
     ' of an Operation...')
+    from api.serializers.operation import OperationSerializer
     op_serializer = OperationSerializer(data=operation_dict)
     op_serializer.is_valid(raise_exception=True)
     return op_serializer
@@ -68,6 +68,7 @@ def get_operation_instance_data(operation_db_model):
         # seems roundabout, but then feed that Operation back into the 
         # serializer so we can get the serialized representation via the
         # `data` property
+        from api.serializers.operation import OperationSerializer
         s = OperationSerializer(op_data_structure)
         return s.data
     else:

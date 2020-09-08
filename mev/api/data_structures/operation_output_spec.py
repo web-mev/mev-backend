@@ -31,8 +31,8 @@ class OutputSpec(InputOutputSpec):
     def __init__(self, **kwargs):
         InputOutputSpec.__init__(self, **kwargs)
 
-    def to_representation(self, parent_class):
-        d = parent_class.to_representation(self)
+    def to_dict(self, parent_class):
+        d = parent_class.to_dict(self)
         if self.default is not None:
             d['default'] = self.default
         return d
@@ -123,8 +123,8 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
             )
         return kwargs_dict
 
-    def to_representation(self):
-        i = DataResourceInputOutputSpec.to_representation(self)
+    def to_dict(self):
+        i = DataResourceInputOutputSpec.to_dict(self)
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPE_KEY] = self.resource_type
         return i

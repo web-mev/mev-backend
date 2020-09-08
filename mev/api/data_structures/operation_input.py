@@ -23,12 +23,12 @@ class OperationInput(object):
         # a number, a string, a file). Of type `InputSpec`
         self.spec = spec
         
-    def to_representation(self):
+    def to_dict(self):
         d = {}
         d['description'] = self.description
         d['name'] = self.name
         d['required'] = self.required
-        d['spec'] = self.spec.to_representation()
+        d['spec'] = self.spec.to_dict()
         return d
 
     def __eq__(self, other):

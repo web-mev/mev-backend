@@ -12,9 +12,9 @@ class OperationInputSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         if type(instance) == OperationInput:
-            return instance.to_representation()
+            return instance.to_dict()
         else:
-            instance['spec'] = instance['spec'].to_representation()           
+            instance['spec'] = instance['spec'].to_dict()           
             return instance
 
     def create(self, validated_data):

@@ -58,7 +58,7 @@ class BaseAttribute(object):
                 )
             )
 
-    def to_representation(self):
+    def to_dict(self):
         return {
             'attribute_type': self.typename,
             'value': self.value
@@ -131,7 +131,7 @@ class BoundedBaseAttribute(BaseAttribute):
                     val = d[k]
                 ))
 
-    def to_representation(self):
+    def to_dict(self):
         return {
             'attribute_type': self.typename,
             'value': self.value,
@@ -532,8 +532,8 @@ class DataResourceAttribute(BaseAttribute):
         if set_value:
             self.value = val
 
-    def to_representation(self):
-        d = super().to_representation()
+    def to_dict(self):
+        d = super().to_dict()
         d[self.MANY_KEY] = self.many
         return d
 

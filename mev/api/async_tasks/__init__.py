@@ -6,12 +6,13 @@ from django.conf import settings
 
 from celery.decorators import task
 
-from api.models import Resource, ResourceMetadata
+from api.models import Resource, ResourceMetadata, Operation, ExecutedOperation
 from api.utilities import basic_utils
 from api.utilities.ingest_operation import perform_operation_ingestion
 import api.utilities.resource_utilities as resource_utilities
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
+from api.runners import submit_job
 
 logger = logging.getLogger(__name__)
 
@@ -80,3 +81,29 @@ def ingest_new_operation(operation_uuid_str, repository_url):
     This function kicks off the ingestion process for a new Operation
     '''
     perform_operation_ingestion(repository_url, operation_uuid_str)
+
+@task(name='submit_job')
+def submit_async_job(executed_op_pk, op_pk, validated_inputs):
+    '''
+
+    '''
+    logger.info('Submitting an async job ({exec_op}).'.format(
+        exec_op = str(executed_op_pk)
+    ))
+    try:
+        executed_op = ExecutedOperation.objects.get(pk=executed_op_pk)
+    except ExecutedOperation.DoesNotExist:
+        logger.error('An async task received a primary key for an ExecutedOperation'
+            ' that did not exist. PK={exec_op}'.format(
+                exec_op = executed_op_pk
+            )
+        )
+    try:
+        op = Operation.objects.get(pk=op_pk)
+    except Operation.DoesNotExist:
+        logger.error('An async task received a primary key for an Operation'
+            ' that did not exist. PK={op}'.format(
+                op = op_pk
+            )
+        )
+    submit_job(executed_op, op, validated_inputs)

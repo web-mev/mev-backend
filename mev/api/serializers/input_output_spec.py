@@ -6,7 +6,7 @@ class InputOutputSpecSerializer(serializers.BaseSerializer):
     '''
 
     def to_representation(self, instance):
-        return instance.to_representation()
+        return instance.to_dict()
 
     def get_instance(self):
         '''

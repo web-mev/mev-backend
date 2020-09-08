@@ -12,13 +12,14 @@ from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation import OperationSerializer
 from api.models import Operation as OperationDbModel
-from api.models import Workspace
+from api.models import Workspace, ExecutedOperation
 import api.permissions as api_permissions
 from api.utilities.operations import read_operation_json, \
     validate_operation, \
     validate_operation_inputs, \
     get_operation_instance_data
 from api.async_tasks import ingest_new_operation as async_ingest_new_operation    
+from api.async_tasks import submit_async_job
 
 logger = logging.getLogger(__name__)
 
@@ -220,18 +221,32 @@ class OperationRun(APIView):
                 ' key must be a JSON object.'
             })
         try:
-            inputs_are_valid = validate_operation_inputs(request.user,
+            validated_inputs = validate_operation_inputs(request.user,
                 inputs, matching_op, workspace)
         except ValidationError as ex:
             raise ValidationError({self.INPUTS: ex.detail})
 
         # now that the inputs are validated against the spec, create an
         # ExecutedOperation instance and return it
-        if inputs_are_valid:
-            # temporary:
-            u = uuid.uuid4()
-            # TODO: create ExecutedOp
-            # TODO: submit to runner
-            return Response({'executed_operation_id': str(u)}, status=status.HTTP_200_OK)
+        if validated_inputs is not None:
+            dict_representation = {}
+            for k,v in validated_inputs.items():
+                dict_representation[k] = v.to_dict()
+
+            # Create an ExecutedOperation to track the job
+            executed_op = ExecutedOperation.objects.create(
+                workspace=workspace,
+                inputs = dict_representation,
+                operation = matching_op,
+                status = ExecutedOperation.SUBMITTED
+            )
+
+            # send off the job
+            submit_async_job.delay(executed_op.id, matching_op.id, validated_inputs)
+
+            return Response(
+                {'executed_operation_id': str(executed_op.id)}, 
+                status=status.HTTP_200_OK
+            )
         else:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)

@@ -18,7 +18,7 @@ class AttributeSerializer(serializers.BaseSerializer):
             if type(attr_obj) == dict:
                 output[key] = attr_obj
             else:
-                output[key] = attr_obj.to_representation()
+                output[key] = attr_obj.to_dict()
         return output
 
     def to_internal_value(self, data):
