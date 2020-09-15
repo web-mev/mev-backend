@@ -14,3 +14,4 @@ class Operation(models.Model):
     )
     active = models.BooleanField(default=False)
     name = models.CharField(max_length = 100)
+    successful_ingestion = models.BooleanField(null=True)

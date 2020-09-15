@@ -181,4 +181,10 @@ For the `count_matrix` input, we see the `spec` field says it accepts `"DataReso
 
 For the `"p_val"` field, we receive a value of 0.01. The `spec` states that this input should be of type `BoundedFloat` with a min of 0.0 and a max of 1.0. The backend validates that 0.01 is indeed in the range [0.0,1.0].
 
+### Operation modes
+
+Depending on how the `Operation` should be run, we perform different actions upon ingestion. For local docker-based runs, we obviously require that the image be located on the same machine as the MEV instance. To ensure everything is "aligned", we require additional files depending on the run mode. These are verified during the ingestion process.
+
+For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be 
+
 Given that all the inputs successfully validate, we can move on to create an `ExecutedOperation` and actually run the analysis.

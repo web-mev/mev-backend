@@ -80,9 +80,22 @@ def ingest_new_operation(operation_uuid_str, repository_url):
     '''
     This function kicks off the ingestion process for a new Operation
     '''
-    perform_operation_ingestion(repository_url, operation_uuid_str)
+    try:
+        operation = Operation.objects.get(id=operation_uuid_str)
+    except Operation.DoesNotExist:
+        logger.error('Could not find the Operation corresponding to'
+            ' id={u}'.format(u=op_uuid)
+        )
+        raise Exception('Encountered issue when trying update an Operation'
+            ' database instance after ingesting from repository.'
+        )     
+    try:
+        perform_operation_ingestion(repository_url, operation_uuid_str)
+    except Exception:
+        operation.successful_ingestion = False
+        operation.save()
 
-@task(name='submit_job')
+@task(name='submit_async_job')
 def submit_async_job(executed_op_pk, op_pk, validated_inputs):
     '''
 
@@ -98,6 +111,9 @@ def submit_async_job(executed_op_pk, op_pk, validated_inputs):
                 exec_op = executed_op_pk
             )
         )
+        raise Exception('Unexpected exception when invoking an Operation-- could not'
+            ' find the ExecutedOperation'
+        )
     try:
         op = Operation.objects.get(pk=op_pk)
     except Operation.DoesNotExist:
@@ -105,5 +121,8 @@ def submit_async_job(executed_op_pk, op_pk, validated_inputs):
             ' that did not exist. PK={op}'.format(
                 op = op_pk
             )
+        )
+        raise Exception('Unexpected exception when invoking an Operation-- could not'
+            ' find the Operation'
         )
     submit_job(executed_op, op, validated_inputs)

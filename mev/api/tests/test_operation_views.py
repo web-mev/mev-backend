@@ -23,9 +23,12 @@ from api.views.operation_views import OperationRun
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 
+@mock.patch('api.utilities.ingest_operation.check_required_files')
 @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
 @mock.patch('api.utilities.ingest_operation.clone_repository')
-def setup_db_elements(self, mock_clone_repository, mock_retrieve_commit_hash):
+def setup_db_elements(self, mock_clone_repository, \
+    mock_retrieve_commit_hash, \
+    mock_check_required_files):
 
     # make a dummy git repo and copy the valid spec file there:
     self.dummy_src_path = os.path.join(settings.BASE_DIR, 'test_dummy_dir')

@@ -9,6 +9,7 @@ import shutil
 from django.conf import settings
 
 from api.serializers.operation_input import OperationInputSerializer
+from api.serializers.operation import OperationSerializer
 from api.data_structures import Operation
 from api.models import Operation as OperationDbModel
 from api.runners import AVAILABLE_RUN_MODES
@@ -16,7 +17,8 @@ from api.utilities.ingest_operation import read_operation_json, \
     add_required_keys_to_operation, \
     validate_operation, \
     perform_operation_ingestion, \
-    save_operation
+    save_operation, \
+    retrieve_repo_name
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -40,6 +42,7 @@ class OperationIngestionTester(unittest.TestCase):
         self.assertTrue(d['abc'] == 1)
         self.assertTrue(d['xyz'] == 'foo')
 
+    @mock.patch('api.utilities.ingest_operation.check_required_files')
     @mock.patch('api.utilities.ingest_operation.save_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
@@ -50,7 +53,8 @@ class OperationIngestionTester(unittest.TestCase):
         mock_read_operation_json, 
         mock_clone_repository,
         mock_retrieve_commit_hash,
-        mock_save_operation):
+        mock_save_operation,
+        mock_check_required_files):
 
         mock_read_operation_json.return_value = self.valid_dict
         mock_hash = 'abcd'
@@ -135,7 +139,8 @@ class OperationIngestionTester(unittest.TestCase):
         self.assertFalse(os.path.exists(expected_final_dir))
 
         # call the save function:
-        save_operation(operation_instance, dummy_src_path)
+        op_data = OperationSerializer(operation_instance).data
+        save_operation(op_data, dummy_src_path)
         self.assertTrue(os.path.exists(expected_final_dir))
 
         # We are expecting to have an operation spec file as well.
@@ -154,3 +159,16 @@ class OperationIngestionTester(unittest.TestCase):
         # cleanup
         shutil.rmtree(expected_final_dir)
         shutil.rmtree(dummy_src_path)
+
+    @mock.patch('api.utilities.ingest_operation.sp')
+    def test_repo_name(self, mock_subprocess):
+        '''
+        Tests that we parse the name of the git repository correctly
+        '''
+        mock_process = mock.MagicMock()
+        mock_process.returncode = 0
+        mock_process.communicate.return_value = (b'git@github.com:xyz/some-repo.git\n', b'')
+        mock_subprocess.Popen.return_value = mock_process
+
+        n = retrieve_repo_name('/some/dir/.git')
+        self.assertEqual(n, 'some-repo')

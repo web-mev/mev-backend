@@ -13,6 +13,7 @@ from api.serializers.operation import OperationSerializer
 from api.utilities.basic_utils import recursive_copy
 from api.utilities.operations import read_operation_json, \
     validate_operation
+from api.runners import get_runner
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,36 @@ def retrieve_commit_hash(git_dir):
         commit_hash = stdout.strip().decode('utf-8')
         return commit_hash
 
+def retrieve_repo_name(git_dir):
+    '''
+    Retrieves the git repository name given a directory
+    '''
+    logger.info('Retrieve git repo name')
+    cmd = 'git --git-dir {git_dir}/.git remote get-url origin'.format(
+        git_dir=git_dir
+    )
+    logger.info('Retrieve git repo name with: {cmd}'.format(
+        cmd=cmd
+    ))
+    cmd = cmd.split(' ')
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+        logger.error('Problem with querying the'
+            ' repo name from the git repo at {git_dir}.\n'
+            'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                git_dir=git_dir,
+                stderr=stderr,
+                stdout=stdout
+            )
+        )
+        raise Exception('Failed when querying the git commit ID. See logs.')
+    else:
+        git_str = stdout.strip().decode('utf-8')
+        name = git_str.split('/')[-1][:-4]
+        return name
+
 def clone_repository(url):
     '''
     This clones the repository and returns the destination dir
@@ -81,6 +112,17 @@ def clone_repository(url):
     logger.info('Completed clone.')
     return dest
     
+def check_required_files(op_data, staging_dir):
+    '''
+    Depending on how an Operation is run (local, cromwell), we have different
+    requirements for the files needed.
+    '''
+    run_mode = op_data['mode']
+    runner_class = get_runner(run_mode)
+    runner = runner_class()
+    runner.check_required_files(staging_dir)
+
+
 def perform_operation_ingestion(repository_url, op_uuid):
     '''
     This function is the main entrypoint for the ingestion of a new `Operation`
@@ -124,15 +166,22 @@ def perform_operation_ingestion(repository_url, op_uuid):
         )
         raise ex
 
-    # save the operation in a final location:
+    # get an instance of the Operation (the data structure, NOT the database model)
     op = op_serializer.get_instance()
-    save_operation(op, staging_dir)
+    op_data = OperationSerializer(op).data
+
+    # check that the required files, etc. are there for the particular run mode:
+    check_required_files(op_data, staging_dir)
+
+    # save the operation in a final location:
+    save_operation(op_data, staging_dir)
 
     # update the database instance.
     try:
         o = OperationDbModel.objects.get(id=op.id)
-        o.name=op.name
-        o.active=True
+        o.name = op.name
+        o.active = True
+        o.successful_ingestion = True
         o.save()
     except OperationDbModel.DoesNotExist:
         logger.error('Could not find the Operation corresponding to'
@@ -145,10 +194,9 @@ def perform_operation_ingestion(repository_url, op_uuid):
     # remove the staging dir:
     shutil.rmtree(staging_dir)
 
-def save_operation(operation_instance, staging_dir):
+def save_operation(op_data, staging_dir):
     logger.info('Save the operation')
-    data = OperationSerializer(operation_instance).data
-    op_uuid = data['id']
+    op_uuid = op_data['id']
     dest_dir = os.path.join(
         settings.OPERATION_LIBRARY_DIR,
         op_uuid
@@ -165,4 +213,4 @@ def save_operation(operation_instance, staging_dir):
     # if that weren't true, but we do it here either way.
     op_fileout = os.path.join(dest_dir, settings.OPERATION_SPEC_FILENAME)
     with open(op_fileout, 'w') as fout:
-        fout.write(json.dumps(data))
+        fout.write(json.dumps(op_data))
