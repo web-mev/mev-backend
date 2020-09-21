@@ -151,10 +151,10 @@ class OperationUtilsTester(BaseAPITestCase):
         self.assertEqual(final_inputs['optional_int_type'].submitted_value, 33)
 
     @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_optional_without_default_fails(self, mock_get_operation_instance_data):
+    def test_optional_without_default_becomes_none(self, mock_get_operation_instance_data):
         '''
         Generally, Operations with optional inputs should have defaults. However,
-        if that is violated, raise an appropriate exception. 
+        if that is violated, the "input" should be assigned to be None
         '''
         f = os.path.join(
             TESTDIR,
