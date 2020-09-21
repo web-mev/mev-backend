@@ -42,6 +42,8 @@ class OperationIngestionTester(unittest.TestCase):
         self.assertTrue(d['abc'] == 1)
         self.assertTrue(d['xyz'] == 'foo')
 
+    @mock.patch('api.utilities.ingest_operation.prepare_operation')
+    @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
     @mock.patch('api.utilities.ingest_operation.check_required_files')
     @mock.patch('api.utilities.ingest_operation.save_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
@@ -54,7 +56,9 @@ class OperationIngestionTester(unittest.TestCase):
         mock_clone_repository,
         mock_retrieve_commit_hash,
         mock_save_operation,
-        mock_check_required_files):
+        mock_check_required_files,
+        mock_retrieve_repo_name,
+        mock_prepare_operation):
 
         mock_read_operation_json.return_value = self.valid_dict
         mock_hash = 'abcd'
@@ -62,6 +66,7 @@ class OperationIngestionTester(unittest.TestCase):
         mock_clone_repository.return_value = mock_dir
         mock_retrieve_commit_hash.return_value = 'abcd'
         repo_url = 'http://github.com/some-repo/'
+        mock_retrieve_repo_name.return_value = 'some-repo'
 
         n0 = len(OperationDbModel.objects.all())
 

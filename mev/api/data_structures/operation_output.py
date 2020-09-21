@@ -15,6 +15,15 @@ class OperationOutput(object):
         # a number, a string, a file). Of type `OutputSpec`
         self.spec = spec
 
+    def to_dict(self):
+        d = {}
+        d['spec'] = self.spec.to_dict()
+        return d
 
     def __eq__(self, other):
         return self.spec == other.spec
+
+    def __repr__(self):
+        return 'OperationOutput.\n Spec:\n{spec}'.format(
+            spec=self.spec,
+        )

@@ -8,6 +8,7 @@ services:
     command: gunicorn mev.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_volume:/www/static
+      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - 8000
     env_file:

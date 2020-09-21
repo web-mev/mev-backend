@@ -123,7 +123,6 @@ class OperationUtilsTester(BaseAPITestCase):
 
         final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
-        print(final_inputs)
         self.assertEqual(final_inputs['required_int_type'].submitted_value, 22)
         expected_default = d['inputs']['optional_int_type']['spec']['default']
         self.assertEqual(
@@ -167,6 +166,7 @@ class OperationUtilsTester(BaseAPITestCase):
         # the only input is optional, so this is technically fine.
         sample_inputs = {}
 
-        with self.assertRaises(ValidationError):
-            final_inputs = validate_operation_inputs(self.regular_user_1, 
-                sample_inputs, self.db_op, self.workspace)
+        #with self.assertRaises(ValidationError):
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
+            sample_inputs, self.db_op, self.workspace)
+        self.assertIsNone(final_inputs['optional_int_type'])

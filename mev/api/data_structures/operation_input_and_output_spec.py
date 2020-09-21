@@ -273,6 +273,7 @@ class BoundedFloatInputOutputSpec(InputOutputSpec, BoundedFloatAttribute):
         kwargs = self.handle_common_kwargs(kwargs)
         if self.default is not None:
             self.check_default(BoundedFloatAttribute, **kwargs)
+        self.set_bounds(kwargs)
 
     def to_dict(self):
         return InputOutputSpec.to_dict(self, BoundedFloatAttribute)
@@ -341,7 +342,7 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
         return i
 
 
-class ObservationInputOutputSpec(InputOutputSpec, Observation):
+class ObservationInputOutputSpec(InputOutputSpec):
     '''
     Allows input/output fields that are based on our Observation
     objects.
@@ -356,7 +357,7 @@ class ObservationInputOutputSpec(InputOutputSpec, Observation):
             'attribute_type': self.typename
         }
 
-class FeatureInputOutputSpec(InputOutputSpec, Feature):
+class FeatureInputOutputSpec(InputOutputSpec):
     '''
     Allows input/output fields that are based on our Feature
     objects.
@@ -372,7 +373,7 @@ class FeatureInputOutputSpec(InputOutputSpec, Feature):
             'attribute_type': self.typename
         }
 
-class ObservationSetInputOutputSpec(InputOutputSpec, ObservationSet):
+class ObservationSetInputOutputSpec(InputOutputSpec):
     '''
     Allows input/output fields that are based on our ObservationSet
     objects.
@@ -389,7 +390,7 @@ class ObservationSetInputOutputSpec(InputOutputSpec, ObservationSet):
         }
 
 
-class FeatureSetInputOutputSpec(InputOutputSpec, FeatureSet):
+class FeatureSetInputOutputSpec(InputOutputSpec):
     '''
     Allows input/output fields that are based on our FeatureSet
     objects.

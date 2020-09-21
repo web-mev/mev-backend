@@ -231,7 +231,12 @@ class OperationRun(APIView):
         if validated_inputs is not None:
             dict_representation = {}
             for k,v in validated_inputs.items():
-                dict_representation[k] = v.to_dict()
+                if v:
+                    dict_representation[k] = v.to_dict()
+
+            logger.info(dict_representation)
+            for k,v in dict_representation.items():
+                logger.info(type(v))
 
             # Create an ExecutedOperation to track the job
             executed_op = ExecutedOperation.objects.create(
@@ -242,7 +247,7 @@ class OperationRun(APIView):
             )
 
             # send off the job
-            submit_async_job.delay(executed_op.id, matching_op.id, validated_inputs)
+            submit_async_job.delay(executed_op.id, matching_op.id, dict_representation)
 
             return Response(
                 {'executed_operation_id': str(executed_op.id)}, 

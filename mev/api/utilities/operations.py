@@ -41,10 +41,11 @@ def validate_operation(operation_dict):
     of an `Operation`. Returns an instance of an `OperationSerializer`.
     '''
     logger.info('Validate the dictionary against the definition'
-    ' of an Operation...')
+    ' of an Operation...: {d}'.format(d=operation_dict))
     from api.serializers.operation import OperationSerializer
     op_serializer = OperationSerializer(data=operation_dict)
     op_serializer.is_valid(raise_exception=True)
+    logger.info('Operation specification was valid.')
     return op_serializer
 
 def get_operation_instance_data(operation_db_model):
@@ -107,18 +108,25 @@ def validate_operation_inputs(user, inputs, operation, workspace):
             )
             raise ValidationError({key: 'This is a required input field.'})
         else: # key not there, but NOT required
-            supplied_input = None
+            logger.info('key was not there, but also NOT required.')
+            if 'default' in spec: # is there a default to use?
+                supplied_input = spec['default']
+            else:
+                supplied_input = None
 
         # now validate that supplied input against the spec
         attribute_typename = spec['attribute_type']
         try:
             user_operation_input_class = user_operation_input_mapping[attribute_typename]
+            logger.info(user_operation_input_class)
         except KeyError as ex:
             logger.error('Could not find an appropriate class for handling the user input'
                 ' for the typename of {t}'.format(
                     t=attribute_typename
                 )
             )
-        final_inputs[key] = user_operation_input_class(user, workspace, key, supplied_input, spec)
-
+        if supplied_input:
+            final_inputs[key] = user_operation_input_class(user, workspace, key, supplied_input, spec)
+        else:
+            final_inputs[key] = None
     return final_inputs

@@ -10,6 +10,7 @@ from api.models import Workspace, Resource, ResourceMetadata
 from api.models import Operation as OperationDbModel
 from api.utilities.operations import read_operation_json, \
     validate_operation
+from api.serializers.operation import OperationSerializer
 from api.utilities.ingest_operation import save_operation
 from api.tests import test_settings
 
@@ -171,7 +172,8 @@ class Command(BaseCommand):
         dummy_dir_path = os.path.join(settings.BASE_DIR, 'dummy_op')
         os.mkdir(dummy_dir_path)
         op = op_serializer.get_instance()
-        save_operation(op, dummy_dir_path)
+        op_data = OperationSerializer(op).data
+        save_operation(op_data, dummy_dir_path)
         OperationDbModel.objects.create(id=op.id, name=op.name)
         
 

@@ -116,6 +116,7 @@ def submit_async_job(executed_op_pk, op_pk, validated_inputs):
         )
     try:
         op = Operation.objects.get(pk=op_pk)
+        logger.info(op)
     except Operation.DoesNotExist:
         logger.error('An async task received a primary key for an Operation'
             ' that did not exist. PK={op}'.format(

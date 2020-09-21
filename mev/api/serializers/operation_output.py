@@ -7,6 +7,13 @@ class OperationOutputSerializer(serializers.Serializer):
 
     spec = OutputSpecSerializer(required=True)
 
+    def to_representation(self, instance):
+        if type(instance) == OperationOutput:
+            return instance.to_dict()
+        else:
+            instance['spec'] = instance['spec'].to_dict()           
+            return instance
+
     def create(self, validated_data):
         '''
         Returns an OperationOutput instance from the validated

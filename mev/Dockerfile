@@ -68,17 +68,19 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 # create the mev user
-RUN addgroup --system mev && adduser --system --group mev
+#RUN addgroup --system mev && adduser --system --group mev
+#RUN usermod -aG docker mev
 
 # Give that user ownership of the code directory and the logging directory
 RUN mkdir /var/log/mev && \
-    mkdir /www/static/ && \
-    chown -R mev:mev /www /var/log/mev /var/log/supervisor /etc/supervisor/conf.d
+    mkdir /www/static/
+    #mkdir /www/static/ && \
+    #chown -R mev:mev /www /var/log/mev /var/log/supervisor /etc/supervisor/conf.d
 
 # Give ownership and add execution permissions for startup script
-RUN chown mev:mev /www/startup.sh && chmod +x /www/startup.sh
+#RUN chown mev:mev /www/startup.sh && chmod +x /www/startup.sh
 
 # switch to the mev user
-USER mev
+#USER mev
 
 ENTRYPOINT ["/www/startup.sh"]

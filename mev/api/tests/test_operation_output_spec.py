@@ -82,6 +82,8 @@ class TestOutputSpec(unittest.TestCase):
 
         # valid spec:
         f = BoundedIntegerOutputSpec(min=0, max=2)
+        self.assertEqual(f.min_value, 0)
+        self.assertEqual(f.max_value, 2)
         f = BoundedIntegerOutputSpec(min=0, max=2, default=1)
         self.assertTrue(f.default == 1)
         # max not an integer:
@@ -143,6 +145,8 @@ class TestOutputSpec(unittest.TestCase):
 
         # valid spec:
         f = BoundedFloatOutputSpec(min=0, max=2)
+        self.assertEqual(f.min_value, 0)
+        self.assertEqual(f.max_value, 2)
         f = BoundedFloatOutputSpec(min=0.1, max=2.2)
         f = BoundedFloatOutputSpec(min=0.1, max=2)
         f = BoundedFloatOutputSpec(min=0, max=2.2)

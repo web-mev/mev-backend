@@ -11,6 +11,7 @@ services:
     volumes:
       - static_volume:/www/static
       - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - 8000
     env_file:

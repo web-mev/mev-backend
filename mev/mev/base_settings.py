@@ -392,3 +392,17 @@ ACCEPTABLE_REPOSITORY_DOMAINS = ['github.com',]
 ###############################################################################
 # END Settings for ingestion of Operations
 ###############################################################################
+
+
+###############################################################################
+# START Settings for Dockerhub 
+###############################################################################
+
+# the dockerhub username. e.g. if 'xyz', then the image would be available
+# from dockerhub at docker.io/xyz/<image>:<tag>
+DOCKERHUB_USERNAME = get_env('DOCKERHUB_USERNAME')
+DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
+
+###############################################################################
+# END Settings for Dockerhub
+###############################################################################

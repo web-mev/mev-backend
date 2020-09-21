@@ -122,6 +122,18 @@ def check_required_files(op_data, staging_dir):
     runner = runner_class()
     runner.check_required_files(staging_dir)
 
+def prepare_operation(op_data, staging_dir, repo_name, git_hash):
+    '''
+    This function calls out to the runner to have it prepare the necessary
+    elements to run the Operation.
+
+    For instance, in a local Docker-based job, we need to build the container
+    For a cromwell job, we need to build the containers and push to dockerhub
+    '''
+    run_mode = op_data['mode']
+    runner_class = get_runner(run_mode)
+    runner = runner_class()
+    runner.prepare_operation(staging_dir, repo_name, git_hash)
 
 def perform_operation_ingestion(repository_url, op_uuid):
     '''
@@ -146,7 +158,7 @@ def perform_operation_ingestion(repository_url, op_uuid):
     try:
         op_serializer = validate_operation(j)
     except ValidationError as ex:
-        logger.error('A validation error was raised when validating'
+        logger.info('A validation error was raised when validating'
             ' the information parsed from {path}. Exception was: {ex}.\n '
             'Full info was: {j}'.format(
                 path = operation_json_filepath,
@@ -156,7 +168,7 @@ def perform_operation_ingestion(repository_url, op_uuid):
         )
         raise ex
     except Exception as ex:
-        logger.error('An unexpected error was raised when validating'
+        logger.info('An unexpected error was raised when validating'
             ' the information parsed from {path}. Exception was: {ex}.\n '
             'Full info was: {j}'.format(
                 path = operation_json_filepath,
@@ -169,9 +181,15 @@ def perform_operation_ingestion(repository_url, op_uuid):
     # get an instance of the Operation (the data structure, NOT the database model)
     op = op_serializer.get_instance()
     op_data = OperationSerializer(op).data
+    logging.info('After parsing operation spec, we have: {spec}'.format(spec=op_data))
 
     # check that the required files, etc. are there for the particular run mode:
     check_required_files(op_data, staging_dir)
+
+    repo_name = retrieve_repo_name(staging_dir)
+
+    # prepare any elements required for running the operation:
+    prepare_operation(op_data, staging_dir, repo_name, git_hash)
 
     # save the operation in a final location:
     save_operation(op_data, staging_dir)

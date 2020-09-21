@@ -119,3 +119,10 @@ BACKEND_DOMAIN=
 SITE_NAME=
 
 ########################## END Domain parameters #####################################
+
+########################## Dockerhub parameters #########################################
+
+DOCKERHUB_USERNAME=
+DOCKERHUB_PASSWORD=
+
+########################## END Dockerhub parameters #####################################
