@@ -6,7 +6,11 @@ from django.conf import settings
 
 from celery.decorators import task
 
-from api.models import Resource, ResourceMetadata, Operation, ExecutedOperation
+from api.models import Resource, \
+    ResourceMetadata, \
+    Operation, \
+    ExecutedOperation, \
+    Workspace
 from api.utilities import basic_utils
 from api.utilities.ingest_operation import perform_operation_ingestion
 import api.utilities.resource_utilities as resource_utilities
@@ -96,24 +100,17 @@ def ingest_new_operation(operation_uuid_str, repository_url):
         operation.save()
 
 @task(name='submit_async_job')
-def submit_async_job(executed_op_pk, op_pk, validated_inputs):
+def submit_async_job(executed_op_pk, op_pk, workspace_pk, validated_inputs):
     '''
 
     '''
     logger.info('Submitting an async job ({exec_op}).'.format(
         exec_op = str(executed_op_pk)
     ))
-    try:
-        executed_op = ExecutedOperation.objects.get(pk=executed_op_pk)
-    except ExecutedOperation.DoesNotExist:
-        logger.error('An async task received a primary key for an ExecutedOperation'
-            ' that did not exist. PK={exec_op}'.format(
-                exec_op = executed_op_pk
-            )
-        )
-        raise Exception('Unexpected exception when invoking an Operation-- could not'
-            ' find the ExecutedOperation'
-        )
+
+    # get the workspace instance:
+    workspace = Workspace.objects.get(id=workspace_pk)
+
     try:
         op = Operation.objects.get(pk=op_pk)
         logger.info(op)
@@ -126,4 +123,13 @@ def submit_async_job(executed_op_pk, op_pk, validated_inputs):
         raise Exception('Unexpected exception when invoking an Operation-- could not'
             ' find the Operation'
         )
+
+    # Create an ExecutedOperation to track the job
+    executed_op = ExecutedOperation.objects.create(
+        workspace=workspace,
+        inputs = validated_inputs,
+        operation = op,
+        status = ExecutedOperation.SUBMITTED
+    )
+
     submit_job(executed_op, op, validated_inputs)

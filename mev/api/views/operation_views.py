@@ -238,19 +238,22 @@ class OperationRun(APIView):
             for k,v in dict_representation.items():
                 logger.info(type(v))
 
-            # Create an ExecutedOperation to track the job
-            executed_op = ExecutedOperation.objects.create(
-                workspace=workspace,
-                inputs = dict_representation,
-                operation = matching_op,
-                status = ExecutedOperation.SUBMITTED
-            )
+            # create the UUID which will identify the executed op.
+            # We do this to avoid a race condition with the celery task queue.
+            # In the past, the ExecutedOperation was created but the task was
+            # invoked quickly enough that the database query could not find the
+            # instance.
+            executed_op_uuid = uuid.uuid4()
 
             # send off the job
-            submit_async_job.delay(executed_op.id, matching_op.id, dict_representation)
+            submit_async_job.delay(
+                executed_op_uuid, 
+                matching_op.id,
+                workspace_uuid,
+                dict_representation)
 
             return Response(
-                {'executed_operation_id': str(executed_op.id)}, 
+                {'executed_operation_id': str(executed_op_uuid)}, 
                 status=status.HTTP_200_OK
             )
         else:
