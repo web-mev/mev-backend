@@ -228,11 +228,16 @@ class OperationRun(APIView):
 
         # now that the inputs are validated against the spec, create an
         # ExecutedOperation instance and return it
+        print(':'*100)
+        print(validated_inputs)
+        print(':'*100)
         if validated_inputs is not None:
             dict_representation = {}
             for k,v in validated_inputs.items():
                 if v:
-                    dict_representation[k] = v.to_dict()
+                    print(type(v))
+                    print(v)
+                    dict_representation[k] = v.get_value()
 
             logger.info(dict_representation)
             for k,v in dict_representation.items():

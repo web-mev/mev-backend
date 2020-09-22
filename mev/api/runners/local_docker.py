@@ -1,8 +1,10 @@
 import os
+import json
 import subprocess
 import logging
 
 from django.conf import settings
+from django.utils.module_loading import import_string
 
 from api.runners.base import OperationRunner
 from api.utilities.operations import get_operation_instance_data
@@ -19,13 +21,16 @@ class LocalDockerRunner(OperationRunner):
     MODE = 'local_docker'
 
     DOCKERFILE = 'Dockerfile'
-    INPUT_TRANSLATION_SCRIPT = 'translate_inputs.py'
 
     # A list of files that are required to be part of the repository
-    REQUIRED_FILES = [
+    REQUIRED_FILES = OperationRunner.REQUIRED_FILES + [
         os.path.join(OperationRunner.DOCKER_DIR, DOCKERFILE),
-        INPUT_TRANSLATION_SCRIPT
     ]
+
+    # a mapping of strings to the class implementation for various converters
+    CONVERTER_MAPPING = {
+
+    }
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''
@@ -60,3 +65,41 @@ class LocalDockerRunner(OperationRunner):
         # that the call with use- e.g. making a CSV list to submit as one of the args
         # like:
         # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
+
+        # get the operation dir so we can look at which converters to use:
+        op_dir = os.path.join(
+            settings.OPERATION_LIBRARY_DIR, 
+            str(op_data['id'])
+        )
+
+        # get the file which states which converters to use:
+        converter_file_path = os.path.join(op_dir, OperationRunner.CONVERTER_FILE)
+        if not os.path.exists(converter_file_path):
+            logger.error('Could not find the required converter file at {p}.'
+                ' Something must have corrupted the operation directory.'.format(
+                    p = converter_file_path
+                )
+            )
+            raise Exception('The repository must have been corrupted.'
+                ' Check dir at: {d}'.format(
+                    d = op_dir
+                )
+            )
+        converter_dict = json.load(open(converter_file_path))
+        arg_dict = {}
+        for k,v in validated_inputs.items():
+            try:
+                converter_class_str = converter_dict[k] # a string telling us which converter to use
+                converter_class = import_string(converter_class_str)
+            except KeyError as ex:
+                logger.error('Could not locate a converter for input: {i}'.format(
+                    i = k
+                ))
+                raise ex
+
+            c = converter_class()
+            arg_dict[k] = c.convert(v)
+
+        logger.info('After mapping the user inputs, we have the'
+            ' following structure: {d}'.format(d = arg_dict)
+        )

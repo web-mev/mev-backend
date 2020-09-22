@@ -178,9 +178,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         x = user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
             str(r.id), single_resource_input_spec)
-        y = single_resource_input_spec.copy()
-        y['value'] = str(r.id)
-        self.assertDictEqual(x.to_dict(), y)
+        self.assertEqual(x.get_value(), str(r.id))
 
         # handle a good case with multiple files
         r0 = user_resource_list[0]
@@ -191,12 +189,11 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': True,
             'resource_types': list(typeset)
         }
+        expected_vals = [str(r0.id), str(r1.id)]
         x = user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
-            [str(r0.id), str(r1.id)], 
+            expected_vals, 
             multiple_resource_input_spec)
-        y = multiple_resource_input_spec.copy()
-        y['value'] = [str(r0.id), str(r1.id)]
-        self.assertDictEqual(x.to_dict(), y)
+        self.assertCountEqual(x.get_value(), expected_vals)
 
         # handle a single file with an invalid UUID; uuid is fine, but no Resource
         r = user_resource_list[0]
@@ -312,9 +309,9 @@ class UserOperationInputTester(BaseAPITestCase):
 
         # test that we are fine with a valid input:
         x=clazz(self.regular_user_1, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
-        x_as_dict = x.to_dict()
-        self.assertEqual(x_as_dict['multiple'], valid_obs_set['multiple'])
-        self.assertCountEqual(x_as_dict['elements'], valid_obs_set['elements'])
+        val = x.get_value()
+        self.assertEqual(val['multiple'], valid_obs_set['multiple'])
+        self.assertCountEqual(val['elements'], valid_obs_set['elements'])
 
         invalid_obs_set = {
             'multiple': False,
@@ -379,9 +376,9 @@ class UserOperationInputTester(BaseAPITestCase):
 
         # test that we are fine with a valid input:
         x = clazz(self.regular_user_1, None, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
-        x_as_dict = x.to_dict()
-        self.assertEqual(x_as_dict['multiple'], valid_feature_set['multiple'])
-        self.assertCountEqual(x_as_dict['elements'], valid_feature_set['elements'])
+        val = x.get_value()
+        self.assertEqual(val['multiple'], valid_feature_set['multiple'])
+        self.assertCountEqual(val['elements'], valid_feature_set['elements'])
 
         invalid_feature_set = {
             'multiple': False,
@@ -406,9 +403,9 @@ class UserOperationInputTester(BaseAPITestCase):
         # This is because our methods add the empty 'attributes' key.
         # Therefore, a strict comparison of valid_feature_set2 would not be possible
         # as we designed THAT dict to be missing the 'attributes' key.
-        x_as_dict = x.to_dict()
-        self.assertEqual(x_as_dict['multiple'], valid_feature_set['multiple'])
-        self.assertCountEqual(x_as_dict['elements'], valid_feature_set['elements'])
+        val = x.get_value()
+        self.assertEqual(val['multiple'], valid_feature_set['multiple'])
+        self.assertCountEqual(val['elements'], valid_feature_set['elements'])
 
         invalid_feature_set = {
             'multiple': True,
@@ -452,9 +449,9 @@ class UserOperationInputTester(BaseAPITestCase):
         # test that we are fine with a valid input:
         x = clazz(self.regular_user_1, None, 'xyz', valid_obs_1, d['inputs']['obs_type'])
         y = clazz(self.regular_user_1, None, 'xyz', valid_obs_2, d['inputs']['obs_type'])
-        self.assertDictEqual(x.to_dict(), valid_obs_1)
+        self.assertDictEqual(x.get_value(), valid_obs_1)
         self.assertDictEqual(
-            y.to_dict(), 
+            y.get_value(), 
             {'id': 'foo', 'attributes':{} }
         )
 
@@ -493,9 +490,9 @@ class UserOperationInputTester(BaseAPITestCase):
         # test that we are fine with a valid input:
         x = clazz(self.regular_user_1, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
         y = clazz(self.regular_user_1, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
-        self.assertDictEqual(x.to_dict(), valid_feature_1)
+        self.assertDictEqual(x.get_value(), valid_feature_1)
         self.assertDictEqual(
-            y.to_dict(), 
+            y.get_value(), 
             {'id': 'foo', 'attributes':{} }
         )
         with self.assertRaises(ValidationError):

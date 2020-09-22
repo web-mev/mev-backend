@@ -15,8 +15,14 @@ class OperationRunner(object):
     # context
     DOCKER_DIR = 'docker'
 
+    # a JSON-format file which tells us which converter should be used to map
+    # the user inputs to a format that the runner can understand/use
+    CONVERTER_FILE = 'converters.json'
+
     # A list of files that are required to be part of the repository
-    REQUIRED_FILES = []
+    REQUIRED_FILES = [
+        CONVERTER_FILE
+    ]
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''

@@ -31,16 +31,9 @@ class LocalDataResourceConverter(BaseDataResourceConverter):
 
 class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
     '''
-    This converter takes a DataResource instance (for a single file) and returns the path to 
-    the local file
-
-    For example, given the following DataResource:
-    {
-        'attribute_type': 'DataResource', 
-        'value': <UUID>, 
-        'many': False, 
-        'resource_types': ['MTX', 'I_MTX', 'EXP_MTX', 'RNASEQ_COUNT_MTX']
-    }
+    This converter takes a DataResource instance (for a single file,
+    which is simply a UUID) and returns the path to 
+    the local file.
 
     This converter takes that UUID, finds the Resource/file, brings it local, and returns
     the local path.
@@ -49,7 +42,7 @@ class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
         '''
         user_input is the dictionary-representation of a api.data_structures.UserOperationInput
         '''
-        resource_uuid = user_input['value']
+        resource_uuid = user_input
         return self.get_local_path_from_uuid(resource_uuid)
 
 
@@ -73,12 +66,11 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
 
     def convert(self, user_input):
         path_list = []
-        value = user_input['value']
-        if type(value) == list:
-            for u in user_input['value']:
+        if type(user_input) == list:
+            for u in user_input:
                 path_list.append(self.get_local_path_from_uuid(u))
-        elif type(value) == str:
-            path_list.append(self.get_local_path_from_uuid(value))
+        elif type(user_input) == str:
+            path_list.append(self.get_local_path_from_uuid(user_input))
         else:
             logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
                 v = value

@@ -67,11 +67,12 @@ class UserOperationInput(object):
         self.input_spec = input_spec
         self.instance = None
 
-    def to_dict(self):
+    def get_value(self):
         if self.instance:
             return self.instance.to_dict()
+            
         else:
-            logger.error('The instance atribute was not set when calling'
+            logger.error('The instance attribute was not set when calling'
                 ' for the representation of a UserOperationInput as a dict.'
             )
             raise ValidationError('Could not represent a UserOperationInput'
@@ -139,6 +140,10 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         # if the submitted value is not sensible for the specific
         # input type.
         self.instance = create_attribute(key, d)
+
+    def get_value(self):
+        d = self.instance.to_dict()
+        return d['value']
 
 
 class DataResourceUserOperationInput(UserOperationInput):
@@ -237,13 +242,10 @@ class DataResourceUserOperationInput(UserOperationInput):
         # self.instance variable 
         self.instance = DataResourceAttribute(self.submitted_value, many=expect_many)
 
-    def to_dict(self):
-        # gets the dict representation by using the DataResourceAttribute class
-        d = super().to_dict()
+    def get_value(self):
+        d = self.instance.to_dict()
+        return d['value']
 
-        # adds on:
-        d[DataResourceInputSpec.RESOURCE_TYPES_KEY] = self.expected_resource_types
-        return d
 
 class ElementUserOperationInput(UserOperationInput):
     '''

@@ -8,8 +8,9 @@ from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
     LocalDockerSingleDataResourceConverter
 from api.converters.element_set import ObservationSetCsvConverter, FeatureSetCsvConverter
+from api.tests.base import BaseAPITestCase
 
-class TestElementSetConverter(unittest.TestCase):
+class TestElementSetConverter(BaseAPITestCase):
 
     def test_observation_set_csv_converter(self):
         obs1 = Observation('foo')
@@ -37,7 +38,7 @@ class TestElementSetConverter(unittest.TestCase):
             ('bar,foo'== c.convert(d))
         )
 
-class TestDataResourceConverter(unittest.TestCase):
+class TestDataResourceConverter(BaseAPITestCase):
 
     @mock.patch('api.converters.data_resource.settings')
     def test_single_local_converter(self, mock_settings):
@@ -53,12 +54,7 @@ class TestDataResourceConverter(unittest.TestCase):
         all_resources = Resource.objects.all()
         r = all_resources[0]
 
-        user_input = {
-            'attribute_type': 'DataResource', 
-            'value': str(r.pk), 
-            'many': False, 
-            'resource_types': ['MTX']
-        }
+        user_input = str(r.pk)
         c = LocalDockerSingleDataResourceConverter()
         x = c.convert(user_input)
         self.assertEqual(x, p)
@@ -76,17 +72,13 @@ class TestDataResourceConverter(unittest.TestCase):
         # calling the converter. Thus, we can use basically any Resource to test
         all_resources = Resource.objects.all()
         if len(all_resources) < 3:
+            print(all_resources)
             raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
 
         # test for multiple
         v = [str(all_resources[i].pk) for i in range(1,4)] 
 
-        user_input = {
-            'attribute_type': 'DataResource', 
-            'value': v, 
-            'many': True, 
-            'resource_types': ['MTX']
-        }
+        user_input = v
         c = LocalDockerCsvResourceConverter()
         x = c.convert(user_input)
         self.assertEqual(x, ','.join(p))
@@ -106,12 +98,7 @@ class TestDataResourceConverter(unittest.TestCase):
         # calling the converter. Thus, we can use basically any Resource to test
         all_resources = Resource.objects.all()
         v = str(all_resources[0].pk)
-        user_input = {
-            'attribute_type': 'DataResource', 
-            'value': v, 
-            'many': True, 
-            'resource_types': ['MTX']
-        }
+        user_input = v
         c = LocalDockerCsvResourceConverter()
         x = c.convert(user_input)
         self.assertEqual(x, p)
@@ -132,12 +119,7 @@ class TestDataResourceConverter(unittest.TestCase):
             raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
         v = [str(all_resources[i].pk) for i in range(1,4)] 
 
-        user_input = {
-            'attribute_type': 'DataResource', 
-            'value': v, 
-            'many': True, 
-            'resource_types': ['MTX']
-        }
+        user_input = v
         c = LocalDockerSpaceDelimResourceConverter()
         x = c.convert(user_input)
         self.assertEqual(x, ' '.join(p))
@@ -156,12 +138,7 @@ class TestDataResourceConverter(unittest.TestCase):
         all_resources = Resource.objects.all()
         v = str(all_resources[0].pk)
 
-        user_input = {
-            'attribute_type': 'DataResource', 
-            'value': v, 
-            'many': True, 
-            'resource_types': ['MTX']
-        }
+        user_input = v
         c = LocalDockerSpaceDelimResourceConverter()
         x = c.convert(user_input)
         self.assertEqual(x, p)
