@@ -206,7 +206,6 @@ class DataResourceUserOperationInput(UserOperationInput):
                 # will catch things like bad UUIDs and also other unexpected errors
                 raise ValidationError({key: ex})
 
-
             if not r.resource_type in self.expected_resource_types:
                 logger.info('The resource type {rt} is not compatible'
                     ' with the expected resource types of {all_types}'.format(
