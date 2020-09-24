@@ -72,7 +72,6 @@ class TestDataResourceConverter(BaseAPITestCase):
         # calling the converter. Thus, we can use basically any Resource to test
         all_resources = Resource.objects.all()
         if len(all_resources) < 3:
-            print(all_resources)
             raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
 
         # test for multiple

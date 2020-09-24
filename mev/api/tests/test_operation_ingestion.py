@@ -66,7 +66,8 @@ class OperationIngestionTester(unittest.TestCase):
         mock_clone_repository.return_value = mock_dir
         mock_retrieve_commit_hash.return_value = 'abcd'
         repo_url = 'http://github.com/some-repo/'
-        mock_retrieve_repo_name.return_value = 'some-repo'
+        repo_name = 'some-repo'
+        mock_retrieve_repo_name.return_value = repo_name
 
         n0 = len(OperationDbModel.objects.all())
 
@@ -113,7 +114,8 @@ class OperationIngestionTester(unittest.TestCase):
             {},
             AVAILABLE_RUN_MODES[0],
             'http://github.com/some-repo/',
-            'abcd'
+            'abcd',
+            'repo_name'
         )
 
         # make a dummy git repo:

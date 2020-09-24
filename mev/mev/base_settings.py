@@ -393,6 +393,26 @@ ACCEPTABLE_REPOSITORY_DOMAINS = ['github.com',]
 # END Settings for ingestion of Operations
 ###############################################################################
 
+###############################################################################
+# START Settings for Operation executions
+###############################################################################
+
+# a directory where the operations will be run-- each execution of an operation
+# gets its own sandbox
+execution_dirname = get_env('EXECUTIONS_DIR')
+OPERATION_EXECUTION_DIR = os.path.join(BASE_DIR, execution_dirname)
+if not os.path.exists(OPERATION_EXECUTION_DIR):
+    os.mkdir(OPERATION_EXECUTION_DIR)
+
+# This is how Docker refers to the named volume that is shared between
+# MEV and the host. This way, when sibling containers are started, they
+# can access MEV data for executing operations
+EXECUTION_VOLUME = get_env('EXECUTION_VOLUME')
+
+###############################################################################
+# END Settings for Operation executions
+###############################################################################
+
 
 ###############################################################################
 # START Settings for Dockerhub 

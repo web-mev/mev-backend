@@ -44,6 +44,7 @@ def setup_db_elements(self, mock_clone_repository, \
 
     mock_clone_repository.return_value = self.dummy_src_path
     mock_retrieve_commit_hash.return_value = 'abcde'
+    mock_retrieve_repo_name.return_value = 'my-repo'
 
     # create a valid operation folder and database object:
     self.op_uuid = uuid.uuid4()

@@ -55,9 +55,7 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
     For example, given the following DataResource:
     {
         'attribute_type': 'DataResource', 
-        'value': [<UUID>, <UUID>, <UUID>], 
-        'many': True, 
-        'resource_types': ['MTX', 'I_MTX', 'EXP_MTX', 'RNASEQ_COUNT_MTX']
+        'value': [<UUID>, <UUID>, <UUID>]
     }
 
     This converter takes the list UUIDs, finds each Resource/file, brings it local, and returns
@@ -97,9 +95,7 @@ class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
     For example, given the following DataResource:
     {
         'attribute_type': 'DataResource', 
-        'value': <UUID>, 
-        'many': False, 
-        'resource_types': ['MTX', 'I_MTX', 'EXP_MTX', 'RNASEQ_COUNT_MTX']
+        'value': <UUID>
     }
 
     This converter takes that UUID, finds the Resource/file and returns

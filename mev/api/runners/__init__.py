@@ -36,6 +36,7 @@ def submit_job(executed_op, op, validated_inputs):
     '''
     # need to read the Operation definition to get the run mode:
     op_data = get_operation_instance_data(op)
+    logger.info('Done reading the op_data')
     runner_class = get_runner(op_data['mode'])
     runner = runner_class()
     runner.run(executed_op, op_data, validated_inputs)

@@ -11,8 +11,12 @@ from api.utilities.operations import get_operation_instance_data
 from api.utilities.docker import build_docker_image, \
     login_to_dockerhub, \
     push_image_to_dockerhub
+from api.data_structures.attributes import DataResourceAttribute
+from api.utilities.basic_utils import make_local_directory, \
+    copy_local_resource
 
 logger = logging.getLogger(__name__)
+
 class LocalDockerRunner(OperationRunner):
     '''
     Class that handles execution of `Operation`s using Docker on the local
@@ -20,17 +24,23 @@ class LocalDockerRunner(OperationRunner):
     '''
     MODE = 'local_docker'
 
+    # the name of the Dockerfile which resides in the docker directory.
+    # Used to build the Docker image
     DOCKERFILE = 'Dockerfile'
+
+    # a file that specifies the entrypoint "command" that is run:
+    ENTRYPOINT_FILE = 'entrypoint.txt'
 
     # A list of files that are required to be part of the repository
     REQUIRED_FILES = OperationRunner.REQUIRED_FILES + [
         os.path.join(OperationRunner.DOCKER_DIR, DOCKERFILE),
+        ENTRYPOINT_FILE
     ]
 
-    # a mapping of strings to the class implementation for various converters
-    CONVERTER_MAPPING = {
-
-    }
+    # the template docker command to be run:
+    DOCKER_RUN_CMD = ('docker run -d --rm --name {container_name}'
+        ' -v {execution_mount}:/{work_dir} '
+        '--entrypoint="" {username}/{image}:{tag} {cmd}')
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''
@@ -49,6 +59,62 @@ class LocalDockerRunner(OperationRunner):
         login_to_dockerhub()
         push_image_to_dockerhub(repo_name, git_hash)
 
+    def _map_inputs(self, op_dir, validated_inputs):
+        '''
+        Takes the inputs (which are MEV-native data structures)
+        and make them into something that we can pass to a command-line
+        call. 
+
+        For instance, this takes a DataResource (which is a UUID identifying
+        the file), and turns it into a local path.
+        '''
+        converter_dict = self._get_converter_dict(op_dir)
+        arg_dict = {}
+        for k,v in validated_inputs.items():
+            try:
+                converter_class_str = converter_dict[k] # a string telling us which converter to use
+            except KeyError as ex:
+                logger.error('Could not locate a converter for input: {i}'.format(
+                    i = k
+                ))
+                raise ex
+            try:
+                converter_class = import_string(converter_class_str)
+            except Exception as ex:
+                logger.error('Failed when importing the converter class: {clz}'
+                    ' Exception was: {ex}'.format(
+                        ex=ex,
+                        clz = converter_class_str
+                    )
+                )
+                raise ex
+            # instantiate the converter and convert the arg:
+            c = converter_class()
+            arg_dict[k] = c.convert(v)
+
+        return arg_dict
+
+    def _copy_data_resources(self, execution_dir, op_data, arg_dict):
+        '''
+        Copies files (DataResource instances) from the user's local cache
+        to a sandbox dir.
+
+        `execution_dir` is where we want to copy the files
+        `op_data` is the full operation "specification"
+        `arg_dict` is the user inputs, which have already been
+          mapped to appropriate commandline args
+        '''
+        for k,v in op_data['inputs'].items():
+            # v has type of OperationInput
+            spec = v['spec']
+            attribute_type = spec['attribute_type']
+            if attribute_type == DataResourceAttribute.typename:
+                path_in_cache = arg_dict[k]
+                dest = os.path.join(execution_dir, os.path.basename(path_in_cache))
+                copy_local_resource(path_in_cache, dest)
+                arg_dict[k] = dest
+
+
     def run(self, executed_op, op_data, validated_inputs):
         logger.info('Running in local Docker mode.')
         logger.info('Executed op type: %s' % type(executed_op))
@@ -66,40 +132,63 @@ class LocalDockerRunner(OperationRunner):
         # like:
         # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
 
-        # get the operation dir so we can look at which converters to use:
+        # the UUID identifying the execution of this operation:
+        execution_uuid = str(executed_op.id)
+
+        # get the operation dir so we can look at which converters and command to use:
         op_dir = os.path.join(
             settings.OPERATION_LIBRARY_DIR, 
             str(op_data['id'])
         )
 
-        # get the file which states which converters to use:
-        converter_file_path = os.path.join(op_dir, OperationRunner.CONVERTER_FILE)
-        if not os.path.exists(converter_file_path):
-            logger.error('Could not find the required converter file at {p}.'
-                ' Something must have corrupted the operation directory.'.format(
-                    p = converter_file_path
-                )
-            )
-            raise Exception('The repository must have been corrupted.'
-                ' Check dir at: {d}'.format(
-                    d = op_dir
-                )
-            )
-        converter_dict = json.load(open(converter_file_path))
-        arg_dict = {}
-        for k,v in validated_inputs.items():
-            try:
-                converter_class_str = converter_dict[k] # a string telling us which converter to use
-                converter_class = import_string(converter_class_str)
-            except KeyError as ex:
-                logger.error('Could not locate a converter for input: {i}'.format(
-                    i = k
-                ))
-                raise ex
+        # convert the user inputs into args compatible with commandline usage:
+        arg_dict = self._map_inputs(op_dir, validated_inputs)
 
-            c = converter_class()
-            arg_dict[k] = c.convert(v)
+        # Note that any paths (i.e. DataResources) are currently in the user cache directory.
+        # To avoid conflicts, we want to run each operation in its own sandbox, so we
+        # copy over any DataResources to a new directory:
+        execution_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
+        make_local_directory(execution_dir)
+        self._copy_data_resources(execution_dir, op_data, arg_dict)
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)
         )
+
+        # Load the command:
+        entrypoint_file_path = os.path.join(op_dir, self.ENTRYPOINT_FILE)
+        if not os.path.exists(entrypoint_file_path):
+            logger.error('Could not find the required entrypoint file at {p}.'
+                ' Something must have corrupted the operation directory.'.format(
+                    p = entrypoint_file_path
+                )
+            )
+            raise Exception('The repository must have been corrupted.'
+                ' Failed to find the entrypoint file.'
+                ' Check dir at: {d}'.format(
+                    d = op_dir
+                )
+            )
+
+        # read the template command
+        entrypoint_cmd_template = open(entrypoint_file_path, 'r').read()
+        try:
+            entrypoint_cmd = entrypoint_cmd_template.format(**arg_dict)
+        except KeyError as ex:
+            logger.error('Could not find an input for the "{arg}" argument'
+                ' in the following command template: {cmd}.'
+                ' Please check the command and the inputs.'.format(
+                    arg=ex,
+                    cmd = entrypoint_cmd_template
+                )
+            )
+        cmd = self.DOCKER_RUN_CMD.format(
+            container_name = execution_uuid,
+            execution_mount = settings.EXECUTION_VOLUME,
+            work_dir = settings.OPERATION_EXECUTION_DIR,
+            cmd = entrypoint_cmd,
+            username = settings.DOCKERHUB_USERNAME,
+            image = op_data['repo_name'],
+            tag = op_data['git_hash']
+        )   
+        logger.info('Run docker container with: {cmd}'.format(cmd=cmd))

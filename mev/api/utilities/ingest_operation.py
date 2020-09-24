@@ -142,6 +142,7 @@ def perform_operation_ingestion(repository_url, op_uuid):
     # pull from the repository:
     staging_dir = clone_repository(repository_url)
     git_hash = retrieve_commit_hash(staging_dir)
+    repo_name = retrieve_repo_name(staging_dir)
 
     # Parse the JSON file defining this new Operation:
     operation_json_filepath = os.path.join(staging_dir, settings.OPERATION_SPEC_FILENAME)
@@ -151,7 +152,8 @@ def perform_operation_ingestion(repository_url, op_uuid):
     # to be specified by the developer who wrote the `Operation`
     add_required_keys_to_operation(j, id=op_uuid,
         git_hash = git_hash,
-        repository_url = repository_url
+        repository_url = repository_url,
+        repo_name = repo_name
     )
 
     # attempt to validate the data for the operation:
@@ -185,8 +187,6 @@ def perform_operation_ingestion(repository_url, op_uuid):
 
     # check that the required files, etc. are there for the particular run mode:
     check_required_files(op_data, staging_dir)
-
-    repo_name = retrieve_repo_name(staging_dir)
 
     # prepare any elements required for running the operation:
     prepare_operation(op_data, staging_dir, repo_name, git_hash)

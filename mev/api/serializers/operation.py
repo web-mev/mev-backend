@@ -19,6 +19,7 @@ class OperationSerializer(serializers.Serializer):
     mode = serializers.CharField(max_length=100, required=True)
     inputs = OperationInputDictSerializer(required=True)
     outputs = OperationOutputDictSerializer(required=True)
+    repo_name = serializers.CharField(required=True)
 
     def validate_mode(self, mode):
         if not mode in AVAILABLE_RUN_MODES:
@@ -43,6 +44,7 @@ class OperationSerializer(serializers.Serializer):
             'name': instance.name,
             'description': instance.description,
             'repository_url': instance.repository_url,
+            'repo_name': instance.repo_name,
             'mode': instance.mode,
             'git_hash': instance.git_hash,
             'inputs': input_dict_rep,
@@ -61,7 +63,8 @@ class OperationSerializer(serializers.Serializer):
             validated_data['outputs'],
             validated_data['mode'],
             validated_data['repository_url'],
-            validated_data['git_hash']
+            validated_data['git_hash'],
+            validated_data['repo_name']
         )
 
     def get_instance(self):

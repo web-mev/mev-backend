@@ -165,6 +165,7 @@ class Command(BaseCommand):
         d['id'] = str(uuid.uuid4())
         d['git_hash'] = 'abcd'
         d['repository_url'] = 'https://github.com/some-repo/'
+        d['repo_name'] = 'some-repo'
         op_serializer = validate_operation(d)
 
         # need to make a directory with dummy files to use the 

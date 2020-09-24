@@ -65,6 +65,7 @@ class OperationTester(unittest.TestCase):
         self.mode = AVAILABLE_RUN_MODES[0]
         self.repository_url = 'https://github.com/some-repo/'
         self.git_hash = 'abcd1234'
+        self.repo_name = 'some-repo'
         self.operation_dict = {
             'id': self.op_id,
             'name': self.op_name,
@@ -79,7 +80,8 @@ class OperationTester(unittest.TestCase):
             },
             'mode': self.mode, 
             'repository_url': self.repository_url,
-            'git_hash': self.git_hash
+            'git_hash': self.git_hash,
+            'repo_name': self.repo_name
         }
         self.operation_instance = Operation(
             self.op_id,
@@ -95,7 +97,8 @@ class OperationTester(unittest.TestCase):
             },
             self.mode,
             self.repository_url,
-            self.git_hash
+            self.git_hash,
+            self.repo_name
         )
 
     def test_serialization(self):

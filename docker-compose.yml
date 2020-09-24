@@ -11,6 +11,7 @@ services:
     volumes:
       - static_volume:/www/static
       - .:/workspace
+      - execution_volume:/www/operation_executions
       - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - 8000
@@ -55,4 +56,5 @@ services:
 volumes:
   postgres_data:
   static_volume:
-      
+  execution_volume:
+
