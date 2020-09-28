@@ -126,9 +126,11 @@ def submit_async_job(executed_op_pk, op_pk, workspace_pk, validated_inputs):
 
     # Create an ExecutedOperation to track the job
     executed_op = ExecutedOperation.objects.create(
+        id=executed_op_pk,
         workspace=workspace,
         inputs = validated_inputs,
         operation = op,
+        job_id = executed_op_pk, # same as pk since we name our docker container by this pk 
         status = ExecutedOperation.SUBMITTED
     )
 

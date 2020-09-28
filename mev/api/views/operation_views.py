@@ -153,7 +153,7 @@ class OperationRun(APIView):
 
         payload = request.data
         user = request.user
-
+        logger.info('Received payload of: {p}'.format(p=payload))
         # first check that all the proper keys are present
         # in the payload
         missing_keys = []
@@ -234,9 +234,7 @@ class OperationRun(APIView):
                 if v:
                     dict_representation[k] = v.get_value()
 
-            logger.info(dict_representation)
-            for k,v in dict_representation.items():
-                logger.info(type(v))
+            logger.info('dict representation of inputs: {d}'.format(d=dict_representation))
 
             # create the UUID which will identify the executed op.
             # We do this to avoid a race condition with the celery task queue.
