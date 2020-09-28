@@ -25,18 +25,25 @@ def get_runner(mode):
         ))
         raise ex
 
-def submit_job(executed_op, op, validated_inputs):
+def submit_job(executed_op, op_data, validated_inputs):
     '''
     Submits the job to the proper runner.
 
     `executed_op` is an instance of ExecutedOperation (database model)
-    `op` is an `Operation` (database model)
+    `op_data` is a dict parsed from an `Operation` spec (data structure, NOT db model)
     `validated_inputs` is a dict of inputs. Each key matches a key 
       from the `op_data` and the value is an instance of `UserOperationInput`
     '''
-    # need to read the Operation definition to get the run mode:
-    op_data = get_operation_instance_data(op)
-    logger.info('Done reading the op_data')
     runner_class = get_runner(op_data['mode'])
     runner = runner_class()
     runner.run(executed_op, op_data, validated_inputs)
+
+def finalize_job(executed_op):
+    '''
+    Finalizes the job using the proper runner.
+
+    `executed_op` is an instance of ExecutedOperation (database model)
+    '''
+    runner_class = get_runner(executed_op.mode)
+    runner = runner_class()
+    runner.finalize(executed_op)

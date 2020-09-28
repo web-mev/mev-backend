@@ -17,6 +17,7 @@ class ExecutedOperation(models.Model):
     SUBMITTED = 'Submitted.'
     QUEUED = 'Queued for execution.'
     RUNNING = 'Running.'
+    FINALIZING = 'Finalizing.'
     COMPLETION_SUCCESS = 'Successfully completed.'
     COMPLETION_ERROR = 'An error occurred during execution.'
     ADMIN_NOTIFIED = 'An administrator has been notified.'
@@ -70,5 +71,22 @@ class ExecutedOperation(models.Model):
         auto_now_add = True
     )
 
-    # When did the Operation stop, even if unsuccessful
+    # When did the Operation stop, even if unsuccessful.
+    # Note that this is set after the "wrap-up" operations have concluded.
+    # Not to be used as a way to get accurate run times for the analyses.
     execution_stop_datetime = models.DateTimeField(null=True)
+
+    # whether the job failed or not
+    job_failed = models.BooleanField(default=False)
+
+    # flag marking whether the job is in the process of "finalizing"
+    # This way, repeated requests do not trigger multiple attempts to
+    # wrap-up an ExecutedOperation. Note that a repeated request with a 
+    # very short interval (i.e. less than it takes to save a database model)
+    # could trigger a race condition, but there does not seem to be a way
+    # around this.
+    is_finalizing = models.BooleanField(default=False)
+
+    # the run mode. Saves another lookup (via the FK to Operation table)
+    # so we don't have to load the operation spec to get the run mode:
+    mode = models.CharField(null=False, max_length = 100)

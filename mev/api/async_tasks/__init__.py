@@ -16,7 +16,7 @@ from api.utilities.ingest_operation import perform_operation_ingestion
 import api.utilities.resource_utilities as resource_utilities
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
-from api.runners import submit_job
+from api.runners import submit_job, finalize_job
 
 logger = logging.getLogger(__name__)
 
@@ -124,14 +124,27 @@ def submit_async_job(executed_op_pk, op_pk, workspace_pk, validated_inputs):
             ' find the Operation'
         )
 
+    # need to read the Operation definition to get the run mode:
+    op_data = get_operation_instance_data(op)
+
     # Create an ExecutedOperation to track the job
     executed_op = ExecutedOperation.objects.create(
         id=executed_op_pk,
         workspace=workspace,
         inputs = validated_inputs,
         operation = op,
+        mode = op_data['mode'],
         job_id = executed_op_pk, # same as pk since we name our docker container by this pk 
         status = ExecutedOperation.SUBMITTED
     )
 
-    submit_job(executed_op, op, validated_inputs)
+    submit_job(executed_op, op_data, validated_inputs)
+
+@task(name='finalize_executed_op')
+def finalize_executed_op(exec_op_uuid):
+    '''
+    Performs some final operations following an analysis. Typically
+    involves tasks like registering files to a user, etc.
+    '''
+    executed_op = ExecutedOperation.objects.get(exec_op_uuid)
+    finalize_job(executed_op)

@@ -19,7 +19,8 @@ from api.utilities.operations import read_operation_json, \
     validate_operation_inputs, \
     get_operation_instance_data
 from api.async_tasks import ingest_new_operation as async_ingest_new_operation    
-from api.async_tasks import submit_async_job
+from api.async_tasks import submit_async_job, finalize_executed_op
+from api.runners import get_runner
 
 logger = logging.getLogger(__name__)
 
@@ -129,9 +130,75 @@ class OperationCreate(APIView):
             )
             return Response({self.REPO_URL: message}, status=status.HTTP_400_BAD_REQUEST)
 
+class ExecutedOperationCheck(APIView):
+    '''
+    Checks the status of an ExecutedOperation.
+
+    If the ExecutedOperation is still running, nothing happens.
+    If the ExecutedOperation has completed, runs some final steps, such as
+    registering output files with the user, performing cleanup, etc.
+    '''
+
+    NOT_FOUND_MESSAGE = 'No executed operation found by ID: {id}'
+
+    def get(self, request, *args, **kwargs):
+
+        logger.info('Requesting status of an ExecutedOperation.')
+
+        user = request.user
+
+        # the UUID of the ExecutedOperation
+        exec_op_uuid = str(kwargs['exec_op_uuid'])
+
+        try:
+            matching_op = ExecutedOperation.objects.get(id=exec_op_uuid)
+        except ExecutedOperation.DoesNotExist as ex:
+            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, status=status.HTTP_404_NOT_FOUND)
+
+        # check ownership via workspace. Users should only be able to query their own
+        # analyses:
+        workspace = matching_op.workspace
+        if (user.is_staff) or (user == workspace.owner):
+            if matching_op.execution_stop_datetime is None:
+                # if the stop time has not been set, the job is either still running
+                # or it has completed, but not been "finalized"
+
+                # first check if the "finalization" process has already been started.
+                # If there are repeated requests to this endpoint, we don't want to trigger
+                # multiple processes that "wrap-up" the analysis. Now, it is technically
+                # possible for there to be a race condition if the query above is performed
+                # before the database model can be updated and committed. No real way around 
+                # that, except to avoid exceptionally rapid request intervals.
+                if matching_op.is_finalizing:
+                    return Response(status=status.HTTP_208_ALREADY_REPORTED)
+                else:
+                    # not finalizing. Check if the job is running:
+                    runner_class = get_runner(matching_op.mode)
+                    runner = runner_class()
+                    has_completed = runner.check_status(matching_op.job_id)
+                    if has_completed:
+                        # kickoff the finalization. Set the flag for
+                        # blocking multiple attempts to finalize.
+                        matching_op.is_finalizing = True
+                        matching_op.status = ExecutedOperation.FINALIZING
+                        matching_op.save()
+                        finalize_executed_op.delay(exec_op_uuid)
+                        return Response(status=status.HTTP_208_ALREADY_REPORTED)
+                    else: # job still running- just return no content
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                # analysis has completed and been finalized. return the outputs
+                pass
+        else:
+            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'nessage': 'hi'}, status=status.HTTP_200_OK)
+
 
 class OperationRun(APIView):
-
+    '''
+    Starts the execution of an Operation
+    '''
     permission_classes = [
         framework_permissions.IsAuthenticated
     ]

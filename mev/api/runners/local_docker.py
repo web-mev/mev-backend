@@ -10,10 +10,14 @@ from api.runners.base import OperationRunner
 from api.utilities.operations import get_operation_instance_data
 from api.utilities.docker import build_docker_image, \
     login_to_dockerhub, \
-    push_image_to_dockerhub
+    push_image_to_dockerhub, \
+    check_if_container_running, \
+    check_container_exit_code, \
+    get_finish_datetime
 from api.data_structures.attributes import DataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource
+from api.models import ExecutedOperation
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +42,41 @@ class LocalDockerRunner(OperationRunner):
     ]
 
     # the template docker command to be run:
-    DOCKER_RUN_CMD = ('docker run -d --rm --name {container_name}'
+    DOCKER_RUN_CMD = ('docker run -d --name {container_name}'
         ' -v {execution_mount}:/{work_dir} '
         '--entrypoint="" {username}/{image}:{tag} {cmd}')
+
+
+    def check_status(self, job_uuid):
+        container_is_running = check_if_container_running(job_uuid)
+        if container_is_running:
+            return False
+        else:
+            return True
+
+    def finalize(self, executed_op):
+        '''
+        Finishes up an ExecutedOperation. Does things like registering files 
+        with a user, cleanup, etc.
+        '''
+        job_id = str(executed_op.job_id)
+        exit_code = check_container_exit_code(job_id)
+        finish_datetime = get_finish_datetime(job_id)
+        executed_op.execution_stop_datetime = finish_datetime
+        executed_op.is_finalizing = False # so future requests don't think it is still finalizing
+
+        if exit_code != 0:
+            executed_op.job_failed = True
+            executed_op.status = ExecutedOperation.COMPLETION_ERROR
+            #TODO: add some error message so the user can evaluate?
+        else:
+            executed_op.job_failed = False
+            executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
+            #TODO: get the outputs, register files, etc.
+            # 
+            #   
+        executed_op.save()
+        return
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''

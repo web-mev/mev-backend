@@ -4,6 +4,7 @@ import errno
 import logging
 import requests
 import backoff
+import subprocess as sp
 
 from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
@@ -221,3 +222,25 @@ def recursive_copy(src, dest, include_hidden=False):
         logger.info('Copying all, including hidden files.')
         shutil.copytree(src, dest)
 
+def run_shell_command(cmd):
+    '''
+    Wrapper around the basic Popen command to add logging.
+
+    `cmd` is a single string command, as one might run in a bash shell
+    '''
+    logger.info('Run shell command: {cmd}'.format(cmd=cmd))
+    split_cmd = cmd.split(' ')
+
+    p = sp.Popen(split_cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+        logger.error('Problem with running the command:'
+            ' {cmd}. STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                cmd=cmd,
+                stderr=stderr,
+                stdout=stdout
+            )
+        )
+        raise Exception('Failed when executing command. See logs.')
+    else:
+        return stdout, stderr

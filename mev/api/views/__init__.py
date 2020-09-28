@@ -21,7 +21,8 @@ from .resource_type_views import ResourceTypeList
 from .operation_views import OperationList, \
     OperationDetail, \
     OperationCreate, \
-    OperationRun
+    OperationRun, \
+    ExecutedOperationCheck
 
 def sentry_debug(request):
     '''

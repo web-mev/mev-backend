@@ -56,6 +56,7 @@ urlpatterns = [
     path('operations/add/', api.views.OperationCreate.as_view(), name='operation-create'),
     path('operations/<uuid:operation_uuid>/', api.views.OperationDetail.as_view(), name='operation-detail'),
     path('operations/run/', api.views.OperationRun.as_view(), name='operation-run'),
+    path('operations/run/<uuid:exec_op_uuid>/', api.views.ExecutedOperationCheck.as_view(), name='operation-check'),
 
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
