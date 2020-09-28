@@ -87,7 +87,10 @@ class WorkspaceResourceAdd(APIView):
                     workspace_uuid = str(workspace_uuid)
                     )
                 )
-
+                raise ParseError({
+                    'workspace_uuid': 'Workspace referenced by {uuid}'
+                    ' was not found.'.format(uuid=workspace_uuid)
+                })
             try:
                 resource = Resource.objects.get(pk=resource_uuid)
             except Resource.DoesNotExist:
