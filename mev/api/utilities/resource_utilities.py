@@ -189,9 +189,11 @@ def add_metadata_to_resource(resource, metadata):
     if rms.is_valid(raise_exception=True):
         rms.save()
 
-
 def move_resource_to_final_location(resource_instance):
     return settings.RESOURCE_STORAGE_BACKEND.store(resource_instance)
+
+def get_resource_size(resource_instance):
+    return settings.RESOURCE_STORAGE_BACKEND.get_filesize(resource_instance.path)
 
 def handle_valid_resource(resource, resource_class_instance, requested_resource_type):
     '''
@@ -299,3 +301,29 @@ def validate_resource(resource_instance, requested_resource_type):
     else: # requested_resource_type was None
         resource_instance.resource_type = None
         resource_instance.status = Resource.READY
+
+def validate_and_store_resource(resource, requested_resource_type):
+
+    # move the file backing this Resource.
+    # Note that we do this BEFORE validating so that the validation functions don't
+    # have to contain different steps for handling new uploads or requests to
+    # change the type of a Resource.  By immediately moving the file to its 
+    # final storage backend, we can handle all the variations in the same manner.
+    try:
+        resource.path = move_resource_to_final_location(resource)
+    except Exception as ex:
+        logger.error('Caught an exception when moving the Resource {pk} to its'
+            ' final location.  Exception was: {ex}'.format(
+                pk = str(resource.pk),
+                ex = ex
+            )
+        )
+        resource.status = Resource.UNEXPECTED_STORAGE_ERROR
+    else:    
+        validate_resource(resource, requested_resource_type)
+
+    # regardless of what happened above, set the 
+    # status to be active (so changes can be made)
+    # and save the instance
+    resource.is_active = True
+    resource.save()

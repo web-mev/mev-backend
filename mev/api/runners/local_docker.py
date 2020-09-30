@@ -73,8 +73,35 @@ class LocalDockerRunner(OperationRunner):
             executed_op.job_failed = False
             executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
             #TODO: get the outputs, register files, etc.
-            # 
-            #   
+            execution_dir = os.path.join(
+                settings.OPERATION_EXECUTION_DIR, job_id)
+
+            # the outputs json file:
+            outputs_dict = json.load(open(
+                os.path.join(execution_dir, self.OUTPUTS_JSON)
+            ))
+
+            # the workspace so we know which workspace to associate outputs with:
+            user_workspace = executed_op.workspace
+
+            # get the operation spec so we know which types correspond to each output
+            op_data = get_operation_instance_data(executed_op.operation)
+            op_spec_outputs = op_data['outputs']
+            new_outputs_dict = {}
+            for k,v in outputs_dict.items():
+                try:
+                    spec = op_spec_outputs[k]['spec']
+                except KeyError as ex:
+                    logger.error('Could not locate the output with key={k} in'
+                        ' the outputs of operation with ID: {id}'.format(
+                            k = k,
+                            id = str(executed_op.operation.id)
+                        )
+                    )
+                    raise ex
+                
+                new_outputs_dict[k] = convert_output(job_id, user_workspace, spec, v)
+            executed_op.outputs = new_outputs_dict
         executed_op.save()
         return
 

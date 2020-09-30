@@ -138,6 +138,9 @@ class ExecutedOperationCheck(APIView):
     If the ExecutedOperation has completed, runs some final steps, such as
     registering output files with the user, performing cleanup, etc.
     '''
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
 
     NOT_FOUND_MESSAGE = 'No executed operation found by ID: {id}'
 
@@ -160,6 +163,11 @@ class ExecutedOperationCheck(APIView):
         workspace = matching_op.workspace
         if (user.is_staff) or (user == workspace.owner):
             if matching_op.execution_stop_datetime is None:
+                logger.info('The stop time has not been set and job ({id})'
+                    ' is still running or is finalizing.'.format(
+                        id = exec_op_uuid
+                    )
+                )
                 # if the stop time has not been set, the job is either still running
                 # or it has completed, but not been "finalized"
 
@@ -170,30 +178,39 @@ class ExecutedOperationCheck(APIView):
                 # before the database model can be updated and committed. No real way around 
                 # that, except to avoid exceptionally rapid request intervals.
                 if matching_op.is_finalizing:
-                    return Response(status=status.HTTP_208_ALREADY_REPORTED)
+                        logger.info('Currently finalizing job ({id})'.format(
+                                id=exec_op_uuid
+                            )
+                        )
+                        return Response(status=status.HTTP_208_ALREADY_REPORTED)
                 else:
+                    logger.info('No finalization process reported. Check job status.')
                     # not finalizing. Check if the job is running:
                     runner_class = get_runner(matching_op.mode)
                     runner = runner_class()
                     has_completed = runner.check_status(matching_op.job_id)
                     if has_completed:
+                        logger.info('Job ({id}) has completed. Kickoff'
+                            ' finalization.'.format(
+                                id=exec_op_uuid
+                            )
+                        )
                         # kickoff the finalization. Set the flag for
                         # blocking multiple attempts to finalize.
                         matching_op.is_finalizing = True
                         matching_op.status = ExecutedOperation.FINALIZING
                         matching_op.save()
                         finalize_executed_op.delay(exec_op_uuid)
-                        return Response(status=status.HTTP_208_ALREADY_REPORTED)
+                        return Response(status=status.HTTP_202_ACCEPTED)
                     else: # job still running- just return no content
                         return Response(status=status.HTTP_204_NO_CONTENT)
             else:
+                logger.info('The executed job was registered as completed. Return outputs.')
                 # analysis has completed and been finalized. return the outputs
-                pass
+                return Response({'outputs': matching_op.outputs}, status=status.HTTP_200_OK)
         else:
-            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, status=status.HTTP_404_NOT_FOUND)
-
-        return Response({'nessage': 'hi'}, status=status.HTTP_200_OK)
-
+            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, 
+                status=status.HTTP_404_NOT_FOUND)
 
 class OperationRun(APIView):
     '''

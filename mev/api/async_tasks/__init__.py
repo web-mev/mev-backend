@@ -54,30 +54,7 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     to False so that the `Resource` is disabled for use.
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
-
-    # move the file backing this Resource.
-    # Note that we do this BEFORE validating so that the validation functions don't
-    # have to contain different steps for handling new uploads or requests to
-    # change the type of a Resource.  By immediately moving the file to its 
-    # final storage backend, we can handle all the variations in the same manner.
-    try:
-        resource.path = resource_utilities.move_resource_to_final_location(resource)
-    except Exception as ex:
-        logger.error('Caught an exception when moving the Resource {pk} to its'
-            ' final location.  Exception was: {ex}'.format(
-                pk = resource_pk,
-                ex = ex
-            )
-        )
-        resource.status = Resource.UNEXPECTED_STORAGE_ERROR
-    else:    
-        resource_utilities.validate_resource(resource, requested_resource_type)
-
-    # regardless of what happened above, set the 
-    # status to be active (so changes can be made)
-    # and save the instance
-    resource.is_active = True
-    resource.save()
+    resource_utilities.validate_and_store_resource(resource, requested_resource_type)
 
 @task(name='ingest_new_operation')
 def ingest_new_operation(operation_uuid_str, repository_url):

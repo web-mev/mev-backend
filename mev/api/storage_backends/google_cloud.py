@@ -9,7 +9,7 @@ from google.cloud import storage
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 
-from .base import BaseStorageBackend
+from .remote import RemoteStorageBackend
 
 from api.utilities.basic_utils import make_local_directory, get_with_retry
 
@@ -34,7 +34,7 @@ BUCKET_PREFIX = 'gs://'
 
 logger = logging.getLogger(__name__)
 
-class GoogleBucketStorage(BaseStorageBackend):
+class GoogleBucketStorage(RemoteStorageBackend):
 
     def __init__(self):
         super().__init__()
@@ -140,6 +140,20 @@ class GoogleBucketStorage(BaseStorageBackend):
 
         return bucket.get_blob(object_name)
 
+    def perform_interbucket_transfer(self, destination_blob, path):
+        logger.info('Perform a bucket-to-bucket copy from {p} to {d}'.format(
+            p=path,
+            d = destination_blob
+        ))
+        source_blob = self.get_blob(path)
+        source_bucket = source_blob.bucket
+        destination_bucket = destination_blob.bucket
+        destination_object_name = destination_blob.name
+        source_bucket.copy_blob(source_blob, \
+            destination_bucket, \
+            new_name=destination_object_name \
+        ) 
+
     def store(self, resource_instance):
         '''
         Handles moving the file described by the `resource_instance`
@@ -149,24 +163,38 @@ class GoogleBucketStorage(BaseStorageBackend):
             pk=resource_instance.pk)
         )
 
-        relative_path = BaseStorageBackend.construct_relative_path(resource_instance)
+        relative_path = self.construct_relative_path(resource_instance)
 
         bucket = self.get_or_create_bucket()
 
         blob = storage.Blob(relative_path, bucket)
-        try:
-            self.upload_blob(blob, resource_instance.path)
 
-            # the final path in bucket storage:
-            return os.path.join(
-                BUCKET_PREFIX, GOOGLE_BUCKET_NAME, relative_path)
-        except Exception as ex:
-            logger.error('Failed to upload to bucket.  File will'
-                ' remain local on the server at path: {path}'.format(
-                    path=resource_instance.path
+        # if the resource is on the server, we need to upload. If it's already in 
+        # another bucket, just do a bucket transfer.
+
+        final_path = os.path.join(BUCKET_PREFIX, GOOGLE_BUCKET_NAME, relative_path)
+
+        if os.path.exists(resource_instance.path): 
+            try:
+                self.upload_blob(blob, resource_instance.path)
+            except Exception as ex:
+                logger.error('Failed to upload to bucket.  File will'
+                    ' remain local on the server at path: {path}'.format(
+                        path=resource_instance.path
+                    )
                 )
-            )
-            return resource_instance.path
+                return resource_instance.path
+        else: # if it's not on our filesystem, assume it's in another bucket.
+            # This assumes we are not "mixing" different cloud providers like AWS and GCP
+            try:
+                self.perform_interbucket_transfer(blob, resource_instance.path)
+            except Exception as ex:
+                logger.error('Failed to transfer between buckets.  File will'
+                    ' remain at: {path}'.format(
+                        path=resource_instance.path
+                    )
+                )
+        return final_path
 
     def delete(self, path):
         logger.info('Requesting deletion of file at {path}'.format(
@@ -205,7 +233,7 @@ class GoogleBucketStorage(BaseStorageBackend):
         )
         )
         # the path relative to the "root" of the storage backend
-        relative_path = BaseStorageBackend.construct_relative_path(resource_instance)
+        relative_path = self.construct_relative_path(resource_instance)
 
         local_cache_location = os.path.join(
             settings.RESOURCE_CACHE_DIR,

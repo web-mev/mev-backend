@@ -8,6 +8,7 @@ from api.utilities.basic_utils import make_local_directory, \
     move_resource, \
     delete_local_file
 from .base import BaseStorageBackend
+from .helpers import localize_remote_resource
 
 try:
     USER_STORAGE_DIRNAME = os.environ['LOCAL_USER_STORAGE_DIRNAME']
@@ -41,7 +42,12 @@ class LocalStorage(BaseStorageBackend):
 
         # storage directory existed.  Move the file:
         source = resource_instance.path
-        move_resource(source, destination)
+
+        if os.path.exists(source): # if on the local filesystem
+            move_resource(source, destination)
+        else:
+            # NOT on the local filesystem. go get it.
+            localize_remote_resource(resource_instance)
         return destination
 
     def delete(self, path):

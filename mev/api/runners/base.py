@@ -27,6 +27,10 @@ class OperationRunner(object):
         CONVERTER_FILE
     ]
 
+    # the name of the file which will direct us to the outputs from an ExecutedOperation.
+    # It will be placed in the execution directory by the job
+    OUTPUTS_JSON = 'outputs.json'
+
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''
         Used during ingestion to perform setup/prep before an operation can 

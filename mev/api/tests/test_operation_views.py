@@ -3,6 +3,7 @@ import unittest.mock as mock
 import shutil
 import json
 import os
+import datetime
 
 from django.urls import reverse
 from django.conf import settings
@@ -11,7 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
 from api.models import Operation as OperationDbModel
-from api.models import Workspace, Resource
+from api.models import Workspace, Resource, ExecutedOperation
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 from api.utilities.basic_utils import copy_local_resource
@@ -48,7 +49,7 @@ def setup_db_elements(self, mock_clone_repository, \
 
     # create a valid operation folder and database object:
     self.op_uuid = uuid.uuid4()
-    o = OperationDbModel.objects.create(id=str(self.op_uuid))
+    self.op = OperationDbModel.objects.create(id=str(self.op_uuid))
     perform_operation_ingestion(
         'http://github.com/some-dummy-repo/', 
         str(self.op_uuid)
@@ -62,6 +63,233 @@ def tear_down_db_elements(self):
         str(self.op_uuid)
     )
     shutil.rmtree(dest_dir)
+
+class ExecutedOperationTests(BaseAPITestCase):
+
+    def setUp(self):
+        setup_db_elements(self) # creates an Operation to use
+        self.establish_clients()
+
+        # need a user's workspace to create an ExecutedOperation
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Workspace for user {user}.
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+        self.workspace = user_workspaces[0]
+
+        # create a mock ExecutedOperation
+        self.exec_op_uuid = uuid.uuid4()
+        self.exec_op = ExecutedOperation.objects.create(
+            id = self.exec_op_uuid,
+            workspace= self.workspace,
+            operation = self.op,
+            job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        self.good_url = reverse('operation-check',
+            kwargs={'exec_op_uuid': self.exec_op_uuid}
+        )
+
+    def tearDown(self):
+        tear_down_db_elements(self)
+
+    def test_requires_auth(self):
+        """
+        Test that general requests to the endpoint generate 401
+        """
+        response = self.regular_client.get(self.good_url)
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
+
+    def test_bad_identifier(self):
+        '''
+        Tests when the URL gives a UUID which does not correspond to
+        an ExecutedOperation
+        '''
+        # bad uuid
+        bad_url = reverse('operation-check',
+            kwargs={'exec_op_uuid': uuid.uuid4()}
+        )
+        response = self.authenticated_regular_client.get(bad_url)
+        self.assertTrue(response.status_code == status.HTTP_404_NOT_FOUND)
+
+        # the url above had a valid UUID. now substitute a random string that is NOT
+        # a UUID:
+        split_url = [x for x in bad_url.split('/') if len(x)>0]
+        split_url[2] = 'abc'
+        bad_url = '/'.join(split_url)
+        response = self.authenticated_regular_client.get(bad_url)
+        self.assertTrue(response.status_code == status.HTTP_404_NOT_FOUND)
+
+    @mock.patch('api.views.operation_views.get_runner')
+    def test_other_user_requests_valid_operation(self, mock_get_runner):
+        '''
+        Test the case when there exists an ExecutedOperation
+        for user A. User B makes a request for that, so it should be
+        rejected as a 404
+        '''
+        # first try good ID and check that it returns something 'good'
+        # indicating that the finalization process has started:
+        mock_runner_class = mock.MagicMock()
+        mock_runner = mock.MagicMock()
+        # mocks that process is still running so it shoudl return 204 status
+        mock_runner.check_status.return_value = False
+        mock_runner_class.return_value = mock_runner
+        mock_get_runner.return_value = mock_runner_class
+        response = self.authenticated_regular_client.get(self.good_url)
+        self.assertTrue(response.status_code == 204)
+
+        # now try making the request as another user and it should fail
+        # with a 404 not found
+        response = self.authenticated_other_client.get(self.good_url)
+        self.assertTrue(response.status_code == 404)
+
+    @mock.patch('api.views.operation_views.get_runner')
+    def test_admin_user_requests_valid_operation(self, mock_get_runner):
+        '''
+        Test the case when there exists an ExecutedOperation
+        for user A. An admin can successfully request info
+        '''
+        mock_runner_class = mock.MagicMock()
+        mock_runner = mock.MagicMock()
+        # mocks that process is still running so it shoudl return 204 status
+        mock_runner.check_status.return_value = False 
+        mock_runner_class.return_value = mock_runner
+        mock_get_runner.return_value = mock_runner_class
+        response = self.authenticated_admin_client.get(self.good_url)
+        self.assertTrue(response.status_code == 204)
+
+    @mock.patch('api.views.operation_views.get_runner')
+    @mock.patch('api.views.operation_views.finalize_executed_op')
+    def test_completed_job_starts_finalizing(self, 
+        mock_finalize_executed_op, mock_get_runner):
+        '''
+        Tests the case where a job has completed, but
+        nothing has happened as far as "finalization".
+        Requests to this endpoint should start that process
+        '''
+        mock_runner_class = mock.MagicMock()
+        mock_runner = mock.MagicMock()
+        # mocks that process is still running so it shoudl return 204 status
+        mock_runner.check_status.return_value = True 
+        mock_runner_class.return_value = mock_runner
+        mock_get_runner.return_value = mock_runner_class
+        response = self.authenticated_regular_client.get(self.good_url)
+        mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
+        self.assertTrue(response.status_code == 202)
+
+    def test_request_to_finalizing_process_returns_208(self):
+        '''
+        If an ExecutedOperation is still in the process of finalizing,
+        return 208 ("already reported") to inform that things are still processing.
+        '''
+        exec_op_uuid = uuid.uuid4()
+        exec_op = ExecutedOperation.objects.create(
+            id = exec_op_uuid,
+            workspace= self.workspace,
+            operation = self.op,
+            job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo',
+            is_finalizing = True
+        )
+        url = reverse('operation-check',
+            kwargs={'exec_op_uuid': exec_op_uuid}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertTrue(response.status_code == 208)
+
+    @mock.patch('api.views.operation_views.get_runner')
+    def test_job_still_running(self, mock_get_runner):
+        '''
+        If a job is still running, simply return 204 (no content)
+        '''
+        # first try good ID and check that it returns something 'good'
+        # indicating that the finalization process has started:
+        mock_runner_class = mock.MagicMock()
+        mock_runner = mock.MagicMock()
+        # mocks that process is still running so it shoudl return 204 status
+        mock_runner.check_status.return_value = False
+        mock_runner_class.return_value = mock_runner
+        mock_get_runner.return_value = mock_runner_class
+        response = self.authenticated_regular_client.get(self.good_url)
+        self.assertTrue(response.status_code == 204)
+
+    @mock.patch('api.views.operation_views.get_runner')
+    @mock.patch('api.views.operation_views.finalize_executed_op')
+    def test_multiple_requests_case1(self, 
+        mock_finalize_executed_op, mock_get_runner):
+        '''
+        In this test, the first request kicks off the process to finalize the 
+        ExecutedOperation. A secondary request arrives before that process
+        is complete, and the API should respond with the 208 code to let it 
+        know that things are still processing.
+        '''
+        # query the op to start to ensure the test is setup properly
+        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        self.assertFalse(op.is_finalizing)
+
+        mock_runner_class = mock.MagicMock()
+        mock_runner = mock.MagicMock()
+        # mocks that process is still running so it shoudl return 204 status
+        mock_runner.check_status.return_value = True 
+        mock_runner_class.return_value = mock_runner
+        mock_get_runner.return_value = mock_runner_class
+        response = self.authenticated_regular_client.get(self.good_url)
+        #mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
+        self.assertTrue(response.status_code == 202)
+
+        # query the op:
+        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        self.assertTrue(op.is_finalizing)
+
+        # make a second query. since the process is finalizing, should return 208
+        response = self.authenticated_regular_client.get(self.good_url)
+        self.assertTrue(response.status_code == 208)
+
+        # check that the finalization was only called once.
+        mock_finalize_executed_op.delay.assert_called_once_with(str(self.exec_op_uuid))
+
+
+    @mock.patch('api.views.operation_views.get_runner')
+    @mock.patch('api.views.operation_views.finalize_executed_op')
+    def test_multiple_requests_case2(self,
+        mock_finalize_executed_op, mock_get_runner):
+        '''
+        In this test, the first request kicks off the process to finalize the 
+        ExecutedOperation. A secondary request after that process
+        is complete, and the API should respond with the outputs
+        '''
+        # query the op to start to ensure the test is setup properly
+        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        self.assertFalse(op.is_finalizing)
+
+        mock_runner_class = mock.MagicMock()
+        mock_runner = mock.MagicMock()
+        # mocks that process is still running so it shoudl return 204 status
+        mock_runner.check_status.return_value = True 
+        mock_runner_class.return_value = mock_runner
+        mock_get_runner.return_value = mock_runner_class
+        response = self.authenticated_regular_client.get(self.good_url)
+        mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
+        self.assertTrue(response.status_code == 202)
+
+        # query the op:
+        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        self.assertTrue(op.is_finalizing)
+
+        # mock the finalization is complete by assigning the
+        # `execution_stop_datetime` field:
+        op.execution_stop_datetime = datetime.datetime.now()
+        op.is_finalizing = False
+        op.save()
+
+        # make a second query. since the process is finalizing, should return 208
+        response = self.authenticated_regular_client.get(self.good_url)
+        self.assertTrue(response.status_code == 200)
+
 
 class OperationListTests(BaseAPITestCase):
 
