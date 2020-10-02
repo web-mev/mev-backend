@@ -61,6 +61,12 @@ def push_image_to_dockerhub(image, tag):
     stdout, stderr = run_shell_command(push_cmd)
     logger.info('Successfully pushed image.')
 
+def remove_container(container_id):
+    rm_cmd = 'docker rm {id}'.format(id=container_id)
+    logger.info('Remove Docker container with: {cmd}'.format(cmd=rm_cmd))
+    stdout, stderr = run_shell_command(rm_cmd)
+    logger.info('Successfully removed container: {id}.'.format(id=container_id))
+
 def check_if_container_running(container_id):
     '''
     Queries the status of a docker container to see if it is still running.

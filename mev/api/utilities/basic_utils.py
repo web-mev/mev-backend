@@ -12,6 +12,13 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 logger = logging.getLogger(__name__)
 
+def alert_admins(self):
+    '''
+    A function to be called when an error occurs that is not necessarily
+    "fatal", but needs to be quickly handled or investigated
+    '''
+    pass
+
 
 def is_fatal_code(e):
     return 400 <= e.response.status_code < 500

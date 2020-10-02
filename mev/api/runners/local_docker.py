@@ -13,11 +13,14 @@ from api.utilities.docker import build_docker_image, \
     push_image_to_dockerhub, \
     check_if_container_running, \
     check_container_exit_code, \
-    get_finish_datetime
+    get_finish_datetime, \
+    remove_container
 from api.data_structures.attributes import DataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
-    copy_local_resource
+    copy_local_resource, \
+    alert_admins
 from api.models import ExecutedOperation
+from api.converters.output_converters import LocalDockerOutputConverter
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +49,22 @@ class LocalDockerRunner(OperationRunner):
         ' -v {execution_mount}:/{work_dir} '
         '--entrypoint="" {username}/{image}:{tag} {cmd}')
 
-
     def check_status(self, job_uuid):
         container_is_running = check_if_container_running(job_uuid)
         if container_is_running:
             return False
         else:
             return True
+
+    def load_outputs_file(self, job_id):
+        execution_dir = os.path.join(
+            settings.OPERATION_EXECUTION_DIR, job_id)
+
+        # the outputs json file:
+        outputs_dict = json.load(open(
+            os.path.join(execution_dir, self.OUTPUTS_JSON)
+        ))
+        return outputs_dict
 
     def finalize(self, executed_op):
         '''
@@ -72,14 +84,9 @@ class LocalDockerRunner(OperationRunner):
         else:
             executed_op.job_failed = False
             executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
-            #TODO: get the outputs, register files, etc.
-            execution_dir = os.path.join(
-                settings.OPERATION_EXECUTION_DIR, job_id)
-
+        
             # the outputs json file:
-            outputs_dict = json.load(open(
-                os.path.join(execution_dir, self.OUTPUTS_JSON)
-            ))
+            outputs_dict = self.load_outputs_file(job_id)
 
             # the workspace so we know which workspace to associate outputs with:
             user_workspace = executed_op.workspace
@@ -87,6 +94,10 @@ class LocalDockerRunner(OperationRunner):
             # get the operation spec so we know which types correspond to each output
             op_data = get_operation_instance_data(executed_op.operation)
             op_spec_outputs = op_data['outputs']
+
+            # instantiate the output converter class:
+            converter = LocalDockerOutputConverter()
+
             new_outputs_dict = {}
             for k,v in outputs_dict.items():
                 try:
@@ -98,11 +109,15 @@ class LocalDockerRunner(OperationRunner):
                             id = str(executed_op.operation.id)
                         )
                     )
-                    raise ex
-                
-                new_outputs_dict[k] = convert_output(job_id, user_workspace, spec, v)
+                    alert_admins()
+                else:
+                    new_outputs_dict[k] = converter.convert_output(job_id, user_workspace, spec, v)
             executed_op.outputs = new_outputs_dict
         executed_op.save()
+
+        # finally, we cleanup the docker container
+        remove_container(job_id)
+
         return
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):

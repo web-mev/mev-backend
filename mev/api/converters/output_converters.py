@@ -8,7 +8,6 @@ class BaseOutputConverter(object):
 
     def convert_output(self, job_id, workspace, output_spec, output_val):
 
-        updated_output_val = None
         attribute_type = output_spec['attribute_type']
         if attribute_type == DataResourceAttribute.typename:
             # check if many
@@ -37,7 +36,6 @@ class BaseOutputConverter(object):
                     id = job_id,
                     n = os.path.basename(p)
                 )
-
                 resource = self.create_resource(workspace, p, name)
                 validate_and_store_resource(resource, resource_type)
                 resource_uuids.append(resource.pk)
