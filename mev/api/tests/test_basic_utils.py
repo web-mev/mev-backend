@@ -15,7 +15,8 @@ class TestBasicUtilities(unittest.TestCase):
     '''
 
     @mock.patch('api.utilities.basic_utils.os')
-    def test_unique_resource_creation(self, mock_os):
+    @mock.patch('api.utilities.basic_utils.shutil')
+    def test_unique_resource_creation(self, mock_shutil, mock_os):
         '''
         In the case where there already exists a file with the 
         same name (VERY unlikely), test that we create something
@@ -34,10 +35,11 @@ class TestBasicUtilities(unittest.TestCase):
         expected_final_dest = '/a/b/10c.txt'
         self.assertTrue(final_dest == expected_final_dest)
 
-        mock_os.rename.is_called_with(source, final_dest)
+        mock_shutil.move.is_called_with(source, final_dest)
 
     @mock.patch('api.utilities.basic_utils.os')
-    def test_resource_move(self, mock_os):
+    @mock.patch('api.utilities.basic_utils.shutil')
+    def test_resource_move(self, mock_shutil, mock_os):
         '''
         We mock that there was no existing file at the final
         destination (as there will almost certainly be).  Just

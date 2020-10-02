@@ -110,9 +110,9 @@ def get_resource_type_instance(resource_type_str):
         )
         raise ex
 
-def get_preview(resource_path, resource_type):
+def get_contents(resource_path, resource_type, limit=None):
     '''
-    Returns a JSON-format "preview" of the data
+    Returns a JSON-format "view" of the data
     underlying a Resource.  
 
     Assumes the resource_path arg is local to the 
@@ -128,12 +128,12 @@ def get_preview(resource_path, resource_type):
         logger.error('Received a Resource that had a non-null resource_type'
             ' but was also not in the known resource types.'
         )
-        return {'error': 'No preview available'}
+        return {'error': 'No contents available'}
         
     # instantiate the proper class for this type:
     resource_type = resource_class()
-    preview = resource_type.get_preview(resource_path)
-    return preview
+    contents = resource_type.get_contents(resource_path, limit=limit)
+    return contents
 
 def get_acceptable_extensions(resource_type):
     '''

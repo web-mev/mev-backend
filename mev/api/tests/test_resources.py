@@ -954,7 +954,7 @@ class ResourcePreviewTests(BaseAPITestCase):
             status.HTTP_400_BAD_REQUEST)
 
 
-    @mock.patch('api.views.resource_views.get_resource_preview')
+    @mock.patch('api.views.resource_views.get_resource_view')
     def test_error_reported(self, mock_preview):
         '''
         If there was some error in preparing the preview, 
@@ -969,7 +969,7 @@ class ResourcePreviewTests(BaseAPITestCase):
 
         self.assertTrue('error' in response.json())     
 
-    @mock.patch('api.views.resource_views.get_resource_preview')
+    @mock.patch('api.views.resource_views.get_resource_view')
     def test_expected_response(self, mock_preview):
         '''
         If there was some error in preparing the preview, 

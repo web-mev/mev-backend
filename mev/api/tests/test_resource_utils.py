@@ -15,7 +15,7 @@ from api.models import Resource, Workspace, ResourceMetadata
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     copy_resource_to_workspace, \
     check_for_shared_resource_file, \
-    get_resource_preview, \
+    get_resource_view, \
     validate_resource, \
     handle_valid_resource, \
     handle_invalid_resource, \
@@ -161,12 +161,12 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_dict = {'a': 1, 'b':2}
 
         class mock_resource_type_class(object):
-            def get_preview(self, path):
+            def get_contents(self, path, limit=None):
                 return expected_dict
 
         mock_resource_mapping.__getitem__.return_value = mock_resource_type_class
 
-        preview_dict = get_resource_preview(r)
+        preview_dict = get_resource_view(r)
         self.assertDictEqual(expected_dict, preview_dict)
 
 
@@ -186,7 +186,7 @@ class TestResourceUtilities(BaseAPITestCase):
                 ' a specified resource_type to run this test.'
             )
 
-        preview_dict = get_resource_preview(r)
+        preview_dict = get_resource_view(r)
         self.assertTrue('info' in preview_dict)
         
     @mock.patch('resource_types.RESOURCE_MAPPING')
@@ -208,7 +208,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         mock_resource_mapping.__getitem__.side_effect = KeyError
 
-        preview_dict = get_resource_preview(r)
+        preview_dict = get_resource_view(r)
         self.assertTrue('error' in preview_dict)
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')

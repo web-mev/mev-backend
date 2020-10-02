@@ -232,7 +232,7 @@ class TableResource(DataResource):
             return (False, PARSE_ERROR)
      
 
-    def get_preview(self, resource_path):
+    def get_contents(self, resource_path, limit=None):
         '''
         Returns a dict of the table contents
 
@@ -241,11 +241,14 @@ class TableResource(DataResource):
         '''
         try:
             self.read_resource(resource_path)
-            table_head = self.table.head()
+            if limit:
+                table = self.table.head(limit)
+            else:
+                table = self.table
             j = {}
-            j['columns'] = table_head.columns.tolist()
-            j['rows'] = table_head.index.tolist()
-            j['values'] = table_head.values.tolist()
+            j['columns'] = table.columns.tolist()
+            j['rows'] = table.index.tolist()
+            j['values'] = table.values.tolist()
             return j
 
         # for these first two exceptions, we already have logged

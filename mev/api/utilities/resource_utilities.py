@@ -12,7 +12,7 @@ from .basic_utils import make_local_directory, \
     move_resource, \
     copy_local_resource
 
-from resource_types import get_preview, \
+from resource_types import get_contents, \
     extension_is_consistent_with_type, \
     get_acceptable_extensions, \
     DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
@@ -155,14 +155,14 @@ def check_for_shared_resource_file(resource_instance):
         raise Exception('Path was empty. Error.')
 
 
-def get_resource_preview(resource_instance):
+def get_resource_view(resource_instance, limit=None):
     '''
-    Returns a "preview" of the resource_instance in JSON-format.
+    Returns a "view" of the resource_instance in JSON-format.
 
     Only valid for certain resource types and assumes
     that the resource is active. 
     '''
-    logger.info('Retrieving preview for resource: {resource}.'.format(
+    logger.info('Retrieving data view for resource: {resource}.'.format(
         resource=resource_instance
     ))
 
@@ -171,12 +171,12 @@ def get_resource_preview(resource_instance):
             resource = resource_instance
         ))
         return {
-            'info': 'No preview available since the resource'
+            'info': 'No contents available since the resource'
             ' type was not set.'
         }
 
     local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
-    return get_preview(local_path, resource_instance.resource_type)
+    return get_contents(local_path, resource_instance.resource_type, limit=limit)
 
 
 def add_metadata_to_resource(resource, metadata):

@@ -12,7 +12,7 @@ from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
     check_for_shared_resource_file, \
-    get_resource_preview, \
+    get_resource_view, \
     set_resource_to_inactive
 
 import api.async_tasks as api_tasks
@@ -163,8 +163,28 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+class ResourceViewMixin(object):
 
-class ResourcePreview(APIView):
+    def check_request_validity(self, user, resource_pk):
+
+        try:
+            resource = Resource.objects.get(pk=resource_pk)
+        except Resource.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_staff or (resource.owner == user):
+            if not resource.is_active:
+                return Response({
+                    'resource': 'The requested resource is'
+                    ' not active.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # requester can access, resource is active.  Go get preview
+            return resource
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+class ResourcePreview(APIView, ResourceViewMixin):
     '''
     Returns a preview of the data underlying a Resource.
 
@@ -187,22 +207,47 @@ class ResourcePreview(APIView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        try:
-            resource = Resource.objects.get(pk=kwargs['pk'])
-        except Resource.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        resource_pk=kwargs['pk']
 
-        if user.is_staff or (resource.owner == user):
-            if not resource.is_active:
-                return Response({
-                    'resource': 'The requested resource is'
-                    ' not active.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        r = self.check_request_validity(user, resource_pk)
+        if not type(r) == Resource:
+            return r
+        else:
             # requester can access, resource is active.  Go get preview
-            j = get_resource_preview(resource)
+            j = get_resource_view(r, limit=10)
             if 'error' in j:
                 return Response(json.dumps(j), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response(json.dumps(j), status=status.HTTP_200_OK)
+
+class ResourceContents(APIView, ResourceViewMixin):
+    '''
+    Returns the full data underlying a Resource.
+
+    Typically used for small files so that user-interfaces can display
+    data
+
+    Depending on the data, the format of the response may be different.
+    Additionally, some Resource types do not support a preview.
+    
+    This returns a JSON-format representation of the data.
+
+    This endpoint is only really sensible for certain types of 
+    Resources, such as those in table format.  Other types, such as 
+    sequence-based files do not have this functionality.
+    '''
+
+    permission_classes = [framework_permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        resource_pk=kwargs['pk']
+
+        r = self.check_request_validity(user, resource_pk)
+        if not type(r) == Resource:
+            return r
         else:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            # requester can access, resource is active.  Go get preview
+            j = get_resource_view(r)
+            if 'error' in j:
+                return Response(json.dumps(j), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(json.dumps(j), status=status.HTTP_200_OK)
