@@ -18,7 +18,8 @@ from api.utilities.docker import build_docker_image, \
 from api.data_structures.attributes import DataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource, \
-    alert_admins
+    alert_admins, \
+    run_shell_command
 from api.models import ExecutedOperation
 from api.converters.output_converters import LocalDockerOutputConverter
 
@@ -269,4 +270,4 @@ class LocalDockerRunner(OperationRunner):
             image = op_data['repo_name'],
             tag = op_data['git_hash']
         )   
-        logger.info('Run docker container with: {cmd}'.format(cmd=cmd))
+        run_shell_command(cmd)

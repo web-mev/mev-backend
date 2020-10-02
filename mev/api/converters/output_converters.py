@@ -38,13 +38,15 @@ class BaseOutputConverter(object):
                 )
                 resource = self.create_resource(workspace, p, name)
                 validate_and_store_resource(resource, resource_type)
-                resource_uuids.append(resource.pk)
+                resource_uuids.append(str(resource.pk))
             # now return the resource UUID(s) consistent with the 
             # output (e.g. if multiple, return list)
             if output_spec['many'] == False:
                 return resource_uuids[0]
             else:
                 return resource_uuids
+        else:
+            return output_val
             
 
 class LocalOutputConverter(BaseOutputConverter):

@@ -17,6 +17,7 @@ import api.utilities.resource_utilities as resource_utilities
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
 from api.runners import submit_job, finalize_job
+from api.utilities.operations import get_operation_instance_data
 
 logger = logging.getLogger(__name__)
 
@@ -123,5 +124,6 @@ def finalize_executed_op(exec_op_uuid):
     Performs some final operations following an analysis. Typically
     involves tasks like registering files to a user, etc.
     '''
-    executed_op = ExecutedOperation.objects.get(exec_op_uuid)
+    logger.info('Finalize executed op with ID={id}'.format(id=exec_op_uuid))
+    executed_op = ExecutedOperation.objects.get(pk=exec_op_uuid)
     finalize_job(executed_op)

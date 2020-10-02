@@ -5,6 +5,7 @@ import logging
 import requests
 import backoff
 import subprocess as sp
+import shlex
 
 from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
@@ -106,7 +107,7 @@ def move_resource(source, dest):
 
     try:
         logger.info('Moving from %s to %s' % (source, dest))
-        os.rename(source, dest)
+        shutil.move(source, dest)
         return dest
     except FileExistsError as ex:
         if ex.errno == errno.EEXIST:
@@ -236,7 +237,7 @@ def run_shell_command(cmd):
     `cmd` is a single string command, as one might run in a bash shell
     '''
     logger.info('Run shell command: {cmd}'.format(cmd=cmd))
-    split_cmd = cmd.split(' ')
+    split_cmd = shlex.split(cmd)
 
     p = sp.Popen(split_cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
     stdout, stderr = p.communicate()

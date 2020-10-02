@@ -76,6 +76,7 @@ def check_if_container_running(container_id):
     cmd = DOCKER_INSPECT_CMD.format(container_id=container_id, field=field)
     logger.info('Inspect Docker container with: {cmd}'.format(cmd=cmd))
     stdout, stderr = run_shell_command(cmd)
+    stdout = stdout.decode('utf-8').strip()
     if stdout == DOCKER_EXITED_FLAG:
         return False
     elif stdout == DOCKER_RUNNING_FLAG:
@@ -130,7 +131,7 @@ def get_timestamp_as_datetime(container_id, field):
     # and other stuff, like excessive microsends...
     try:
 
-        time_str = stdout.decode('utf-8').strip()[1:-2].split('.')[0]
+        time_str = stdout.decode('utf-8').strip()[:-2].split('.')[0]
         t = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S')
         return t
     except Exception as ex:
