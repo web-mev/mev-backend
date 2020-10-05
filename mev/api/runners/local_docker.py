@@ -3,6 +3,8 @@ import json
 import subprocess
 import logging
 
+from jinja2 import Template
+
 from django.conf import settings
 from django.utils.module_loading import import_string
 
@@ -250,16 +252,17 @@ class LocalDockerRunner(OperationRunner):
             )
 
         # read the template command
-        entrypoint_cmd_template = open(entrypoint_file_path, 'r').read()
+        entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
         try:
-            entrypoint_cmd = entrypoint_cmd_template.format(**arg_dict)
-        except KeyError as ex:
-            logger.error('Could not find an input for the "{arg}" argument'
-                ' in the following command template: {cmd}.'
-                ' Please check the command and the inputs.'.format(
-                    arg=ex,
-                    cmd = entrypoint_cmd_template
+            entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
+        except Exception ex:
+            logger.error('An exception was raised when constructing the entrypoint'
+                ' command from the templated string. Exception was: {ex}'.format(
+                    ex = ex
                 )
+            )
+            raise Exception('Failed to construct command to execute'
+                ' local Docker container. See logs.'
             )
         cmd = self.DOCKER_RUN_CMD.format(
             container_name = execution_uuid,
