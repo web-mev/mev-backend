@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 import subprocess
 import logging
 
@@ -272,5 +273,16 @@ class LocalDockerRunner(OperationRunner):
             username = settings.DOCKERHUB_USERNAME,
             image = op_data['repo_name'],
             tag = op_data['git_hash']
-        )   
-        run_shell_command(cmd)
+        )
+        try:
+            run_shell_command(cmd)
+        except Exception as ex:
+            # if an exception is raised when issuing the Docker run
+            # command, then the job has failed. This error is likely
+            # not due to user error, but something with the issuing
+            # command or allocating appropriate Docker resources.
+            # TODO inform admins
+            executed_op.job_failed = True
+            executed_op.execution_stop_datetime = datetime.datetime.now()
+            executed_op.status = ExecutedOperation.ADMIN_NOTIFIED
+            executed_op.save()

@@ -11,6 +11,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation import OperationSerializer
+from api.serializers.executed_operation import ExecutedOperationSerializer
 from api.models import Operation as OperationDbModel
 from api.models import Workspace, ExecutedOperation
 import api.permissions as api_permissions
@@ -205,9 +206,19 @@ class ExecutedOperationCheck(APIView):
                     else: # job still running- just return no content
                         return Response(status=status.HTTP_204_NO_CONTENT)
             else:
-                logger.info('The executed job was registered as completed. Return outputs.')
-                # analysis has completed and been finalized. return the outputs
-                return Response(matching_op.outputs, status=status.HTTP_200_OK)
+                response_payload = {
+                    'executed_operation':ExecutedOperationSerializer(matching_op).data
+                }
+                if matching_op.job_failed:
+                    logger.info('The requested job ({id}) failed.'.format(id=exec_op_uuid))
+                else:
+                    logger.info('The executed job was registered as completed. Return outputs.')
+                    # analysis has completed and been finalized. return the outputs also
+                    response_payload['outputs'] = matching_op.outputs
+
+                return Response(response_payload, 
+                    status=status.HTTP_200_OK
+                )
         else:
             return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, 
                 status=status.HTTP_404_NOT_FOUND)
