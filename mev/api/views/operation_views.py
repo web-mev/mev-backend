@@ -214,7 +214,6 @@ class ExecutedOperationCheck(APIView):
                 else:
                     logger.info('The executed job was registered as completed. Return outputs.')
                     # analysis has completed and been finalized. return the outputs also
-                    response_payload['outputs'] = matching_op.outputs
 
                 return Response(response_payload, 
                     status=status.HTTP_200_OK
