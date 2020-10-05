@@ -61,6 +61,17 @@ def push_image_to_dockerhub(image, tag):
     stdout, stderr = run_shell_command(push_cmd)
     logger.info('Successfully pushed image.')
 
+def get_logs(container_id):
+    log_cmd = 'docker logs {id}'.format(id=container_id)
+    logger.info('Query Docker logs with: {cmd}'.format(cmd=log_cmd))
+    try:
+        stdout, stderr = run_shell_command(log_cmd)
+        logger.info('Successfully queried container logs: {id}.'.format(id=container_id))
+        return stdout.decode('utf-8')
+    except Exception as ex:
+        logger.error('Query of container logs did not succeed.')
+        return ''
+
 def remove_container(container_id):
     rm_cmd = 'docker rm {id}'.format(id=container_id)
     logger.info('Remove Docker container with: {cmd}'.format(cmd=rm_cmd))

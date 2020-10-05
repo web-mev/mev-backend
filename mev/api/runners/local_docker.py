@@ -17,7 +17,8 @@ from api.utilities.docker import build_docker_image, \
     check_if_container_running, \
     check_container_exit_code, \
     get_finish_datetime, \
-    remove_container
+    remove_container, \
+    get_logs
 from api.data_structures.attributes import DataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource, \
@@ -79,12 +80,13 @@ class LocalDockerRunner(OperationRunner):
         exit_code = check_container_exit_code(job_id)
         finish_datetime = get_finish_datetime(job_id)
         executed_op.execution_stop_datetime = finish_datetime
-        executed_op.is_finalizing = False # so future requests don't think it is still finalizing
 
         if exit_code != 0:
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
-            #TODO: add some error message so the user can evaluate?
+            # collect the errors that are  reported in the logs
+            log_msg = get_logs(job_id)
+            executed_op.error_message = log_msg
         else:
             executed_op.job_failed = False
             executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
@@ -117,11 +119,12 @@ class LocalDockerRunner(OperationRunner):
                 else:
                     new_outputs_dict[k] = converter.convert_output(job_id, user_workspace, spec, v)
             executed_op.outputs = new_outputs_dict
-        executed_op.save()
 
         # finally, we cleanup the docker container
         remove_container(job_id)
 
+        executed_op.is_finalizing = False # so future requests don't think it is still finalizing
+        executed_op.save()
         return
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):

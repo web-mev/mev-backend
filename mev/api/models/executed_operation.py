@@ -59,6 +59,9 @@ class ExecutedOperation(models.Model):
     # api.data_structures.OperationOutput
     outputs = JSONField(null=True)
 
+    # error message(s) for display and help with diagnosing issues.
+    error_message = models.CharField(null=True, max_length = 5000)
+
     # The job status-- for displaying updates/current status (e.g. "running").
     # Depends on which runner, etc.
     status = models.CharField(

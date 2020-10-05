@@ -67,7 +67,11 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
-    def test_handles_job_failure(self, mock_remove_container, mock_get_finish_datetime, mock_check_container_exit_code):
+    @mock.patch('api.runners.local_docker.get_logs')
+    def test_handles_job_failure(self, mock_get_logs, \
+        mock_remove_container, \
+        mock_get_finish_datetime, \
+        mock_check_container_exit_code):
         '''
         If a job fails, the container should issue a non-zero exit code
         If that happens, test that we handle the failure appropriately and
