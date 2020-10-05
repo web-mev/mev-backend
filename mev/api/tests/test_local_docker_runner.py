@@ -86,6 +86,48 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
 
+    @mock.patch('api.runners.local_docker.alert_admins')
+    @mock.patch('api.runners.local_docker.make_local_directory')
+    @mock.patch('api.runners.local_docker.os.path.exists')
+    @mock.patch('api.runners.local_docker.run_shell_command')
+    def test_handles_container_start_failure(self, \
+        mock_run_shell_command, \
+        mock_os_exists, \
+        mock_make_local_directory, \
+        mock_alert_admins):
+        '''
+        If the docker container never starts, then we need to handle 
+        appropriately.
+        '''
+        runner = LocalDockerRunner()
+        mock_map_inputs = mock.MagicMock()
+        mock_copy_data_resources = mock.MagicMock()
+        mock_get_entrypoint_command = mock.MagicMock()
+        mock_get_entrypoint_command.return_value = 'some_command'
+        mock_map_inputs.return_value = {'abc':123}
+        runner._map_inputs = mock_map_inputs
+        runner._copy_data_resources = mock_copy_data_resources
+        runner._get_entrypoint_command = mock_get_entrypoint_command
+
+        mock_os_exists.return_value = True
+        mock_run_shell_command.side_effect = Exception('!!!')
+
+        mock_executed_op = mock.MagicMock()
+        u = str(uuid.uuid4())
+        mock_executed_op.job_id = u
+        mock_op_data = {
+            'id': 'some ID',
+            'repo_name': 'name',
+            'git_hash': 'abc123'
+        }
+        mock_inputs = {'some': 'input'}
+        runner.run(mock_executed_op, mock_op_data, mock_inputs)
+        mock_alert_admins.assert_called()
+        mock_make_local_directory.assert_called()
+        mock_run_shell_command.assert_called()
+        self.assertTrue(mock_executed_op.job_failed)
+        mock_executed_op.save.assert_called()
+
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')

@@ -75,7 +75,15 @@ def check_if_container_running(container_id):
     field = '.State.Status'
     cmd = DOCKER_INSPECT_CMD.format(container_id=container_id, field=field)
     logger.info('Inspect Docker container with: {cmd}'.format(cmd=cmd))
-    stdout, stderr = run_shell_command(cmd)
+    try:
+        stdout, stderr = run_shell_command(cmd)
+    except Exception as ex:
+        logger.error('Caught an exception when checking for running container.'
+            ' This can be caused by a race condition if the timestamp on the'
+            ' ExecutedOperation is not committed to the database before the second'
+            ' request is issued. '
+        )
+        return False
     stdout = stdout.decode('utf-8').strip()
     if stdout == DOCKER_EXITED_FLAG:
         return False

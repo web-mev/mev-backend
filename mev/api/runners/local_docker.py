@@ -196,6 +196,26 @@ class LocalDockerRunner(OperationRunner):
                 copy_local_resource(path_in_cache, dest)
                 arg_dict[k] = dest
 
+    def _get_entrypoint_command(self, entrypoint_file_path, arg_dict):
+        '''
+        Takes the entrypoint command file (a template) and the input
+        args and returns a formatted string which will be used as the 
+        ENTRYPOINT command for the Docker container.
+        '''
+        # read the template command
+        entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
+        try:
+            entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
+            return entrypoint_cmd
+        except Exception as ex:
+            logger.error('An exception was raised when constructing the entrypoint'
+                ' command from the templated string. Exception was: {ex}'.format(
+                    ex = ex
+                )
+            )
+            raise Exception('Failed to construct command to execute'
+                ' local Docker container. See logs.'
+            )
 
     def run(self, executed_op, op_data, validated_inputs):
         logger.info('Running in local Docker mode.')
@@ -237,7 +257,7 @@ class LocalDockerRunner(OperationRunner):
             ' following structure: {d}'.format(d = arg_dict)
         )
 
-        # Load the command:
+        # Construct the command that will be run in the container:
         entrypoint_file_path = os.path.join(op_dir, self.ENTRYPOINT_FILE)
         if not os.path.exists(entrypoint_file_path):
             logger.error('Could not find the required entrypoint file at {p}.'
@@ -251,20 +271,8 @@ class LocalDockerRunner(OperationRunner):
                     d = op_dir
                 )
             )
+        entrypoint_cmd = self._get_entrypoint_command(entrypoint_file_path, arg_dict)
 
-        # read the template command
-        entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
-        try:
-            entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
-        except Exception as ex:
-            logger.error('An exception was raised when constructing the entrypoint'
-                ' command from the templated string. Exception was: {ex}'.format(
-                    ex = ex
-                )
-            )
-            raise Exception('Failed to construct command to execute'
-                ' local Docker container. See logs.'
-            )
         cmd = self.DOCKER_RUN_CMD.format(
             container_name = execution_uuid,
             execution_mount = settings.EXECUTION_VOLUME,
@@ -281,8 +289,8 @@ class LocalDockerRunner(OperationRunner):
             # command, then the job has failed. This error is likely
             # not due to user error, but something with the issuing
             # command or allocating appropriate Docker resources.
-            # TODO inform admins
             executed_op.job_failed = True
             executed_op.execution_stop_datetime = datetime.datetime.now()
             executed_op.status = ExecutedOperation.ADMIN_NOTIFIED
             executed_op.save()
+            alert_admins()
