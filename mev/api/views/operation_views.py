@@ -207,7 +207,7 @@ class ExecutedOperationCheck(APIView):
             else:
                 logger.info('The executed job was registered as completed. Return outputs.')
                 # analysis has completed and been finalized. return the outputs
-                return Response({'outputs': matching_op.outputs}, status=status.HTTP_200_OK)
+                return Response(matching_op.outputs, status=status.HTTP_200_OK)
         else:
             return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, 
                 status=status.HTTP_404_NOT_FOUND)
