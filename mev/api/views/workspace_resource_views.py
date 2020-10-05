@@ -82,8 +82,8 @@ class WorkspaceResourceAdd(APIView):
             try:
                 workspace = Workspace.objects.get(pk=workspace_uuid)
             except Workspace.DoesNotExist:
-                logger.error('Could not locate Workspace ({workspace_uuid})'
-                ' when attmepting to add Resource.'.format(
+                logger.info('Could not locate Workspace ({workspace_uuid})'
+                ' when attempting to add Resource.'.format(
                     workspace_uuid = str(workspace_uuid)
                     )
                 )
@@ -94,8 +94,8 @@ class WorkspaceResourceAdd(APIView):
             try:
                 resource = Resource.objects.get(pk=resource_uuid)
             except Resource.DoesNotExist:
-                logger.error('Could not locate Resource ({resource_uuid})'
-                ' when attmepting to add Resource to'
+                logger.info('Could not locate Resource ({resource_uuid})'
+                ' when attempting to add Resource to'
                 ' Workspace ({workspace_uuid}).'.format(
                         resource_uuid = resource_uuid,
                         workspace_uuid = str(workspace_uuid)
