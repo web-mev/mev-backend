@@ -255,7 +255,7 @@ class LocalDockerRunner(OperationRunner):
         entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
         try:
             entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
-        except Exception ex:
+        except Exception as ex:
             logger.error('An exception was raised when constructing the entrypoint'
                 ' command from the templated string. Exception was: {ex}'.format(
                     ex = ex
