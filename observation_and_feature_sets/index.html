@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Observations and Features - MEV REST API</title>
+  <title>ObservationSet and FeatureSets - MEV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Observations and Features";
-    var mkdocs_page_input_path = "elements.md";
+    var mkdocs_page_name = "ObservationSet and FeatureSets";
+    var mkdocs_page_input_path = "observation_and_feature_sets.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -67,11 +67,11 @@
     <ul class="current">
                 <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
                 </li>
-                <li class="toctree-l2 current"><a class="reference internal current" href="./">Observations and Features</a>
+                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">ObservationSet and FeatureSets</a>
     <ul class="current">
     </ul>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
                 </li>
@@ -131,10 +131,10 @@
         
       
     
-    <li>Observations and Features</li>
+    <li>ObservationSet and FeatureSets</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/elements.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/observation_and_feature_sets.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -145,61 +145,54 @@
           <div role="main">
             <div class="section">
               
-                <p><a id="observations"></a></p>
-<h3 id="elements-observations-and-features"><a class="toclink" href="#elements-observations-and-features">Elements, Observations, and Features</a></h3>
-<p>We adopt the convention from statistical learning of referring to <code>Observation</code>s and <code>Feature</code>s of data.  Both of these data structures derive from <code>BaseElement</code>, which captures their common structure.  Specialization specific to each can be overridden in the child classes.  </p>
-<p>In an experimental context, <code>Observation</code>s are analogous to samples.  That is, each <code>Observation</code> has one or more <code>Feature</code>s associated with it (e.g. gene expressions for 30,000 genes).  Collectively, we can think of <code>Observation</code>s and <code>Feature</code>s as comprising the rows and columns of a two-dimensional matrix.</p>
-<p>We use <code>Observation</code>s and <code>Feature</code>s to hold metadata about data that we manipulating in MEV.  We can attach <a href="../attributes/">attributes</a> to these to allow users to set experimental groups, or other information usedful for visualization or filtering.</p>
-<p>These data structures have similar (if not exactly the same) behavior but we separate them for future compatability in case specialization of each class is needed.</p>
+                <h3 id="observationset-and-featureset"><a class="toclink" href="#observationset-and-featureset"><code>ObservationSet</code> and <code>FeatureSet</code></a></h3>
+<p>We can compose unique sets of <code>Observation</code> and <code>Feature</code> instances into <code>ObservationSet</code> and <code>FeatureSet</code> instances, respectively. These data structures can be used as a way to subset/filter samples/observations or to provide groups of samples to analyses (such as when comparing two groups for a differential expression analysis). </p>
 <div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.element.<strong>BaseElement</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>A <code>BaseElement</code> is a base class from which we can derive both <code>Observation</code>
-and <code>Features</code>.  For the purposes of clarity, we keep those entities separate.
-Yet, their behavior and structure are very much the same.  This also allows
-us to add custom behavior to each at a later time if we require.</p>
-<p>An <code>Element</code> is structured as:</p>
+<div class="autodoc-signature"><em>class </em><code>api.data_structures.observation_set.<strong>ObservationSet</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">init_elements</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">multiple=True</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-docstring"><p>An <code>ObservationSet</code> is a collection of unique <code>Observation</code> instances
+and is typically used as a metadata data structure attached to some "real"
+data.  For instance, given a matrix of gene expressions, the <code>ObservationSet</code>
+is the set of samples that were assayed.</p>
+<p>We depend on the native python set data structure and appropriately
+hashable/comparable <code>Observation</code> instances.</p>
+<p>This essentially copies most of the functionality of the native set class,
+simply passing through the operations, but includes some additional members
+specific to our application.</p>
+<p>Notably, we disallow (i.e. raise exceptions) if there are attempts to create
+duplicate <code>Observation</code>s, in contrast to native sets which silently
+ignore duplicate elements.</p>
+<p>A serialized representation would look like:</p>
 <pre class="codehilite"><code>{
-    &quot;id&quot;: &lt;string identifier&gt;,
-    &quot;attributes&quot;: {
-        &quot;keyA&quot;: &lt;Attribute&gt;,
-        &quot;keyB&quot;: &lt;Attribute&gt;
-    }
+    &quot;multiple&quot;: &lt;bool&gt;,
+    &quot;elements&quot;: [
+        &lt;Observation&gt;,
+        &lt;Observation&gt;,
+        ...
+    ]
 }</code></pre></div>
 </div>
 <div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.observation.<strong>Observation</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>An <code>Observation</code> is the generalization of a "sample" in the typical context
-of biological studies.  One may think of samples and observations as
-interchangeable concepts.  We call it an observation so that we are not
-limited by this convention, however.</p>
-<p><code>Observation</code> instances act as metadata and can be used to filter and subset
-the data to which it is associated/attached.</p>
-<p>An <code>Observation</code> is structured as:</p>
+<div class="autodoc-signature"><em>class </em><code>api.data_structures.feature_set.<strong>FeatureSet</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">init_elements</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">multiple=True</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-docstring"><p>A <code>FeatureSet</code> is a collection of unique <code>Feature</code> instances
+and is typically used as a metadata data structure attached to some "real"
+data.  For instance, given a matrix of gene expressions, the <code>FeatureSet</code>
+is the set of genes.</p>
+<p>We depend on the native python set data structure and appropriately
+hashable/comparable <code>Feature</code> instances.</p>
+<p>This essentially copies most of the functionality of the native set class,
+simply passing through the operations, but includes some additional members
+specific to our application.</p>
+<p>Notably, we disallow (i.e. raise exceptions) if there are attempts to create
+duplicate <code>Feature</code>s, in contrast to native sets which silently
+ignore duplicate elements.</p>
+<p>A serialized representation would look like:</p>
 <pre class="codehilite"><code>{
-    &quot;id&quot;: &lt;string identifier&gt;,
-    &quot;attributes&quot;: {
-        &quot;keyA&quot;: &lt;Attribute&gt;,
-        &quot;keyB&quot;: &lt;Attribute&gt;
-    }
-}</code></pre></div>
-</div>
-<div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.feature.<strong>Feature</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>A <code>Feature</code> can also be referred to as a covariate or variable.
-These are measurements one can make about an <code>Observation</code>.  For example,
-in the genomics context, a sample can have 30,000+ genes which we call
-"features" here.  In the statistical learning context, these are feature vectors.</p>
-<p><code>Feature</code> instances act as metadata and can be used to filter and subset
-the data to which it is associated/attached.  For example, we can imagine
-filtering by genes/features which have a particular value, such as those genes
-where the attribute "oncogene" is set to "true"</p>
-<p>A <code>Feature</code> is structured as:</p>
-<pre class="codehilite"><code>{
-    &quot;id&quot;: &lt;string identifier&gt;,
-    &quot;attributes&quot;: {
-        &quot;keyA&quot;: &lt;Attribute&gt;,
-        &quot;keyB&quot;: &lt;Attribute&gt;
-    }
+    &quot;multiple&quot;: &lt;bool&gt;,
+    &quot;elements&quot;: [
+        &lt;Feature&gt;,
+        &lt;Feature&gt;,
+        ...
+    ]
 }</code></pre></div>
 </div>
               
@@ -209,10 +202,10 @@ where the attribute "oncogene" is set to "true"</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../observation_and_feature_sets/" class="btn btn-neutral float-right" title="ObservationSet and FeatureSets">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../workspaces/" class="btn btn-neutral float-right" title="Workspaces">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../attributes/" class="btn btn-neutral" title="Attributes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../elements/" class="btn btn-neutral" title="Observations and Features"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -240,10 +233,10 @@ where the attribute "oncogene" is set to "true"</p>
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../attributes/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../elements/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../observation_and_feature_sets/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../workspaces/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

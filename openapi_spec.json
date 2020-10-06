@@ -1705,6 +1705,36 @@
         }
       }
     },
+    "/api/resources/{id}/contents/": {
+      "get": {
+        "operationId": "listResourceContents",
+        "description": "Returns the full data underlying a Resource.\n\nTypically used for small files so that user-interfaces can display\ndata\n\nDepending on the data, the format of the response may be different.\nAdditionally, some Resource types do not support a preview.\n\nThis returns a JSON-format representation of the data.\n\nThis endpoint is only really sensible for certain types of \nResources, such as those in table format.  Other types, such as \nsequence-based files do not have this functionality.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/resources/{id}/metadata/": {
       "get": {
         "operationId": "RetrieveResourceMetadata",
@@ -2053,6 +2083,9 @@
                       },
                       "outputs": {
                         "type": "string"
+                      },
+                      "repo_name": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -2063,7 +2096,8 @@
                       "git_hash",
                       "mode",
                       "inputs",
-                      "outputs"
+                      "outputs",
+                      "repo_name"
                     ]
                   }
                 }
@@ -2124,6 +2158,9 @@
                     },
                     "outputs": {
                       "type": "string"
+                    },
+                    "repo_name": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -2134,9 +2171,37 @@
                     "git_hash",
                     "mode",
                     "inputs",
-                    "outputs"
+                    "outputs",
+                    "repo_name"
                   ]
                 }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/executed-operations/{exec_op_uuid}/": {
+      "get": {
+        "operationId": "RetrieveExecutedOperationCheck",
+        "description": "Checks the status of an ExecutedOperation.\n\nIf the ExecutedOperation is still running, nothing happens.\nIf the ExecutedOperation has completed, runs some final steps, such as\nregistering output files with the user, performing cleanup, etc.",
+        "parameters": [
+          {
+            "name": "exec_op_uuid",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             },
             "description": ""
@@ -3024,6 +3089,40 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operations/add/": {
+      "post": {
+        "operationId": "CreateOperation",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operations/run/": {
+      "post": {
+        "operationId": "CreateOperationRun",
+        "description": "Starts the execution of an Operation",
+        "parameters": [],
         "responses": {
           "200": {
             "content": {

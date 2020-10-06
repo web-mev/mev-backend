@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Operations - MEV REST API</title>
+  <title>Operation concepts - MEV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../css/theme.css" />
@@ -19,7 +19,7 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Operations";
+    var mkdocs_page_name = "Operation concepts";
     var mkdocs_page_input_path = "operations.md";
     var mkdocs_page_url = null;
   </script>
@@ -69,6 +69,8 @@
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
                 </li>
+                <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
+                </li>
                 <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
@@ -87,9 +89,13 @@
                     </li>
                 </ul>
                 <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Operations</a>
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Operation concepts</a>
     <ul class="current">
     </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
                     </li>
                 </ul>
                 <ul>
@@ -117,7 +123,7 @@
     
       
     
-    <li>Operations</li>
+    <li>Operation concepts</li>
     <li class="wy-breadcrumbs-aside">
       
         <a href="https://github.com/web-mev/mev-backend/edit/master/docs/operations.md"
@@ -284,6 +290,9 @@
 In the backend, we locate the proper <code>Operation</code> by its UUID. In our example, we see that this <code>Operation</code> expects two required inputs: <code>"count_matrix"</code> and <code>"p_val"</code>. Below, we walk though how these are validated.</p>
 <p>For the <code>count_matrix</code> input, we see the <code>spec</code> field says it accepts <code>"DataResource"</code>s (files) with resource types of <code>["RNASEQ_COUNT_MTX", "I_MTX"]</code>. It also says <code>"many": false</code>, so we only will accept a single file. The payload example above provided a single UUID (so it is validated for <code>"many": false</code>). Then, we will take that UUID and query our database to see if it corresponds to a <code>Resource</code> instance that has a <code>resource_type</code> member that is either <code>"RNASEQ_COUNT_MTX"</code> or <code>"I_MTX"</code>. If that is indeed the case, then the <code>"count_matrix"</code> field is successfully validated.</p>
 <p>For the <code>"p_val"</code> field, we receive a value of 0.01. The <code>spec</code> states that this input should be of type <code>BoundedFloat</code> with a min of 0.0 and a max of 1.0. The backend validates that 0.01 is indeed in the range [0.0,1.0].</p>
+<h3 id="operation-modes"><a class="toclink" href="#operation-modes">Operation modes</a></h3>
+<p>Depending on how the <code>Operation</code> should be run, we perform different actions upon ingestion. For local docker-based runs, we obviously require that the image be located on the same machine as the MEV instance. To ensure everything is "aligned", we require additional files depending on the run mode. These are verified during the ingestion process.</p>
+<p>For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be </p>
 <p>Given that all the inputs successfully validate, we can move on to create an <code>ExecutedOperation</code> and actually run the analysis.</p>
               
             </div>
@@ -292,7 +301,7 @@ In the backend, we locate the proper <code>Operation</code> by its UUID. In our 
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../example_workflow/" class="btn btn-neutral float-right" title="Workflow and analysis concepts">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../creating_analyses/" class="btn btn-neutral float-right" title="Creating new analyses/operations">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
         <a href="../auth/" class="btn btn-neutral" title="Authentication"><span class="icon icon-circle-arrow-left"></span> Previous</a>
@@ -326,7 +335,7 @@ In the backend, we locate the proper <code>Operation</code> by its UUID. In our 
         <span><a href="../auth/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../example_workflow/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../creating_analyses/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

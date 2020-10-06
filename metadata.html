@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>metadata.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #000; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+        background-color: rgb(200,200,200);
+        border-radius: 2px;
+        padding: 1px;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h3 id="about-metadata">About metadata</h3>
+<p>Each file (a <code>Resource</code>) has metadata, which can include an <code>ObservationSet</code> and a <code>FeatureSet</code>. As we know, each of those are composed of unique <code>Observation</code> and <code>Feature</code> instances, respectively. A <code>Resource</code>'s metadata can be queried via the <code>/api/resources/&lt;uuid&gt;/metadata/</code> endpoint.</p>
+<p>A <code>Workspace</code> can have multiple <code>Resource</code> objects associated with it. Each <code>Resource</code> has its own metadata which, in general, is different for each <code>Resource</code>. Thus, we can have the concept of &quot;workspace metadata&quot; which can be composed from the <em>union</em> of the individual <code>Resource</code> metadata.</p>
+<p>Consider two <code>Resource</code> instances. The first (<code>Resource</code> &quot;A&quot;) is data generated by a user and has six samples, which we will denote as S1,...,S6; S1-S3 are wild-type and S4-S6 are mutant. The <code>ObservationSet</code> associated with <code>Resource</code> A could look like:</p>
+<pre class="hljs"><code><div>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;
+            }
+        },
+        ...
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        }
+    ]
+}
+</div></code></pre>
+<p>The other (<code>Resource</code> B) is public-domain data and also has six samples, which we will denote as P1,...,P6. The <code>ObservationSet</code> associated with <code>Resource</code> B could look like:</p>
+<pre class="hljs"><code><div>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;P1&quot;,
+            &quot;attributes&quot;: {}
+        },
+        ...
+        {
+            &quot;id&quot;: &quot;P6&quot;,
+            &quot;attributes&quot;: {}
+        }
+    ]
+}
+</div></code></pre>
+<p>(Note that these samples don't have any annotations/attributes for this example).</p>
+<p>Now, as far as the <code>Workspace</code> is concerned, there are 12 <code>Observation</code> instances by performing a union of the <code>Observation</code>s contained in the <code>ObservationSet</code> associated with each <code>Resource</code>.</p>
+<p>In the course of performing an analysis, the user might wish to create meaningful &quot;groups&quot; of these samples. Maybe they merge the two count matrices and perform a PCA. They then note a clustering of the samples:</p>
+<p><img src="pca_scatterplot.png" alt=""></p>
+<p>(Imagine the user selecting the five samples in the grey ellipse-- two of the public &quot;P&quot; samples, P3 and P4 cluster with the WT samples). They can then create a new <code>ObservationSet</code> from those five samples:</p>
+<pre class="hljs"><code><div>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S4&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S5&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        },
+        {
+            &quot;id&quot;: &quot;P3&quot;,
+            &quot;attributes&quot;: {}
+        },        
+        {
+            &quot;id&quot;: &quot;P4&quot;,
+            &quot;attributes&quot;: {}
+        }
+    ]
+}
+</div></code></pre>
+<p>Obviously, the front-end needs to keep track of this somehow. I suppose one option would be to have a mapping of user-defined names to these user-defined custom <code>ObservationSet</code> instances like</p>
+<pre class="hljs"><code><div>{
+    &quot;cluster1&quot;: &lt;ObservationSet with S4,S5,S6,P3,P4&gt;,
+    &quot;some other cluster&quot;: &lt;ObservationSet with S1,S2,S3,P5,P6&gt;,
+    ...
+}
+</div></code></pre>
+<p>Similarly, the users can define custom <code>FeatureSet</code> instances.</p>
+<p>We could use a heatmap to visualize how users have created various selections:</p>
+<p><img src="observation_set_viz.png" alt=""></p>
+<h3 id="using-the-metadata-for-analyses">Using the metadata for analyses</h3>
+<p>After the user has created their own &quot;sample sets&quot; (<code>ObservationSet</code> instances), they can use them for analyses like differential expression analysis. For instance, the inputs to such an analysis would be an expression matrix (perhaps the result of merging the &quot;S&quot; and &quot;P&quot; samples/<code>Observation</code>s) and two <code>ObservationSet</code> instances. The payload to start such an analysis (sent to <code>/api/operations/run/</code>) would look something like:</p>
+<pre class="hljs"><code><div>{
+    &quot;operation_id&quot;: &lt;UUID for Operation&gt;,
+    &quot;workspace_id&quot;: &lt;UUID for Workspace&gt;,
+    &quot;inputs&quot;: {
+        &quot;count_matrix&quot;: &lt;UUID for merged Resource&gt;,
+        &quot;groupA&quot;: &lt;ObservationSet with S4,S5,S6,P3,P4&gt;,
+        &quot;groupB&quot;: &lt;ObservationSet with S1,S2,S3,P5,P6&gt;
+    }
+}
+</div></code></pre>
+<p>Since the front-end keeps track of the user-defined <code>ObservationSet</code> instances, it is straightforward to construct this payload.</p>
+<h3 id="additional-user-supplied-metadata">Additional user-supplied metadata</h3>
+<p>Finally, the users might want to add additional annotations to their metadata. For instance, assuming we still are working with <code>Resource</code> instances A and B, we could upload an additional <code>Resource</code> with type &quot;ANN&quot; (for <em>ann</em>otation) and add it to this <code>Workspace</code>. For instance, maybe it looks like:</p>
+<table>
+<thead>
+<tr>
+<th>sample</th>
+<th>sex</th>
+<th>p53_mutant_status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>M</td>
+<td>1</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>F</td>
+<td>0</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>F</td>
+<td>0</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>F</td>
+<td>1</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>M</td>
+<td>1</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>M</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>This would then incorporate into the existing <code>Observation</code> instances so they now would look like:</p>
+<pre class="hljs"><code><div>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        ...
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        }
+    ]
+}
+</div></code></pre>
+<p>Unsure how this might work on the front-end in terms of updating the <code>Observation</code> instances so that they all have this information. If the <code>ObservationSet</code> was setup to have pointers/references to the <code>Observation</code> instances then the changes could percolate to all the <code>ObservationSet</code> instances.</p>
+<h3 id="backend-endpoints">Backend endpoints</h3>
+<p>To provide a &quot;single source of truth&quot;, there will be a &quot;workspace metadata&quot; endpoint at <code>/api/workspace/&lt;UUID&gt;/metadata/</code> which will track the <em>union</em> of all the <code>Resource</code> metadata in the <code>Workspace</code>. To reduce the amount of data returned, there will also be specific endpoints for <code>Observation</code>s and <code>Feature</code>s at <code>/api/workspace/&lt;UUID&gt;/metadata/observations/</code> and <code>/api/workspace/&lt;UUID&gt;/metadata/features/</code>.</p>
+<p>The front-end will maintain the various user selections (formerly &quot;sample sets&quot;, now <code>ObservationSet</code>) but the full set of available <code>Observation</code> instances will be kept on the backend.</p>
+<p>Using the example above, a request to <code>/api/workspace/&lt;UUID&gt;/metadata/observations/</code> would return:</p>
+<pre class="hljs"><code><div>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S2&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;F&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S3&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;F&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S4&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;F&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S5&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        },
+        {
+            &quot;id&quot;: &quot;P1&quot;,
+            &quot;attributes&quot;: {}
+        }, 
+        {
+            &quot;id&quot;: &quot;P2&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;P3&quot;,
+            &quot;attributes&quot;: {}
+        },        
+        {
+            &quot;id&quot;: &quot;P4&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;P5&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;P6&quot;,
+            &quot;attributes&quot;: {}
+        },
+    ]
+}
+</div></code></pre>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });</script>
+</body>
+</html>

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Metadata - MEV REST API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  <link href="../style.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Metadata";
+    var mkdocs_page_input_path = "metadata.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> MEV REST API</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Setup</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Installation</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">API</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">MEV REST API</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Metadata</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/metadata.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h3 id="about-workspace-metadata"><a class="toclink" href="#about-workspace-metadata">About Workspace metadata</a></h3>
+<p>As described elsewhere, all analyses occur in the context of a user's <code>Workspace</code>; the <code>Workspace</code> allows users to organize files and analyses logically. To operate on the potentially multiple files contained in a user's <code>Workspace</code>, we are obligated to track metadata that spans across the data resources and is maintained at the level of the user's <code>Workspace</code>. We are typically required to provide this metadata to analyses/<code>Operation</code>s, including information about samples (<code>Observation</code>s), genes (<code>Feature</code>s), and possibly other annotation data.</p>
+<p>A <code>Workspace</code> can have multiple file/<code>Resource</code> objects associated with it, each of which has its own unique metadata. Therefore, we conceive of "workspace metadata" which is composed from the <em>union</em> of the individual <code>Resource</code>'s metadata.</p>
+<p>Consider two <code>Resource</code> instances in a <code>Workspace</code>. The first (<code>Resource</code> "A") is data generated by a user and has six samples, which we will denote as S1,...,S6; S1-S3 are wild-type and S4-S6 are mutant. The <code>ObservationSet</code> associated with <code>Resource</code> A could look like:</p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;
+            }
+        },
+        ...
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        }
+    ]
+}</code></pre>
+
+
+<p>The other (<code>Resource</code> B) is public-domain data and also has six samples, which we will denote as P1,...,P6. The <code>ObservationSet</code> associated with <code>Resource</code> B could look like:</p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;P1&quot;,
+            &quot;attributes&quot;: {}
+        },
+        ...
+        {
+            &quot;id&quot;: &quot;P6&quot;,
+            &quot;attributes&quot;: {}
+        }
+    ]
+}</code></pre>
+
+
+<p>(Note that for simplicity/brevity these samples don't have any annotations/attributes for this example).</p>
+<p>Now, as far as the <code>Workspace</code> is concerned, there are 12 <code>Observation</code> instances by performing a union of the <code>Observation</code>s contained in the <code>ObservationSet</code> associated with each <code>Resource</code>. </p>
+<p>In the course of performing an analysis, the user might wish to create meaningful "groups" of these samples. Perhaps they merge the two count matrices underlying <code>Resource</code>s A and B, and perform a principal component analysis (PCA) on the output. They then note a clustering of the samples which they perceive as meaningful:</p>
+<p><img alt="" src="../pca_scatterplot.png" /></p>
+<p>(Via the dynamic user interface, we imagine the user selecting the five samples in the grey ellipse-- two of the public "P" samples, P3 and P4 cluster with the WT samples). They can then choose to create a new <code>ObservationSet</code> from those five samples: </p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S4&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S5&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;
+            }
+        },
+        {
+            &quot;id&quot;: &quot;P3&quot;,
+            &quot;attributes&quot;: {}
+        },        
+        {
+            &quot;id&quot;: &quot;P4&quot;,
+            &quot;attributes&quot;: {}
+        }
+    ]
+}</code></pre>
+
+
+<p>This information regarding user-defined groupings can be cached client-side. However, the ultimate "source" of the metadata is provided by the <code>Workspace</code>, which maintains the <code>ObservationSet</code>s, <code>FeatureSet</code>s, and possibly other metadata.</p>
+<p>We could use a heatmap to visualize how users have created various selections:</p>
+<h3 id="using-the-metadata-for-analyses"><a class="toclink" href="#using-the-metadata-for-analyses">Using the metadata for analyses</a></h3>
+<p>After the user has created their own <code>ObservationSet</code> instances, they can use them for analyses such as a differential expression analysis. For instance, the inputs to such an analysis would be an expression matrix (perhaps the result of merging the "S" and "P" samples/<code>Observation</code>s) and two <code>ObservationSet</code> instances. The payload to start such an analysis (sent to <code>/api/operations/run/</code>) would look something like:</p>
+<pre class="codehilite"><code>{
+    &quot;operation_id&quot;: &lt;UUID for Operation&gt;,
+    &quot;workspace_id&quot;: &lt;UUID for Workspace&gt;,
+    &quot;inputs&quot;: {
+        &quot;count_matrix&quot;: &lt;UUID for merged Resource&gt;,
+        &quot;groupA&quot;: &lt;ObservationSet with S4,S5,S6,P3,P4&gt;,
+        &quot;groupB&quot;: &lt;ObservationSet with S1,S2,S3,P5,P6&gt;
+    }
+}</code></pre>
+
+
+<h3 id="additional-user-supplied-metadata"><a class="toclink" href="#additional-user-supplied-metadata">Additional user-supplied metadata</a></h3>
+<p>Finally, the users might want to add additional annotations to their metadata. For instance, assuming we still are working with <code>Resource</code> instances A and B, we could upload an additional <code>Resource</code> with type "ANN" (for <em>ann</em>otation) and add it to this <code>Workspace</code>. For instance, maybe it looks like:</p>
+<table>
+<thead>
+<tr>
+<th>sample</th>
+<th>sex</th>
+<th>p53_mutant_status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>M</td>
+<td>1</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>F</td>
+<td>0</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>F</td>
+<td>0</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>F</td>
+<td>1</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>M</td>
+<td>1</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>M</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>This would then incorporate into the existing <code>Observation</code> instances so they now would look like:</p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        ...
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        }
+    ]
+}</code></pre>
+
+
+<p>Unsure how this might work on the front-end in terms of updating the <code>Observation</code> instances so that they all have this information. If the <code>ObservationSet</code> was setup to have pointers/references to the <code>Observation</code> instances then the changes could percolate to all the <code>ObservationSet</code> instances.</p>
+<h3 id="backend-endpoints"><a class="toclink" href="#backend-endpoints">Backend endpoints</a></h3>
+<p>To provide a "single source of truth", there will be a "workspace metadata" endpoint at <code>/api/workspace/&lt;UUID&gt;/metadata/</code> which will track the <em>union</em> of all the <code>Resource</code> metadata in the <code>Workspace</code>. To reduce the amount of data returned, there will also be specific endpoints for <code>Observation</code>s and <code>Feature</code>s at <code>/api/workspace/&lt;UUID&gt;/metadata/observations/</code> and <code>/api/workspace/&lt;UUID&gt;/metadata/features/</code>.</p>
+<p>The front-end will maintain the various user selections (formerly "sample sets", now <code>ObservationSet</code>) but the full set of available <code>Observation</code> instances will be kept on the backend.</p>
+<p>Using the example above, a request to <code>/api/workspace/&lt;UUID&gt;/metadata/observations/</code> would return:</p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S2&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;F&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S3&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;WT&quot;,
+                &quot;sex&quot;: &quot;F&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S4&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;F&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S5&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 1
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: &quot;mutant&quot;,
+                &quot;sex&quot;: &quot;M&quot;,
+                &quot;p53_mutant_status&quot;: 0
+            }
+        },
+        {
+            &quot;id&quot;: &quot;P1&quot;,
+            &quot;attributes&quot;: {}
+        }, 
+        {
+            &quot;id&quot;: &quot;P2&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;P3&quot;,
+            &quot;attributes&quot;: {}
+        },        
+        {
+            &quot;id&quot;: &quot;P4&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;P5&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;P6&quot;,
+            &quot;attributes&quot;: {}
+        },
+    ]
+}</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+      
+    </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
