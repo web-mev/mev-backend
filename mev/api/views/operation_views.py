@@ -206,9 +206,8 @@ class ExecutedOperationCheck(APIView):
                     else: # job still running- just return no content
                         return Response(status=status.HTTP_204_NO_CONTENT)
             else:
-                response_payload = {
-                    'executed_operation':ExecutedOperationSerializer(matching_op).data
-                }
+                response_payload = ExecutedOperationSerializer(matching_op).data
+                
                 if matching_op.job_failed:
                     logger.info('The requested job ({id}) failed.'.format(id=exec_op_uuid))
                 else:

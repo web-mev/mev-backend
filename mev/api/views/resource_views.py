@@ -216,8 +216,8 @@ class ResourcePreview(APIView, ResourceViewMixin):
             # requester can access, resource is active.  Go get preview
             j = get_resource_view(r, limit=10)
             if 'error' in j:
-                return Response(json.dumps(j), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return Response(json.dumps(j), status=status.HTTP_200_OK)
+                return Response(j, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(j, status=status.HTTP_200_OK)
 
 class ResourceContents(APIView, ResourceViewMixin):
     '''
@@ -249,5 +249,5 @@ class ResourceContents(APIView, ResourceViewMixin):
             # requester can access, resource is active.  Go get preview
             j = get_resource_view(r)
             if 'error' in j:
-                return Response(json.dumps(j), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return Response(json.dumps(j), status=status.HTTP_200_OK)
+                return Response(j, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(j, status=status.HTTP_200_OK)

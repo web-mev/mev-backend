@@ -985,5 +985,5 @@ class ResourcePreviewTests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
-        j = json.loads(response.json())
+        j = response.json()
         self.assertDictEqual(preview_dict, j) 
