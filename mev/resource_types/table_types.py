@@ -498,11 +498,17 @@ class ElementTable(TableResource):
             d = row_series.to_dict()
             attr_dict = {}
             for key, val in d.items():
+                if pd.isnull(val):
+                    val = None
+                # Note the 'allow_null=True', so that attributes can be properly serialized
+                # if they are missing a value. This happens, for instance, in FeatureTable
+                # instances where p-values were not assigned.
                 attr = create_attribute(key,
                     {
                         'attribute_type': type_dict[key],
                         'value': val
-                    }
+                    },
+                    allow_null=True
                 )
                 attr_dict[key] = attr
             element_list.append(element_class(id, attr_dict))

@@ -26,20 +26,30 @@ class BaseAttribute(object):
     REQUIRED_PARAMS = []
 
     def __init__(self, value, **kwargs):
-
         # set to None so we do not get attribute errors:
         self.value = None
 
-        # go ahead and validate
-        self.value_validator(value)
-        
+        # do we allow null/NaN? If not explicitly given, assume we do NOT allow nulls
+        try:
+            allow_null = bool(kwargs.pop('allow_null'))
+        except KeyError:
+            allow_null = False
+
+        # go ahead and validate if we do have a value to check
+        if value is not None:
+            self.value_validator(value, allow_null=allow_null)
+        else:
+            # value is None...is that ok? If not, raise an exception
+            if not allow_null:
+                raise ValidationError('Received a null/None value which is not allowed.')
+
         # if kwargs is not an empty dict, raise an exception
         if kwargs != {}:
             raise ValidationError('This type of attribute does not '
             ' accept additional keyword arguments.'
             ' Received: {keys}'.format(keys=','.join(kwargs.keys())))
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         raise NotImplementedError('You must override this method.')
 
     def check_keys(self, keys):
@@ -160,7 +170,7 @@ class IntegerAttribute(BaseAttribute):
 
     typename = 'Integer'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         if type(val) == int:
             if set_value:
                 self.value = val
@@ -183,7 +193,7 @@ class PositiveIntegerAttribute(BaseAttribute):
     '''
     typename = 'PositiveInteger'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         if type(val) == int:
             if val > 0:
                 if set_value:
@@ -210,7 +220,7 @@ class NonnegativeIntegerAttribute(BaseAttribute):
     '''
     typename = 'NonNegativeInteger'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         if type(val) == int:
             if val >= 0:
                 if set_value:
@@ -239,7 +249,7 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
     '''
     typename = 'BoundedInteger'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
 
         # here we also validate that the bounds are of
         # the same integer type
@@ -275,7 +285,7 @@ class FloatAttribute(BaseAttribute):
     '''
     typename = 'Float'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         if (type(val) == float) or (type(val) == int):
             if set_value:
                 self.value = float(val)
@@ -297,7 +307,7 @@ class PositiveFloatAttribute(BaseAttribute):
     '''
     typename = 'PositiveFloat'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         
         if (type(val) == float) or (type(val) == int):
             if val > 0:
@@ -324,7 +334,7 @@ class NonnegativeFloatAttribute(BaseAttribute):
     '''
     typename = 'NonNegativeFloat'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         
         if (type(val) == float) or (type(val) == int):
             if val >= 0:
@@ -352,7 +362,7 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
     '''
     typename = 'BoundedFloat'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
 
         # here we also validate that the bounds are of
         # the same integer type
@@ -389,7 +399,7 @@ class StringAttribute(BaseAttribute):
     '''
     typename = 'String'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         try:
             val = api_utils.normalize_identifier(val)
             if set_value:
@@ -410,7 +420,7 @@ class BooleanAttribute(BaseAttribute):
     '''
     typename = 'Boolean'
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         '''
         Validates that the value can be interpreted
         as a boolean.  Either true/false or 1/0
@@ -479,7 +489,7 @@ class DataResourceAttribute(BaseAttribute):
         b = BooleanAttribute(v)
         self.many = b.value
 
-    def value_validator(self, val, set_value=True):
+    def value_validator(self, val, set_value=True, allow_null=False):
         '''
         Validates that the value (or values)
         are proper UUIDs. 
@@ -557,7 +567,7 @@ all_attribute_typenames = [x.typename for x in all_attribute_types]
 attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))
 
 
-def create_attribute(attr_key, attribute_dict):
+def create_attribute(attr_key, attribute_dict, allow_null=False):
     '''
     Utility function used by the serializers to create/return
     BaseAttribute-derived instances.
@@ -594,6 +604,9 @@ def create_attribute(attr_key, attribute_dict):
             typelist=', '.join(all_attribute_typenames)
         )})
     attribute_type = attribute_mapping[attribute_typename]
+
+    if allow_null:
+        attr_dict['allow_null'] = True
 
     # we "test" validity by trying to create an Attribute subclass instance.
     # If the specification is not correct, it will raise an exception.

@@ -36,6 +36,7 @@ from resource_types.table_types import TableResource, \
     FeatureTable, \
     BEDFile
 from api.tests.base import BaseAPITestCase
+from api.utilities.resource_utilities import add_metadata_to_resource
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -443,7 +444,10 @@ class TestAnnotationTableMetadata(unittest.TestCase):
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
 
-class TestFeatureTableMetadata(unittest.TestCase):
+class TestFeatureTableMetadata(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
 
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'gene_annotations.tsv')
@@ -474,6 +478,25 @@ class TestFeatureTableMetadata(unittest.TestCase):
         self.assertEqual(metadata[FEATURE_SET_KEY], expected_feature_set)
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+
+    def test_dge_output_with_na(self):
+        '''
+        This tests that the metadata extraction handles the case where
+        there are nan/NaN among the covariates in a FeatureTable
+        '''
+        # this file has a row with nan for some of the values; a p-value was not called
+        resource_path = os.path.join(TESTDIR, 'deseq_results_example.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        t = FeatureTable()
+        metadata = t.extract_metadata(resource_path)
+        r = Resource.objects.filter(owner=self.regular_user_1)[0]
+        add_metadata_to_resource(r, metadata)
+
+        url = reverse(
+            'resource-metadata-detail', 
+            kwargs={'pk':r.pk}
+        )
+        response = self.authenticated_regular_client.get(url)
 
 
 class TestBedFileMetadata(unittest.TestCase):
