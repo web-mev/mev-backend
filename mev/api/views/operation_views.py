@@ -131,6 +131,46 @@ class OperationCreate(APIView):
             )
             return Response({self.REPO_URL: message}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class ExecutedOperationList(APIView):
+    '''
+    Lists available ExecutedOperation instances for a given Workspace.
+
+    Admins can list all available executedOperations in a Workspace.
+    
+    Non-admin users can only view ExecutedOperations on Workspaces they own.
+    '''
+    NOT_FOUND_MESSAGE = 'No workspace found by ID: {id}'
+
+    permission_classes = [ 
+        framework_permissions.IsAuthenticated
+    ]
+
+    def get(self, request, *args, **kwargs):
+
+        user = request.user
+
+        # the UUID of the Workspace in which we are looking
+        workspace_uuid = str(kwargs['workspace_pk'])
+
+        try:
+            workspace = Workspace.objects.get(pk=workspace_uuid)
+        except Workspace.DoesNotExist as ex:
+            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=workspace_uuid)}, status=status.HTTP_404_NOT_FOUND)
+
+        # check ownership via workspace. Users should only be able to query their own
+        # analyses:
+        if (user.is_staff) or (user == workspace.owner):
+            executed_ops = ExecutedOperation.objects.filter(workspace=workspace)
+            response_payload = ExecutedOperationSerializer(executed_ops, many=True).data
+            return Response(response_payload, 
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=workspace_uuid)}, 
+                status=status.HTTP_404_NOT_FOUND)
+
+
 class ExecutedOperationCheck(APIView):
     '''
     Checks the status of an ExecutedOperation.
