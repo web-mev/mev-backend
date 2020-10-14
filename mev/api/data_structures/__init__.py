@@ -14,7 +14,8 @@ from .attributes import IntegerAttribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
     create_attribute, \
-    convert_dtype
+    convert_dtype, \
+    all_attribute_types
 from .operation_input import OperationInput
 from .operation_input_spec import IntegerInputSpec, \
     PositiveIntegerInputSpec, \

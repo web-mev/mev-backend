@@ -776,13 +776,13 @@ class OperationRunTests(BaseAPITestCase):
         valid_obs_1 = {
             'id': 'foo',
             'attributes': {
-                'treatment': 'A'
+                'treatment': {'attribute_type':'String','value':'A'}
             }
         }
         valid_obs_2 = {
             'id': 'bar',
             'attributes': {
-                'treatment': 'B'
+                'treatment': {'attribute_type':'String','value':'B'}
             }
         }
 

@@ -289,13 +289,13 @@ class UserOperationInputTester(BaseAPITestCase):
         valid_obs_1 = {
             'id': 'foo',
             'attributes': {
-                'treatment': 'A'
+                'treatment': {'attribute_type': 'String', 'value': 'A'}
             }
         }
         valid_obs_2 = {
             'id': 'bar',
             'attributes': {
-                'treatment': 'B'
+                'treatment': {'attribute_type': 'String', 'value': 'B'}
             }
         }
 
@@ -434,7 +434,7 @@ class UserOperationInputTester(BaseAPITestCase):
         valid_obs_1 = {
             'id': 'foo',
             'attributes': {
-                'treatment': 'A'
+                'treatment': {'attribute_type': 'String', 'value': 'A'}
             }
         }
         valid_obs_2 = {
@@ -442,7 +442,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         invalid_obs = {
             'attributes': {
-                'treatment': 'A'
+                'treatment': {'attribute_type': 'String', 'value': 'A'}
             }
         }
 
@@ -475,7 +475,7 @@ class UserOperationInputTester(BaseAPITestCase):
         valid_feature_1 = {
             'id': 'foo',
             'attributes': {
-                'treatment': 'A'
+                'treatment': {'attribute_type':'String','value':'A'}
             }
         }
         valid_feature_2 = {
@@ -488,8 +488,13 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
+        print(d)
+        print(clazz)
+        print('???????????????')
         x = clazz(self.regular_user_1, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
         y = clazz(self.regular_user_1, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
+        print(x.get_value())
+        print('xxxxxxxxxxxxxxxxxxxxx')
         self.assertDictEqual(x.get_value(), valid_feature_1)
         self.assertDictEqual(
             y.get_value(), 

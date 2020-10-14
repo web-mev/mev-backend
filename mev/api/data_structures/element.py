@@ -1,3 +1,4 @@
+import copy
 from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
@@ -45,7 +46,8 @@ class BaseElement(object):
         # serializer will catch the problem before it reaches here.  But we also
         # guard against it here.
         if type(attribute_dict) == dict:
-            self.attributes = attribute_dict
+            d_copy = copy.deepcopy(attribute_dict)
+            self.attributes = d_copy
         else:
             raise ValidationError('The attributes must be formatted as a dictionary.')
 
@@ -85,6 +87,6 @@ class BaseElement(object):
 
     def to_dict(self):
         d = {}
-        d['id'] = self.id
-        d['attributes'] = self.attributes
+        d['id'] = self.id 
+        d['attributes'] = {k:v.to_dict() for k,v in self.attributes.items()}
         return d

@@ -47,6 +47,10 @@ class ElementSerializerTester(object):
             expected_attr = testcase.demo_element.attributes[attr_name]
             testcase.assertEqual(expected_attr, attr)
 
+        dd = element.to_dict()
+        ##print('dd=',dd)
+        testcase.assertDictEqual(dd, testcase.demo_element_data)
+
     def test_expected_deserialization_case2(self, testcase):
         '''
         Tests deserialization with missing attribute dict,
@@ -115,7 +119,6 @@ class ElementSerializerTester(object):
         data = copy.deepcopy(testcase.demo_element_data_w_bounds)
         element_serializer = self.element_serializer_class(data=data)
         testcase.assertTrue(element_serializer.is_valid())
-
         element = element_serializer.get_instance()
 
         # note that equality of Observations is only determined by the 
@@ -124,6 +127,11 @@ class ElementSerializerTester(object):
         for attr_name, attr in element.attributes.items():
             expected_attr = testcase.demo_element_w_bounds.attributes[attr_name]
             testcase.assertEqual(expected_attr, attr)
+
+        # test that the dictionary representation is valid:
+        dd = element.to_dict()
+        testcase.assertDictEqual(dd, testcase.demo_element_data_w_bounds)
+
 
     def test_expected_deserialization_case8(self, testcase):
         '''
@@ -166,6 +174,13 @@ class ElementSerializerTester(object):
         element_serializer = self.element_serializer_class(data=data)
         testcase.assertFalse(element_serializer.is_valid())
 
+    def test_expected_deserialization_case11(self, testcase):
+        '''
+        Tests deserialization with attribute dict that is malformatted
+        '''
+        data = {'id': 'my_identifier', 'attributes':{'genotype': 'A'}} # genotype key should point at the <Attribute> instance, but instead points at a basic string
+        element_serializer = self.element_serializer_class(data=data)
+        testcase.assertFalse(element_serializer.is_valid())
 
     def test_attribute_with_missing_value_is_invalid(self, testcase):
         '''

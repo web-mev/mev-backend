@@ -30,7 +30,14 @@ class AttributeSerializer(serializers.BaseSerializer):
             v = data[k]
             if type(v) == dict:
                 v=api_ds.create_attribute(k, v)
-            data[k]=v
+                data[k]=v
+            elif type(v) in api_ds.all_attribute_types:
+                data[k] = v
+            else:
+                raise serializers.ValidationError('The key {k}'
+                    ' must reference a dictionary which meets the'
+                    ' specification of a valid attribute. Received type: {v}'.format(k=k, v=type(v))
+                )
         return data
 
     def create(self, validated_data):

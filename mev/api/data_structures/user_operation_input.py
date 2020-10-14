@@ -63,7 +63,7 @@ class UserOperationInput(object):
         '''
         self.user = user
         self.key = key
-        self.submitted_value = submitted_value
+        self.submitted_value = copy.deepcopy(submitted_value)
         self.input_spec = input_spec
         self.instance = None
 
