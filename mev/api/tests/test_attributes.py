@@ -14,7 +14,8 @@ from api.data_structures import IntegerAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
-    DataResourceAttribute
+    DataResourceAttribute, \
+    OptionStringAttribute
 
 
 class TestAttributes(unittest.TestCase):
@@ -240,3 +241,45 @@ class TestAttributes(unittest.TestCase):
         # the "value" is not a UUID. Should fail:
         with self.assertRaises(ValidationError):
             DataResourceAttribute('abc')
+
+    def test_option_string_attribute(self):
+
+        # test that leaving out the 'options' key causes a problem
+        with self.assertRaises(ValidationError):
+            s = OptionStringAttribute('abc')
+
+        # test that a valid spec works
+        s = OptionStringAttribute('abc', options=['xyz','abc'])
+        self.assertEqual(s.value, 'abc')
+
+        # test that case matters
+        with self.assertRaises(ValidationError):
+            s = OptionStringAttribute('Abc', options=['xyz','abc'])
+
+        # test null value when allowed:
+        s = OptionStringAttribute(None, options=['xyz','abc'], allow_null=True)
+        self.assertIsNone(s.value)
+
+        # test value not set when explicitly prevented:
+        s = OptionStringAttribute('abc', options=['xyz','abc'], set_value = False)
+        self.assertIsNone(s.value)
+
+        # test value is set when explicitly asked (same as default):
+        s = OptionStringAttribute('abc', options=['xyz','abc'], set_value = True)
+        self.assertEqual(s.value, 'abc')
+
+        # test that exception raised if value is not in the valid options
+        with self.assertRaises(ValidationError):
+            s = OptionStringAttribute('x', options=['xyz','abc'])
+
+        # test that exception raised if options are not a list
+        with self.assertRaises(ValidationError):
+            s = OptionStringAttribute('abc', options='abc')
+        with self.assertRaises(ValidationError):
+            s = OptionStringAttribute('abc', options={})
+
+        # test that exception raised if value if one of the options is
+        # not a string. The value is valid against one of the options, but
+        # we require everything to be perfect.
+        with self.assertRaises(ValidationError):
+            s = OptionStringAttribute('xyz', options=['xyz',1,'abc'])

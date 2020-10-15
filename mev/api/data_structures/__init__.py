@@ -9,6 +9,7 @@ from .attributes import IntegerAttribute, \
     PositiveFloatAttribute, \
     NonnegativeFloatAttribute, \
     StringAttribute, \
+    OptionStringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
@@ -26,6 +27,7 @@ from .operation_input_spec import IntegerInputSpec, \
     NonnegativeFloatInputSpec, \
     BoundedFloatInputSpec, \
     StringInputSpec, \
+    OptionStringInputSpec, \
     BooleanInputSpec, \
     ObservationInputSpec, \
     ObservationSetInputSpec, \
@@ -42,6 +44,7 @@ from .operation_output_spec import IntegerOutputSpec, \
     NonnegativeFloatOutputSpec, \
     BoundedFloatOutputSpec, \
     StringOutputSpec, \
+    OptionStringOutputSpec, \
     BooleanOutputSpec, \
     ObservationOutputSpec, \
     ObservationSetOutputSpec, \

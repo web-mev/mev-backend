@@ -64,7 +64,8 @@ class UserOperationInputTester(BaseAPITestCase):
             'positive_float_type': 0.01, 
             'nonnegative_float_type': 0.1, 
             'string_type': 'abc', 
-            'boolean_type': True
+            'boolean_type': True, 
+            'option_string_type': 'abc'
         }
 
         for key, val in sample_inputs.items():
@@ -97,7 +98,8 @@ class UserOperationInputTester(BaseAPITestCase):
             'positive_float_no_default_type': -10.01, 
             'nonnegative_float_no_default_type': -0.1, 
             'string_no_default_type': '.*', 
-            'boolean_no_default_type': 'abc'
+            'boolean_no_default_type': 'abc',
+            'option_string_no_default_type': 'zzz'
         }
 
         # try to create objects for each- ensure they raise an exception:
@@ -488,13 +490,8 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        print(d)
-        print(clazz)
-        print('???????????????')
         x = clazz(self.regular_user_1, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
         y = clazz(self.regular_user_1, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
-        print(x.get_value())
-        print('xxxxxxxxxxxxxxxxxxxxx')
         self.assertDictEqual(x.get_value(), valid_feature_1)
         self.assertDictEqual(
             y.get_value(), 

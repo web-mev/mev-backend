@@ -48,7 +48,6 @@ class ElementSerializerTester(object):
             testcase.assertEqual(expected_attr, attr)
 
         dd = element.to_dict()
-        ##print('dd=',dd)
         testcase.assertDictEqual(dd, testcase.demo_element_data)
 
     def test_expected_deserialization_case2(self, testcase):

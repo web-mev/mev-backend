@@ -35,9 +35,16 @@ class BaseAttribute(object):
         except KeyError:
             allow_null = False
 
+        # are we setting the value, or just using the constructor as a way to 
+        # validate?
+        try:
+            set_value = bool(kwargs.pop('set_value'))
+        except KeyError:
+            set_value = True
+
         # go ahead and validate if we do have a value to check
         if value is not None:
-            self.value_validator(value, allow_null=allow_null)
+            self.value_validator(value, allow_null=allow_null, set_value=set_value)
         else:
             # value is None...is that ok? If not, raise an exception
             if not allow_null:
@@ -408,6 +415,58 @@ class StringAttribute(BaseAttribute):
             raise ValidationError(str(ex))
 
 
+class OptionStringAttribute(BaseAttribute):
+    '''
+    A String type that only admits one from a set of preset options
+    (e.g. like a dropdown)
+    ```
+    {
+        "attribute_type": "OptionString",
+        "value": <str>,
+        "options": [<str>, <str>,...,<str>]
+    }
+    ```
+    '''
+    typename = 'OptionString'
+    OPTIONS_KEY = 'options'
+    REQUIRED_PARAMS = [OPTIONS_KEY, ]
+
+    def __init__(self, value, **kwargs):
+        self._set_options(kwargs)
+        super().__init__(value, **kwargs)
+
+    def _set_options(self, kwargs_dict):
+        try:
+            options = kwargs_dict.pop(self.OPTIONS_KEY)
+            if type(options) == list:
+                for opt in options:
+                    if not type(opt) == str:
+                        raise ValidationError('The options need to be strings. Failed on validating: {x}'.format(
+                            x = opt)
+                    )
+                self.options = options
+            else:
+                raise ValidationError('Need to supply a list with the {opts} key.'.format(
+                    opts = self.OPTIONS_KEY)
+                )
+        except KeyError as ex:
+            missing_key = str(ex)
+            raise ValidationError('Need a list of options to specify an OptionStringAttribute.'
+                ' Was missing {key}'.format(key=missing_key))
+
+    def value_validator(self, val, set_value=True, allow_null=False):
+        if (val is None) and (not allow_null):
+            raise ValidationError('Cannot set this to be null/None.')
+        
+        if not val in self.options:
+            raise ValidationError('The value "{val}" was not among the valid options: {opts}'.format(
+                val = val,
+                opts = ','.join(self.options)
+            ))
+        elif set_value:
+            self.value = val
+
+
 class BooleanAttribute(BaseAttribute):
     '''
     Basic boolean
@@ -561,7 +620,7 @@ numeric_attribute_types = [
     NonnegativeFloatAttribute,
 ]
 numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
-other_attribute_types = [StringAttribute, BooleanAttribute, DataResourceAttribute]
+other_attribute_types = [StringAttribute, BooleanAttribute, DataResourceAttribute, OptionStringAttribute]
 all_attribute_types = numeric_attribute_types + other_attribute_types
 all_attribute_typenames = [x.typename for x in all_attribute_types]
 attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))

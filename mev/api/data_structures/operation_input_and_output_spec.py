@@ -12,6 +12,7 @@ from api.data_structures.attributes import IntegerAttribute, \
     NonnegativeFloatAttribute, \
     BoundedFloatAttribute, \
     StringAttribute, \
+    OptionStringAttribute, \
     BooleanAttribute, \
     DataResourceAttribute
 
@@ -188,6 +189,10 @@ class BoundedIntegerInputOutputSpec(InputOutputSpec, BoundedIntegerAttribute):
         kwargs = self.handle_common_kwargs(kwargs)
         if self.default is not None:
             self.check_default(BoundedIntegerAttribute, **kwargs)
+
+        # the `check_default` above will also set the bounds, but this
+        # case checks the bounds when a default is not given (to see that they
+        # are the correct type, etc.). 
         self.set_bounds(kwargs)
 
         self.check_bound_types([int])
@@ -298,6 +303,32 @@ class StringInputOutputSpec(InputOutputSpec, StringAttribute):
 
     def to_dict(self):
         return InputOutputSpec.to_dict(self, StringAttribute)
+
+
+class OptionStringInputOutputSpec(InputOutputSpec, OptionStringAttribute):
+    '''
+    OptionStringInputOutputSpec is a string with that must match one from 
+    a set of available options.
+    ```
+    {
+        "attribute_type": "OptionString",
+        "default": <str>,
+        "options": [<str>, <str>,...]
+    }
+    ```
+    '''
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+        kwargs = self.handle_common_kwargs(kwargs)
+
+        if self.default is not None:
+            self.check_default(OptionStringAttribute, **kwargs)
+        # this checks the options keyword formatting:
+        self._set_options(kwargs)        
+
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, OptionStringAttribute)
+
         
 class BooleanInputOutputSpec(InputOutputSpec, BooleanAttribute):
     '''

@@ -13,6 +13,7 @@ from api.data_structures import IntegerOutputSpec, \
     NonnegativeFloatOutputSpec, \
     BoundedFloatOutputSpec, \
     StringOutputSpec, \
+    OptionStringOutputSpec, \
     BooleanOutputSpec, \
     DataResourceOutputSpec, \
     ObservationOutputSpec, \
@@ -172,6 +173,26 @@ class TestOutputSpec(unittest.TestCase):
             s = StringOutputSpec(default='')
         with self.assertRaises(ValidationError):
             s = StringOutputSpec(default='--abc--')
+
+    def test_optionstring_output_spec(self):
+        s = OptionStringOutputSpec(options=['abc', 'def'])
+        s = OptionStringOutputSpec(default='abc', options=['abc', 'def'])
+
+        # missing "options" kwarg
+        with self.assertRaises(ValidationError):
+            s = OptionStringOutputSpec(default='abc')
+
+        # default is not among the valid options
+        with self.assertRaises(ValidationError):
+            s = OptionStringOutputSpec(default='xyz', options=['abc', 'def'])
+
+        # options is not a list (as required)
+        with self.assertRaises(ValidationError):
+            s = OptionStringOutputSpec(options={})
+
+        # options is a list, but not all items are strings
+        with self.assertRaises(ValidationError):
+            s = OptionStringOutputSpec(default='abc', options=['abc', 10, 'def'])
 
     def test_boolean_output_spec(self):
         b = BooleanOutputSpec()

@@ -78,6 +78,15 @@
                 "attribute_type": "String"
             }
         },
+        "option_string_no_default_type": {
+            "description": "", 
+            "name": "", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "OptionString",
+                "options": ["abc", "xyz"]
+            }
+        },
         "boolean_no_default_type": {
             "description": "", 
             "name": "", 

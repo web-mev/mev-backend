@@ -87,6 +87,16 @@
                 "default": "abc"
             }
         },
+        "option_string_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "OptionString",
+                "default": "abc",
+                "options": ["abc", "xyz"]
+            }
+        },
         "boolean_type": {
             "description": "", 
             "name": "", 
