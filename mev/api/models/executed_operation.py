@@ -50,6 +50,12 @@ class ExecutedOperation(models.Model):
         editable = True
     )
 
+    # The user-assigned name for the ExecutedOperation
+    job_name = models.CharField(
+        max_length = 255,
+        default = ''
+    )
+
     # The inputs to this job-- a JSON document structured as an
     # api.data_structures.UserOperationInput instance
     inputs = JSONField(null=True)

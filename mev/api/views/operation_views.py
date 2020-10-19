@@ -272,6 +272,7 @@ class OperationRun(APIView):
     OP_UUID = 'operation_id'
     WORKSPACE_UUID = 'workspace_id'
     INPUTS = 'inputs'
+    JOB_NAME = 'job_name'
     REQUIRED_KEYS = [OP_UUID, WORKSPACE_UUID, INPUTS]
     REQUIRED_MESSAGE = 'This field is required.'
     BAD_UUID_MESSAGE = ('{field}: {uuid} could not'
@@ -377,11 +378,19 @@ class OperationRun(APIView):
             # instance.
             executed_op_uuid = uuid.uuid4()
 
+            # the job name can be explicitly assigned by the user, but otherwise
+            # it will simply be the UUID of the job
+            try:
+                job_name = payload[self.JOB_NAME]
+            except KeyError as ex:
+                job_name = str(executed_op_uuid)
+
             # send off the job
             submit_async_job.delay(
                 executed_op_uuid, 
                 matching_op.id,
                 workspace_uuid,
+                job_name,
                 dict_representation)
 
             return Response(

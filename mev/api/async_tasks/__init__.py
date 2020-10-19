@@ -78,7 +78,7 @@ def ingest_new_operation(operation_uuid_str, repository_url):
         operation.save()
 
 @task(name='submit_async_job')
-def submit_async_job(executed_op_pk, op_pk, workspace_pk, validated_inputs):
+def submit_async_job(executed_op_pk, op_pk, workspace_pk, job_name, validated_inputs):
     '''
 
     '''
@@ -109,6 +109,7 @@ def submit_async_job(executed_op_pk, op_pk, workspace_pk, validated_inputs):
     executed_op = ExecutedOperation.objects.create(
         id=executed_op_pk,
         workspace=workspace,
+        job_name = job_name,
         inputs = validated_inputs,
         operation = op,
         mode = op_data['mode'],

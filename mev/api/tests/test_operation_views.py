@@ -863,3 +863,75 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_submit_async_job.delay.assert_not_called()
         mock_submit_async_job.delay.reset_mock()
+
+
+    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_job_name_set(self, mock_get_operation_instance_data, mock_submit_async_job):
+        '''
+        Test payloads where the job_name is given
+        '''
+        # set the mock to return True so that we mock the inputs passing validation
+        f = os.path.join(
+            TESTDIR,
+            'simple_op_test.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' a non-admin user.')
+
+        workspace = user_workspaces[0]
+        op = ops[0]
+
+        # first try a payload where the job_name field is not given.
+        # Check that the given name is the same as the execution job_id
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            workspace.id, 
+            executed_op_uuid,
+            payload[OperationRun.INPUTS]
+        )
+        mock_submit_async_job.delay.reset_mock()
+
+        # now add a job name- see that it gets sent to the async method
+        job_name = 'foo'
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id),
+            OperationRun.JOB_NAME: job_name
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            workspace.id, 
+            job_name,
+            payload[OperationRun.INPUTS]
+        )
