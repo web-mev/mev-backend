@@ -7,6 +7,8 @@ from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from django.conf import settings
+
 
 from api.models import Resource, Workspace
 from resource_types import DATABASE_RESOURCE_TYPES
@@ -904,7 +906,10 @@ class ResourcePreviewTests(BaseAPITestCase):
     def setUp(self):
 
         self.establish_clients()
-
+        self.TESTDIR = os.path.join(
+            os.path.dirname(__file__),
+            'resource_contents_test_files'    
+        )
         # get an example from the database:
         regular_user_resources = Resource.objects.filter(
             owner=self.regular_user_1,
@@ -954,12 +959,14 @@ class ResourcePreviewTests(BaseAPITestCase):
             status.HTTP_400_BAD_REQUEST)
 
 
+    @mock.patch('api.views.resource_views.ResourceViewMixin.check_request_validity')
     @mock.patch('api.views.resource_views.get_resource_view')
-    def test_error_reported(self, mock_preview):
+    def test_error_reported(self, mock_preview, mock_check_request_validity):
         '''
         If there was some error in preparing the preview, 
         the returned data will have an 'error' key
         '''
+        mock_check_request_validity.return_value = self.resource
         mock_preview.return_value = {'error': 'something'}
         response = self.authenticated_regular_client.get(
             self.url, format='json'
@@ -969,21 +976,69 @@ class ResourcePreviewTests(BaseAPITestCase):
 
         self.assertTrue('error' in response.json())     
 
-    @mock.patch('api.views.resource_views.get_resource_view')
-    def test_expected_response(self, mock_preview):
+    @mock.patch('api.views.resource_views.ResourceViewMixin.check_request_validity')
+    def test_expected_response(self, mock_check_request_validity):
         '''
-        If there was some error in preparing the preview, 
-        the returned data will have an 'error' key
+        Test 
         '''
-        preview_dict = {
-            'columns': ['a', 'b', 'c'],
-            'rows': [1,2,3], 
-            'values': [[0,1,2],[3,4,5],[6,7,8]]}
-        mock_preview.return_value = preview_dict
+        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
         response = self.authenticated_regular_client.get(
             self.url, format='json'
         )
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
         j = response.json()
-        self.assertDictEqual(preview_dict, j) 
+        expected_return = {
+            'colA': {'gA':0, 'gB':10, 'gC':20},
+            'colB': {'gA':1, 'gB':11, 'gC':21},
+            'colC': {'gA':2, 'gB':12, 'gC':22}
+        }
+        self.assertDictEqual(expected_return, j) 
+
+
+class ResourceContentTests(BaseAPITestCase):
+    '''
+    Tests the endpoint which returns the file contents in full
+    '''
+    def setUp(self):
+
+        self.establish_clients()
+        self.TESTDIR = os.path.join(
+            os.path.dirname(__file__),
+            'resource_contents_test_files'    
+        )
+        # get an example from the database:
+        regular_user_resources = Resource.objects.filter(
+            owner=self.regular_user_1,
+        )
+        if len(regular_user_resources) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Resource instance for the user {user}
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+
+        self.resource = regular_user_resources[0]
+        self.url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+
+
+    def test_response(self):
+        '''
+        Tests the case where the requested resource has infinities and NA's
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_file1.tsv')
+        self.resource.path = f
+        self.resource.save()
+        response = self.authenticated_regular_client.get(
+            self.url, format='json'
+        )
+        j = response.json()
+        self.assertTrue(j['log2FoldChange']['gB'] == settings.NEGATIVE_INF_MARKER)
+        self.assertTrue(j['log2FoldChange']['gC'] == settings.POSITIVE_INF_MARKER)
+        self.assertIsNone(j['padj']['gC'])

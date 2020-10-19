@@ -6,6 +6,8 @@ import re
 import pandas as pd
 import numpy as np
 
+from django.conf import settings
+
 from .base import DataResource
 from api.data_structures import Feature, \
     FeatureSet, \
@@ -245,11 +247,15 @@ class TableResource(DataResource):
                 table = self.table.head(limit)
             else:
                 table = self.table
-            j = {}
-            j['columns'] = table.columns.tolist()
-            j['rows'] = table.index.tolist()
-            j['values'] = table.values.tolist()
-            return j
+
+            # convert the table to object 'type' so we can
+            # replace Nan and Inf values (as they are not valid JSON)
+            table = table.replace({
+                -np.infty: settings.NEGATIVE_INF_MARKER, 
+                np.infty: settings.POSITIVE_INF_MARKER
+            })
+            table = table.mask(pd.isnull, None)
+            return table.to_dict()
 
         # for these first two exceptions, we already have logged
         # any problems when we called the `read_resource` method

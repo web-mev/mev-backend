@@ -426,3 +426,6 @@ DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
 ###############################################################################
 # END Settings for Dockerhub
 ###############################################################################
+
+POSITIVE_INF_MARKER = '++inf++'
+NEGATIVE_INF_MARKER = '--inf--'

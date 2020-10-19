@@ -24,9 +24,9 @@ class TestResourcePreview(unittest.TestCase):
         rows = ['geneA', 'geneB', 'geneC']
         values = np.arange(9).reshape((3,3))
         expected_return = {
-            'columns': columns,
-            'rows': rows,
-            'values': values.tolist()
+            'colA': {'geneA':0, 'geneB':3, 'geneC':6},
+            'colB': {'geneA':1, 'geneB':4, 'geneC':7},
+            'colC': {'geneA':2, 'geneB':5, 'geneC':8}
         }
         df = pd.DataFrame(values, index=rows, columns=columns)
         path = os.path.join('/tmp', 'test_preview_matrix.tsv')
@@ -47,9 +47,9 @@ class TestResourcePreview(unittest.TestCase):
         rows = ['geneA', 'geneB', 'geneC']
         values = np.arange(9).reshape((3,3))
         expected_return = {
-            'columns': columns, # columns don't change in a subset for rows
-            'rows': rows[:2],
-            'values': values[:2,:].tolist()
+            'colA': {'geneA':0, 'geneB':3},
+            'colB': {'geneA':1, 'geneB':4},
+            'colC': {'geneA':2, 'geneB':5}
         }
         df = pd.DataFrame(values, index=rows, columns=columns)
         path = os.path.join('/tmp', 'test_preview_matrix.tsv')
