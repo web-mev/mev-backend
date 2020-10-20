@@ -110,10 +110,16 @@ def get_resource_type_instance(resource_type_str):
         )
         raise ex
 
-def get_contents(resource_path, resource_type, limit=None):
+def get_contents(resource_path, resource_type_str):
     '''
-    Returns a JSON-format "view" of the data
-    underlying a Resource.  
+    Returns a "view" of the data underlying a Resource. The actual
+    implementation of that view is prepared by the class corresponding
+    to the resource type. 
+
+    Note that to use properly with pagination, the returned object must support
+    bracketed indexing (e.g. x[10:24]) and len() (and possibly other methods).
+    We use the django.core.paginator.Paginator class, which expects 'list-like'
+    arguments to be provided.
 
     Assumes the resource_path arg is local to the 
     machine.
@@ -123,7 +129,7 @@ def get_contents(resource_path, resource_type, limit=None):
     # To get the actual resource class implementation, we 
     # use the RESOURCE_MAPPING dict
     try:
-        resource_class = RESOURCE_MAPPING[resource_type]
+        resource_class = RESOURCE_MAPPING[resource_type_str]
     except KeyError as ex:
         logger.error('Received a Resource that had a non-null resource_type'
             ' but was also not in the known resource types.'
@@ -132,8 +138,28 @@ def get_contents(resource_path, resource_type, limit=None):
         
     # instantiate the proper class for this type:
     resource_type = resource_class()
-    contents = resource_type.get_contents(resource_path, limit=limit)
-    return contents
+    return resource_type.get_contents(resource_path)
+
+def get_resource_paginator(resource_type_str):
+    '''
+    Returns a subclass of the django.core.paginator.Paginator class which 
+    will respect their API so that all Resource types can be paginated in 
+    a consistent manner
+    '''
+    # The resource type is the shorthand identifier.
+    # To get the actual resource class implementation, we 
+    # use the RESOURCE_MAPPING dict
+    try:
+        resource_class = RESOURCE_MAPPING[resource_type_str]
+    except KeyError as ex:
+        logger.error('Received a Resource that had a non-null resource_type'
+            ' but was also not in the known resource types.'
+        )
+        return {'error': 'No contents available'}
+        
+    # instantiate the proper class for this type:
+    resource_type = resource_class()
+    return resource_type.get_paginator()
 
 def get_acceptable_extensions(resource_type):
     '''

@@ -34,31 +34,8 @@ class TestResourcePreview(unittest.TestCase):
 
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
-        preview = mtx_type.get_contents(path)
-        self.assertDictEqual(preview, expected_return)
-
-    def test_table_preview_with_limit(self):
-        '''
-        Tests that the returned preview has the expected format.
-        Here, we limit the result to 2 entries
-        '''
-
-        columns = ['colA', 'colB', 'colC']
-        rows = ['geneA', 'geneB', 'geneC']
-        values = np.arange(9).reshape((3,3))
-        expected_return = {
-            'colA': {'geneA':0, 'geneB':3},
-            'colB': {'geneA':1, 'geneB':4},
-            'colC': {'geneA':2, 'geneB':5}
-        }
-        df = pd.DataFrame(values, index=rows, columns=columns)
-        path = os.path.join('/tmp', 'test_preview_matrix.tsv')
-        df.to_csv(path, sep='\t')
-
-        mtx_class = RESOURCE_MAPPING['MTX']
-        mtx_type = mtx_class()
-        preview = mtx_type.get_contents(path, limit=2)
-        self.assertDictEqual(preview, expected_return)
+        contents = mtx_type.get_contents(path)
+        self.assertTrue(df.equals(contents))
 
     def test_empty_table_preview(self):
         '''
@@ -70,5 +47,5 @@ class TestResourcePreview(unittest.TestCase):
 
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
-        preview = mtx_type.get_contents(path)
-        self.assertTrue('error' in preview)
+        with self.assertRaises(Exception):
+            mtx_type.get_contents(path)

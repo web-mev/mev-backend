@@ -33,7 +33,6 @@ urlpatterns = [
     # general endpoints for Resources, regardless of Workspace association
     path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
     path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
-    path('resources/<uuid:pk>/preview/', api.views.ResourcePreview.as_view(), name='resource-preview'),
     path('resources/<uuid:pk>/contents/', api.views.ResourceContents.as_view(), name='resource-contents'),
     path('resources/<uuid:pk>/metadata/', api.views.ResourceMetadataView.as_view(), name='resource-metadata-detail'),
     path('resources/<uuid:pk>/metadata/observations/', api.views.ResourceMetadataObservationsView.as_view(), name='resource-metadata-observations'),

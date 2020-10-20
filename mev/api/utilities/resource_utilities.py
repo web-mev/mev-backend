@@ -13,6 +13,7 @@ from .basic_utils import make_local_directory, \
     copy_local_resource
 
 from resource_types import get_contents, \
+    get_resource_paginator as _get_resource_paginator, \
     extension_is_consistent_with_type, \
     get_acceptable_extensions, \
     DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
@@ -155,7 +156,7 @@ def check_for_shared_resource_file(resource_instance):
         raise Exception('Path was empty. Error.')
 
 
-def get_resource_view(resource_instance, limit=None):
+def get_resource_view(resource_instance):
     '''
     Returns a "view" of the resource_instance in JSON-format.
 
@@ -167,17 +168,22 @@ def get_resource_view(resource_instance, limit=None):
     ))
 
     if not resource_instance.resource_type:
-        logger.info('No resource type was known for resource: {resource}.'.format(
+        logger.error('No resource type was known for resource: {resource}.'.format(
             resource = resource_instance
         ))
-        return {
-            'info': 'No contents available since the resource'
-            ' type was not set.'
-        }
-
+        return
     local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
-    return get_contents(local_path, resource_instance.resource_type, limit=limit)
+    return get_contents(local_path, resource_instance.resource_type)
 
+def get_resource_paginator(resource_type):
+    '''
+    Depending on how a data resource is represented in the backend,
+    it is possible we want to have multiple "paginator" classes which
+    dictate how records are returned. This calls down to the
+    class implementations for the resource_type and uses the logic there
+    '''
+    return _get_resource_paginator(resource_type)
+    
 
 def add_metadata_to_resource(resource, metadata):
     metadata[RESOURCE_KEY] = resource.pk

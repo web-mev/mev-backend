@@ -13,7 +13,11 @@ class DataResource(object):
         ' implement this method in the derived class')
 
     def get_contents(self, resource_path, limit=None):
-        return {'info': 'Contents or previews not available for this resource type.'}
+        return None
+
+    @staticmethod
+    def get_paginator():
+        raise NotImplementedError('Must override this method in a subclass.')
 
     def setup_metadata(self, ):
         '''

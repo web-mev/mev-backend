@@ -901,104 +901,6 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class ResourcePreviewTests(BaseAPITestCase):
-
-    def setUp(self):
-
-        self.establish_clients()
-        self.TESTDIR = os.path.join(
-            os.path.dirname(__file__),
-            'resource_contents_test_files'    
-        )
-        # get an example from the database:
-        regular_user_resources = Resource.objects.filter(
-            owner=self.regular_user_1,
-        )
-        if len(regular_user_resources) == 0:
-            msg = '''
-                Testing not setup correctly.  Please ensure that there is at least one
-                Resource instance for the user {user}
-            '''.format(user=self.regular_user_1)
-            raise ImproperlyConfigured(msg)
-
-        self.resource = regular_user_resources[0]
-        self.url = reverse(
-            'resource-preview', 
-            kwargs={'pk':self.resource.pk}
-        )
-
-        for r in regular_user_resources:
-            if not r.is_active:
-                inactive_resource = r
-                break
-        self.inactive_resource_url = reverse(
-            'resource-preview', 
-            kwargs={'pk':inactive_resource.pk}
-        )
-
-    def test_preview_request_from_non_owner(self):
-        '''
-        Tests where a preview is requested from someone else's
-        resource
-        '''
-        response = self.authenticated_other_client.get(
-            self.url, format='json'
-        )
-        self.assertEqual(response.status_code, 
-            status.HTTP_403_FORBIDDEN)
-
-    def test_preview_request_for_inactive_fails(self):
-        '''
-        Tests where a preview is requested for a resource
-        that is inactive.
-        '''
-        response = self.authenticated_regular_client.get(
-            self.inactive_resource_url, format='json'
-        )
-        self.assertEqual(response.status_code, 
-            status.HTTP_400_BAD_REQUEST)
-
-
-    @mock.patch('api.views.resource_views.ResourceViewMixin.check_request_validity')
-    @mock.patch('api.views.resource_views.get_resource_view')
-    def test_error_reported(self, mock_preview, mock_check_request_validity):
-        '''
-        If there was some error in preparing the preview, 
-        the returned data will have an 'error' key
-        '''
-        mock_check_request_validity.return_value = self.resource
-        mock_preview.return_value = {'error': 'something'}
-        response = self.authenticated_regular_client.get(
-            self.url, format='json'
-        )
-        self.assertEqual(response.status_code, 
-            status.HTTP_500_INTERNAL_SERVER_ERROR)   
-
-        self.assertTrue('error' in response.json())     
-
-    @mock.patch('api.views.resource_views.ResourceViewMixin.check_request_validity')
-    def test_expected_response(self, mock_check_request_validity):
-        '''
-        Test 
-        '''
-        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
-        self.resource.path = f
-        self.resource.save()
-        mock_check_request_validity.return_value = self.resource
-        response = self.authenticated_regular_client.get(
-            self.url, format='json'
-        )
-        self.assertEqual(response.status_code, 
-            status.HTTP_200_OK)
-        j = response.json()
-        expected_return = {
-            'colA': {'gA':0, 'gB':10, 'gC':20},
-            'colB': {'gA':1, 'gB':11, 'gC':21},
-            'colC': {'gA':2, 'gB':12, 'gC':22}
-        }
-        self.assertDictEqual(expected_return, j) 
-
-
 class ResourceContentTests(BaseAPITestCase):
     '''
     Tests the endpoint which returns the file contents in full
@@ -1026,9 +928,16 @@ class ResourceContentTests(BaseAPITestCase):
             'resource-contents', 
             kwargs={'pk':self.resource.pk}
         )
+        for r in regular_user_resources:
+            if not r.is_active:
+                inactive_resource = r
+                break
+        self.inactive_resource_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':inactive_resource.pk}
+        )
 
-
-    def test_response(self):
+    def test_response_with_na_and_inf(self):
         '''
         Tests the case where the requested resource has infinities and NA's
         '''
@@ -1038,7 +947,171 @@ class ResourceContentTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(
             self.url, format='json'
         )
+        j = response.json()['results']
+        # the second row (index=1) has a negative infinity.
+        self.assertTrue(j[1]['values']['log2FoldChange'] == settings.NEGATIVE_INF_MARKER)
+
+        # the third row (index=2) has a positive infinity.
+        self.assertTrue(j[2]['values']['log2FoldChange'] == settings.POSITIVE_INF_MARKER)
+        
+        # the third row has a padj of NaN, which gets converted to None 
+        self.assertIsNone(j[2]['values']['padj'])
+
+    def test_content_request_from_non_owner(self):
+        '''
+        Tests where content is requested from someone else's
+        resource
+        '''
+        response = self.authenticated_other_client.get(
+            self.url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_403_FORBIDDEN)
+
+    def test_content_request_for_inactive_fails(self):
+        '''
+        Tests where content is requested for a resource
+        that is inactive.
+        '''
+        response = self.authenticated_regular_client.get(
+            self.inactive_resource_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.get_resource_view')
+    def test_error_reported(self, mock_view, mock_check_request_validity):
+        '''
+        If there was some error in preparing the preview, 
+        the returned data will have an 'error' key
+        '''
+        mock_check_request_validity.return_value = self.resource
+        mock_view.side_effect = Exception('something bad happened!')
+        response = self.authenticated_regular_client.get(
+            self.url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_500_INTERNAL_SERVER_ERROR)   
+
+        self.assertTrue('error' in response.json())     
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_expected_response(self, mock_check_request_validity):
+        '''
+        Test 
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        response = self.authenticated_regular_client.get(
+            self.url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
         j = response.json()
-        self.assertTrue(j['log2FoldChange']['gB'] == settings.NEGATIVE_INF_MARKER)
-        self.assertTrue(j['log2FoldChange']['gC'] == settings.POSITIVE_INF_MARKER)
-        self.assertIsNone(j['padj']['gC'])
+
+        expected_return = [
+            {
+                "rowname": "gA",
+                "values": {
+                "colA": 0,
+                "colB": 1,
+                "colC": 2
+                }
+            },
+            {
+                "rowname": "gB",
+                "values": {
+                "colA": 10,
+                "colB": 11,
+                "colC": 12
+                }
+            },
+            {
+                "rowname": "gC",
+                "values": {
+                "colA": 20,
+                "colB": 21,
+                "colC": 22
+                }
+            }
+        ]
+        self.assertEqual(expected_return, j['results']) 
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_resource_contents_pagination(self, mock_check_request_validity):
+        f = os.path.join(self.TESTDIR, 'demo_table_for_pagination.tsv')
+        N = 155 # the number of records in our demo file
+
+        # just a double-check to ensure the test data is large enough
+        # for the pagination to be general
+        self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(j['count'] == N)
+        self.assertTrue(len(results) == settings.REST_FRAMEWORK['PAGE_SIZE'])
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g0')
+        self.assertTrue(final_record['rowname'] == 'g49')
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=1'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == settings.REST_FRAMEWORK['PAGE_SIZE'])
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g0')
+        self.assertTrue(final_record['rowname'] == 'g49')
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=2'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == settings.REST_FRAMEWORK['PAGE_SIZE'])
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g50')
+        self.assertTrue(final_record['rowname'] == 'g99')
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=last'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        leftover_size = N % settings.REST_FRAMEWORK['PAGE_SIZE']
+        self.assertTrue(len(results) == leftover_size)
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g150')
+        self.assertTrue(final_record['rowname'] == 'g154')

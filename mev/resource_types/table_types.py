@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 
 from django.conf import settings
+from django.core.paginator import Paginator, Page
+from rest_framework.pagination import PageNumberPagination
 
 from .base import DataResource
 from api.data_structures import Feature, \
@@ -109,6 +111,66 @@ def col_str_formatter(x):
     return '%s (column %d)' % (x[0],x[1])
 
 
+class TableResourcePage(Page):
+    '''
+    Overrides some methods of the django.core.paginator.Page
+    class. The default version does a cast to a list, which is a problem
+    when the "query set" is a dataframe instead of a QuerySet instance
+    '''
+    def __getitem__(self, index):
+        if not isinstance(index, (int, slice)):
+            raise TypeError(
+                'Page indices must be integers or slices, not %s.'
+                % type(index).__name__
+            )
+
+        # indexing rules differ depending on whether the index
+        # is an int or a slice
+        subset = self.object_list.iloc[index]
+        if isinstance(index, int):
+            # here, subset is a pandas Series
+            val_dict = subset.to_dict()
+            rowname = subset.name
+            return {'rowname': rowname, 'values': val_dict}
+        else: # given the initial type checking, index can ONLY be a slice
+            # have to transpose so that the keys of the 
+            # returned dict are the row names. By default,
+            # calling to_dict on a dataframe uses the column
+            # names as the keys.
+            return subset.T.to_dict()
+        
+
+
+class TableResourcePaginator(Paginator):
+    '''
+    This overrides the default Django paginator, which
+    typically expects to deal with a database query (a QuerySet).
+
+    Dataframes are list-like (sort of...) but the problem is that
+    the default django paginator ultimately does a cast to a list. When you 
+    cast a pandas dataframe as a list, you only get a list of the
+    column names, NOT a list of the "records" (rows).
+
+    The django default Paginator mentions using the _get_page method as a
+    way to override the django.core.paginator.Page class (which is where the
+    cast occurs). By overriding that method, we can make our own Page-like
+    class. 
+
+    Finally, this class can be provided to a subclass of DRF's Paginator
+    classes. 
+    '''
+    def _get_page(self, *args, **kwargs):
+        '''
+        Method to override the default behavior of the django core
+        Paginator class. Should return a Page-like class. 
+        '''
+        return TableResourcePage(*args, **kwargs)
+
+
+class TableResourcePageNumberPagination(PageNumberPagination):
+    django_paginator_class = TableResourcePaginator
+
+
 class TableResource(DataResource):
     '''
     The `TableResource` is the most generic form of a delimited file.  Any
@@ -137,6 +199,10 @@ class TableResource(DataResource):
 
     def __init__(self):
         self.table = None
+
+    @staticmethod
+    def get_paginator():
+        return TableResourcePageNumberPagination()
 
     @staticmethod
     def get_reader(resource_path):
@@ -234,53 +300,40 @@ class TableResource(DataResource):
             return (False, PARSE_ERROR)
      
 
-    def get_contents(self, resource_path, limit=None):
+    def get_contents(self, resource_path):
         '''
-        Returns a dict of the table contents
+        Returns a dataframe of the table contents
 
-        Note that we don't use the Pandas to_json() method
-        since it's a bit verbose.
+        The dataframe allows the caller to subset as needed to 'paginate'
+        the rows of the table
         '''
         try:
             self.read_resource(resource_path)
-            if limit:
-                table = self.table.head(limit)
-            else:
-                table = self.table
 
             # convert the table to object 'type' so we can
             # replace Nan and Inf values (as they are not valid JSON)
-            table = table.replace({
+            self.table = self.table.replace({
                 -np.infty: settings.NEGATIVE_INF_MARKER, 
                 np.infty: settings.POSITIVE_INF_MARKER
             })
-            table = table.mask(pd.isnull, None)
-            return table.to_dict()
+            self.table = self.table.mask(pd.isnull, None)
+            return self.table
 
         # for these first two exceptions, we already have logged
         # any problems when we called the `read_resource` method
         except ParserNotFoundException as ex:
-            return {
-                'error': 
-                'Parser for the resource not found.'
-            }
-
+            raise ex
         except ParseException as ex:
-            return {
-                'error': 
-                'Parser could not read the resource.'
-            }
-        
+            raise ex
         # catch any other types of exceptions that we did not anticipate.
         except Exception as ex:
             logger.error('An unexpected error occurred when preparing'
-                'a resource preview for the resource at {path}'.format(
-                    path=resource_path
+                ' a resource preview for the resource at {path}. Exception'
+                ' was: {ex}'.format(
+                    path=resource_path,
+                    ex=ex
                 ))
-            return {
-                'error': 
-                'An unexpected error occurred.'
-            }
+            raise ex
 
     def extract_metadata(self, resource_path, parent_op_pk=None):
         '''

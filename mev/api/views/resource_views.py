@@ -6,6 +6,7 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 
 from api.models import Resource
 from api.serializers.resource import ResourceSerializer
@@ -13,6 +14,7 @@ import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
     check_for_shared_resource_file, \
     get_resource_view, \
+    get_resource_paginator, \
     set_resource_to_inactive
 
 import api.async_tasks as api_tasks
@@ -163,7 +165,24 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-class ResourceViewMixin(object):
+class ResourceContents(APIView):
+    '''
+    Returns the full data underlying a Resource.
+
+    Typically used for small files so that user-interfaces can display
+    data
+
+    Depending on the data, the format of the response may be different.
+    Additionally, some Resource types do not support a preview.
+    
+    This returns a JSON-format representation of the data.
+
+    This endpoint is only really sensible for certain types of 
+    Resources, such as those in table format.  Other types, such as 
+    sequence-based files do not have this functionality.
+    '''
+
+    permission_classes = [framework_permissions.IsAuthenticated]
 
     def check_request_validity(self, user, resource_pk):
 
@@ -184,70 +203,31 @@ class ResourceViewMixin(object):
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-class ResourcePreview(APIView, ResourceViewMixin):
-    '''
-    Returns a preview of the data underlying a Resource.
-
-    Typically used for checking that the parsing of a file worked
-    correctly and is formatted properly.
-
-    Depending on the data, the format of the response may be different.
-    Additionally, some Resource types do not support a preview.
-    '''
-    # For certain types of Resource objects, the users may like to see
-    # a preview of how the data was parsed, like a unix `head` call.  
-    # This returns a JSON-format representation of the data.
-
-    # This preview endpoint is only really sensible for certain types of 
-    # Resources, such as those in table format.  Other types, such as 
-    # sequence-based files do not have preview functionality.
-    
-
-    permission_classes = [framework_permissions.IsAuthenticated]
-
     def get(self, request, *args, **kwargs):
         user = request.user
         resource_pk=kwargs['pk']
 
         r = self.check_request_validity(user, resource_pk)
         if not type(r) == Resource:
+            # if it's not a Resource, then it was something else, like a Response object
+            # If so, return that.
             return r
         else:
-            # requester can access, resource is active.  Go get preview
-            j = get_resource_view(r, limit=10)
-            if 'error' in j:
-                return Response(j, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return Response(j, status=status.HTTP_200_OK)
-
-class ResourceContents(APIView, ResourceViewMixin):
-    '''
-    Returns the full data underlying a Resource.
-
-    Typically used for small files so that user-interfaces can display
-    data
-
-    Depending on the data, the format of the response may be different.
-    Additionally, some Resource types do not support a preview.
-    
-    This returns a JSON-format representation of the data.
-
-    This endpoint is only really sensible for certain types of 
-    Resources, such as those in table format.  Other types, such as 
-    sequence-based files do not have this functionality.
-    '''
-
-    permission_classes = [framework_permissions.IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        resource_pk=kwargs['pk']
-
-        r = self.check_request_validity(user, resource_pk)
-        if not type(r) == Resource:
-            return r
-        else:
-            # requester can access, resource is active.  Go get preview
-            j = get_resource_view(r)
-            if 'error' in j:
-                return Response(j, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return Response(j, status=status.HTTP_200_OK)
+            # requester can access, resource is active.  Go get contents
+            try:
+                contents = get_resource_view(r)
+            except Exception as ex:
+                return Response(
+                    {'error': 'Experienced an issue when preparing the resource view.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )   
+            if contents is None:
+                return Response(
+                    {'info': 'Contents not available for this resource.'},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                paginator = get_resource_paginator(r.resource_type)
+                results = paginator.paginate_queryset(contents, request)
+                #TODO return results in some format...
+                return paginator.get_paginated_response(results)

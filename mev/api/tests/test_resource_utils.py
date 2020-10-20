@@ -187,7 +187,7 @@ class TestResourceUtilities(BaseAPITestCase):
             )
 
         preview_dict = get_resource_view(r)
-        self.assertTrue('info' in preview_dict)
+        self.assertIsNone(preview_dict)
         
     @mock.patch('resource_types.RESOURCE_MAPPING')
     def test_resource_preview_for_invalid_resource_type(self, mock_resource_mapping):
