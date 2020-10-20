@@ -16,6 +16,14 @@ class DataResource(object):
         return None
 
     @staticmethod
+    def get_extension(path):
+        '''
+        A single method to return the extension of the file. By convention,
+        the lower-cased contents AFTER the final dot/period.
+        '''
+        return path.split('.')[-1].lower()
+
+    @staticmethod
     def get_paginator():
         raise NotImplementedError('Must override this method in a subclass.')
 

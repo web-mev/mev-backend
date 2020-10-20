@@ -45,10 +45,10 @@ class LocalStorage(BaseStorageBackend):
 
         if os.path.exists(source): # if on the local filesystem
             move_resource(source, destination)
+            return destination
         else:
             # NOT on the local filesystem. go get it.
-            localize_remote_resource(resource_instance)
-        return destination
+            return localize_remote_resource(resource_instance)
 
     def delete(self, path):
         delete_local_file(path)

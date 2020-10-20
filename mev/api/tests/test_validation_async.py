@@ -145,7 +145,9 @@ class TestValidateResource(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.settings.RESOURCE_STORAGE_BACKEND.delete')
     def test_resource_type_change_succeeds(self, 
+        mock_delete, 
         mock_get_resource_type_instance,
         mock_move,
         mock_check_extension):
@@ -176,6 +178,8 @@ class TestValidateResource(BaseAPITestCase):
             new_type = random.choice(list(RESOURCE_MAPPING.keys()))
 
         # set the mock return values
+        new_path = '/some/mock/path.tsv'
+        mock_move.return_value = new_path
         mock_resource_instance = mock.MagicMock()
         mock_resource_instance.validate_type.return_value = (True, 'some string')
         mock_resource_instance.extract_metadata.return_value = {
@@ -183,6 +187,7 @@ class TestValidateResource(BaseAPITestCase):
             OBSERVATION_SET_KEY: None,
             FEATURE_SET_KEY: None
         }
+        mock_resource_instance.save_in_standardized_format.return_value = '/some/path.txt'
         mock_get_resource_type_instance.return_value = mock_resource_instance
         mock_check_extension.return_value = True       
         validate_resource(resource.pk, new_type)
@@ -193,13 +198,16 @@ class TestValidateResource(BaseAPITestCase):
         self.assertEqual(current_resource.resource_type, new_type)
         self.assertFalse(current_resource.resource_type == original_type)
         self.assertEqual(current_resource.status, Resource.READY)
+        self.assertEqual(current_resource.path, new_path)
+        mock_move.assert_called()
 
-        mock_move.assert_not_called()
 
     @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    def test_resource_type_change_succeeds_for_new_resource(self, 
+    @mock.patch('api.utilities.resource_utilities.settings.RESOURCE_STORAGE_BACKEND.delete')
+    def test_resource_type_change_succeeds_for_new_resource(self,
+        mock_delete, 
         mock_get_resource_type_instance,
         mock_move,
         mock_check_extension):
@@ -250,7 +258,9 @@ class TestValidateResource(BaseAPITestCase):
 
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    def test_resource_metadata_entered_in_db(self, 
+    @mock.patch('api.utilities.resource_utilities.settings.RESOURCE_STORAGE_BACKEND.delete')
+    def test_resource_metadata_entered_in_db(self,
+        mock_delete, 
         mock_move):
         '''
         Here we test that an instance of ResourceMetadata is created
@@ -282,7 +292,9 @@ class TestValidateResource(BaseAPITestCase):
         self.assertTrue(n1 == 1)      
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.settings.RESOURCE_STORAGE_BACKEND.delete')
     def test_resource_metadata_updated_in_db(self, 
+        mock_delete, 
         mock_move):
         '''
         Here we test that an instance of ResourceMetadata is updated

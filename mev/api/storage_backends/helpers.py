@@ -32,6 +32,6 @@ def localize_remote_resource(resource_instance):
 
     instance = implementing_class()
 
-    # download the file locally and 
+    # download the file locally and return that path
     local_path = instance.get_local_resource_path(resource_instance)
     return local_path

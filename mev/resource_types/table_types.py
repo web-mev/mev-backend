@@ -2,6 +2,7 @@
 # based file types and methods for validating them
 import logging
 import re
+import os
 
 import pandas as pd
 import numpy as np
@@ -210,7 +211,7 @@ class TableResource(DataResource):
         By using the file extension, we infer the delimiter
         Returns a pandas "reader" (e.g. `read_csv` or `read_table`)
         '''
-        file_extension = resource_path.split('.')[-1].lower()
+        file_extension = DataResource.get_extension(resource_path)
 
         if file_extension in COMMA_DELIMITED_EXTENSIONS:
             return pd.read_csv
@@ -372,7 +373,44 @@ class TableResource(DataResource):
         if parent_op_pk:
             self.metadata[DataResource.PARENT_OP] = parent_op_pk
 
+    def save_in_standardized_format(self, resource_path):
+        '''
+        To avoid all the analyses having to concern themselves with data formats
+        like csv, tsv, xlsx, etc. we just save table-based formats as a TSV.
+        '''
+        logger.info('Saving resource with path ({path}) to the standard format.'
+            ' for a table-based resource'.format(
+            path = resource_path
+        ))
 
+        # If the self.table field was not already filled, we need to 
+        # read the data
+        if self.table is None:
+            logger.info('Resource with path ({path}) was not '
+                'previously parsed.  Do that now.'.format(
+                    path=resource_path
+                )
+            )
+            try:
+                # this call will set the self.table member
+                self.read_resource(resource_path)
+            except Exception as ex:
+                logger.error('Failed when trying to save in standard format.'
+                    ' Specifically, failed when reading the resource, as self.table'
+                    ' was None. Path of resource was: {path}'.format(
+                        path=resource_path
+                    )
+                )
+        # ok, self.table is set-- save it.
+        current_file_extension = DataResource.get_extension(resource_path)
+        file_dir =  os.path.dirname(resource_path)
+        basename = os.path.basename(resource_path)
+        basename_contents = basename.split('.')
+        basename_contents[-1] = TSV
+        new_basename = '.'.join(basename_contents)
+        new_path = os.path.join(file_dir, new_basename)
+        self.table.to_csv(new_path, sep='\t')
+        return new_path    
 
 class Matrix(TableResource):
     '''

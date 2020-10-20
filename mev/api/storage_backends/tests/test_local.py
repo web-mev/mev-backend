@@ -82,11 +82,14 @@ class TestLocalStorage(BaseAPITestCase):
             DUMMY_DIRNAME, str(owner_uuid), expected_basename)
 
         # using False here makes it seem like the Resource is not local
-        mock_os_exists.return_value = False
+        # and that the 
+        mock_os_exists.side_effect = [True, False]
 
+        mock_localize_remote_resource.return_value = expected_destination
         storage_backend = LocalStorage()
         path = storage_backend.store(r)
 
         self.assertEqual(path, expected_destination)
         mock_localize_remote_resource.assert_called()
+        mock_make_local_dir.assert_not_called()
         

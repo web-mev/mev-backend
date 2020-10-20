@@ -196,6 +196,9 @@ def add_metadata_to_resource(resource, metadata):
         rms.save()
 
 def move_resource_to_final_location(resource_instance):
+    '''
+    resource_instance is the database object
+    '''
     return settings.RESOURCE_STORAGE_BACKEND.store(resource_instance)
 
 def get_resource_size(resource_instance):
@@ -205,13 +208,34 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     '''
     Once a Resource has been successfully validated, this function does some
     final operations such as moving the file and extracting metadata.
+
+    `resource` is the database object
+    `resource_class_instance` is one of the DataResource subclasses
     '''
-    # since the resource was valid, we can also fill-in the metadata
-    # Extraction of the metadata requires local access to the file:
+    # Actions below require local access to the file:
     local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource)
-    metadata = resource_class_instance.extract_metadata(local_path)
+
+    # the resource was valid, so first save it in our standardized format
+    new_path = resource_class_instance.save_in_standardized_format(local_path)
+
+    # delete the "original" resource
+    settings.RESOURCE_STORAGE_BACKEND.delete(resource.path)
+
+    # temporarily change this so it doesn't point at the original path
+    # in the non-standardized format. This way the standardized file will be 
+    # sent to the final storage location.
+    resource.path = new_path
+
+    # since the resource was valid, we can also fill-in the metadata
+    metadata = resource_class_instance.extract_metadata(new_path)
     add_metadata_to_resource(resource, metadata)
 
+    # have to send the file to the final storage. If we are using local storage
+    # this is trivial. However, if we are using remote storage, the data saved
+    # in the standardized format needs to be pushed there also.
+    final_path = move_resource_to_final_location(resource)
+
+    resource.path = final_path
     resource.resource_type = requested_resource_type
     resource.status = Resource.READY
 
