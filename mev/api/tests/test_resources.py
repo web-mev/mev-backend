@@ -1115,3 +1115,37 @@ class ResourceContentTests(BaseAPITestCase):
         final_record = results[-1]
         self.assertTrue(first_record['rowname'] == 'g150')
         self.assertTrue(final_record['rowname'] == 'g154')
+
+        # test the page_size param:
+        page_size = 20
+        suffix = '?page_size=%d' % page_size
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == page_size)
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g0')
+        self.assertTrue(final_record['rowname'] == 'g19')
+
+        # test the page_size param:
+        page_size = 20
+        suffix = '?page_size=%d&page=2' % page_size
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == page_size)
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g20')
+        self.assertTrue(final_record['rowname'] == 'g39')

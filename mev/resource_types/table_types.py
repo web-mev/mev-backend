@@ -170,6 +170,7 @@ class TableResourcePaginator(Paginator):
 
 class TableResourcePageNumberPagination(PageNumberPagination):
     django_paginator_class = TableResourcePaginator
+    page_size_query_param = 'page_size'
 
 
 class TableResource(DataResource):
