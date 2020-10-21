@@ -216,15 +216,19 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource)
 
     # the resource was valid, so first save it in our standardized format
-    new_path = resource_class_instance.save_in_standardized_format(local_path)
+    new_path, new_name = resource_class_instance.save_in_standardized_format(local_path, resource.name)
 
     # delete the "original" resource
     settings.RESOURCE_STORAGE_BACKEND.delete(resource.path)
 
     # temporarily change this so it doesn't point at the original path
     # in the non-standardized format. This way the standardized file will be 
-    # sent to the final storage location.
+    # sent to the final storage location. Once the file is in the 'final' 
+    # storage location, the path member will be edited to reflect that
     resource.path = new_path
+
+    # change the name of the resource
+    resource.name = new_name
 
     # since the resource was valid, we can also fill-in the metadata
     metadata = resource_class_instance.extract_metadata(new_path)

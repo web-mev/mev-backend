@@ -199,6 +199,9 @@ class TableResource(DataResource):
         XLSX
     ]
 
+    # the "standardized" format we will save all table-based files as:
+    STANDARD_FORMAT = TSV
+
     def __init__(self):
         self.table = None
 
@@ -374,7 +377,7 @@ class TableResource(DataResource):
         if parent_op_pk:
             self.metadata[DataResource.PARENT_OP] = parent_op_pk
 
-    def save_in_standardized_format(self, resource_path):
+    def save_in_standardized_format(self, resource_path, resource_name):
         '''
         To avoid all the analyses having to concern themselves with data formats
         like csv, tsv, xlsx, etc. we just save table-based formats as a TSV.
@@ -407,11 +410,21 @@ class TableResource(DataResource):
         file_dir =  os.path.dirname(resource_path)
         basename = os.path.basename(resource_path)
         basename_contents = basename.split('.')
-        basename_contents[-1] = TSV
+        basename_contents[-1] = self.STANDARD_FORMAT
         new_basename = '.'.join(basename_contents)
         new_path = os.path.join(file_dir, new_basename)
+
+        name_contents = resource_name.split('.')
+        name_contents[-1] = self.STANDARD_FORMAT
+        new_name = '.'.join(name_contents)
+
+        logger.info('Writing the reformatted table-based resource to: {p}.'
+            ' The new name is {n}.'.format(
+            p = new_path,
+            n = new_name
+        ))
         self.table.to_csv(new_path, sep='\t')
-        return new_path    
+        return new_path, new_name   
 
 class Matrix(TableResource):
     '''

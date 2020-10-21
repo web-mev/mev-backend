@@ -187,7 +187,7 @@ class TestValidateResource(BaseAPITestCase):
             OBSERVATION_SET_KEY: None,
             FEATURE_SET_KEY: None
         }
-        mock_resource_instance.save_in_standardized_format.return_value = '/some/path.txt'
+        mock_resource_instance.save_in_standardized_format.return_value = ('/some/path.txt', 'newname')
         mock_get_resource_type_instance.return_value = mock_resource_instance
         mock_check_extension.return_value = True       
         validate_resource(resource.pk, new_type)
@@ -237,6 +237,7 @@ class TestValidateResource(BaseAPITestCase):
             OBSERVATION_SET_KEY: None,
             FEATURE_SET_KEY: None
         }
+        mock_resource_instance.save_in_standardized_format.return_value = ('','')
         mock_get_resource_type_instance.return_value = mock_resource_instance
         mock_check_extension.return_value = True
         

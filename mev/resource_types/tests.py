@@ -34,9 +34,10 @@ class TestTableResource(unittest.TestCase):
 
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
-        new_path = mtx_type.save_in_standardized_format(path)
+        new_path, new_name = mtx_type.save_in_standardized_format(path, 'test_matrix.csv')
         
         self.assertEqual('/tmp/test_matrix.tsv', new_path)
+        self.assertEqual('test_matrix.tsv', new_name)
 
         # check that they have the same content:
         reloaded_df = pd.read_table(new_path, index_col=0)
