@@ -382,6 +382,8 @@ class OperationRun(APIView):
             # it will simply be the UUID of the job
             try:
                 job_name = payload[self.JOB_NAME]
+                if job_name is None:
+                    job_name = str(executed_op_uuid)
             except KeyError as ex:
                 job_name = str(executed_op_uuid)
 
