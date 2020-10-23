@@ -13,6 +13,8 @@ from .table_types import TableResource, \
     FeatureTable, \
     BEDFile
 
+from .json_types import JsonResource
+
 logger = logging.getLogger(__name__)
 
 # expose these keys for consistent reference outside of this package:
@@ -40,7 +42,8 @@ DATABASE_RESOURCE_TYPES = [
     ('EXP_MTX','Expression matrix'),
     ('RNASEQ_COUNT_MTX','RNA-seq count matrix'),
     ('ANN','Annotation table'),
-    ('BED','BED-format file')
+    ('BED','BED-format file'),
+    ('JSON','JSON-format file')
 ]
 
 
@@ -65,7 +68,8 @@ RESOURCE_MAPPING = {
     'EXP_MTX': Matrix,
     'RNASEQ_COUNT_MTX': IntegerMatrix,
     'ANN': AnnotationTable,
-    'BED': BEDFile
+    'BED': BEDFile,
+    'JSON': JsonResource
 } 
 
 # These types are skipped when files are validated.

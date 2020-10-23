@@ -227,7 +227,9 @@ class ResourceContents(APIView):
                     status=status.HTTP_200_OK
                 )
             else:
-                paginator = get_resource_paginator(r.resource_type)
-                results = paginator.paginate_queryset(contents, request)
-                #TODO return results in some format...
-                return paginator.get_paginated_response(results)
+                if 'page' in request.query_params:
+                    paginator = get_resource_paginator(r.resource_type)
+                    results = paginator.paginate_queryset(contents, request)
+                    return paginator.get_paginated_response(results)
+                else:
+                    return Response(contents)

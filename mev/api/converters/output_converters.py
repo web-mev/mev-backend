@@ -1,8 +1,11 @@
 import os
+import logging
 
 from api.utilities.resource_utilities import validate_and_store_resource
 from api.data_structures.attributes import DataResourceAttribute
 from api.models import Resource
+
+logger = logging.getLogger(__name__)
 
 class BaseOutputConverter(object):
 
@@ -26,6 +29,9 @@ class BaseOutputConverter(object):
             # t
             resource_uuids = []
             for p in output_paths:
+                logger.info('Converting path at: {p} to a user-associated resource.'.format(
+                    p = p
+                ))
                 # p is a path in the execution "sandbox" directory or bucket,
                 # depending on the runner.
                 # Create a new Resource and use the storage 
@@ -51,7 +57,12 @@ class BaseOutputConverter(object):
 
 class LocalOutputConverter(BaseOutputConverter):
     def create_resource(self, workspace, path, name):
-
+        logger.info('From executed operation outputs, create'
+            ' a resource at {p} with name {n}'.format(
+                p = path,
+                n = name
+            )
+        )
         resource_instance = Resource.objects.create(
             owner = workspace.owner,
             workspace = workspace,

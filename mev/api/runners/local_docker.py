@@ -69,6 +69,9 @@ class LocalDockerRunner(OperationRunner):
         outputs_dict = json.load(open(
             os.path.join(execution_dir, self.OUTPUTS_JSON)
         ))
+        logger.info('After parsing the outputs file, we have: {j}'.format(
+            j = json.dumps(outputs_dict)
+        ))
         return outputs_dict
 
     def finalize(self, executed_op):
@@ -117,7 +120,12 @@ class LocalDockerRunner(OperationRunner):
                     )
                     alert_admins()
                 else:
-                    new_outputs_dict[k] = converter.convert_output(job_id, user_workspace, spec, v)
+                    if v is not None:
+                        logger.info('Executed operation output was not None. Convert.')
+                        new_outputs_dict[k] = converter.convert_output(job_id, user_workspace, spec, v)
+                    else:
+                        logger.info('Executed operation output was null/None.')
+                        new_outputs_dict[k] = None
             executed_op.outputs = new_outputs_dict
 
         # finally, we cleanup the docker container

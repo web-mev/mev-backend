@@ -13,7 +13,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 logger = logging.getLogger(__name__)
 
-def alert_admins(self):
+def alert_admins():
     '''
     A function to be called when an error occurs that is not necessarily
     "fatal", but needs to be quickly handled or investigated
@@ -81,6 +81,11 @@ def move_resource(source, dest):
     '''
 
     logger.info('Moving resource from %s to %s' % (source, dest))
+
+    # in the trivial case of a "self move", immediately return.
+    if source == dest:
+        logger.info('Trivial move requested. Do nothing.')
+        return dest
 
     # check that the source actually exists:
     if not os.path.exists(source):

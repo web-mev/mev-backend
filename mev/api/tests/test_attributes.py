@@ -251,6 +251,11 @@ class TestAttributes(unittest.TestCase):
         # test that a valid spec works
         s = OptionStringAttribute('abc', options=['xyz','abc'])
         self.assertEqual(s.value, 'abc')
+        expected_dict_representation = {'attribute_type': 'OptionString', 
+            'value': 'abc', 
+            'options': ['xyz', 'abc']
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
 
         # test that case matters
         with self.assertRaises(ValidationError):

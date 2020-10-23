@@ -7,14 +7,18 @@ class DataResource(object):
     PARENT_OP = 'parent_operation'
     RESOURCE = 'resource'
 
-    @classmethod
-    def validate_type(cls, resource_path):
+    def validate_type(self, resource_path):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
-    def get_contents(self, resource_path, limit=None):
-        return None
+    def get_contents(self, resource_path):
+        raise NotImplementedError('You must'
+        ' implement this method in the derived class')
 
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        raise NotImplementedError('You must'
+        ' implement this method in the derived class')
+        
     @staticmethod
     def get_extension(path):
         '''
@@ -39,3 +43,17 @@ class DataResource(object):
             DataResource.FEATURE_SET: None,
             DataResource.RESOURCE: None
         }
+
+    def save_in_standardized_format(self, resource_path, resource_name):
+        '''
+        This method is used for saving user-supplied resources/files as something
+        we can consistently refer to. For instance, users may load csv, tsv, excel, etc.
+        files for data. In the analyses, we don't want to constantly be checking for
+        how to parse these types. Hence, for table-based resources, we simply rewrite the
+        file as a TSV so that all analyses can safely assume they will be given a valid
+        TSV-format file.
+
+        In this base-class implementation, we don't do anything- just echo back.
+        '''
+        return (resource_path, resource_name)
+

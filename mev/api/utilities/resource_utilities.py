@@ -214,21 +214,28 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     '''
     # Actions below require local access to the file:
     local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource)
+    logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
 
     # the resource was valid, so first save it in our standardized format
     new_path, new_name = resource_class_instance.save_in_standardized_format(local_path, resource.name)
 
-    # delete the "original" resource
-    settings.RESOURCE_STORAGE_BACKEND.delete(resource.path)
+    # delete the "original" resource, if the standardization ended up making
+    # a different file
+    if new_path != resource.path:
+        logger.info('The standardization changed the path. '
+            'Go delete the non-standardized file: {p}'.format(p=resource.path)
+        )
+        settings.RESOURCE_STORAGE_BACKEND.delete(resource.path)
 
-    # temporarily change this so it doesn't point at the original path
-    # in the non-standardized format. This way the standardized file will be 
-    # sent to the final storage location. Once the file is in the 'final' 
-    # storage location, the path member will be edited to reflect that
-    resource.path = new_path
+        # temporarily change this so it doesn't point at the original path
+        # in the non-standardized format. This way the standardized file will be 
+        # sent to the final storage location. Once the file is in the 'final' 
+        # storage location, the path member will be edited to reflect that
+        resource.path = new_path
 
-    # change the name of the resource
-    resource.name = new_name
+    if new_name != resource.name:
+        # change the name of the resource
+        resource.name = new_name
 
     # since the resource was valid, we can also fill-in the metadata
     metadata = resource_class_instance.extract_metadata(new_path)
