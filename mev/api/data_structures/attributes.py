@@ -466,6 +466,11 @@ class OptionStringAttribute(BaseAttribute):
         elif set_value:
             self.value = val
 
+    def to_dict(self):
+        d = super().to_dict()
+        d[self.OPTIONS_KEY] = self.options
+        return d
+
 
 class BooleanAttribute(BaseAttribute):
     '''
