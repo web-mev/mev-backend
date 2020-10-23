@@ -23,11 +23,11 @@ class TestResourcePreview(unittest.TestCase):
         columns = ['colA', 'colB', 'colC']
         rows = ['geneA', 'geneB', 'geneC']
         values = np.arange(9).reshape((3,3))
-        expected_return = {
-            'colA': {'geneA':0, 'geneB':3, 'geneC':6},
-            'colB': {'geneA':1, 'geneB':4, 'geneC':7},
-            'colC': {'geneA':2, 'geneB':5, 'geneC':8}
-        }
+        expected_return = [
+            {'rowname': 'geneA', 'values': {'colA':0, 'colB':1, 'colC':2}},
+            {'rowname': 'geneB', 'values': {'colA':3, 'colB':4, 'colC':5}},
+            {'rowname': 'geneC', 'values': {'colA':6, 'colB':7, 'colC':8}}
+        ]
         df = pd.DataFrame(values, index=rows, columns=columns)
         path = os.path.join('/tmp', 'test_preview_matrix.tsv')
         df.to_csv(path, sep='\t')
@@ -35,7 +35,7 @@ class TestResourcePreview(unittest.TestCase):
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
         contents = mtx_type.get_contents(path)
-        self.assertTrue(df.equals(contents))
+        self.assertCountEqual(contents, expected_return)
 
     def test_empty_table_preview(self):
         '''

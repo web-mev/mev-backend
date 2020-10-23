@@ -947,7 +947,7 @@ class ResourceContentTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(
             self.url, format='json'
         )
-        j = response.json()['results']
+        j = response.json()
         # the second row (index=1) has a negative infinity.
         self.assertTrue(j[1]['values']['log2FoldChange'] == settings.NEGATIVE_INF_MARKER)
 
@@ -1039,7 +1039,7 @@ class ResourceContentTests(BaseAPITestCase):
                 }
             }
         ]
-        self.assertEqual(expected_return, j['results']) 
+        self.assertEqual(expected_return, j) 
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     def test_resource_contents_pagination(self, mock_check_request_validity):
@@ -1052,6 +1052,8 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.path = f
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
         base_url = reverse(
             'resource-contents', 
             kwargs={'pk':self.resource.pk}
@@ -1061,14 +1063,12 @@ class ResourceContentTests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
-        j = response.json()
-        results = j['results']
-        self.assertTrue(j['count'] == N)
-        self.assertTrue(len(results) == settings.REST_FRAMEWORK['PAGE_SIZE'])
+        results = response.json()
+        self.assertTrue(len(results) == N)
         first_record = results[0]
         final_record = results[-1]
         self.assertTrue(first_record['rowname'] == 'g0')
-        self.assertTrue(final_record['rowname'] == 'g49')
+        self.assertTrue(final_record['rowname'] == 'g154')
 
         # add the query params onto the end of the url:
         url = base_url + '?page=1'
@@ -1116,7 +1116,8 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(first_record['rowname'] == 'g150')
         self.assertTrue(final_record['rowname'] == 'g154')
 
-        # test the page_size param:
+        # by itself the page_size param doesn't do anything.
+        # It needs the page param
         page_size = 20
         suffix = '?page_size=%d' % page_size
         url = base_url + suffix
@@ -1125,13 +1126,12 @@ class ResourceContentTests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
-        j = response.json()
-        results = j['results']
-        self.assertTrue(len(results) == page_size)
+        results = response.json()
+        self.assertTrue(len(results) == N)
         first_record = results[0]
         final_record = results[-1]
         self.assertTrue(first_record['rowname'] == 'g0')
-        self.assertTrue(final_record['rowname'] == 'g19')
+        self.assertTrue(final_record['rowname'] == 'g154')
 
         # test the page_size param:
         page_size = 20

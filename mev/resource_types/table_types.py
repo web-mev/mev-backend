@@ -125,21 +125,7 @@ class TableResourcePage(Page):
                 % type(index).__name__
             )
 
-        # indexing rules differ depending on whether the index
-        # is an int or a slice
-        subset = self.object_list.iloc[index]
-        if isinstance(index, int):
-            # here, subset is a pandas Series
-            val_dict = subset.to_dict()
-            rowname = subset.name
-            return {'rowname': rowname, 'values': val_dict}
-        else: # given the initial type checking, index can ONLY be a slice
-            # have to transpose so that the keys of the 
-            # returned dict are the row names. By default,
-            # calling to_dict on a dataframe uses the column
-            # names as the keys.
-            return subset.T.to_dict()
-        
+        return self.object_list[index]        
 
 
 class TableResourcePaginator(Paginator):
@@ -312,6 +298,11 @@ class TableResource(DataResource):
         The dataframe allows the caller to subset as needed to 'paginate'
         the rows of the table
         '''
+
+        # use this function to convert the dataframe rows to our desired format
+        def row_converter(row):
+            return {'rowname': row.name, 'values': row.to_dict()}
+
         try:
             self.read_resource(resource_path)
 
@@ -322,7 +313,7 @@ class TableResource(DataResource):
                 np.infty: settings.POSITIVE_INF_MARKER
             })
             self.table = self.table.mask(pd.isnull, None)
-            return self.table
+            return self.table.apply(row_converter, axis=1).tolist()
 
         # for these first two exceptions, we already have logged
         # any problems when we called the `read_resource` method
