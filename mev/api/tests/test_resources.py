@@ -1149,3 +1149,176 @@ class ResourceContentTests(BaseAPITestCase):
         final_record = results[-1]
         self.assertTrue(first_record['rowname'] == 'g20')
         self.assertTrue(final_record['rowname'] == 'g39')
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_resource_contents_table_filter(self, mock_check_request_validity):
+        '''
+        For testing if table-based resources are filtered correctly
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        N = 39 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        suffix = '?pvalue=[lte]:0.4'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 2)
+        returned_set = set([x['rowname'] for x in results])
+        self.assertEqual({'HNRNPUL2', 'MAP1A'}, returned_set)
+
+        # an empty result set
+        suffix = '?pvalue=[lte]:0.004'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 0)
+
+        suffix = '?pvalue=[lte]:0.4&log2FoldChange=[gt]:0'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 1)
+        returned_set = set([x['rowname'] for x in results])
+        self.assertEqual({'HNRNPUL2'}, returned_set)
+
+        # note the missing delimiter, which makes the suffix invalid. Should return 400
+        suffix = '?pvalue=[lte]:0.4&log2FoldChange=[gt]0'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        # note the value ("a") can't be parsed as a number
+        suffix = '?pvalue=[lte]:a'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        # filter on a column that does not exist
+        suffix = '?xyz=[lte]:0'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+        expected_error = (
+            'There was a problem when parsing the request:'
+            ' The column xyz is not available for filtering.'
+        )
+        self.assertEqual(results['error'], expected_error)
+
+       # filter on a column that does not exist, but also including a valid field
+        suffix = '?pvalue=[lte]:0.1&abc=[lte]:0'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+        expected_error = (
+            'There was a problem when parsing the request:'
+            ' The column abc is not available for filtering.'
+        )
+        self.assertEqual(results['error'], expected_error)
+
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_table_filter_with_string(self, mock_check_request_validity):
+        '''
+        For testing if table-based resources are filtered correctly on string fields
+        '''
+        f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
+        N = 3 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        suffix = '?colB=abc'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 2)
+        returned_set = set([x['rowname'] for x in results])
+        self.assertEqual({'A', 'C'}, returned_set)
+
+        suffix = '?colB=abc&colA=[lt]:0.02'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 1)
+        returned_set = set([x['rowname'] for x in results])
+        self.assertEqual({'A'}, returned_set)
+
+        # filter which gives zero results
+        suffix = '?colB=aaa'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 0)

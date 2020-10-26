@@ -2,6 +2,7 @@ import re
 import uuid
 import logging
 
+from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
@@ -296,6 +297,9 @@ class FloatAttribute(BaseAttribute):
         if (type(val) == float) or (type(val) == int):
             if set_value:
                 self.value = float(val)
+        elif (val == settings.POSITIVE_INF_MARKER) or (val == settings.NEGATIVE_INF_MARKER):
+            if set_value:
+                self.value = val
         else:
             raise ValidationError(
                 'A float attribute was expected, but'
@@ -323,9 +327,11 @@ class PositiveFloatAttribute(BaseAttribute):
             else:
                 raise ValidationError('Received a valid float, but'
                     ' it was not > 0.')
+        elif val == settings.POSITIVE_INF_MARKER:
+            self.value = val
         else:
             raise ValidationError(
-                'A float attribute was expected, but'
+                'A positive float attribute was expected, but'
                 ' received "{val}"'.format(val=val))
 
 
@@ -350,6 +356,8 @@ class NonnegativeFloatAttribute(BaseAttribute):
             else:
                 raise ValidationError('Received a valid float, but'
                     ' it was not >= 0.')
+        elif val == settings.POSITIVE_INF_MARKER:
+            self.value = val
         else:
             raise ValidationError(
                 'A float attribute was expected, but'
@@ -386,11 +394,11 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
                         val=val,
                         min=self.min_value,
                         max=self.max_value)
-                    )    
+                    ) 
         else:
             raise ValidationError(
                 'A bounded float attribute was expected,'
-                ' but "{val}" is not a float.'.format(val=val))
+                ' but "{val}" is not a float, or is not bounded.'.format(val=val))
 
 
 class StringAttribute(BaseAttribute):

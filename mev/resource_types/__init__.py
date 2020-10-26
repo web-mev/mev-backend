@@ -1,6 +1,6 @@
 import logging
 
-from .base import DataResource
+from .base import DataResource, ParseException
 
 from .sequence_types import FastAResource, \
     FastQResource, \
@@ -114,7 +114,7 @@ def get_resource_type_instance(resource_type_str):
         )
         raise ex
 
-def get_contents(resource_path, resource_type_str):
+def get_contents(resource_path, resource_type_str, query_params={}):
     '''
     Returns a "view" of the data underlying a Resource. The actual
     implementation of that view is prepared by the class corresponding
@@ -142,7 +142,7 @@ def get_contents(resource_path, resource_type_str):
         
     # instantiate the proper class for this type:
     resource_type = resource_class()
-    return resource_type.get_contents(resource_path)
+    return resource_type.get_contents(resource_path, query_params)
 
 def get_resource_paginator(resource_type_str):
     '''

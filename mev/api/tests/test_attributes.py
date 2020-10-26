@@ -2,6 +2,7 @@ import unittest
 import uuid
 import random
 
+from django.conf import settings
 from rest_framework.serializers import ValidationError
 
 from api.data_structures import IntegerAttribute, \
@@ -31,6 +32,11 @@ class TestAttributes(unittest.TestCase):
         self.assertEqual(i.value, 44)
         i = IntegerAttribute(-3)
         self.assertEqual(i.value, -3)
+        i = IntegerAttribute(None, allow_null=True)
+        with self.assertRaises(ValidationError):
+            i = IntegerAttribute(None)
+        with self.assertRaises(ValidationError):
+            i = IntegerAttribute(settings.POSITIVE_INF_MARKER)        
 
 
     def test_float_rejected_for_integer(self):
@@ -53,6 +59,10 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             PositiveIntegerAttribute(0)
 
+        i = PositiveIntegerAttribute(None, allow_null=True)
+        with self.assertRaises(ValidationError):
+            PositiveIntegerAttribute(None)
+
 
     def test_nonnegative_integer_attribute(self):
         i = NonnegativeIntegerAttribute(44)
@@ -64,6 +74,9 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             NonnegativeIntegerAttribute(-3)
 
+        i = NonnegativeIntegerAttribute(None, allow_null=True)
+        with self.assertRaises(ValidationError):
+            NonnegativeIntegerAttribute(None)
 
     def test_float_attribute(self):
         f = FloatAttribute(3.4)
@@ -80,6 +93,18 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             FloatAttribute('3.4')
 
+        # +/- infinity CAN be valid 
+        f = FloatAttribute(settings.POSITIVE_INF_MARKER)
+        self.assertEqual(f.value, settings.POSITIVE_INF_MARKER)
+        f = FloatAttribute(settings.NEGATIVE_INF_MARKER)
+        self.assertEqual(f.value, settings.NEGATIVE_INF_MARKER)
+
+        f = FloatAttribute(None, allow_null=True)
+        self.assertIsNone(f.value)
+
+        with self.assertRaises(ValidationError):
+            FloatAttribute(None)
+
     def test_positive_float_attribute(self):
         f = PositiveFloatAttribute(4.4)
         self.assertEqual(f.value, 4.4)
@@ -90,6 +115,12 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             PositiveFloatAttribute(0)
 
+        f = PositiveFloatAttribute(settings.POSITIVE_INF_MARKER)
+        self.assertEqual(f.value, settings.POSITIVE_INF_MARKER)
+
+        with self.assertRaises(ValidationError):
+            f = PositiveFloatAttribute(settings.NEGATIVE_INF_MARKER)
+
     def test_nonnegative_float_attribute(self):
         f = NonnegativeFloatAttribute(4.4)
         self.assertEqual(f.value, 4.4)
@@ -99,6 +130,12 @@ class TestAttributes(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             NonnegativeFloatAttribute(-3.2)
+
+        f = PositiveFloatAttribute(settings.POSITIVE_INF_MARKER)
+        self.assertEqual(f.value, settings.POSITIVE_INF_MARKER)
+
+        with self.assertRaises(ValidationError):
+            f = PositiveFloatAttribute(settings.NEGATIVE_INF_MARKER)
 
     def test_string_attribute(self):
         # this is sort of double test-coverage, but that can't hurt
@@ -161,6 +198,14 @@ class TestAttributes(unittest.TestCase):
         with self.assertRaises(ValidationError):
             i = BoundedIntegerAttribute(22, min=0.1, max=10.2)
 
+        # can't use positive inf as a bound
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(22, min=0, max=settings.POSITIVE_INF_MARKER)
+
+        # can't use inf as a value in a bounded int
+        with self.assertRaises(ValidationError):
+            i = BoundedIntegerAttribute(settings.POSITIVE_INF_MARKER, min=0, max=100)
+
     def test_bounded_float_atttribute(self):
 
         # test a valid bounded float
@@ -186,6 +231,14 @@ class TestAttributes(unittest.TestCase):
         # you CAN specify integer bounds for bounded floats
         f = BoundedFloatAttribute(2.2, min=0, max=10)
         f = BoundedFloatAttribute(2.2, min=0.2, max=10.5)
+
+        # can't use positive inf as a bound
+        with self.assertRaises(ValidationError):
+            i = BoundedFloatAttribute(22, min=0, max=settings.POSITIVE_INF_MARKER)
+
+        # can't use inf as a value in a bounded float
+        with self.assertRaises(ValidationError):
+            i = BoundedFloatAttribute(settings.POSITIVE_INF_MARKER, min=0, max=100)
 
     def test_boolean_attribute(self):
         '''

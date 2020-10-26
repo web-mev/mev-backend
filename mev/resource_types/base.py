@@ -1,3 +1,21 @@
+class ParseException(Exception):
+    '''
+    For raising exceptions when the parser
+    fails for someon reason.
+    '''
+    pass
+
+class UnexpectedTypeValidationException(Exception):
+    '''
+    Raised when a Resource fails to validate but *should have*
+    been fine. 
+
+    This would be raised, for instance, when an Operation completes and
+    produces some output file, for which we know the type.  In that case,
+    a failure to validate would indicate some unexpected error 
+    '''
+    pass
+
 class DataResource(object):
 
     # these are the keys of the dict that is submitted to the
@@ -11,7 +29,7 @@ class DataResource(object):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
-    def get_contents(self, resource_path):
+    def get_contents(self, resource_path, query_params={}):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 

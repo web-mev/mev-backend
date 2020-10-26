@@ -1,5 +1,6 @@
 import os
 import logging
+import operator
 
 logger = logging.getLogger(__name__)
 
@@ -428,5 +429,31 @@ DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
 # END Settings for Dockerhub
 ###############################################################################
 
+# Use these values as 'markers' for dataframes/tables that have infinite values.
+# Since the data needs to be returned as valid JSON and Inf (and other variants)
+# are not permitted
 POSITIVE_INF_MARKER = '++inf++'
 NEGATIVE_INF_MARKER = '--inf--'
+
+# For pagination-- sets up a consistent reference.
+PAGE_PARAM = 'page'
+PAGE_SIZE_PARAM = 'page_size'
+
+# for query filter params:
+# When providing query filters, we will have something like:
+# <url>/?paramA=<comparison>:<val>, 
+# /e.g. <url>/?pval=[lte]:0.01?log2FoldChange=[gte]:2
+# which will filter for pval <= 0.01 and log fold change >= 2
+# The delimiter between the comparison and the value is given below:
+QUERY_PARAM_DELIMITER = ':'
+LESS_THAN = '[lt]'
+LESS_THAN_OR_EQUAL = '[lte]'
+GREATER_THAN = '[gt]'
+GREATER_THAN_OR_EQUAL = '[gte]'
+
+OPERATOR_MAPPING = {
+    LESS_THAN: operator.lt,
+    LESS_THAN_OR_EQUAL: operator.le,
+    GREATER_THAN: operator.gt,
+    GREATER_THAN_OR_EQUAL: operator.ge
+}

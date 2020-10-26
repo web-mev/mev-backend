@@ -1,6 +1,7 @@
 import logging
 import json
 
+from django.conf import settings
 from rest_framework import permissions as framework_permissions
 from rest_framework import generics
 from rest_framework.views import APIView
@@ -16,8 +17,10 @@ from api.utilities.resource_utilities import check_for_resource_operations, \
     get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive
-
 import api.async_tasks as api_tasks
+
+from resource_types import ParseException
+
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +209,6 @@ class ResourceContents(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         resource_pk=kwargs['pk']
-
         r = self.check_request_validity(user, resource_pk)
         if not type(r) == Resource:
             # if it's not a Resource, then it was something else, like a Response object
@@ -215,10 +217,15 @@ class ResourceContents(APIView):
         else:
             # requester can access, resource is active.  Go get contents
             try:
-                contents = get_resource_view(r)
+                contents = get_resource_view(r, request.query_params)
+            except ParseException as ex:
+                return Response(
+                    {'error': 'There was a problem when parsing the request: {ex}'.format(ex=ex)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )  
             except Exception as ex:
                 return Response(
-                    {'error': 'Experienced an issue when preparing the resource view.'},
+                    {'error': 'Experienced an issue when preparing the resource view: {ex}'.format(ex=ex)},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )   
             if contents is None:
@@ -227,7 +234,7 @@ class ResourceContents(APIView):
                     status=status.HTTP_200_OK
                 )
             else:
-                if 'page' in request.query_params:
+                if settings.PAGE_PARAM in request.query_params:
                     paginator = get_resource_paginator(r.resource_type)
                     results = paginator.paginate_queryset(contents, request)
                     return paginator.get_paginated_response(results)

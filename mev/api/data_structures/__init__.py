@@ -16,7 +16,8 @@ from .attributes import IntegerAttribute, \
     DataResourceAttribute, \
     create_attribute, \
     convert_dtype, \
-    all_attribute_types
+    all_attribute_types, \
+    numeric_attribute_typenames
 from .operation_input import OperationInput
 from .operation_input_spec import IntegerInputSpec, \
     PositiveIntegerInputSpec, \

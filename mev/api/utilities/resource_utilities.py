@@ -156,7 +156,7 @@ def check_for_shared_resource_file(resource_instance):
         raise Exception('Path was empty. Error.')
 
 
-def get_resource_view(resource_instance):
+def get_resource_view(resource_instance, query_params={}):
     '''
     Returns a "view" of the resource_instance in JSON-format.
 
@@ -173,7 +173,7 @@ def get_resource_view(resource_instance):
         ))
         return
     local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
-    return get_contents(local_path, resource_instance.resource_type)
+    return get_contents(local_path, resource_instance.resource_type, query_params)
 
 def get_resource_paginator(resource_type):
     '''

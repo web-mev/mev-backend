@@ -3,6 +3,7 @@
 import logging
 import re
 import os
+from functools import reduce
 
 import pandas as pd
 import numpy as np
@@ -11,13 +12,15 @@ from django.conf import settings
 from django.core.paginator import Paginator, Page
 from rest_framework.pagination import PageNumberPagination
 
-from .base import DataResource
+from .base import DataResource, ParseException, UnexpectedTypeValidationException
 from api.data_structures import Feature, \
     FeatureSet, \
     Observation, \
     ObservationSet, \
     create_attribute, \
-    convert_dtype
+    convert_dtype, \
+    numeric_attribute_typenames
+from api.utilities.basic_utils import alert_admins
 from api.serializers.feature_set import FeatureSetSerializer
 from api.serializers.observation_set import ObservationSetSerializer
 
@@ -40,24 +43,6 @@ class ParserNotFoundException(Exception):
     '''
     For raising exceptions when a proper 
     parser cannot be found.
-    '''
-    pass
-
-class ParseException(Exception):
-    '''
-    For raising exceptions when the parser
-    fails for someon reason.
-    '''
-    pass
-
-class UnexpectedTypeValidationException(Exception):
-    '''
-    Raised when a Resource fails to validate but *should have*
-    been fine. 
-
-    This would be raised, for instance, when an Operation completes and
-    produces some output file, for which we know the type.  In that case,
-    a failure to validate would indicate some unexpected error 
     '''
     pass
 
@@ -156,7 +141,7 @@ class TableResourcePaginator(Paginator):
 
 class TableResourcePageNumberPagination(PageNumberPagination):
     django_paginator_class = TableResourcePaginator
-    page_size_query_param = 'page_size'
+    page_size_query_param = settings.PAGE_SIZE_PARAM
 
 
 class TableResource(DataResource):
@@ -239,13 +224,15 @@ class TableResource(DataResource):
             try:
                 # read the table using the appropriate parser:
                 self.table = reader(resource_path, index_col=0, comment='#')
+
+                # call a method to 
             except Exception as ex:
                 logger.error('Could not use {reader} to parse the file'
                 ' at {path}'.format(
                     reader = reader,
                     path = resource_path
                 ))     
-                raise ParseException('')
+                raise ParseException('Failed when parsing the table-based resource.')
 
     def validate_type(self, resource_path):
         '''
@@ -290,8 +277,114 @@ class TableResource(DataResource):
         except ParseException as ex:
             return (False, PARSE_ERROR)
      
+    def do_type_cast(self, v, typename):
+        '''
+        Used for casting the type when query params are provided.
+        '''
+        if typename in numeric_attribute_typenames:
+            try:
+                val = float(v)
+            except ValueError as ex:
+                raise ParseException('Could not parse "{v}" as a number.'.format(v=v))
+        else:
+            val = v 
+        return val
 
-    def get_contents(self, resource_path):
+    def filter_against_query_params(self, query_params):
+        '''
+        Looks through the query params to subset the table
+        '''
+        table_cols = self.table.columns
+
+        # since the pagination query params are among these, we DON'T
+        # want to filter on them.
+        ignored_params = [settings.PAGE_SIZE_PARAM, settings.PAGE_PARAM]
+
+        # guard against some edge case where the table we are filtering happens to have 
+        # columns that conflict with the pagination parameters. We simply inform the admins
+        # and ignore that conflict by not using that filter
+        if any([x in ignored_params for x in table_cols]):
+            logger.warning('One of the column names conflicted with the pagination query params.')
+            alert_admins()
+        filters = []
+
+        # used to map the pandas native type to a MEV-type so we can do type casting consistently
+        type_dict = self.get_type_dict()
+        for k,v in query_params.items():
+            if (not k in ignored_params) and (k in table_cols):
+                # v is either a value (in the case of strict equality)
+                # or a delimited string which will dictate the comparison.
+                # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
+                # v would be "[lte]:0.01"
+                split_v = v.split(settings.QUERY_PARAM_DELIMITER)
+                column_type = type_dict[k] # gets a type name (as a string, e.g. "Float")
+                if len(split_v) == 1:
+                    # strict equality
+                    val = self.do_type_cast(v, column_type)
+                    try:
+                        filters.append(self.table[k] == val)
+                    except Exception as ex:
+                        logger.error('Encountered exception!!')
+                elif len(split_v) == 2:
+                    val = self.do_type_cast(split_v[1], column_type)
+                    try:
+                        op = settings.OPERATOR_MAPPING[split_v[0]]
+                    except KeyError as ex:
+                        raise ParseException('The operator string ("{s}") was not understood. Choose'
+                            ' from among: {vals}'.format(
+                                s = split_v[0],
+                                vals = ','.join(settings.OPERATOR_MAPPING.keys())
+                            )
+                        )
+                    filters.append(
+                        self.table[k].apply(lambda x: op(x, val))
+                    )
+                else:
+                    raise ParseException('The query param string ({v}) for filtering on'
+                        ' the {col} column was not formatted properly.'.format(
+                            v = v,
+                            col = k
+                        )
+                    )
+            elif k in ignored_params:
+                pass
+            else:
+                raise ParseException('The column {c} is not available for filtering.'.format(c=k))
+        if len(filters) > 1:
+            combined_filter = reduce(lambda x,y: x & y, filters)
+            self.table = self.table.loc[combined_filter]
+        elif len(filters) == 1:
+            self.table = self.table.loc[filters[0]]
+
+    def get_type_dict(self):
+        '''
+        Gets a mapping from the pandas native dtype to a MEV-compatible
+        type.
+        '''
+        type_dict = {}
+        for c in self.table.dtypes.index:
+            # the convert_dtype function takes the native pandas dtype
+            # and returns an attribute "type" that MEV understands.
+            type_dict[c] = convert_dtype(str(self.table.dtypes[c]))
+        return type_dict
+
+    def replace_special_values(self):
+        '''
+        NaN and Inf values cause issues when we are serializing into JSON. If we have 
+        an action/event that requires serialization of the table-based resource, then we
+        should use this method to safely convert those values
+
+        If there is any filtering involved (e.g. filtering for values greater than x)
+        ensure you don't call this method first, as it will replace infinity values with
+        strings and the filter won't work properly.
+        '''
+        self.table = self.table.replace({
+            -np.infty: settings.NEGATIVE_INF_MARKER, 
+            np.infty: settings.POSITIVE_INF_MARKER
+        })
+        self.table = self.table.mask(pd.isnull, None)
+
+    def get_contents(self, resource_path, query_params={}):
         '''
         Returns a dataframe of the table contents
 
@@ -305,14 +398,10 @@ class TableResource(DataResource):
 
         try:
             self.read_resource(resource_path)
+            # if there were any filtering params requested, apply those
+            self.filter_against_query_params(query_params)
+            self.replace_special_values()
 
-            # convert the table to object 'type' so we can
-            # replace Nan and Inf values (as they are not valid JSON)
-            self.table = self.table.replace({
-                -np.infty: settings.NEGATIVE_INF_MARKER, 
-                np.infty: settings.POSITIVE_INF_MARKER
-            })
-            self.table = self.table.mask(pd.isnull, None)
             return self.table.apply(row_converter, axis=1).tolist()
 
         # for these first two exceptions, we already have logged
@@ -589,19 +678,16 @@ class ElementTable(TableResource):
         # Note that we can't determine specific types (e.g. bounded integers)
         # from general annotations.  We basically allow floats, integers, and
         # "other" types, which get converted to strings.
-        type_dict = {}
-        for c in self.table.dtypes.index:
-            # the convert_dtype function takes the native pandas dtype
-            # and returns an attribute "type" that MEV understands.
-            type_dict[c] = convert_dtype(str(self.table.dtypes[c]))
+        type_dict = self.get_type_dict()
+
+        # convert NaN and infs to our special marker values
+        self.replace_special_values()
 
         element_list = []
         for id, row_series in self.table.iterrows():
             d = row_series.to_dict()
             attr_dict = {}
             for key, val in d.items():
-                if pd.isnull(val):
-                    val = None
                 # Note the 'allow_null=True', so that attributes can be properly serialized
                 # if they are missing a value. This happens, for instance, in FeatureTable
                 # instances where p-values were not assigned.

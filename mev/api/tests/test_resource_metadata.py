@@ -2,6 +2,8 @@ import unittest
 import unittest.mock as mock
 import os
 import uuid
+import numpy as np
+import pandas as pd
 
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
@@ -478,6 +480,27 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         self.assertEqual(metadata[FEATURE_SET_KEY], expected_feature_set)
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+
+    def test_serialization_works(self):
+        '''
+        Test that serialization works as expected by using the metadata method
+        Needs to be able to serialize tables that have na and inf values.
+        '''
+        columns = ['colA', 'colB', 'colC']
+        rows = ['geneA', 'geneB', 'geneC']
+        values = np.arange(9).reshape((3,3))
+        df = pd.DataFrame(values, index=rows, columns=columns)
+        df.loc['geneA', 'colB'] = np.inf
+        df.loc['geneB', 'colA'] = np.nan
+        path = '/tmp/test_matrix.tsv'
+        df.to_csv(path, sep='\t')
+
+        ft = FeatureTable()
+        m =  ft.extract_metadata(path)
+        r = Resource.objects.all()[0]
+        m[RESOURCE_KEY] = r.pk
+        rms = ResourceMetadataSerializer(data=m)
+        self.assertTrue(rms.is_valid(raise_exception=True))
 
     def test_dge_output_with_na(self):
         '''
