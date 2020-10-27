@@ -1243,7 +1243,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue('error' in results)
         expected_error = (
             'There was a problem when parsing the request:'
-            ' The column xyz is not available for filtering.'
+            ' The column "xyz" is not available for filtering.'
         )
         self.assertEqual(results['error'], expected_error)
 
@@ -1259,9 +1259,58 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue('error' in results)
         expected_error = (
             'There was a problem when parsing the request:'
-            ' The column abc is not available for filtering.'
+            ' The column "abc" is not available for filtering.'
         )
         self.assertEqual(results['error'], expected_error)
+
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_resource_contents_abs_val_table_filter(self, mock_check_request_validity):
+        '''
+        For testing if table-based resources are filtered correctly using the absolute value filters
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        N = 39 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        suffix = '?log2FoldChange=[absgt]:2.0'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 5)
+        returned_set = set([x['rowname'] for x in results])
+        self.assertEqual({'KRT18P27', 'PWWP2AP1', 'AMBP', 'ADH5P2', 'MMGT1'}, returned_set)
+
+        suffix = '?log2FoldChange=[absgt]:2.0&pvalue=[lt]:0.5'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 1)
+        returned_set = set([x['rowname'] for x in results])
+        self.assertEqual({'AMBP'}, returned_set)
 
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
@@ -1322,3 +1371,250 @@ class ResourceContentTests(BaseAPITestCase):
             status.HTTP_200_OK)
         results = response.json()
         self.assertTrue(len(results) == 0)
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_resource_contents_sort(self, mock_check_request_validity):
+        '''
+        For testing if table-based resources are sorted correctly
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        N = 39 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        suffix = '?{s}={a}:padj,{d}:log2FoldChange'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING,
+            d = settings.DESCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        gene_ordering = [x['rowname'] for x in results]
+        expected_ordering = [
+            'AC011841.4', 
+            'UNCX', 
+            'KRT18P27', 
+            'ECHS1', 
+            'ADH5P2', 
+            'OR2L8', 
+            'RN7SL99P', 
+            'KRT18P19', 
+            'CTD-2532D12.5', 
+            'HNRNPUL2', 
+            'TFAMP1', 
+            'MAP1A', 
+            'AC000123.4', 
+            'HTR7P1', 
+            'PWWP2AP1', 
+            'AMBP', 
+            'MMGT1'
+        ]
+        # only compare the first few. After that, the sorting is arbitrary as there
+        # are na's, etc.
+        self.assertEqual(
+            gene_ordering[:len(expected_ordering)], 
+            expected_ordering
+        )
+
+        # flip the order of the log2FoldChange:
+        suffix = '?{s}={a}:padj,{a}:log2FoldChange'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        gene_ordering = [x['rowname'] for x in results]
+        # the first few are unambiguous, as the padj are different
+        # the later ones have the same padj, but different log2FoldChange
+        # We include some +/-inf values also.
+        expected_ordering = [
+            'UNCX', 
+            'AC011841.4', 
+            'KRT18P27', 
+            'ECHS1', 
+            'MMGT1',
+            'AMBP',
+            'PWWP2AP1',
+            'HTR7P1',
+            'AC000123.4',
+            'MAP1A',
+            'TFAMP1',
+            'HNRNPUL2',
+            'CTD-2532D12.5',
+            'KRT18P19',
+            'RN7SL99P',
+            'OR2L8',
+            'ADH5P2'
+        ]
+        # only compare the first few. After that, the sorting is arbitrary as there
+        # are na's, etc.
+        self.assertEqual(
+            gene_ordering[:len(expected_ordering)], 
+            expected_ordering
+        )
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_resource_contents_sort_and_filter(self, mock_check_request_validity):
+        '''
+        For testing if table-based resources are sorted correctly when used
+        with filters.
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        N = 39 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        suffix = '?padj=[lt]:0.3&{s}={a}:padj,{d}:log2FoldChange'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING,
+            d = settings.DESCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 2)
+        gene_ordering = [x['rowname'] for x in results]
+        expected_ordering = [
+            'AC011841.4', 
+            'UNCX'
+        ] 
+        # only compare the first few. After that, the sorting is arbitrary as there
+        # are na's, etc.
+        self.assertEqual(
+            gene_ordering, 
+            expected_ordering
+        )
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_malformatted_sort_and_filter(self, mock_check_request_validity):
+        '''
+        For testing that bad request params are handled well.
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        N = 39 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        bad_sort_kw = 'sort'
+        self.assertFalse(bad_sort_kw == settings.SORT_PARAM) # to ensure that it's indeed a "bad" param
+        suffix = '?{s}={a}:padj,{d}:log2FoldChange'.format(
+            s = bad_sort_kw,
+            a = settings.ASCENDING,
+            d = settings.DESCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+        expected_error = (
+            'There was a problem when parsing the request:'
+            ' The column "{b}" is not available for filtering.'.format(b=bad_sort_kw)
+        )
+        self.assertEqual(results['error'], expected_error)
+
+        bad_asc_param = 'aaa'
+        self.assertFalse(bad_asc_param == settings.ASCENDING)
+        suffix = '?{s}={a}:padj,{d}:log2FoldChange'.format(
+            s = settings.SORT_PARAM,
+            a = bad_asc_param,
+            d = settings.DESCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+        expected_error = (
+            'There was a problem when parsing the request: '
+            'The sort order "{b}" is not an available option. Choose from: {a},{d}'.format(
+                b = bad_asc_param,
+                a = settings.ASCENDING,
+                d = settings.DESCENDING  
+            )
+        )
+        self.assertEqual(results['error'], expected_error)
+
+        # bad column (should be padj, not adjP)
+        suffix = '?{s}={a}:adjP,{d}:log2FoldChange'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING,
+            d = settings.DESCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        expected_error = (
+            'There was a problem when parsing the request:'
+            ' The column identifier "adjP" does not exist in this resource.'
+            ' Options are: overall_mean,Control,Experimental,log2FoldChange,lfcSE,stat,pvalue,padj'
+        )
+        self.assertEqual(results['error'], expected_error)

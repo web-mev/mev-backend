@@ -439,21 +439,6 @@ NEGATIVE_INF_MARKER = '--inf--'
 PAGE_PARAM = 'page'
 PAGE_SIZE_PARAM = 'page_size'
 
-# for query filter params:
-# When providing query filters, we will have something like:
-# <url>/?paramA=<comparison>:<val>, 
-# /e.g. <url>/?pval=[lte]:0.01?log2FoldChange=[gte]:2
-# which will filter for pval <= 0.01 and log fold change >= 2
-# The delimiter between the comparison and the value is given below:
-QUERY_PARAM_DELIMITER = ':'
-LESS_THAN = '[lt]'
-LESS_THAN_OR_EQUAL = '[lte]'
-GREATER_THAN = '[gt]'
-GREATER_THAN_OR_EQUAL = '[gte]'
-
-OPERATOR_MAPPING = {
-    LESS_THAN: operator.lt,
-    LESS_THAN_OR_EQUAL: operator.le,
-    GREATER_THAN: operator.gt,
-    GREATER_THAN_OR_EQUAL: operator.ge
-}
+# import all the filtering operations that can be applied when querying for the content
+# of data resources
+from api.filters import *

@@ -290,6 +290,45 @@ class TableResource(DataResource):
             val = v 
         return val
 
+    def perform_sorting(self, query_params):
+        '''
+        Sorts the table as requested. Sorts self.table in place
+
+        A general sort string (after the equals sign) would be:
+        <sort kw>:<col>,<sort kw>:<col>,...
+        e.g. for sorting q-value (padj) ascending followed by fold-change descending, 
+        [asc]:padj,[desc]:log2Foldchange
+        '''
+        if settings.SORT_PARAM in query_params:
+            sort_strings = query_params[settings.SORT_PARAM].split(',')
+            sort_order_list = []
+            column_list = []
+            for s in sort_strings:
+                try:
+                    sort_order, col = s.split(settings.QUERY_PARAM_DELIMITER)
+                except ValueError:
+                    raise ParseException('The sorting request was not properly formatted. '
+                        'Please use "<ordering keyword>:<column name>"')
+                if sort_order in settings.SORTING_OPTIONS:
+                    sort_order_list.append(sort_order)
+                else:
+                    raise ParseException('The sort order "{s}" is not an available option. Choose from: {opts}'.format(
+                        s = sort_order,
+                        opts = ','.join(settings.SORTING_OPTIONS)
+                    ))
+
+                if col in self.table.columns:
+                    column_list.append(col)
+                else:
+                    raise ParseException('The column identifier "{s}" does not exist in this resource. Options are: {opts}'.format(
+                        s = col,
+                        opts = ','.join(self.table.columns)
+                    ))
+            # at this point, all the sort orders and cols were OK. Now perform the sorting:
+            # Need to convert our strings (e.g. "[asc]") to bools for the pandas sort_values method.
+            order_bool = [True if x==settings.ASCENDING else False for x in sort_order_list]                
+            self.table.sort_values(by=column_list, ascending=order_bool, inplace=True)
+
     def filter_against_query_params(self, query_params):
         '''
         Looks through the query params to subset the table
@@ -298,7 +337,7 @@ class TableResource(DataResource):
 
         # since the pagination query params are among these, we DON'T
         # want to filter on them.
-        ignored_params = [settings.PAGE_SIZE_PARAM, settings.PAGE_PARAM]
+        ignored_params = [settings.PAGE_SIZE_PARAM, settings.PAGE_PARAM, settings.SORT_PARAM]
 
         # guard against some edge case where the table we are filtering happens to have 
         # columns that conflict with the pagination parameters. We simply inform the admins
@@ -315,7 +354,7 @@ class TableResource(DataResource):
                 # v is either a value (in the case of strict equality)
                 # or a delimited string which will dictate the comparison.
                 # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
-                # v would be "[lte]:0.01"
+                # v would be "[lte]:0.01". The "[lte]" string is set in our general settings file.
                 split_v = v.split(settings.QUERY_PARAM_DELIMITER)
                 column_type = type_dict[k] # gets a type name (as a string, e.g. "Float")
                 if len(split_v) == 1:
@@ -349,7 +388,7 @@ class TableResource(DataResource):
             elif k in ignored_params:
                 pass
             else:
-                raise ParseException('The column {c} is not available for filtering.'.format(c=k))
+                raise ParseException('The column "{c}" is not available for filtering.'.format(c=k))
         if len(filters) > 1:
             combined_filter = reduce(lambda x,y: x & y, filters)
             self.table = self.table.loc[combined_filter]
@@ -400,6 +439,7 @@ class TableResource(DataResource):
             self.read_resource(resource_path)
             # if there were any filtering params requested, apply those
             self.filter_against_query_params(query_params)
+            self.perform_sorting(query_params)
             self.replace_special_values()
 
             return self.table.apply(row_converter, axis=1).tolist()
