@@ -1618,3 +1618,57 @@ class ResourceContentTests(BaseAPITestCase):
             ' Options are: overall_mean,Control,Experimental,log2FoldChange,lfcSE,stat,pvalue,padj'
         )
         self.assertEqual(results['error'], expected_error)
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    def test_sort_on_string_field(self, mock_check_request_validity):
+        '''
+        For testing if table-based resources are sorted correctly when
+        sorting on a non-numeric/string field
+        '''
+        f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
+        N = 3 # the number of rows in the table
+        self.resource.path = f
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        suffix = '?{s}={a}:colB,{d}:colA'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING,
+            d = settings.DESCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        expected_ordering = ['C', 'A', 'B']
+        self.assertEqual([x['rowname'] for x in results], expected_ordering)
+
+        suffix = '?{s}={a}:colB,{a}:colA'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        expected_ordering = ['A', 'C', 'B']
+        self.assertEqual([x['rowname'] for x in results], expected_ordering)
