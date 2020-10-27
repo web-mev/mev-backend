@@ -122,7 +122,7 @@ class LocalDockerRunner(OperationRunner):
                 else:
                     if v is not None:
                         logger.info('Executed operation output was not None. Convert.')
-                        new_outputs_dict[k] = converter.convert_output(job_id, user_workspace, spec, v)
+                        new_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
                     else:
                         logger.info('Executed operation output was null/None.')
                         new_outputs_dict[k] = None

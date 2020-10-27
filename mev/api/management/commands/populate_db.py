@@ -1,6 +1,7 @@
 import random 
 import os
 import uuid
+import errno
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -171,7 +172,13 @@ class Command(BaseCommand):
         # need to make a directory with dummy files to use the 
         # `save_operation` function
         dummy_dir_path = os.path.join(settings.BASE_DIR, 'dummy_op')
-        os.mkdir(dummy_dir_path)
+        try:
+            os.mkdir(dummy_dir_path)
+        except OSError as ex:
+            if ex.errno == errno.EEXIST:
+                pass
+            else:
+                raise Exception('Failed to create directory at {p}'.format(p=dummy_dir_path))
         op = op_serializer.get_instance()
         op_data = OperationSerializer(op).data
         save_operation(op_data, dummy_dir_path)

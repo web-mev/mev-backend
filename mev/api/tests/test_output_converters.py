@@ -6,7 +6,7 @@ import uuid
 
 from django.core.exceptions import ImproperlyConfigured
 from api.tests.base import BaseAPITestCase
-from api.models import Workspace, Resource
+from api.models import Workspace, Resource, ExecutedOperation, Operation
 
 from api.converters.output_converters import LocalDockerOutputConverter
 
@@ -16,7 +16,8 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         self.establish_clients()
 
     @mock.patch('api.converters.output_converters.validate_and_store_resource')
-    def test_dataresource_converts_properly(self, mock_validate_and_store_resource):
+    @mock.patch('api.converters.output_converters.ResourceMetadata')
+    def test_dataresource_converts_properly(self, mock_resourcemetadata_model, mock_validate_and_store_resource):
         '''
         When a DataResource is created as part of an ExecutedOperation,
         the outputs give it as a path (or list of paths)
@@ -24,6 +25,8 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         The converter's job is to register that as a new file with the workspace
         and return the UUID of this new Resource
         '''
+        mock_resource_metadata_obj = mock.MagicMock()
+        mock_resourcemetadata_model.objects.get.return_value = mock_resource_metadata_obj
 
         # get the  initial counts on the database entities:
         all_user_resources = Resource.objects.filter(owner=self.regular_user_1)
@@ -37,14 +40,24 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
 
         c = LocalDockerOutputConverter()
         job_id = str(uuid.uuid4())
+        op = Operation.objects.all()[0]
+        executed_op = ExecutedOperation.objects.create(
+            id=job_id,
+            workspace=workspace,
+            inputs = {},
+            operation = op,
+            mode = ''
+        )
         output_spec = {
             'attribute_type': 'DataResource',
             'many': False,
             'resource_type': 'MTX'
         }
-        c.convert_output(job_id, workspace, output_spec, '/some/output/path.txt')
+        c.convert_output(executed_op, workspace, output_spec, '/some/output/path.txt')
 
         mock_validate_and_store_resource.assert_called()
+        mock_resourcemetadata_model.objects.get.assert_called()
+        mock_resource_metadata_obj.save.assert_called()
 
         # query the Resources again:
         updated_all_user_resources = Resource.objects.filter(owner=self.regular_user_1)

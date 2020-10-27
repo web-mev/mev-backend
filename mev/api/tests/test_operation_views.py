@@ -315,6 +315,8 @@ class OperationListTests(BaseAPITestCase):
         If (somehow) a directory containing an operation was removed,
         assure that we handle it well. In this 
         '''
+        num_total_ops = len(OperationDbModel.objects.all())
+
         n0 = len(OperationDbModel.objects.filter(active=True))
         # create an Operation instance that is not active (default behavior)
         u = uuid.uuid4()
@@ -327,7 +329,7 @@ class OperationListTests(BaseAPITestCase):
         n1 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n1-n0,0) # number of active instances unchanged
         n2 = len(OperationDbModel.objects.all())
-        self.assertEqual(n2,2)
+        self.assertEqual(n2-num_total_ops,1)
 
     def test_inconsistent_db_and_dir(self):
         '''
@@ -639,7 +641,6 @@ class OperationRunTests(BaseAPITestCase):
             raise ImproperlyConfigured('Need at least one Workspace owned by'
                 ' a non-admin user.')
 
-        workspace = user_workspaces[0]
         op = ops[0]
 
         acceptable_resource_types = d['inputs']['count_matrix']['spec']['resource_types']
@@ -650,6 +651,7 @@ class OperationRunTests(BaseAPITestCase):
                 is_active=True,
                 resource_type=t
             )
+            r = [x for x in r if x.workspace is not None]
             if len(r) > 0:
                 acceptable_resources.extend(r)
 
@@ -659,6 +661,8 @@ class OperationRunTests(BaseAPITestCase):
                     typelist=', '.join(acceptable_resource_types)
                 )
             )
+
+        workspace = acceptable_resources[0].workspace
 
         valid_inputs = {
             'count_matrix': str(acceptable_resources[0].id),

@@ -367,4 +367,7 @@ def validate_and_store_resource(resource, requested_resource_type):
     # status to be active (so changes can be made)
     # and save the instance
     resource.is_active = True
+
+    # save the filesize as well
+    resource.size = get_resource_size(resource)
     resource.save()
