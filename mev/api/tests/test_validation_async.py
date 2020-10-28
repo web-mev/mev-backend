@@ -344,7 +344,9 @@ class TestValidateResource(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.settings')
     @mock.patch('api.utilities.resource_utilities.validate_resource')
-    def test_storage_failure_handled_gracefully(self, 
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    def test_storage_failure_handled_gracefully(self,
+        mock_get_resource_size, 
         mock_validate_resource, mock_settings):
         '''
         Here we test that we handle storage failures gracefully.
@@ -373,11 +375,13 @@ class TestValidateResource(BaseAPITestCase):
         self.assertIsNone(unset_resource.resource_type)
         
         mock_settings.RESOURCE_STORAGE_BACKEND.store.side_effect = Exception('problem!')
+        mock_get_resource_size.return_value = 100
 
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX')
 
         mock_validate_resource.assert_not_called()
+        mock_get_resource_size.assert_called()
         
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)
@@ -388,7 +392,9 @@ class TestValidateResource(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.settings')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.async_tasks.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_validation_failure_handled_gracefully(self, 
+        mock_get_resource_size,
         mock_move_resource_to_final_location,
         mock_get_resource_type_instance, mock_settings):
         '''
@@ -412,6 +418,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_class_instance.validate_type.side_effect = Exception('validation ex!')
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
         mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.return_value = '/some/path/bar.txt'
+        mock_get_resource_size.return_value = 100
 
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX')
