@@ -47,7 +47,7 @@ class JsonResource(DataResource):
         return self.metadata
 
 
-    def get_contents(self, resource_path):
+    def get_contents(self, resource_path, query_params={}):
 
         try:
             logger.info('Using python-native JSON loader to read resource: {p}'.format(
