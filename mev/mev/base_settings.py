@@ -18,7 +18,6 @@ DEBUG = False
 
 ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if len(x) > 0]
 
-
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
     x for x in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',') if len(x) > 0
@@ -254,28 +253,84 @@ RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
 # END Parameters for domains and front-end URLs
 ###############################################################################
 
+
+###############################################################################
+# START Parameters for configuring the cloud environment
+###############################################################################
+
+# For consistent reference, define the cloud platforms
+GOOGLE = 'GOOGLE'
+
+# include any cloud platforms that are implemented in this list.
+AVAILABLE_CLOUD_PLATFORMS = [GOOGLE,]
+
+# get the requested platform from the environment variables and ensure 
+# that it's valid
+CLOUD_PLATFORM = get_env('CLOUD_PLATFORM')
+if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
+    raise ImproperlyConfigured('Requesting a platform ({p}) that is not implemented.'
+        ' Please choose from: {x}'.format(
+            x =', '.join(AVAILABLE_CLOUD_PLATFORMS),
+            p = CLOUD_PLATFORM
+        )
+    )
+
+# "name" the available remote job runners that are implemented for consistent reference
+CROMWELL = 'CROMWELL'
+AVAILABLE_REMOTE_JOB_RUNNERS = [CROMWELL,]
+
+# check that we wish to use the remote job runners:
+enable_remote_jobs_str = get_env('ENABLE_REMOTE_JOB_RUNNERS')
+if enable_remote_jobs_str == 'yes':
+    ENABLE_REMOTE_JOBS = True
+else:
+    ENABLE_REMOTE_JOBS = False
+
+REQUESTED_REMOTE_JOB_RUNNERS = None
+if ENABLE_REMOTE_JOBS:
+    # read the requested job runners from the environment variables. Check they're ok:
+    REQUESTED_REMOTE_JOB_RUNNERS = [x.strip() for x in get_env('REMOTE_JOB_RUNNERS').split(',')]
+    set_diff = set(REQUESTED_REMOTE_JOB_RUNNERS).difference(set(AVAILABLE_REMOTE_JOB_RUNNERS))
+    if len(set_diff) > 0:
+        raise ImproperlyConfigured('The following remote job runners were requested: {x}. However,'
+            ' they have not been implemented as determined by the settings.AVAILABLE_REMOTE_JOB_RUNNERS'
+            ' variable, which is: {y}'.format(
+                x = ','.join(set_diff),
+                y = ','.join(AVAILABLE_REMOTE_JOB_RUNNERS)
+            )
+        )
+    
+###############################################################################
+# END Parameters for configuring the cloud environment
+###############################################################################
+
+
 ###############################################################################
 # START Parameters for configuring resource storage
 ###############################################################################
 
-AVAILABLE_STORAGE_BACKENDS = {
-    'local': 'api.storage_backends.local.LocalStorage',
-    'google': 'api.storage_backends.google_cloud.GoogleBucketStorage'
-}
+LOCAL = 'local'
+REMOTE = 'remote'
 
+# map to the implementing classes. For the remote jobs, we have to reference
+# the cloud environment to get the implementing class.
+# For each cloud environment, we only allow certain storage backends. For example,
+# if we are on GCP, we don't allow AWS S3 storage backend (for simplicity)
+# Additionally, if we have chosen to use remote job runners, we will REQUIRE
+# that the corresponding bucket storage is used for the backend
+AVAILABLE_STORAGE_BACKENDS = [LOCAL, REMOTE]
 STORAGE_LOCATION = get_env('STORAGE_LOCATION')
-if STORAGE_LOCATION in AVAILABLE_STORAGE_BACKENDS:
-    RESOURCE_STORAGE_BACKEND = AVAILABLE_STORAGE_BACKENDS[STORAGE_LOCATION]
-else:
-    raise ImproperlyConfigured('Please use on of the following for specifying'
-        ' the storage backend: {csv}'.format(
-            csv=','.join(AVAILABLE_STORAGE_BACKENDS.keys())
+if not (STORAGE_LOCATION in AVAILABLE_STORAGE_BACKENDS):
+    raise ImproperlyConfigured('The STORAGE_LOCATION environment'
+        ' variable must be one of: {opts}'.format(
+            opts = ', '.join([LOCAL, REMOTE])
         )
     )
 
-# import the storage backend to ensure we have set the proper environment variables
-# and instantiate an instance of the storage backend
-RESOURCE_STORAGE_BACKEND = import_string(RESOURCE_STORAGE_BACKEND)()
+if ENABLE_REMOTE_JOBS and (STORAGE_LOCATION==LOCAL):
+    raise ImproperlyConfigured('Since you enabled remote jobs, you must choose'
+        ' remote storage. Edit your environment variables.'
+    )
 
 # In the case of remote storage backends (e.g. buckets), we want the ability
 # to locally cache the files for faster access.  Files in this directory
@@ -293,13 +348,9 @@ RESOURCE_CACHE_EXPIRATION_DAYS = 2
 # END Parameters for configuring resource storage
 ###############################################################################
 
-
-
 ###############################################################################
 # START Parameters for configuring social authentication/registration
 ###############################################################################
-
-GOOGLE = 'GOOGLE'
 
 try:
     SOCIAL_BACKENDS = os.environ['SOCIAL_BACKENDS']
@@ -435,6 +486,11 @@ DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
 POSITIVE_INF_MARKER = '++inf++'
 NEGATIVE_INF_MARKER = '--inf--'
 
+
+###############################################################################
+# START settings/imports for filtering
+###############################################################################
+
 # For pagination-- sets up a consistent reference.
 PAGE_PARAM = 'page'
 PAGE_SIZE_PARAM = 'page_size'
@@ -442,3 +498,9 @@ PAGE_SIZE_PARAM = 'page_size'
 # import all the filtering operations that can be applied when querying for the content
 # of data resources
 from api.filters import *
+
+###############################################################################
+# END settings/imports for filtering
+###############################################################################
+
+# Ensure that the cloud environment is "ready" (e.g. that )

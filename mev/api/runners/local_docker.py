@@ -35,6 +35,7 @@ class LocalDockerRunner(OperationRunner):
     machine
     '''
     MODE = 'local_docker'
+    NAME = 'LOCAL'
 
     # the name of the Dockerfile which resides in the docker directory.
     # Used to build the Docker image
@@ -235,16 +236,6 @@ class LocalDockerRunner(OperationRunner):
         logger.info('Op data: %s' % op_data)
         logger.info(validated_inputs)
 
-        # have to translate the user-submitted inputs to those that
-        # the local docker runner can work with.
-        # For instance, a differential gene expression requires one to specify
-        # the samples that are in each group-- to do this, the Operation requires
-        # two ObservationSet instances are submitted as arguments. The "translator"
-        # will take the ObservationSet data structures and turn them into something
-        # that the call with use- e.g. making a CSV list to submit as one of the args
-        # like:
-        # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
-
         # the UUID identifying the execution of this operation:
         execution_uuid = str(executed_op.id)
 
@@ -255,6 +246,13 @@ class LocalDockerRunner(OperationRunner):
         )
 
         # convert the user inputs into args compatible with commandline usage:
+        # For instance, a differential gene expression requires one to specify
+        # the samples that are in each group-- to do this, the Operation requires
+        # two ObservationSet instances are submitted as arguments. The "translator"
+        # will take the ObservationSet data structures and turn them into something
+        # that the call with use- e.g. making a CSV list to submit as one of the args
+        # like:
+        # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
         arg_dict = self._map_inputs(op_dir, validated_inputs)
 
         # Note that any paths (i.e. DataResources) are currently in the user cache directory.

@@ -142,7 +142,8 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertFalse(check_for_shared_resource_file(r[0]))        
 
     @mock.patch('resource_types.RESOURCE_MAPPING')
-    def test_resource_preview_for_valid_resource_type(self, mock_resource_mapping):
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_preview_for_valid_resource_type(self, mock_get_storage_backend, mock_resource_mapping):
         '''
         Tests that a proper preview dict is returned.  Mocks out the 
         method that does the reading of the resource path.
@@ -161,11 +162,13 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_dict = {'a': 1, 'b':2}
 
         class mock_resource_type_class(object):
-            def get_contents(self, path, limit=None):
+            def get_contents(self, path, query_params={}):
                 return expected_dict
 
         mock_resource_mapping.__getitem__.return_value = mock_resource_type_class
-
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = '/foo'
+        mock_get_storage_backend.return_value = mock_storage_backend
         preview_dict = get_resource_view(r)
         self.assertDictEqual(expected_dict, preview_dict)
 
@@ -189,31 +192,12 @@ class TestResourceUtilities(BaseAPITestCase):
         preview_dict = get_resource_view(r)
         self.assertIsNone(preview_dict)
         
-    @mock.patch('resource_types.RESOURCE_MAPPING')
-    def test_resource_preview_for_invalid_resource_type(self, mock_resource_mapping):
-        '''
-        Tests that a proper preview dict is returned.  Mocks out the 
-        method that does the reading of the resource path.
-        '''
-        all_resources = Resource.objects.all()
-        resource = None
-        for r in all_resources:
-            if r.resource_type:
-                resource = r
-                break
-        if not resource:
-            raise ImproperlyConfigured('Need at least one resource with'
-                ' a specified resource_type to run this test.'
-            )
-
-        mock_resource_mapping.__getitem__.side_effect = KeyError
-
-        preview_dict = get_resource_view(r)
-        self.assertTrue('error' in preview_dict)
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
-    def test_invalid_handler_called(self, mock_handle_invalid_resource, mock_get_resource_type_instance):
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_invalid_handler_called(self, mock_get_storage_backend, \
+            mock_handle_invalid_resource, mock_get_resource_type_instance):
         '''
         Here we test that a failure to validate the resource calls the proper
         handler function.
@@ -235,6 +219,10 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_resource_class_instance.validate_type.return_value = (False, 'some string')
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
         
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = 'foo'
+        mock_get_storage_backend.return_value = mock_storage_backend
+
         validate_resource(unset_resource, 'MTX')
 
         mock_handle_invalid_resource.assert_called()
@@ -242,7 +230,8 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    def test_valid_invalid_handler_called(self, mock_handle_valid_resource, mock_get_resource_type_instance):
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_valid_invalid_handler_called(self, mock_get_storage_backend, mock_handle_valid_resource, mock_get_resource_type_instance):
         '''
         Here we test that a successful validation calls the proper
         handler function.
@@ -263,7 +252,7 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_resource_class_instance = mock.MagicMock()
         mock_resource_class_instance.validate_type.return_value = (True, 'some string')
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
-        
+
         validate_resource(unset_resource, 'MTX')
 
         mock_handle_valid_resource.assert_called()

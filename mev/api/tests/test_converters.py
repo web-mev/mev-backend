@@ -40,14 +40,16 @@ class TestElementSetConverter(BaseAPITestCase):
 
 class TestDataResourceConverter(BaseAPITestCase):
 
-    @mock.patch('api.converters.data_resource.settings')
-    def test_single_local_converter(self, mock_settings):
+    @mock.patch('api.converters.data_resource.get_storage_backend')
+    def test_single_local_converter(self, mock_get_storage_backend):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path
         '''
         p = '/foo/bar.txt'
-        mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.return_value = p
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = p
+        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -59,14 +61,16 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert(user_input)
         self.assertEqual(x, p)
 
-    @mock.patch('api.converters.data_resource.settings')
-    def test_csv_local_converter_case1(self, mock_settings):
+    @mock.patch('api.converters.data_resource.get_storage_backend')
+    def test_csv_local_converter_case1(self, mock_get_storage_backend):
         '''
         Tests that the converter can take a list of Resource instances
         and return a properly formatted comma-delim list 
         '''
         p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
-        mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.side_effect = p
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.side_effect = p
+        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -84,14 +88,16 @@ class TestDataResourceConverter(BaseAPITestCase):
 
 
 
-    @mock.patch('api.converters.data_resource.settings')
-    def test_csv_local_converter_case2(self, mock_settings):
+    @mock.patch('api.converters.data_resource.get_storage_backend')
+    def test_csv_local_converter_case2(self, mock_get_storage_backend):
         '''
         Tests that the CSV converter can take a single Resource instance
         and return a properly formatted string 
         '''
         p = '/foo/bar1.txt'
-        mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.return_value = p
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = p
+        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -102,14 +108,16 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert(user_input)
         self.assertEqual(x, p)
 
-    @mock.patch('api.converters.data_resource.settings')
-    def test_space_delim_local_converter_case1(self, mock_settings):
+    @mock.patch('api.converters.data_resource.get_storage_backend')
+    def test_space_delim_local_converter_case1(self, mock_get_storage_backend):
         '''
         Tests that the converter can take a list of Resource instances
         and return a properly formatted space-delimited list.
         '''
         p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
-        mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.side_effect = p
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.side_effect = p
+        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -123,14 +131,16 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert(user_input)
         self.assertEqual(x, ' '.join(p))
 
-    @mock.patch('api.converters.data_resource.settings')
-    def test_space_delim_local_converter_case2(self, mock_settings):
+    @mock.patch('api.converters.data_resource.get_storage_backend')
+    def test_space_delim_local_converter_case2(self, mock_get_storage_backend):
         '''
         Tests that the converter can take a single Resource instance
         and return a properly formatted space-delimited list.
         '''
         p = '/foo/bar1.txt'
-        mock_settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path.return_value = p
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = p
+        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test

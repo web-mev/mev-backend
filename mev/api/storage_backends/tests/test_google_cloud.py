@@ -4,8 +4,7 @@ import os
 from api.tests.base import BaseAPITestCase
 from api.models import Resource
 from api.storage_backends.base import BaseStorageBackend
-from api.storage_backends.google_cloud import GoogleBucketStorage, \
-    BUCKET_PREFIX
+from api.storage_backends.google_cloud import GoogleBucketStorage
 
 DUMMY_BUCKETNAME = 'a-google-bucket'
 
@@ -16,7 +15,6 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    @mock.patch('api.storage_backends.google_cloud.GOOGLE_BUCKET_NAME', DUMMY_BUCKETNAME)
     def test_resource_path_altered_correctly(self, mock_storage, mock_os_exists):
 
         resources = Resource.objects.filter(owner=self.regular_user_1)
@@ -28,9 +26,8 @@ class TestGoogleBucketStorage(BaseAPITestCase):
             uuid = str(r.pk),
             name = filename
         )
-        expected_destination = os.path.join( BUCKET_PREFIX, \
-            DUMMY_BUCKETNAME, str(owner_uuid), expected_basename)
 
+        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_bucket = mock.MagicMock()
         mock_upload_blob = mock.MagicMock()
@@ -43,11 +40,12 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_upload_blob.assert_called()
         storage_backend.get_or_create_bucket.assert_called()
+        expected_destination = os.path.join( GoogleBucketStorage.BUCKET_PREFIX, \
+            DUMMY_BUCKETNAME, str(owner_uuid), expected_basename)
         self.assertEqual(path, expected_destination)
 
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    @mock.patch('api.storage_backends.google_cloud.GOOGLE_BUCKET_NAME', DUMMY_BUCKETNAME)
     def test_bucket_transfer_call(self, mock_storage, mock_os_exists):
         '''
         If an analysis is performed remotely (so that files are located in 
@@ -63,9 +61,8 @@ class TestGoogleBucketStorage(BaseAPITestCase):
             uuid = str(r.pk),
             name = filename
         )
-        expected_destination = os.path.join( BUCKET_PREFIX, \
-            DUMMY_BUCKETNAME, str(owner_uuid), expected_basename)
 
+        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_bucket = mock.MagicMock()
         mock_upload_blob = mock.MagicMock()
@@ -85,13 +82,14 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         mock_upload_blob.assert_not_called()
         mock_interbucket_transfer.assert_called()
         storage_backend.get_or_create_bucket.assert_called()
+        expected_destination = os.path.join( GoogleBucketStorage.BUCKET_PREFIX, \
+            DUMMY_BUCKETNAME, str(owner_uuid), expected_basename)
         self.assertEqual(path, expected_destination)
 
     @mock.patch('api.storage_backends.google_cloud.make_local_directory')
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    @mock.patch('api.storage_backends.google_cloud.GOOGLE_BUCKET_NAME', DUMMY_BUCKETNAME)
     def test_local_resource_pull_case1(self, \
         mock_storage, \
         mock_settings, \
@@ -112,6 +110,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_exists.return_value = False
 
+        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()
@@ -130,7 +129,6 @@ class TestGoogleBucketStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    @mock.patch('api.storage_backends.google_cloud.GOOGLE_BUCKET_NAME', DUMMY_BUCKETNAME)
     def test_local_resource_pull_case2(self, \
         mock_storage, \
         mock_settings, \
@@ -151,6 +149,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_exists.side_effect = [True, False]
 
+        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()
@@ -169,7 +168,6 @@ class TestGoogleBucketStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    @mock.patch('api.storage_backends.google_cloud.GOOGLE_BUCKET_NAME', DUMMY_BUCKETNAME)
     def test_local_resource_pull_case3(self, \
         mock_storage, \
         mock_settings, \
@@ -189,6 +187,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_exists.side_effect = [True, True]
 
+        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()

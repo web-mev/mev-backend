@@ -3,7 +3,6 @@ import uuid
 import json
 import logging
 
-from django.conf import settings
 from django.utils.module_loading import import_string
 
 from api.models import Resource, ResourceMetadata
@@ -11,7 +10,7 @@ from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
     move_resource, \
     copy_local_resource
-
+from api.storage_backends import get_storage_backend
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     extension_is_consistent_with_type, \
@@ -172,7 +171,7 @@ def get_resource_view(resource_instance, query_params={}):
             resource = resource_instance
         ))
         return
-    local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
+    local_path = get_storage_backend().get_local_resource_path(resource_instance)
     return get_contents(local_path, resource_instance.resource_type, query_params)
 
 def get_resource_paginator(resource_type):
@@ -199,10 +198,10 @@ def move_resource_to_final_location(resource_instance):
     '''
     resource_instance is the database object
     '''
-    return settings.RESOURCE_STORAGE_BACKEND.store(resource_instance)
+    return get_storage_backend().store(resource_instance)
 
 def get_resource_size(resource_instance):
-    return settings.RESOURCE_STORAGE_BACKEND.get_filesize(resource_instance.path)
+    return get_storage_backend().get_filesize(resource_instance.path)
 
 def handle_valid_resource(resource, resource_class_instance, requested_resource_type):
     '''
@@ -213,7 +212,7 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     `resource_class_instance` is one of the DataResource subclasses
     '''
     # Actions below require local access to the file:
-    local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource)
+    local_path = get_storage_backend().get_local_resource_path(resource)
     logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
 
     # the resource was valid, so first save it in our standardized format
@@ -221,11 +220,12 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
 
     # delete the "original" resource, if the standardization ended up making
     # a different file
-    if new_path != resource.path:
+
+    if new_path != local_path:
         logger.info('The standardization changed the path. '
             'Go delete the non-standardized file: {p}'.format(p=resource.path)
         )
-        settings.RESOURCE_STORAGE_BACKEND.delete(resource.path)
+        get_storage_backend().delete(resource.path)
 
         # temporarily change this so it doesn't point at the original path
         # in the non-standardized format. This way the standardized file will be 
@@ -321,7 +321,7 @@ def validate_resource(resource_instance, requested_resource_type):
         # which is dependent on the storage backend.  Now, if the storage backend
         # is remote (e.g. bucket storage), we need to pull the file locally to 
         # perform validation.
-        local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(resource_instance)
+        local_path = get_storage_backend().get_local_resource_path(resource_instance)
         try:
             is_valid, message = resource_class_instance.validate_type(local_path)
         except Exception as ex:

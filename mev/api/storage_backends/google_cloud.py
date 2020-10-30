@@ -9,72 +9,51 @@ from google.cloud import storage
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 
-from .remote import RemoteStorageBackend
+from .remote_bucket import RemoteBucketStorageBackend
 
 from api.utilities.basic_utils import make_local_directory, get_with_retry
 
-# Look for the necessary environment variables here-- when the application
-# starts, failure to find these environment variables will cause the application
-# startup to fail.
-try:
-    GOOGLE_BUCKET_NAME = os.environ['BUCKET_NAME']
-except KeyError as ex:
-    raise ImproperlyConfigured('Need to supply the following environment'
-        ' variable: {k}'.format(k=ex))
-
-try:
-    GOOGLE_BUCKET_REGION = os.environ['GOOGLE_BUCKET_REGION']
-except KeyError as ex:
-    warnings.warn('Since you have not specified a region for your storage bucket,'
-        ' we will assume it is located in the same region as the VM.')
-    GOOGLE_BUCKET_REGION = None
-
-# the prefix for google storage buckets:
-BUCKET_PREFIX = 'gs://'
-
 logger = logging.getLogger(__name__)
 
-class GoogleBucketStorage(RemoteStorageBackend):
+class GoogleBucketStorage(RemoteBucketStorageBackend):
+
+    # the prefix for google storage buckets:
+    BUCKET_PREFIX = 'gs://'
 
     def __init__(self):
         super().__init__()
         self.storage_client = storage.Client()
-
-    def _get_instance_region(self):
-        if GOOGLE_BUCKET_REGION:
-            return GOOGLE_BUCKET_REGION
-
-        try:
-            response = get_with_retry(
-                'http://metadata/computeMetadata/v1/instance/zone', 
-                headers={'Metadata-Flavor': 'Google'}
-            )
-            # zone_str is something like 'projects/{project ID number}/zones/us-east4-c'
-            zone_str = response.text
-            region = '-'.join(zone_str.split('/')[-1].split('-')[:2]) # now like us-east4
-            return region
-        except Exception as ex:
-            # if we could not get the region of the instance, return None for the region
-            # This will ultimately create a bucket that is multi-region
-            return None
             
+    def get_bucket_region(self, bucket_name):
+        '''
+        Return the location/region of a bucket
+        '''
+        logger.info('Requesting region of bucket: {bucket_name}'.format(
+                bucket_name = bucket_name
+            )
+        )
+        bucket = self.get_bucket(bucket_name)
+        return bucket.location
+
     def get_bucket(self, bucket_name):
         logger.info('Requesting bucket: {bucket_name}'.format(
             bucket_name=bucket_name))
         return self.storage_client.get_bucket(bucket_name)
 
     def get_or_create_bucket(self):
+        # can't import above as we get a 
+        from api.cloud_backends.google_cloud import get_instance_region
         try:
-            bucket = self.get_bucket(GOOGLE_BUCKET_NAME)
+            bucket = self.get_bucket(self.BUCKET_NAME)
         except google.api_core.exceptions.NotFound as ex:
             logger.info('Google bucket with name {bucket_name} did'
                 ' not exist.  Create.'.format(
-                    bucket_name = GOOGLE_BUCKET_NAME
+                    bucket_name = self.BUCKET_NAME
                 ))
-            region = self._get_instance_region()
+            region = get_instance_region()
             try:
                 bucket = storage_client.create_bucket(
-                    GOOGLE_BUCKET_NAME,
+                    self.BUCKET_NAME,
                     location=region
                 )
                 logger.info('Bucket created.')
@@ -124,7 +103,7 @@ class GoogleBucketStorage(RemoteStorageBackend):
         google storage.  Should be a full path (e.g. gs://bucket/object.txt)
         '''
         logger.info('Get blob at {path}'.format(path=path))
-        path_contents = path[len(BUCKET_PREFIX):].split('/')
+        path_contents = path[len(self.BUCKET_PREFIX):].split('/')
         bucket_name = path_contents[0]
         object_name = '/'.join(path_contents[1:])
         try:
@@ -172,7 +151,7 @@ class GoogleBucketStorage(RemoteStorageBackend):
         # if the resource is on the server, we need to upload. If it's already in 
         # another bucket, just do a bucket transfer.
 
-        final_path = os.path.join(BUCKET_PREFIX, GOOGLE_BUCKET_NAME, relative_path)
+        final_path = os.path.join(self.BUCKET_PREFIX, self.BUCKET_NAME, relative_path)
 
         if os.path.exists(resource_instance.path): 
             try:

@@ -31,6 +31,18 @@ class OperationRunner(object):
     # It will be placed in the execution directory by the job
     OUTPUTS_JSON = 'outputs.json'
 
+    def check_if_ready(self):
+        '''
+        This is called on startup to see if a particular implementation
+        of a runner is indeed ready to run. Examples include checking that
+        the Cromwell server is online, etc.
+
+        This will typically be overridden by a child class. If not, then
+        it will assume it's ready (by not raising an exception)
+        '''
+        pass
+
+
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''
         Used during ingestion to perform setup/prep before an operation can 
@@ -101,3 +113,41 @@ class OperationRunner(object):
         d = json.load(open(converter_file_path))
         logger.info('Read the following converter mapping: {d}'.format(d=d))
         return d
+
+    def _map_inputs(self, op_dir, validated_inputs):
+        '''
+        Takes the inputs (which are MEV-native data structures)
+        and make them into something that we can pass to a command-line
+        call. 
+
+        For instance, this takes a DataResource (which is a UUID identifying
+        the file), and turns it into a local path.
+        '''
+        converter_dict = self._get_converter_dict(op_dir)
+        arg_dict = {}
+        for k,v in validated_inputs.items():
+            try:
+                converter_class_str = converter_dict[k] # a string telling us which converter to use
+            except KeyError as ex:
+                logger.error('Could not locate a converter for input: {i}'.format(
+                    i = k
+                ))
+                raise ex
+            try:
+                converter_class = import_string(converter_class_str)
+            except Exception as ex:
+                logger.error('Failed when importing the converter class: {clz}'
+                    ' Exception was: {ex}'.format(
+                        ex=ex,
+                        clz = converter_class_str
+                    )
+                )
+                raise ex
+            # instantiate the converter and convert the arg:
+            c = converter_class()
+            arg_dict[k] = c.convert(v)
+
+        logger.info('After mapping the user inputs, we have the'
+            ' following structure: {d}'.format(d = arg_dict)
+        )
+        return arg_dict

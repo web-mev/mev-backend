@@ -11,20 +11,41 @@ AVAILABLE_RUN_MODES = [
     RemoteCromwellRunner.MODE
 ]
 
-RUNNER_MAPPING = {
+RUNNER_MODE_MAPPING = {
     LocalDockerRunner.MODE: LocalDockerRunner,
     RemoteCromwellRunner.MODE: RemoteCromwellRunner
 }
 
-def get_runner(mode):
-    try:
-        return RUNNER_MAPPING[mode]
-    except KeyError as ex:
-        logger.error('Requested an unknown run mode: {mode}'.format(
-            mode=mode
-        ))
-        raise ex
+RUNNER_NAME_MAPPING = {
+    LocalDockerRunner.NAME: LocalDockerRunner,
+    RemoteCromwellRunner.NAME: RemoteCromwellRunner
+}
 
+def get_runner(mode=None, name=None):
+    '''
+    Given either the mode (as given in an operation spec) or by name,
+    return the class that implements that job running method.
+    '''
+    if mode:
+        try:
+            return RUNNER_MODE_MAPPING[mode]
+        except KeyError as ex:
+            logger.error('Requested an unknown run mode: {mode}'.format(
+                mode=mode
+            ))
+            raise ex
+    if name:
+        try:
+            return RUNNER_NAME_MAPPING[name]
+        except KeyError as ex:
+            logger.error('Requested an unknown runner name: {name}'.format(
+                name=name
+            ))
+            raise ex
+    else:
+        logger.error('Need to get the job runner by name or mode. Received neither.')
+        raise Exception('The get_runner function needs either a name or a mode.')
+ 
 def submit_job(executed_op, op_data, validated_inputs):
     '''
     Submits the job to the proper runner.
@@ -34,7 +55,7 @@ def submit_job(executed_op, op_data, validated_inputs):
     `validated_inputs` is a dict of inputs. Each key matches a key 
       from the `op_data` and the value is an instance of `UserOperationInput`
     '''
-    runner_class = get_runner(op_data['mode'])
+    runner_class = get_runner(mode=op_data['mode'])
     runner = runner_class()
     runner.run(executed_op, op_data, validated_inputs)
 

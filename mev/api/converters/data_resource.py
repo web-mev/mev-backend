@@ -1,10 +1,9 @@
 import logging
 
-from django.conf import settings
-
 from api.models import Resource
 from api.utilities.resource_utilities import get_resource_by_pk
 from api.converters.mixins import CsvMixin, SpaceDelimMixin
+from api.storage_backends import get_storage_backend
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ class LocalDataResourceConverter(BaseDataResourceConverter):
         on the local filesystem
         '''
         r = self.get_resource(resource_uuid)
-        local_path = settings.RESOURCE_STORAGE_BACKEND.get_local_resource_path(r)
+        local_path = get_storage_backend().get_local_resource_path(r)
         return local_path
 
 class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):

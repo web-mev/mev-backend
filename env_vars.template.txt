@@ -2,9 +2,6 @@
 # Pass a completed version of this template to the Docker container upon
 # startup with the --env-file arg.
 
-# The cloud platform determines which classes are used to hook up to 
-# storage buckets, etc.
-CLOUD_PLATFORM=google
 
 ###################### Database-related parameters ######################################
 
@@ -43,6 +40,31 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 
 ####################### END Django-related parameters ###################################
 
+
+###################### Start cloud env related parameters ###############################
+
+# Here we setup some parameters relating to the cloud environment, including the location
+# of remote job runner services, etc.
+
+# The cloud platform determines which classes are used to hook up to 
+# storage buckets, etc.
+CLOUD_PLATFORM=
+
+# Will you be using one of the remote job runners?
+# Case-sensitive "yes" (without quotes) will enable. Otherwise we will
+# not enable remote job runs
+ENABLE_REMOTE_JOB_RUNNERS=
+
+# Which remote job runners will be used?
+# Doesn't matter if the USE_REMOTE_JOB_RUNNERS is "false"
+# This is a comma-delimited list of strings which have to match
+# the recognized keys in the Django settings file(s).
+REMOTE_JOB_RUNNERS=
+
+
+###################### END cloud env related parameters #################################
+
+
 ###################### Storage-related parameters ######################################
 
 # the storage backend dictates where the "absolute" source of the files is. Of course,
@@ -51,16 +73,25 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 # the path that is reflected in the Resource database instances.
 # Can be local, or the name of one of the cloud providers (which then allows us 
 # to link up the appropriate storage class) 
+# Note that if you are requesting to use remote job runners (ENABLE_REMOTE_JOB_RUNNERS)
+# then you are REQUIRED to use bucket storage. You can only use local storage if all
+# your runners are local.
+# Options include "local" and "remote"
 STORAGE_LOCATION=
 
 # If using local storage for all files (not recommended!), set the following:
 # This is relative to the django BASE_DIR
 LOCAL_USER_STORAGE_DIRNAME=user_resources
 
-# Even if not using bucket storage as the primary storage area, we need to have access 
-# to a cloud storage bucket for the remote jobs to work.
+# A bucket where MEV user's files will be stored (if using bucket storage). This
+# is independent of any bucket's used as a storage location for remote job runners, etc.
 # DO NOT inlude the prefix, e.g. "gs://" or "s3://"
-BUCKET_NAME=
+USER_STORAGE_BUCKET_NAME=
+
+# If using the Cromwell engine to run remote jobs, we need to know the bucket where it will
+# write files. If NOT using Cromwell, then this does not have to be filled.
+# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
+CROMWELL_BUCKET=
 
 ###################### END Storage-related parameters ######################################
 

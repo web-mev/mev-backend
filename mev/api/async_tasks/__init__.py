@@ -2,8 +2,6 @@ import logging
 import os
 import json
 
-from django.conf import settings
-
 from celery.decorators import task
 
 from api.models import Resource, \
@@ -18,6 +16,7 @@ from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
 from api.runners import submit_job, finalize_job
 from api.utilities.operations import get_operation_instance_data
+from api.storage_backends import get_storage_backend
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ def delete_file(path):
     Deletes a file.  Can be a local or remote resource.
     '''
     logger.info('Requesting deletion of {path}'.format(path=path))
-    settings.RESOURCE_STORAGE_BACKEND.delete(path)
+    get_storage_backend().delete(path)
 
 @task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type):
