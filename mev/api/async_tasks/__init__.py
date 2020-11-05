@@ -112,7 +112,6 @@ def submit_async_job(executed_op_pk, op_pk, workspace_pk, job_name, validated_in
         inputs = validated_inputs,
         operation = op,
         mode = op_data['mode'],
-        job_id = executed_op_pk, # same as pk since we name our docker container by this pk 
         status = ExecutedOperation.SUBMITTED
     )
 

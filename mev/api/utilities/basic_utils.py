@@ -33,6 +33,15 @@ def is_fatal_code(e):
 def get_with_retry(*args, **kwargs):
     return requests.get(*args, **kwargs)
 
+# a function that wraps requests.get for multiple tries
+@backoff.on_exception(backoff.expo,
+                      requests.exceptions.RequestException,
+                      max_time=30,
+                      max_tries = 5,
+                      giveup=is_fatal_code)
+def post_with_retry(*args, **kwargs):
+    return requests.post(*args, **kwargs)
+
 def encode_uid(pk):
     return force_str(urlsafe_base64_encode(force_bytes(pk)))
 

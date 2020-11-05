@@ -12,6 +12,14 @@ class JsonResource(DataResource):
     ACCEPTABLE_EXTENSIONS = [JSON]
     DESCRIPTION = 'A JSON-format file.'
 
+    def performs_validation(self):
+        '''
+        Since we have methods to validate JSON-based DataResource types, we 
+        override this method and return True, which indicates that we CAN
+        perform validation.
+        '''
+        return True
+
     def validate_type(self, resource_path):
 
         try:

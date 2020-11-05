@@ -47,7 +47,8 @@ class ExecutedOperation(models.Model):
     job_id = models.UUIDField(
         primary_key = False, 
         default = uuid.uuid4, 
-        editable = True
+        editable = True,
+        null = True
     )
 
     # The user-assigned name for the ExecutedOperation

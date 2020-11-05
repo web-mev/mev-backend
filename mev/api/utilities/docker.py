@@ -51,15 +51,20 @@ def login_to_dockerhub():
 
 def push_image_to_dockerhub(image, tag):
 
-    DOCKER_PUSH_CMD = 'docker push {username}/{image}:{tag}'
-    push_cmd = DOCKER_PUSH_CMD.format(
+    IMAGE_STR = '{username}/{image}:{tag}'
+    DOCKER_PUSH_CMD = 'docker push {img_str}'
+    image_str = IMAGE_STR.format(
         username = settings.DOCKERHUB_USERNAME,
         image = image,
         tag = tag
+    )
+    push_cmd = DOCKER_PUSH_CMD.format(
+        img_str = image_str
     ) 
     logger.info('Push Docker image with: {cmd}'.format(cmd=push_cmd))
     stdout, stderr = run_shell_command(push_cmd)
     logger.info('Successfully pushed image.')
+    return image_str
 
 def get_logs(container_id):
     log_cmd = 'docker logs {id}'.format(id=container_id)

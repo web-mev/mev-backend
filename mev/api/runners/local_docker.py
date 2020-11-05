@@ -98,36 +98,11 @@ class LocalDockerRunner(OperationRunner):
             # the outputs json file:
             outputs_dict = self.load_outputs_file(job_id)
 
-            # the workspace so we know which workspace to associate outputs with:
-            user_workspace = executed_op.workspace
-
-            # get the operation spec so we know which types correspond to each output
-            op_data = get_operation_instance_data(executed_op.operation)
-            op_spec_outputs = op_data['outputs']
-
             # instantiate the output converter class:
             converter = LocalDockerOutputConverter()
+            converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
 
-            new_outputs_dict = {}
-            for k,v in outputs_dict.items():
-                try:
-                    spec = op_spec_outputs[k]['spec']
-                except KeyError as ex:
-                    logger.error('Could not locate the output with key={k} in'
-                        ' the outputs of operation with ID: {id}'.format(
-                            k = k,
-                            id = str(executed_op.operation.id)
-                        )
-                    )
-                    alert_admins()
-                else:
-                    if v is not None:
-                        logger.info('Executed operation output was not None. Convert.')
-                        new_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
-                    else:
-                        logger.info('Executed operation output was null/None.')
-                        new_outputs_dict[k] = None
-            executed_op.outputs = new_outputs_dict
+            executed_op.outputs = converted_outputs
 
         # finally, we cleanup the docker container
         remove_container(job_id)
@@ -293,6 +268,8 @@ class LocalDockerRunner(OperationRunner):
         )
         try:
             run_shell_command(cmd)
+            executed_op.job_id = execution_uuid
+            executed_op.save()
         except Exception as ex:
             # if an exception is raised when issuing the Docker run
             # command, then the job has failed. This error is likely

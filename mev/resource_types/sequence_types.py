@@ -17,6 +17,26 @@ class SequenceResource(DataResource):
     def validate_type(cls, resource_path):
         pass
 
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        '''
+        For sequence-based types, we implement a trivial metadata
+        extraction, as these resource types are not typically amenable
+        to fast/easy parsing (possibly files that are many GB)
+
+        Fill out an basic metadata object
+        '''
+        logger.info('Extracting metadata from resource with path ({path}).'.format(
+            path = resource_path
+        )) 
+
+        # call the super method to initialize the self.metadata
+        # dictionary
+        super().setup_metadata()
+
+        # now add the information to self.metadata:
+        if parent_op_pk:
+            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+
 
 class FastAResource(SequenceResource):
     '''

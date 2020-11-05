@@ -19,9 +19,23 @@ def perform_startup_checks():
     raise CloudPlatformNotFoundException()
 
 def get_instance_region():
-
+    '''
+    Returns the "region" (as a string) of a compute instance. In the case of GCP, this
+    can be something like "us-east4"
+    '''
     if settings.CLOUD_PLATFORM == settings.GOOGLE:
         import api.cloud_backends.google_cloud as google_cloud
         return google_cloud.get_instance_region()
+
+    raise CloudPlatformNotFoundException()
+
+def get_instance_zone():
+    '''
+    Returns the "zone" (as a string) of a compute instance. In the case of GCP, this
+    can be something like "us-east4-c"
+    '''
+    if settings.CLOUD_PLATFORM == settings.GOOGLE:
+        import api.cloud_backends.google_cloud as google_cloud
+        return google_cloud.get_instance_zone()
 
     raise CloudPlatformNotFoundException()

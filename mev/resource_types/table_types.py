@@ -234,6 +234,14 @@ class TableResource(DataResource):
                 ))     
                 raise ParseException('Failed when parsing the table-based resource.')
 
+    def performs_validation(self):
+        '''
+        Since we have methods to validate table-based DataResource types, we 
+        override this method and return True, which indicates that we CAN
+        perform validation.
+        '''
+        return True
+
     def validate_type(self, resource_path):
         '''
         In this base method, we determine attempt to parse the file.

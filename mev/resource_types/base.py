@@ -29,6 +29,21 @@ class DataResource(object):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
+    def performs_validation(self):
+        '''
+        Certain types of files (e.g. fastq) are laborious
+        to validate or we cannot reliably check those. To 
+        prevent localization of large DataResources that skip
+        validation, we expose this method.
+
+        By default, return False, which asserts that the resource
+        type does not implement validation methods. It is the job
+        of the child classes to implement this method if they are
+        able to perform validation
+        '''
+        return False
+
+
     def get_contents(self, resource_path, query_params={}):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')

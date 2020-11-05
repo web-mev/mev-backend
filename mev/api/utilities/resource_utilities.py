@@ -211,31 +211,44 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     `resource` is the database object
     `resource_class_instance` is one of the DataResource subclasses
     '''
-    # Actions below require local access to the file:
-    local_path = get_storage_backend().get_local_resource_path(resource)
-    logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
+    # if the resource class is capable of performing validation, we enter here.
+    # This does NOT mean that any of the standardization, etc. steps occur, but
+    # this admits that possibility.
+    # If the resource type is such that is does not support validation, then we 
+    # skip this part as we have no need to pull the file locally (if the storage
+    # backend is remote)
+    if resource_class_instance.performs_validation():
 
-    # the resource was valid, so first save it in our standardized format
-    new_path, new_name = resource_class_instance.save_in_standardized_format(local_path, resource.name)
+        # Actions below require local access to the file:
+        local_path = get_storage_backend().get_local_resource_path(resource)
+        logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
 
-    # delete the "original" resource, if the standardization ended up making
-    # a different file
+        # the resource was valid, so first save it in our standardized format
+        new_path, new_name = resource_class_instance.save_in_standardized_format(local_path, resource.name)
 
-    if new_path != local_path:
-        logger.info('The standardization changed the path. '
-            'Go delete the non-standardized file: {p}'.format(p=resource.path)
-        )
-        get_storage_backend().delete(resource.path)
+        # delete the "original" resource, if the standardization ended up making
+        # a different file
 
-        # temporarily change this so it doesn't point at the original path
-        # in the non-standardized format. This way the standardized file will be 
-        # sent to the final storage location. Once the file is in the 'final' 
-        # storage location, the path member will be edited to reflect that
-        resource.path = new_path
+        if new_path != local_path:
+            logger.info('The standardization changed the path. '
+                'Go delete the non-standardized file: {p}'.format(p=resource.path)
+            )
+            get_storage_backend().delete(resource.path)
 
-    if new_name != resource.name:
-        # change the name of the resource
-        resource.name = new_name
+            # temporarily change this so it doesn't point at the original path
+            # in the non-standardized format. This way the standardized file will be 
+            # sent to the final storage location. Once the file is in the 'final' 
+            # storage location, the path member will be edited to reflect that
+            resource.path = new_path
+
+        if new_name != resource.name:
+            # change the name of the resource
+            resource.name = new_name
+    else:
+        # since we did not have to perform any standardization, etc. simply
+        # set the necessary variables without change.
+        new_path = resource.path
+        new_name = resource.name
 
     # since the resource was valid, we can also fill-in the metadata
     metadata = resource_class_instance.extract_metadata(new_path)
@@ -316,23 +329,27 @@ def validate_resource(resource_instance, requested_resource_type):
         # This returns an actual resource class implementation
         resource_class_instance = get_resource_type_instance(requested_resource_type)
 
-        # Regardless of whether we are validating a new upload or changing the type
-        # of an existing file, the file is already located at its "final" location
-        # which is dependent on the storage backend.  Now, if the storage backend
-        # is remote (e.g. bucket storage), we need to pull the file locally to 
-        # perform validation.
-        local_path = get_storage_backend().get_local_resource_path(resource_instance)
-        try:
-            is_valid, message = resource_class_instance.validate_type(local_path)
-        except Exception as ex:
-            logger.error('An exception was raised when attempting to validate'
-                ' the Resource {pk} located at {local_path}'.format(
-                    pk = str(resource_instance.pk),
-                    local_path = local_path
+        if resource_class_instance.performs_validation():
+
+            # Regardless of whether we are validating a new upload or changing the type
+            # of an existing file, the file is already located at its "final" location
+            # which is dependent on the storage backend.  Now, if the storage backend
+            # is remote (e.g. bucket storage), we need to pull the file locally to 
+            # perform validation.
+            local_path = get_storage_backend().get_local_resource_path(resource_instance)
+            try:
+                is_valid, message = resource_class_instance.validate_type(local_path)
+            except Exception as ex:
+                logger.error('An exception was raised when attempting to validate'
+                    ' the Resource {pk} located at {local_path}'.format(
+                        pk = str(resource_instance.pk),
+                        local_path = local_path
+                    )
                 )
-            )
-            resource_instance.status = Resource.UNEXPECTED_VALIDATION_ERROR
-            return
+                resource_instance.status = Resource.UNEXPECTED_VALIDATION_ERROR
+                return
+        else: # resource type does not include validation
+            is_valid = True
 
         if is_valid:
             handle_valid_resource(resource_instance, resource_class_instance, requested_resource_type)

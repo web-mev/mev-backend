@@ -4,6 +4,9 @@ import logging
 
 from django.utils.module_loading import import_string
 
+from api.utilities.operations import get_operation_instance_data
+from api.utilities.basic_utils import alert_admins
+
 logger = logging.getLogger(__name__)
 
 class MissingRequiredFileException(Exception):
@@ -151,3 +154,36 @@ class OperationRunner(object):
             ' following structure: {d}'.format(d = arg_dict)
         )
         return arg_dict
+
+    def convert_outputs(self, executed_op, converter, outputs_dict):
+        '''
+        Handles the mapping from outputs (as provided by the runner)
+        to MEV-compatible data structures or resources.
+        '''
+        # the workspace so we know which workspace to associate outputs with:
+        user_workspace = executed_op.workspace
+
+        # get the operation spec so we know which types correspond to each output
+        op_data = get_operation_instance_data(executed_op.operation)
+        op_spec_outputs = op_data['outputs']
+
+        converted_outputs_dict = {}
+        for k,v in outputs_dict.items():
+            try:
+                spec = op_spec_outputs[k]['spec']
+            except KeyError as ex:
+                logger.error('Could not locate the output with key={k} in'
+                    ' the outputs of operation with ID: {id}'.format(
+                        k = k,
+                        id = str(executed_op.operation.id)
+                    )
+                )
+                alert_admins()
+            else:
+                if v is not None:
+                    logger.info('Executed operation output was not None. Convert.')
+                    converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
+                else:
+                    logger.info('Executed operation output was null/None.')
+                    converted_outputs_dict[k] = None
+        return converted_outputs_dict

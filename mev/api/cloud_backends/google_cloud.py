@@ -12,19 +12,29 @@ logger = logging.getLogger(__name__)
 
 def get_instance_region():
     try:
-        response = get_with_retry(
-            'http://metadata/computeMetadata/v1/instance/zone', 
-            headers={'Metadata-Flavor': 'Google'}
-        )
-        # zone_str is something like 'projects/{project ID number}/zones/us-east4-c'
-        zone_str = response.text
-        region = '-'.join(zone_str.split('/')[-1].split('-')[:2]) # now like us-east4
+        zone = get_instance_zone() # a string like us-east4-c
+        region = '-'.join(zone.split('-')[:2]) # now like us-east4
         return region
     except Exception as ex:
         # if we could not get the region of the instance, return None for the region
         #return None
         raise ex
 
+def get_instance_zone():
+    try:
+        response = get_with_retry(
+            'http://metadata/computeMetadata/v1/instance/zone', 
+            headers={'Metadata-Flavor': 'Google'}
+        )
+        # zone_str is something like 'projects/{project ID number}/zones/us-east4-c'
+        zone_str = response.text
+        zone = '-'.join(zone_str.split('/')[-1]) # now like us-east4-c
+        return zone
+    except Exception as ex:
+        # if we could not get the region of the instance, return None for the region
+        #return None
+        raise ex
+    
 def startup_check():
     logger.info('Checking that everything is set for running MEV'
         ' in the Google Cloud environment.'

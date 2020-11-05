@@ -135,7 +135,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
-    @mock.patch('api.runners.local_docker.get_operation_instance_data')
+    @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.local_docker.LocalDockerOutputConverter')
     def test_handles_job_finalization(self, \
         mock_LocalDockerOutputConverter, \
@@ -186,9 +186,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
-    @mock.patch('api.runners.local_docker.get_operation_instance_data')
+    @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.local_docker.LocalDockerOutputConverter')
-    @mock.patch('api.runners.local_docker.alert_admins')
+    @mock.patch('api.runners.base.alert_admins')
     def test_handles_extra_output_on_job_finalization(self, \
         mock_alert_admins, \
         mock_LocalDockerOutputConverter, \
