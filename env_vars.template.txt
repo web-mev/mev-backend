@@ -88,11 +88,6 @@ LOCAL_USER_STORAGE_DIRNAME=user_resources
 # DO NOT inlude the prefix, e.g. "gs://" or "s3://"
 USER_STORAGE_BUCKET_NAME=
 
-# If using the Cromwell engine to run remote jobs, we need to know the bucket where it will
-# write files. If NOT using Cromwell, then this does not have to be filled.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
-CROMWELL_BUCKET=
-
 ###################### END Storage-related parameters ######################################
 
 ############################ Email-related parameters ######################################
@@ -158,6 +153,8 @@ DOCKERHUB_PASSWORD=
 
 ########################## END Dockerhub parameters #####################################
 
+########################## Local execution parameters #####################################
+
 # directory name relative to the django BASE_DIR
 # Do NOT change unless you know what you are doing!
 # Since we need to share volumes across Docker containers, 
@@ -172,3 +169,21 @@ EXECUTIONS_DIR=operation_executions
 `docker-compose -f docker-compose.prod.yml -p mev up -d`, and the named volume was
 foo, then it would be something like "mev_foo"
 EXECUTION_VOLUME=mev_execution_volume
+########################## END Local execution parameters #####################################
+
+
+########################## Cromwell parameters #########################################
+# Only need to fill-in variables here if you are using the remote Cromwell job engine
+# This is only relevant if ENABLE_REMOTE_JOB_RUNNERS and REMOTE_JOB_RUNNERS
+# are used
+
+# If using the Cromwell engine to run remote jobs, we need to know the bucket where it will
+# write files. If NOT using Cromwell, then this does not have to be filled.
+# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
+CROMWELL_BUCKET=
+
+# The address (including http/s protocol and any port) of the Cromwell server
+# Only needed if using the remote Cromwell job engine.
+CROMWELL_SERVER_URL= 
+
+########################## END Cromwell parameters #########################################
