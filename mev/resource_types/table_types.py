@@ -227,7 +227,7 @@ class TableResource(DataResource):
 
                 # call a method to 
             except Exception as ex:
-                logger.error('Could not use {reader} to parse the file'
+                logger.info('Could not use {reader} to parse the file'
                 ' at {path}'.format(
                     reader = reader,
                     path = resource_path
