@@ -33,7 +33,8 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             )
         )
         bucket = self.get_bucket(bucket_name)
-        return bucket.location
+        loc = bucket.location
+        return loc.lower()
 
     def get_bucket(self, bucket_name):
         logger.info('Requesting bucket: {bucket_name}'.format(
