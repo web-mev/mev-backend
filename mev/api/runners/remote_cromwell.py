@@ -114,8 +114,30 @@ class RemoteCromwellRunner(OperationRunner):
         for full_image_name in docker_image_names:
             # image name is something like 
             # <docker repo, e.g. docker.io>/<username>/<name>:<tag>
-            image_prefix, tag = full_image_name.split(':')
-            docker_repo, username, image_name = image_prefix.split('/')
+            split_full_name = full_image_name.split(':')
+            if len(split_full_name) == 2:
+                image_prefix, tag = split_full_name
+            elif len(split_full_name) == 1:
+                image_prefix = split_full_name[0]
+            else:
+                logger.error('Could not properly handle the following docker'
+                    ' image spec: {x}'.format(x = full_image_name)
+                )
+                raise Exception('Could not make sense of the docker'
+                    ' image handle: {x}'.format(x=full_image_name)
+                )
+            image_split = image_prefix.split('/')
+            if len(image_split) == 3:
+                docker_repo, username, image_name = image_split
+            elif len(image_split) == 2:
+                username, image_name = image_split
+            else:
+                logger.error('Could not properly handle the following docker'
+                    ' image spec: {x}'.format(x = full_image_name)
+                )
+                raise Exception('Could not make sense of the docker'
+                    ' image handle: {x}'.format(x=full_image_name)
+                )
             dockerfile_name = '{df}.{name}'.format(
                 df = self.DOCKERFILE,
                 name = image_name

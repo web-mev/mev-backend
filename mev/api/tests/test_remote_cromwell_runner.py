@@ -87,6 +87,53 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         self.assertEqual(mock_push_image_to_dockerhub.call_count, 2)
         mock_edit_runtime_containers.assert_called_with(mock_op_dir, expected_name_mapping)
 
+    @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
+    @mock.patch('api.runners.remote_cromwell.build_docker_image')
+    @mock.patch('api.runners.remote_cromwell.login_to_dockerhub')
+    @mock.patch('api.runners.remote_cromwell.push_image_to_dockerhub')
+    @mock.patch('api.runners.remote_cromwell.edit_runtime_containers')
+    @mock.patch('api.runners.remote_cromwell.os.path.exists')
+    def test_preparation_case2(self, mock_path_exists,
+        mock_edit_runtime_containers,
+        mock_push_image_to_dockerhub, 
+        mock_login_to_dockerhub,
+        mock_build_docker_image,
+        mock_get_docker_images_in_repo
+    ):
+        '''
+        Tests that the proper calls are made when ingesting a workflow 
+        intended to run via a remote Cromwell call.
+
+        Here, we use docker images that do NOT have the docker.io repo prefix
+        '''
+        mock_get_docker_images_in_repo.return_value = [
+            'myUser/foo:tagA',
+            'myUser/bar',
+        ]
+        git_hash = 'abc123'
+        mock_path_exists.side_effect = [True, True]
+        mock_push_image_to_dockerhub.side_effect = [
+            'docker.io/mevUser/foo:%s' % git_hash,
+            'docker.io/mevUser/bar:%s' % git_hash
+        ]
+
+        expected_name_mapping = {
+            'myUser/foo:tagA': 'docker.io/mevUser/foo:%s' % git_hash,
+            'myUser/bar': 'docker.io/mevUser/bar:%s' % git_hash
+        }
+
+        # call the tested function:
+        rcr = RemoteCromwellRunner()
+        mock_op_dir = '/abc/'
+        rcr.prepare_operation(mock_op_dir, 'some-repo', git_hash)
+
+        self.assertEqual(mock_build_docker_image.call_count, 2)
+        mock_login_to_dockerhub.assert_called()
+        self.assertEqual(mock_push_image_to_dockerhub.call_count, 2)
+        mock_edit_runtime_containers.assert_called_with(mock_op_dir, expected_name_mapping)
+
+
+
     @mock.patch('api.runners.remote_cromwell.datetime')
     @mock.patch('api.runners.remote_cromwell.alert_admins')
     def test_handle_submission(self, mock_alert_admins, mock_datetime):
