@@ -3,6 +3,7 @@ import json
 import datetime
 import zipfile
 import logging
+import io
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
