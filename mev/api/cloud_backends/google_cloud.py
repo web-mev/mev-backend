@@ -28,7 +28,7 @@ def get_instance_zone():
         )
         # zone_str is something like 'projects/{project ID number}/zones/us-east4-c'
         zone_str = response.text
-        zone = '-'.join(zone_str.split('/')[-1]) # now like us-east4-c
+        zone = zone_str.split('/')[-1] # now like us-east4-c
         return zone
     except Exception as ex:
         # if we could not get the region of the instance, return None for the region
@@ -66,6 +66,7 @@ def startup_check():
         logger.info('Since storage is not local, have to check regions.')
         gbs = GoogleBucketStorage()
         bucket_location = gbs.get_bucket_region(gbs.BUCKET_NAME)
+        bucket_location = bucket_location.lower()
         if bucket_location != region:
             raise ImproperlyConfigured('The storage bucket ({b})'
                 ' should be in the same region ({r}) as the host machine.'.format(
