@@ -23,6 +23,27 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         os.environ['CROMWELL_SERVER_URL'] = 'http://mock-cromwell-server:8080'
         os.environ['CROMWELL_BUCKET'] = 'my-bucket'
 
+        # create a ExecutedOperation to work with:
+        ops = Operation.objects.all()
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation to run this test.')
+        op = ops[0]
+        workspaces = Workspace.objects.all()
+        if len(workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace to run this test.')
+        workspace = workspaces[0]
+        exec_op_pk = uuid.uuid4()
+        job_name = 'foo'
+        self.executed_op = ExecutedOperation.objects.create(
+            id=exec_op_pk,
+            workspace=workspace,
+            job_name = job_name,
+            inputs = {},
+            operation = op,
+            mode = 'cromwell',
+            status = ExecutedOperation.SUBMITTED
+        )
+
     @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
     @mock.patch('api.runners.remote_cromwell.build_docker_image')
     @mock.patch('api.runners.remote_cromwell.login_to_dockerhub')
@@ -81,39 +102,19 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         now = datetime.datetime.now()
         mock_datetime.datetime.now.return_value = now
 
-        ops = Operation.objects.all()
-        if len(ops) == 0:
-            raise ImproperlyConfigured('Need at least one Operation to run this test.')
-        op = ops[0]
-        workspaces = Workspace.objects.all()
-        if len(workspaces) == 0:
-            raise ImproperlyConfigured('Need at least one Workspace to run this test.')
-        workspace = workspaces[0]
-        exec_op_pk = uuid.uuid4()
-        job_name = 'foo'
-        exec_op = ExecutedOperation.objects.create(
-            id=exec_op_pk,
-            workspace=workspace,
-            job_name = job_name,
-            inputs = {},
-            operation = op,
-            mode = 'cromwell',
-            status = ExecutedOperation.SUBMITTED
-        )
         rcr = RemoteCromwellRunner()
-        rcr.handle_submission_response(mock_response, exec_op)
-        self.assertEqual(exec_op.job_id, str(u))
-        self.assertEqual(exec_op.execution_start_datetime, now)
-        print(exec_op.status)
+        rcr.handle_submission_response(mock_response, self.executed_op)
+        self.assertEqual(self.executed_op.job_id, str(u))
+        self.assertEqual(self.executed_op.execution_start_datetime, now)
+        print(self.executed_op.status)
 
         mock_response.status_code = 400
-        rcr.handle_submission_response(mock_response, exec_op)
+        rcr.handle_submission_response(mock_response, self.executed_op)
         mock_alert_admins.assert_called()
 
     def test_handle_job_check(self):
         '''
-        To check on a job, the user will submit a request-- check
-        that the various options are handled well.
+        Tests the 'check status' method for the remote cromwell runners.
         '''
         u = uuid.uuid4()
         rcr = RemoteCromwellRunner()
@@ -138,9 +139,8 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.remote_cromwell.get_with_retry')
     def test_handle_job_check_with_query(self, mock_get):
         '''
-        To check on a job, the user will submit a request-- check
-        that the various options are handled well. This version mocks the
-        get call.
+        Tests the 'check status' method for the remote cromwell runners. 
+        This version mocks the get call to Cromwell.
         '''
         u = uuid.uuid4()
         rcr = RemoteCromwellRunner()
@@ -157,3 +157,179 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         mock_get.return_value = mock_response
         result = rcr.check_status(u)
         self.assertFalse(result)
+
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.convert_outputs')
+    def test_job_success(self, mock_convert_outputs, mock_query_for_metadata):
+        '''
+        Tests that the expected things happen when we call the `handle_job_success`
+        following completion of a job.
+        '''
+        mock_convert_outputs.return_value = {'a':1}
+        mock_job_metadata = {
+            'end': '2020-10-28T00:05:03.694Z',
+            'outputs': {'a':'1'} # pretend the original input was a number, represented as a string
+        }
+        expected_end_datetime = datetime.datetime(2020, 10, 28, 
+            hour=0, minute=5, second=3, microsecond=694000)
+        mock_query_for_metadata.return_value = mock_job_metadata
+
+        # query the ExecutedOp 
+        exec_op_id = self.executed_op.id
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertIsNone(exec_op.outputs)
+        self.assertFalse(exec_op.job_failed)
+        self.assertIsNone(exec_op.execution_stop_datetime)
+
+        # call the tested func.
+        rcr = RemoteCromwellRunner()
+        rcr.handle_job_success(self.executed_op)
+
+        # query again to see changes were made to the db
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertDictEqual(exec_op.outputs, {'a':1})
+        self.assertFalse(exec_op.job_failed)
+        dt_w_tzinfo = exec_op.execution_stop_datetime
+        dt_wout_tzinfo = dt_w_tzinfo.replace(tzinfo=None)
+        self.assertEqual(dt_wout_tzinfo, expected_end_datetime)
+
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
+    @mock.patch('api.runners.remote_cromwell.alert_admins')
+    def test_job_success_with_missing_outputs(self, mock_alert_admins, mock_query_for_metadata):
+        '''
+        Tests that the expected things happen when we call the `handle_job_success`
+        following completion of a job. Here, we mock there being no outputs key 
+        in the returned metadata payload
+        '''
+        mock_job_metadata = {
+            'end': '2020-10-28T00:05:03.694Z'
+        }
+        expected_end_datetime = datetime.datetime(2020, 10, 28, 
+            hour=0, minute=5, second=3, microsecond=694000)
+        mock_query_for_metadata.return_value = mock_job_metadata
+
+        # query the ExecutedOp 
+        exec_op_id = self.executed_op.id
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertIsNone(exec_op.outputs)
+        self.assertFalse(exec_op.job_failed)
+        self.assertIsNone(exec_op.execution_stop_datetime)
+
+        # call the tested function
+        rcr = RemoteCromwellRunner()
+        rcr.handle_job_success(self.executed_op)
+
+        # query again to see changes were made to the db
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertDictEqual(exec_op.outputs, {})
+        self.assertFalse(exec_op.job_failed)
+        dt_w_tzinfo = exec_op.execution_stop_datetime
+        dt_wout_tzinfo = dt_w_tzinfo.replace(tzinfo=None)
+        self.assertEqual(dt_wout_tzinfo, expected_end_datetime)
+
+        mock_alert_admins.assert_called()
+
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.convert_outputs')
+    def test_job_failure(self, mock_convert_outputs, mock_query_for_metadata):
+        '''
+        Tests that the expected things happen when we call the `handle_job_failure`
+        following completion of a job that failed
+        '''
+        mock_fail = [
+            {
+                'message': 'Workflow input processing failed', 
+                'causedBy': [
+                    {
+                        'message': 'Unrecognized token on line 168, column 12:\n\n        mv ${sample_name}.trimmed_1P.fastq.gz ${sample_name}_R1.fastq.gz\n           ^', 
+                        'causedBy': []
+                    }
+                ]
+            },
+            {
+                'message': 'Something bad', 
+                'causedBy': []
+            }
+        ]
+        mock_job_metadata = {
+            'end': '2020-10-28T00:05:03.694Z',
+            'failures': mock_fail
+        }
+        expected_end_datetime = datetime.datetime(2020, 10, 28, 
+            hour=0, minute=5, second=3, microsecond=694000)
+        mock_query_for_metadata.return_value = mock_job_metadata
+
+        # query the ExecutedOp 
+        exec_op_id = self.executed_op.id
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertIsNone(exec_op.outputs)
+        self.assertFalse(exec_op.job_failed)
+        self.assertIsNone(exec_op.execution_stop_datetime)
+
+        # call the tested func.
+        rcr = RemoteCromwellRunner()
+        rcr.handle_job_failure(self.executed_op)
+
+        # query again to see changes were made to the db
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertIsNone(exec_op.outputs)
+        self.assertTrue(exec_op.job_failed) # DID fail
+        dt_w_tzinfo = exec_op.execution_stop_datetime
+        dt_wout_tzinfo = dt_w_tzinfo.replace(tzinfo=None)
+        self.assertEqual(dt_wout_tzinfo, expected_end_datetime)
+        error_messages = [x.strip() for x in exec_op.error_message.split(',')]
+        self.assertCountEqual(
+            error_messages, 
+            ['Workflow input processing failed', 'Something bad']
+        )
+
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.handle_job_success')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.handle_job_failure')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.handle_other_job_outcome')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_status')
+    def test_job_status_options(self, mock_query_for_status,
+        mock_handle_other_job_outcome,
+        mock_handle_job_failure,
+        mock_handle_job_success
+    ):
+        '''
+        Tests that we hit the proper 'finalization' methods depending on the response 
+        from the Cromwell server
+        '''
+        rcr = RemoteCromwellRunner()
+
+        mock_query_for_status.return_value = {
+            'id': 'abc',
+            'status': RemoteCromwellRunner.SUCCEEDED_STATUS
+        }
+        rcr.finalize(self.executed_op)
+        mock_handle_job_success.assert_called()
+        mock_handle_job_failure.assert_not_called()
+        mock_handle_other_job_outcome.assert_not_called()
+
+        # reset the mocks
+        mock_handle_job_success.reset_mock()
+        mock_handle_job_failure.reset_mock()
+        mock_handle_other_job_outcome.reset_mock()
+
+        # mock a failure response
+        mock_query_for_status.return_value = {
+            'id': 'abc',
+            'status': RemoteCromwellRunner.FAILED_STATUS
+        }
+        rcr.finalize(self.executed_op)
+        mock_handle_job_success.assert_not_called()
+        mock_handle_job_failure.assert_called()
+        mock_handle_other_job_outcome.assert_not_called()
+        mock_handle_job_success.reset_mock()
+        mock_handle_job_failure.reset_mock()
+        mock_handle_other_job_outcome.reset_mock()
+
+        mock_query_for_status.return_value = {
+            'id': 'abc',
+            'status': 'XYZ'
+        }
+        rcr.finalize(self.executed_op)
+        mock_handle_other_job_outcome.assert_called()
+        mock_handle_job_success.assert_not_called()
+        mock_handle_job_failure.assert_not_called()

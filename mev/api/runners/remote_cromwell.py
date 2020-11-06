@@ -23,6 +23,7 @@ from api.utilities.docker import build_docker_image, \
 from api.storage_backends import get_storage_backend
 from api.cloud_backends import get_instance_zone, get_instance_region
 from api.converters.output_converters import RemoteCromwellOutputConverter
+from api.models.executed_operation import ExecutedOperation
 
 logger = logging.getLogger(__name__)
 
@@ -386,7 +387,18 @@ class RemoteCromwellRunner(OperationRunner):
         # get the job outputs
         # This is a mapping of the Cromwell output ID (e.g. Workflow.Variable)
         # to either a primitive (String, Number) or a filepath (in a bucket)
-        outputs_dict = job_metadata['outputs']
+        try:
+            outputs_dict = job_metadata['outputs']
+        except KeyError as ex:
+            outputs_dict = {}
+            logger.info('The job metadata payload received from executed op ({op_id})'
+                ' with Cromwell ID {cromwell_id} did not contain the "outputs"'
+                ' key in the payload'.format(
+                    cromwell_id = job_id,
+                    op_id = executed_op.id
+                )
+            )
+            alert_admins()
 
         # instantiate the output converter class which will take the job outputs
         # and create MEV-compatible data structures or resources:
@@ -421,6 +433,7 @@ class RemoteCromwellRunner(OperationRunner):
             failure_messages.add(f['message'])
 
         # set fields on the executed op:
+        executed_op.error_message = ', '.join(failure_messages)
         executed_op.execution_stop_datetime = end_time
         executed_op.job_failed = True
         executed_op.status = ExecutedOperation.COMPLETION_ERROR
