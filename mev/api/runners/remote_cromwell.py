@@ -214,7 +214,7 @@ class RemoteCromwellRunner(OperationRunner):
         '''
         # create/write the input JSON to a file in the staging location
         arg_dict = self._map_inputs(op_dir, validated_inputs)
-        wdl_input_path = os.path.join(staging_dir, WDL_INPUTS)
+        wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
         with open(wdl_input_path, 'w') as fout:
             json.dump(arg_dict, fout)
 
@@ -251,7 +251,7 @@ class RemoteCromwellRunner(OperationRunner):
     def send_job(self, staging_dir, executed_op):
 
         # the path of the input json file:
-        wdl_input_path = os.path.join(staging_dir, WDL_INPUTS)
+        wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
 
         # pull together the components of the POST request to the Cromwell server
         submission_url = self.CROMWELL_URL + self.SUBMIT_ENDPOINT
