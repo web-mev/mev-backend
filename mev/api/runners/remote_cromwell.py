@@ -40,7 +40,7 @@ class RemoteCromwellRunner(OperationRunner):
 
     DOCKERFILE = 'Dockerfile'
     MAIN_WDL = 'main.wdl'
-    DEPENDENCIES_ZIPNAME = 'depenencies.zip'
+    DEPENDENCIES_ZIPNAME = 'dependencies.zip'
     WDL_INPUTS = 'inputs.json'
 
     # Constants that are part of the payload submitted to Cromwell
@@ -480,11 +480,11 @@ class RemoteCromwellRunner(OperationRunner):
         else:
             status = None
         if status == self.SUCCEEDED_STATUS:
-            self.handle_job_success()
+            self.handle_job_success(executed_op)
         elif status == self.FAILED_STATUS:
-            self.handle_job_failure()
+            self.handle_job_failure(executed_op)
         else:
-            self.handle_other_job_outcome()
+            self.handle_other_job_outcome(executed_op)
 
 
     def run(self, executed_op, op_data, validated_inputs):
