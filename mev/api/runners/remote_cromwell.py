@@ -39,7 +39,6 @@ class RemoteCromwellRunner(OperationRunner):
     NAME = settings.CROMWELL
 
     DOCKERFILE = 'Dockerfile'
-    WDL_SUFFIX = 'wdl'
     MAIN_WDL = 'main.wdl'
     DEPENDENCIES_ZIPNAME = 'depenencies.zip'
     WDL_INPUTS = 'inputs.json'
@@ -233,7 +232,8 @@ class RemoteCromwellRunner(OperationRunner):
             os.path.join(op_dir, '*' + WDL_SUFFIX)
         )
         for w in wdl_files:
-            copy_local_resource(w, staging_dir)
+            dest = os.path.join(staging_dir, os.path.basename(w))
+            copy_local_resource(w, dest)
 
         # if there are WDL files in addition to the main one, they need to be zipped
         # and submitted as 'dependencies'
