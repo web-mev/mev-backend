@@ -64,8 +64,6 @@ class RemoteCromwellRunner(OperationRunner):
 
     # A list of files that are required to be part of the repository
     REQUIRED_FILES = OperationRunner.REQUIRED_FILES + [
-        # need to define how to build the environment
-        os.path.join(OperationRunner.DOCKER_DIR, DOCKERFILE),
         # the main "entrypoint" WDL
         MAIN_WDL,
         # the input json file, as a template
@@ -115,9 +113,9 @@ class RemoteCromwellRunner(OperationRunner):
             # image name is something like 
             # <docker repo, e.g. docker.io>/<username>/<name>:<tag>
             split_full_name = full_image_name.split(':')
-            if len(split_full_name) == 2:
+            if len(split_full_name) == 2: #if a tag is specified
                 image_prefix, tag = split_full_name
-            elif len(split_full_name) == 1:
+            elif len(split_full_name) == 1: # if no tag
                 image_prefix = split_full_name[0]
             else:
                 logger.error('Could not properly handle the following docker'
