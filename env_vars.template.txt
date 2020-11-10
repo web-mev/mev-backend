@@ -166,8 +166,8 @@ EXECUTIONS_DIR=operation_executions
 # Note that docker-compose prepends a prefix (which can be set by the -p arg when
 # starting docker-compose). The format is <prefix>_<named volume from compose yaml>
 # Thus, if docker compose is started with 
-`docker-compose -f docker-compose.prod.yml -p mev up -d`, and the named volume was
-foo, then it would be something like "mev_foo"
+# `docker-compose -f docker-compose.prod.yml -p mev up -d`, and the named volume was
+# foo, then it would be something like "mev_foo"
 EXECUTION_VOLUME=mev_execution_volume
 ########################## END Local execution parameters #####################################
 
