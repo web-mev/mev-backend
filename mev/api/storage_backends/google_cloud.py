@@ -132,7 +132,8 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         source_bucket.copy_blob(source_blob, \
             destination_bucket, \
             new_name=destination_object_name \
-        ) 
+        )
+        logger.info('Completed interbucket transfer.')
 
     def store(self, resource_instance):
         '''

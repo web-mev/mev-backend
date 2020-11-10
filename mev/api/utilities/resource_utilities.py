@@ -292,6 +292,10 @@ def handle_invalid_resource(resource_instance, requested_resource_type):
         resource_instance.status = Resource.FAILED.format(
             requested_resource_type=requested_resource_type
         )
+        # add empty metadata so that other methods which may try to access
+        # that metadata do not break.
+        add_metadata_to_resource(resource_instance, {})
+
     else:
         # if a resource_type was previously set, that means
         # it was previously valid and has now been changed to
@@ -299,6 +303,10 @@ def handle_invalid_resource(resource_instance, requested_resource_type):
         # valid type and provide a helpful status message
         # so they understand why the request did not succeed.
         # Obviously, we don't alter the resource_type member in this case.
+
+        # Also, note that we do NOT edit metadata here, as we do not
+        # want to ruin the existing metadata since we are reverting to the 
+        # previously valid type.
 
         # get the "human-readable" types:
         hr_requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[
@@ -330,6 +338,9 @@ def validate_resource(resource_instance, requested_resource_type):
         resource_class_instance = get_resource_type_instance(requested_resource_type)
 
         if resource_class_instance.performs_validation():
+
+            logger.info('Since the resource class permits validation, go and'
+                ' validate this resource.')
 
             # Regardless of whether we are validating a new upload or changing the type
             # of an existing file, the file is already located at its "final" location
