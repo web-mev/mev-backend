@@ -58,8 +58,6 @@ class BaseOutputConverter(object):
         else:
             return output_val
             
-
-class LocalOutputConverter(BaseOutputConverter):
     def create_resource(self, workspace, path, name):
         logger.info('From executed operation outputs, create'
             ' a resource at {p} with name {n}'.format(
@@ -74,6 +72,10 @@ class LocalOutputConverter(BaseOutputConverter):
             name = name,
         )
         return resource_instance
+
+        
+class LocalOutputConverter(BaseOutputConverter):
+    pass
 
 class RemoteOutputConverter(BaseOutputConverter):
     pass
