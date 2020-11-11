@@ -153,24 +153,6 @@ DOCKERHUB_PASSWORD=
 
 ########################## END Dockerhub parameters #####################################
 
-########################## Local execution parameters #####################################
-
-# directory name relative to the django BASE_DIR
-# Do NOT change unless you know what you are doing!
-# Since we need to share volumes across Docker containers, 
-# changing this could break that shared access.
-EXECUTIONS_DIR=operation_executions
-
-# the name of the docker volume where MEV will drop data for executing operations.
-# Again, do not change unless you know what you are doing.
-# Note that docker-compose prepends a prefix (which can be set by the -p arg when
-# starting docker-compose). The format is <prefix>_<named volume from compose yaml>
-# Thus, if docker compose is started with 
-# `docker-compose -f docker-compose.prod.yml -p mev up -d`, and the named volume was
-# foo, then it would be something like "mev_foo"
-EXECUTION_VOLUME=mev_execution_volume
-########################## END Local execution parameters #####################################
-
 
 ########################## Cromwell parameters #########################################
 # Only need to fill-in variables here if you are using the remote Cromwell job engine

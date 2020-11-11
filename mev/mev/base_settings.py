@@ -178,6 +178,8 @@ MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 
 # A directory where we hold user uploads while they are validated.
 # After validation, they are moved to a users' own storage
+# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
+# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 PENDING_FILES_DIR = os.path.join(BASE_DIR, 'pending_user_uploads')
 if not os.path.exists(PENDING_FILES_DIR):
     raise ImproperlyConfigured('Please create a directory for the'
@@ -335,9 +337,16 @@ if ENABLE_REMOTE_JOBS and (STORAGE_LOCATION==LOCAL):
 # In the case of remote storage backends (e.g. buckets), we want the ability
 # to locally cache the files for faster access.  Files in this directory
 # are temporary and will be removed after some period of inactivity
+# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
+# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 RESOURCE_CACHE_DIR = os.path.join(BASE_DIR, 'resource_cache')
 if not os.path.exists(RESOURCE_CACHE_DIR):
-    os.makedirs(RESOURCE_CACHE_DIR)
+    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
+        ' directory should persist by making use of docker volumes. This preserves'
+        ' the application state in case of API changes and restarts.'.format(
+            d = RESOURCE_CACHE_DIR
+        )
+    )
 
 # How long should the files be kept in the local cache.
 # Check the functions for periodic tasks to see how this
@@ -425,18 +434,30 @@ if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
 
 # the name of a directory where new Operation specifications will be cloned
 # and staged for ingestion
+# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
+# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 CLONE_STAGING_DIR = os.path.join(BASE_DIR, 'operation_staging')
 if not os.path.exists(CLONE_STAGING_DIR):
-    os.makedirs(CLONE_STAGING_DIR)
-
+    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
+        ' directory should persist by making use of docker volumes. This preserves'
+        ' the application state in case of API changes and restarts.'.format(
+            d = CLONE_STAGING_DIR
+        )
+    )
 # the name of the file that contains the specification for an Operation:
 OPERATION_SPEC_FILENAME = 'operation_spec.json'
 
 # a local directory where the various Operations are stashed
+# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
+# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 OPERATION_LIBRARY_DIR = os.path.join(BASE_DIR, 'operations')
 if not os.path.exists(OPERATION_LIBRARY_DIR):
-    os.makedirs(OPERATION_LIBRARY_DIR)
-
+    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
+        ' directory should persist by making use of docker volumes. This preserves'
+        ' the application state in case of API changes and restarts.'.format(
+            d = OPERATION_LIBRARY_DIR
+        )
+    )
 # This is a list of domains from which we will pull repositories
 # If the domains are not in this list, then we will block any attempts
 # to clone repositories.
@@ -452,15 +473,19 @@ ACCEPTABLE_REPOSITORY_DOMAINS = ['github.com',]
 
 # a directory where the operations will be run-- each execution of an operation
 # gets its own sandbox
-execution_dirname = get_env('EXECUTIONS_DIR')
-OPERATION_EXECUTION_DIR = os.path.join(BASE_DIR, execution_dirname)
+OPERATION_EXECUTION_DIR = os.path.join(BASE_DIR, 'operation_executions')
 if not os.path.exists(OPERATION_EXECUTION_DIR):
-    os.mkdir(OPERATION_EXECUTION_DIR)
-
+    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
+        ' directory should persist by making use of docker volumes. This preserves'
+        ' the application state in case of API changes and restarts.'.format(
+            d = OPERATION_EXECUTION_DIR
+        )
+    )
 # This is how Docker refers to the named volume that is shared between
 # MEV and the host. This way, when sibling containers are started, they
-# can access MEV data for executing operations
-EXECUTION_VOLUME = get_env('EXECUTION_VOLUME')
+# can access MEV data for executing operations. Refer to the docker-compose yaml
+# file to see what this is named. DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING.
+EXECUTION_VOLUME = 'execution_volume'
 
 ###############################################################################
 # END Settings for Operation executions

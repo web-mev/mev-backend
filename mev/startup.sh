@@ -18,10 +18,6 @@ while ! nc -z $REDIS_HOST 6379; do
 done
 echo "Redis started!"
 
-
-# Create directories that Django will use for uploaded files, etc.
-mkdir /www/pending_user_uploads
-
 # Specify the appropriate settings file:
 if [ $ENVIRONMENT = 'dev' ]; then
     export DJANGO_SETTINGS_MODULE=mev.settings_dev
