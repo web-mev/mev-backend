@@ -131,6 +131,14 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_uuid'
 }
 
+# The name of the docker-compose project. This allows us to properly reference
+# docker volumes (e.g. for mounting with local docker-based jobs)
+# This variable is set in the project's .env file and is also set as an environment
+# variable in the docker-compose yaml file. At the time of writing, there is no way
+# to specify the project name in a single location (e.g. in the yaml file)
+COMPOSE_PROJECT_NAME = get_env('COMPOSE_PROJECT_NAME')
+
+
 ###############################################################################
 # Parameters for Email functions
 ###############################################################################
@@ -485,7 +493,7 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 # MEV and the host. This way, when sibling containers are started, they
 # can access MEV data for executing operations. Refer to the docker-compose yaml
 # file to see what this is named. DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING.
-EXECUTION_VOLUME = 'execution_volume'
+EXECUTION_VOLUME = COMPOSE_PROJECT_NAME + '_execution_volume'
 
 ###############################################################################
 # END Settings for Operation executions

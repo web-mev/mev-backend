@@ -19,6 +19,7 @@ services:
     env_file:
       - ./env_vars.txt
     environment:
+      COMPOSE_PROJECT_NAME: mev
       ENVIRONMENT: prod
       REDIS_HOST: redis
       DB_HOST: db
