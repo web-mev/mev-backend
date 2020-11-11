@@ -432,7 +432,6 @@ class RemoteCromwellRunner(OperationRunner):
         executed_op.execution_stop_datetime = end_time
         executed_op.job_failed = False
         executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
-        executed_op.save()
 
 
     def handle_job_failure(self, executed_op):
@@ -459,13 +458,11 @@ class RemoteCromwellRunner(OperationRunner):
         executed_op.execution_stop_datetime = end_time
         executed_op.job_failed = True
         executed_op.status = ExecutedOperation.COMPLETION_ERROR
-        executed_op.save()
 
     def handle_other_job_outcome(self, executed_op):
         executed_op.status = ('Experienced an unexpected response'
             ' when querying for the job status. Admins have been notified.'
         )
-        executed_op.save()
         alert_admins()
 
     def finalize(self, executed_op):
@@ -485,6 +482,9 @@ class RemoteCromwellRunner(OperationRunner):
             self.handle_job_failure(executed_op)
         else:
             self.handle_other_job_outcome(executed_op)
+
+        executed_op.is_finalizing = False
+        executed_op.save()
 
 
     def run(self, executed_op, op_data, validated_inputs):
