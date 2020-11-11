@@ -207,11 +207,20 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.convert_outputs')
-    def test_job_success(self, mock_convert_outputs, mock_query_for_metadata):
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_status')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner._parse_status_response')
+    def test_job_success(self, mock_parse_status_response, 
+        mock_query_for_status,  
+        mock_convert_outputs, 
+        mock_query_for_metadata):
         '''
         Tests that the expected things happen when we call the `handle_job_success`
         following completion of a job.
         '''
+        # just have it 'return' something not None
+        mock_query_for_status.return_value = {'x': 1}
+        mock_parse_status_response.return_value = RemoteCromwellRunner.SUCCEEDED_STATUS
+
         mock_convert_outputs.return_value = {'a':1}
         mock_job_metadata = {
             'end': '2020-10-28T00:05:03.694Z',
@@ -230,7 +239,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
         # call the tested func.
         rcr = RemoteCromwellRunner()
-        rcr.handle_job_success(self.executed_op)
+        rcr.finalize(self.executed_op)
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
@@ -242,12 +251,21 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
     @mock.patch('api.runners.remote_cromwell.alert_admins')
-    def test_job_success_with_missing_outputs(self, mock_alert_admins, mock_query_for_metadata):
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_status')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner._parse_status_response')
+    def test_job_success_with_missing_outputs(self, mock_parse_status_response, 
+        mock_query_for_status, 
+        mock_alert_admins, 
+        mock_query_for_metadata):
         '''
         Tests that the expected things happen when we call the `handle_job_success`
         following completion of a job. Here, we mock there being no outputs key 
         in the returned metadata payload
         '''
+        # just have it 'return' something not None
+        mock_query_for_status.return_value = {'x': 1}
+        mock_parse_status_response.return_value = RemoteCromwellRunner.SUCCEEDED_STATUS
+
         mock_job_metadata = {
             'end': '2020-10-28T00:05:03.694Z'
         }
@@ -264,7 +282,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
         # call the tested function
         rcr = RemoteCromwellRunner()
-        rcr.handle_job_success(self.executed_op)
+        rcr.finalize(self.executed_op)
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
@@ -278,11 +296,20 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.convert_outputs')
-    def test_job_failure(self, mock_convert_outputs, mock_query_for_metadata):
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_status')
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner._parse_status_response')
+    def test_job_failure(self, mock_parse_status_response, 
+        mock_query_for_status, 
+        mock_convert_outputs, 
+        mock_query_for_metadata):
         '''
         Tests that the expected things happen when we call the `handle_job_failure`
         following completion of a job that failed
         '''
+        # just have it 'return' something not None
+        mock_query_for_status.return_value = {'x': 1}
+        mock_parse_status_response.return_value = RemoteCromwellRunner.FAILED_STATUS
+
         mock_fail = [
             {
                 'message': 'Workflow input processing failed', 
@@ -315,7 +342,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
         # call the tested func.
         rcr = RemoteCromwellRunner()
-        rcr.handle_job_failure(self.executed_op)
+        rcr.finalize(self.executed_op)
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
