@@ -16,9 +16,9 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 
 **Resource "type"**
 
-- A `Resource` is required to have a "type" (e.g. an integer matrix) which we call a `resource_type`.  These types are restricted to a set of common file formats.  Upon creation, `resource_type` is set to `None` which indicates that the `Resource` has not been validated.
+- A `Resource` is required to have a "type" (e.g. an integer matrix) which we call a `resource_type`.  These types are restricted to a set of common file formats in addition to more generic text-based formats such as CSV, TSV.  Upon creation, `resource_type` is set to `None` which indicates that the `Resource` has not been validated.
 
-- The type of the `Resource` can be specified when the file is uploaded or at any other time (i.e. users can change the type if they desire).  Each request to change type initiates an asynchronous validation process.
+- The type of the `Resource` can be specified when the file is uploaded or at any other time (i.e. users can change the type if they desire).  Each request to change type initiates an asynchronous validation process. Note that we can only validate certain types of files, such as CSV and TSV. Validation of sequence-based files such as FastQ and BAM is not feasible and thus we skip validation.
 
 - If the validation of the `resource_type` fails, we revert back to the previous successfully validated type.  If the type was previously `None` (as with a new upload), we simply revert back to `None` and inform the user the validation failed.
 

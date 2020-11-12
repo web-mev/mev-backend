@@ -15,9 +15,12 @@ extra_css: [style.css]
 
 nav:
  - Home: 'index.md'
- - Setup: 
-   - Installation: 'install.md'
+ - Architecture: 'general_architecture.md'
+ - Installation and Setup: 
+   - Preliminaries: 'install.md'
+   - MEV cluster setup: 'mev_cluster_setup.md'
    - Configuration: 'setup_configuration.md'
+   - Cromwell job runner setup: 'cromwell_setup.md'
  - API: 
    - Intro: 'api.md'
    - Data Structures:
