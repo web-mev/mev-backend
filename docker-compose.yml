@@ -20,7 +20,7 @@ services:
     expose:
       - 8000
     env_file:
-      - ./env_vars.for_testing.txt
+      - ./env_vars.dev.txt
     environment:
       COMPOSE_PROJECT_NAME: mev
       ENVIRONMENT: dev
@@ -40,7 +40,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - ./env_vars.txt
+      - ./env_vars.dev.txt
 
 
   redis:

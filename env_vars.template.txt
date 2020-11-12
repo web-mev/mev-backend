@@ -48,6 +48,7 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 
 # The cloud platform determines which classes are used to hook up to 
 # storage buckets, etc.
+# Choose from: GOOGLE
 CLOUD_PLATFORM=
 
 # Will you be using one of the remote job runners?
