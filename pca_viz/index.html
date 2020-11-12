@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Preliminaries - MEV REST API</title>
+  <title>Pca viz - MEV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Preliminaries";
-    var mkdocs_page_input_path = "install.md";
+    var mkdocs_page_name = "Pca viz";
+    var mkdocs_page_input_path = "pca_viz.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -57,12 +57,8 @@
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Preliminaries</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#preliminaries">Preliminaries</a>
-    </li>
-    </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">MEV cluster setup</a>
                     </li>
@@ -136,15 +132,11 @@
     <li><a href="..">Docs</a> &raquo;</li>
     
       
-        
-          <li>Installation and Setup &raquo;</li>
-        
-      
     
-    <li>Preliminaries</li>
+    <li>Pca viz</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/install.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/pca_viz.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -155,25 +147,81 @@
           <div role="main">
             <div class="section">
               
-                <h2 id="installation-instructions"><a class="toclink" href="#installation-instructions">Installation instructions</a></h2>
-<p>In its most common configuration, the WebMEV backend will consist of the application itself (the WebMEV application cluster, described below) and a remote job runner (typically Cromwell). The remote job runner is optional, but will allow you to easily integrate large, resource-intensive workflows such as alignments.</p>
-<p>Below, we describe how to start and configure each component of a fully-featured WebMEV installation.</p>
-<h3 id="preliminaries"><a class="toclink" href="#preliminaries">Preliminaries</a></h3>
-<p>WebMEV was built to be a cloud-native application and assumes you will typically be operating on one of the supported cloud platform providers. However, use of a commercial cloud platform is not strictly necessary if you are only interested in using WebMEV's local Docker-based job runner.</p>
-<p>If you are using a commercial cloud provider, we assume you are familiar with basic cloud-management operations such as creating storage buckets and starting/stopping compute instances. When applicable, we will highlight provider-specific differences necessary for setup/configuration of WebMEV.</p>
+                <h3 id="pca-and-attributesgroup-visualization"><a class="toclink" href="#pca-and-attributesgroup-visualization">PCA and attributes/group visualization</a></h3>
+<p>For the examples below, we consider 7 samples/Observations, which we name S1,...,S7. The <code>ObservationSet</code> underlying this could look like:</p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;: &quot;S1&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: {&quot;attribute_type&quot;: &quot;String&quot;, &quot;value&quot;: &quot;WT&quot;}
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S2&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;S3&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;: &quot;S4&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: {&quot;attribute_type&quot;: &quot;String&quot;, &quot;value&quot;: &quot;WT&quot;}
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S5&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: {&quot;attribute_type&quot;: &quot;String&quot;, &quot;value&quot;: &quot;WT&quot;}
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S6&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: {&quot;attribute_type&quot;: &quot;String&quot;, &quot;value&quot;: &quot;m1&quot;}
+            }
+        },
+        {
+            &quot;id&quot;: &quot;S7&quot;,
+            &quot;attributes&quot;: {
+                &quot;genotype&quot;: {&quot;attribute_type&quot;: &quot;String&quot;, &quot;value&quot;: &quot;m1&quot;}
+            }
+        }
+    ]
+}</code></pre>
+
+
+<p>Note that some of the samples have genotype of WT (S1,S4,S5) or m1 (S6,S7) and some do not have the "genotype" attribute defined (S2,S3). In general, there can be many more of these attributes. Some could conceivably be numbers, but we will only work with strings or bools.</p>
+<p><strong>The basic PCA plot</strong>
+After running the initial PCA, we don't automatically color and the figure may look like:
+<img alt="" src="../pca_coloring.svg" />
+If there are not attributes defined, then the dropdown would not have any values to filter upon. Similarly, if the user has not previously defined any custom <code>ObservationSet</code> instances, then the bottom table ("color Observations") would not be shown.</p>
+<p><strong>Coloring by attributes</strong></p>
+<p>By going through the <code>attributes</code> object of each <code>Observation</code>, we can collect all the possible attribute fields (here, only "genotype"). The dropdown would be populated by that attribute name and the user can select. As shown, the samples without a "genotype" attribute are simply left grey. The others are colored.</p>
+<p>Open questions (depending on complexity): 
+- Can we change the legend dynamically? (as shown)
+- Can we allow users to set their own colors? If so, how?</p>
+<p><img alt="" src="../pca_coloring2.svg" /></p>
+<p><strong>Coloring by user-defined groups/<code>ObservationSet</code>s</strong></p>
+<p>Instead of coloring by the "attributes", we can allow users to color by the samplesets/<code>ObservationSet</code>s they defined. <em>To avoid complexity and confusion, users can only color by attribute OR observation, NOT by both. How do we show or communicate this on the page? Radio button next to the options? Or leave it with that "OR" as shown? Ideally, if someone selects an <code>ObservationSet</code>, it will "uncolor" any attribute selection made in the dropdown.</em> </p>
+<p>Open questions (depending on complexity):
+- Do we add a dynamic legend inside the plot? Or just leave the users to reference the colors on the side
+- Do we allow users to click on those colored rectangle to change the color? The current MEV allows the user to assign a color to each group, but I think it's fixed after that. Maybe that's the simplest? The user can then change the color for each group in the "metadata" view. </p>
+<p>In this first example, only one group is selected and colored. Easy.
+<img alt="" src="../pca_coloring3.svg" /></p>
+<p>In the more complex example, we can have samples that belong to:
+- None of the groups. They remain grey.
+- One of the groups. They get the group's color.
+- $&gt;1$ of the groups. These get some other marker like a pattern, different-sized marker, etc. To avoid making this too complicated, just use the same markers for any sample belonging to $&gt; 1$ groups. Otherwise we have to come up with markers for each unique combination and that could get into some kind of combinatorial nightmare. </p>
+<p>Below, we can imagine the two samples with the striped markers belong to both the "cntrl" and "mygroup" groups. If the user unselects "mygroup", those circles would then change to the brown color.</p>
+<p><img alt="" src="../pca_coloring4.svg" /></p>
               
             </div>
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../mev_cluster_setup/" class="btn btn-neutral float-right" title="MEV cluster setup">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../general_architecture/" class="btn btn-neutral" title="Architecture"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>
@@ -199,10 +247,6 @@
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../general_architecture/" style="color: #fcfcfc;">&laquo; Previous</a></span>
-      
-      
-        <span style="margin-left: 15px"><a href="../mev_cluster_setup/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

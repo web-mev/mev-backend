@@ -52,11 +52,19 @@
                     <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
                     </li>
                 </ul>
-                <p class="caption"><span class="caption-text">Setup</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Installation</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">MEV cluster setup</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../cromwell_setup/">Cromwell job runner setup</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
@@ -176,10 +184,10 @@
 <p><strong>Resource "type"</strong></p>
 <ul>
 <li>
-<p>A <code>Resource</code> is required to have a "type" (e.g. an integer matrix) which we call a <code>resource_type</code>.  These types are restricted to a set of common file formats.  Upon creation, <code>resource_type</code> is set to <code>None</code> which indicates that the <code>Resource</code> has not been validated.</p>
+<p>A <code>Resource</code> is required to have a "type" (e.g. an integer matrix) which we call a <code>resource_type</code>.  These types are restricted to a set of common file formats in addition to more generic text-based formats such as CSV, TSV.  Upon creation, <code>resource_type</code> is set to <code>None</code> which indicates that the <code>Resource</code> has not been validated.</p>
 </li>
 <li>
-<p>The type of the <code>Resource</code> can be specified when the file is uploaded or at any other time (i.e. users can change the type if they desire).  Each request to change type initiates an asynchronous validation process.</p>
+<p>The type of the <code>Resource</code> can be specified when the file is uploaded or at any other time (i.e. users can change the type if they desire).  Each request to change type initiates an asynchronous validation process. Note that we can only validate certain types of files, such as CSV and TSV. Validation of sequence-based files such as FastQ and BAM is not feasible and thus we skip validation.</p>
 </li>
 <li>
 <p>If the validation of the <code>resource_type</code> fails, we revert back to the previous successfully validated type.  If the type was previously <code>None</code> (as with a new upload), we simply revert back to <code>None</code> and inform the user the validation failed.</p>

@@ -52,17 +52,29 @@
                     <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
                     </li>
                 </ul>
-                <p class="caption"><span class="caption-text">Setup</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
                 <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Installation</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">MEV cluster setup</a>
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="./">Configuration</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#email-backends-email_backend_choice">Email backends (EMAIL_BACKEND_CHOICE)</a>
+    <li class="toctree-l2"><a class="reference internal" href="#email-backends-email_backend_choice">Email backends (EMAIL_BACKEND_CHOICE) </a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#storage-backends-resource_storage_backend">Storage backends (RESOURCE_STORAGE_BACKEND)</a>
+    <li class="toctree-l2"><a class="reference internal" href="#storage-backends-storage_location">Storage backends (STORAGE_LOCATION)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#dockerhub-integration">Dockerhub integration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cromwell-integration">Cromwell integration</a>
     </li>
     </ul>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../cromwell_setup/">Cromwell job runner setup</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
@@ -131,7 +143,7 @@
     
       
         
-          <li>Setup &raquo;</li>
+          <li>Installation and Setup &raquo;</li>
         
       
     
@@ -150,8 +162,35 @@
             <div class="section">
               
                 <h2 id="configuration-options-and-parameters"><a class="toclink" href="#configuration-options-and-parameters">Configuration options and parameters</a></h2>
-<p>As described in the installation section, the WebMEV API depends on environment variables passed to the container using the <code>--env-file</code> argument.  Most variables defined in <code>env_vars.template.txt</code> should be appropriately commented, but we provide some additional instructions or commentary below.</p>
-<h3 id="email-backends-email_backend_choice"><a class="toclink" href="#email-backends-email_backend_choice">Email backends (<code>EMAIL_BACKEND_CHOICE</code>)</a></h3>
+<p>As described in the installation section, the WebMEV API depends on environment variables passed to the container using the <code>env_file</code> parameter in the docker-compose YAML file.  Most variables defined in <code>env_vars.template.txt</code> should be appropriately commented, but we provide some additional instructions or commentary below.</p>
+<ul>
+<li>
+<p><code>DJANGO_ALLOWED_HOSTS</code>: If you are deploying on a host that is not your own computer (such as on a cloud machine), supply the IP address or domain.</p>
+</li>
+<li>
+<p><code>DJANGO_CORS_ORIGINS</code>: If you are using a front-end framework located on a different domain, you will need to add this to the comma-delimited list.  Otherwise you will get failures due to violoating same-origin policy.</p>
+</li>
+<li>
+<p><code>CLOUD_PLATFORM</code>: Which cloud platform you are using. We don't allow "mixing" (e.g. using AWS' S3 bucket storage but deploying on a GCP compute instance). If you are deploying locally, then this can be left blank.</p>
+</li>
+<li>
+<p><code>ENABLE_REMOTE_JOB_RUNNERS</code>: This flag controls whether we want to use the remote (e.g. Cromwell) job runners. Anything other than <code>"yes"</code> will disable (i.e. you will NOT be able to run remote jobs)</p>
+</li>
+<li>
+<p><code>REMOTE_JOB_RUNNERS</code>: Check the list of implemented remote job runners specified in the <code>AVAILABLE_REMOTE_JOB_RUNNERS</code> variable in <code>mev/base_settings.py</code></p>
+</li>
+<li>
+<p><code>STORAGE_LOCATION</code>: This configures where user files are stored. If you only plan on using local Docker-based jobs, this can be set to <code>"local"</code>. <em>However,</em> if remote jobs are enabled, it <em>must</em> be set to <code>"remote"</code>. If we are using remote job runners, we enforce that we use remote (bucket-based) storage.</p>
+</li>
+<li>
+<p><code>EMAIL_BACKEND_CHOICE</code>: Email-based registration depends on the ability to send emails, so a viable email backend must be chosen.  Refer to the settings file to see available options.  Currently only <code>GMAIL</code>. See <a href="#email">configuring email</a> for more details.</p>
+</li>
+<li>
+<p><code>SOCIAL_BACKENDS</code>: A list of social auth providers you wish to use.  Currently only Google.</p>
+</li>
+</ul>
+<p>If you would like some "dummy" data to be entered into the database (e.g. for developing a front-end), you must also specify <code>POPULUATE_DB=yes</code> (case-sensitive!).  Any other values for this variable will skip the population of dummy data.</p>
+<h3 id="email-backends-email_backend_choice"><a class="toclink" href="#email-backends-email_backend_choice">Email backends (<code>EMAIL_BACKEND_CHOICE</code>) <a name="email"></a></a></h3>
 <p>Various operations like user registration and password changes require us to send users emails with encoded tokens to verify their email address and permit changes to their account.  Accordingly, WebMEV needs the ability to send emails.  We allow customization of this email backend through the <code>EMAIL_BACKEND_CHOICE</code> variable in <code>env_vars.template.txt</code>.</p>
 <p>Certain cloud providers, such as GCP, place restrictions on outgoing emails to prevent abuse.  Per their documentation ( https://cloud.google.com/compute/docs/tutorials/sending-mail ), GCP recommends to use a third-party service such as SendGrid.  If you wish to use these, you will have to implement your own email backend per the interface described at the Django project: https://docs.djangoproject.com/en/3.0/topics/email/#defining-a-custom-email-backend</p>
 <p>By default, we provide the following email backends:</p>
@@ -170,10 +209,10 @@ GMAIL_CLIENT_SECRET=</code></pre>
 <p><em>Steps:</em></p>
 <ul>
 <li>
-<p>Choose a Gmail account (or create one anew) from which you wish to send email notifications.  On your own machine (or wherever you can login to your Google account), go to the Google developers console ( https://console.developers.google.com  or https://console.cloud.google.com ) and head to "APIs &amp; Services" and "Dashboard".  Click on "Enable APIs and Services", search for "Gmail", and enable the Gmail API. </p>
+<p>Choose a Gmail account (or create a new account) from which you wish to send email notifications.  On your own machine (or wherever you can login to your Google account), go to the Google developers console ( https://console.developers.google.com  or https://console.cloud.google.com ) and head to "APIs &amp; Services" and "Dashboard".  Click on "Enable APIs and Services", search for "Gmail", and enable the Gmail API. </p>
 </li>
 <li>
-<p>Once that is enabled, go to the "Credentials" section under "APIs and Services".  Just as above, we will create a set of OAuth credentials.  Click on the "Create credentials" button and choose "OAuth Client ID".   Choose "Other" from the options and give these credentials a name.</p>
+<p>Go to the "Credentials" section under "APIs and Services".  Just as above, we will create a set of OAuth credentials.  Click on the "Create credentials" button and choose "OAuth Client ID".   Choose "Other" from the options and give these credentials a name.</p>
 </li>
 <li>
 <p>Once the credentials are created, download the JSON-format file when it prompts.</p>
@@ -185,15 +224,20 @@ GMAIL_CLIENT_SECRET=</code></pre>
 <pre class="codehilite"><code>python3 helpers/exchange_gmail_credentials.py -i &lt;original_creds_path&gt; -o &lt;final_creds_path&gt;</code></pre>
 
 
-<p>(Note that this script can be run from within the WebMEV Docker container, as it contains the appropriate Python packages.  If you are not using the application container, you can run the script as long as the <code>google-auth-oauthlib</code> library is installed-- https://pypi.org/project/google-auth-oauthlib/ )</p>
+<p>(Note that this script can be run from within the WebMEV Docker container, as it contains the appropriate Python packages.  If you are not using the application container, you can run the script as long as the <code>google-auth-oauthlib</code> (https://pypi.org/project/google-auth-oauthlib/) library is installed.</p>
 <p>The script will ask you to copy a link into your browser, which you can do on any machine where you can authenticate with Google.  That URL will ask you to choose/log-in to the Gmail account you will be using to send emails.  Finally, if successfully authenticated, it will provide you with a "code" which you will copy into your terminal.  Once complete, the script will write a new JSON-format file at the location specified with the <code>-o</code> argument.</p>
 <ul>
-<li>Using the values in that final JSON file, copy/paste those into the file of environment variables you will be submitting to the WebMEV container upon startup. <em>Be careful with these credentials as they give full access to the Gmail account in question!!</em>  </li>
+<li>Using the values in that final JSON file, copy/paste those into the file of environment variables you will be submitting to the WebMEV container upon startup (<code>env_vars.template.txt</code>). <em>Be careful with these credentials as they give full access to the Gmail account in question!!</em>  </li>
 </ul>
-<h3 id="storage-backends-resource_storage_backend"><a class="toclink" href="#storage-backends-resource_storage_backend">Storage backends (<code>RESOURCE_STORAGE_BACKEND</code>)</a></h3>
-<p>Storage of user files can be either local (on the MEV server) or in some remote filesystem (such as in a Google storage bucket).  To abstract this, we have storage "backends" that control the behavior for each storage choice.</p>
-<p>Options for storage backends can be found in the <code>api/storage_backends</code> folder.  To use a particular backend, we supply the "dotted" path for the class that implements the storage interface.  For example, to use the Google bucket storage backend, we would use <code>RESOURCE_STORAGE_BACKEND=api.storage_backends.google_cloud.GoogleBucketStorage</code> since the <code>GoogleBucketStorage</code> class is located in <code>api/storage_backends/google_cloud.py</code>.</p>
-<p>Note that each storage backend may require additional environment variables to be set.  We enforce this by attempting an initial import of the storage backend class.  By convention, any configuration parameters required should at the "top-level" of the Python module/file.  This way, when we attempt the import while starting the application, any missing configuration variables will raise an exception.  This (hopefully) prevents errors in runtime due to incomplete/invalid configuration.</p>
+<h3 id="storage-backends-storage_location"><a class="toclink" href="#storage-backends-storage_location">Storage backends (<code>STORAGE_LOCATION</code>)</a></h3>
+<p>Storage of user files can be either local (on the WebMEV server) or in some remote filesystem (e.g. in a Google storage bucket).  To abstract this, we have storage "backends" that control the behavior for each storage choice and provide a common interface.</p>
+<p>Implementations for storage backends can be found in the <code>api/storage_backends</code> folder. However, for ease, we limit the options for these backends depending on other configuration variables.</p>
+<p>For instance, if the admin indicates that they want to run remote jobs (e.g. with Cromwell), we only allow  <code>STORAGE_LOCATION=remote</code>, as the job runner will require access to bucket storage. We anticipate that the job runner will be handling/processing large files and we want to keep all files in remote bucket-based storage instead of consuming disk space on the host machine.  Thus, one may only use <code>STORAGE_LOCATION=local</code> if they are only planning to use local Docker-based jobs.</p>
+<p>Note that each storage backend may require additional environment variables to be set. For instance, if using the bucket-based backend, we naturally require the name of the bucket we will be using. Checking for these additional required environment variables is accomplished by attempting an initial import of the storage backend class during startup of the Django applicatoin.  By convention, any configuration parameters required should at the "top-level" of the Python module/file.  This way, when we attempt the import while starting the application, any missing configuration variables will raise an exception.  This (ideally) prevents errors in runtime due to incomplete/invalid configuration.</p>
+<h3 id="dockerhub-integration"><a class="toclink" href="#dockerhub-integration">Dockerhub integration</a></h3>
+<p>To enforce that the containers used in WebMEV are available for the purpose of reproducibility, we dynamically build and push Docker images to Dockerhub. Thus, we require that you specify your username and password so that the push capability works.</p>
+<h3 id="cromwell-integration"><a class="toclink" href="#cromwell-integration">Cromwell integration</a></h3>
+<p>If you are using the remote Cromwell job runner, we need to know the location (URL, IP address) and port of the Cromwell server. Furthermore, you need to specify the bucket associated with Cromwell. As a reminder, the configuration of the Cromwell server requires that you specify a bucket where it will store its files. We need to know the name of that bucket within WebMEV. See <a href="../cromwell_setup/">Cromwell setup</a> for more details</p>
               
             </div>
           </div>
@@ -201,10 +245,10 @@ GMAIL_CLIENT_SECRET=</code></pre>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../api/" class="btn btn-neutral float-right" title="Intro">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../cromwell_setup/" class="btn btn-neutral float-right" title="Cromwell job runner setup">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../install/" class="btn btn-neutral" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../mev_cluster_setup/" class="btn btn-neutral" title="MEV cluster setup"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -232,10 +276,10 @@ GMAIL_CLIENT_SECRET=</code></pre>
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../install/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../mev_cluster_setup/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../api/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../cromwell_setup/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

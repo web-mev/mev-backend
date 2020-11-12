@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Preliminaries - MEV REST API</title>
+  <title>Architecture - MEV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Preliminaries";
-    var mkdocs_page_input_path = "install.md";
+    var mkdocs_page_name = "Architecture";
+    var mkdocs_page_input_path = "general_architecture.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -52,17 +52,15 @@
                     <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
                     </li>
                 </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Architecture</a>
+    <ul class="current">
+    </ul>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Preliminaries</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#preliminaries">Preliminaries</a>
-    </li>
-    </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">MEV cluster setup</a>
                     </li>
@@ -136,15 +134,11 @@
     <li><a href="..">Docs</a> &raquo;</li>
     
       
-        
-          <li>Installation and Setup &raquo;</li>
-        
-      
     
-    <li>Preliminaries</li>
+    <li>Architecture</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/install.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/general_architecture.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -155,12 +149,14 @@
           <div role="main">
             <div class="section">
               
-                <h2 id="installation-instructions"><a class="toclink" href="#installation-instructions">Installation instructions</a></h2>
-<p>In its most common configuration, the WebMEV backend will consist of the application itself (the WebMEV application cluster, described below) and a remote job runner (typically Cromwell). The remote job runner is optional, but will allow you to easily integrate large, resource-intensive workflows such as alignments.</p>
-<p>Below, we describe how to start and configure each component of a fully-featured WebMEV installation.</p>
-<h3 id="preliminaries"><a class="toclink" href="#preliminaries">Preliminaries</a></h3>
-<p>WebMEV was built to be a cloud-native application and assumes you will typically be operating on one of the supported cloud platform providers. However, use of a commercial cloud platform is not strictly necessary if you are only interested in using WebMEV's local Docker-based job runner.</p>
-<p>If you are using a commercial cloud provider, we assume you are familiar with basic cloud-management operations such as creating storage buckets and starting/stopping compute instances. When applicable, we will highlight provider-specific differences necessary for setup/configuration of WebMEV.</p>
+                <h2 id="general-architecture-of-webmev"><a class="toclink" href="#general-architecture-of-webmev">General architecture of WebMEV</a></h2>
+<p>The WebMEV application is architected as a collection of Docker images which is orchestrated/managed by <code>docker-compose</code>.</p>
+<p>The application includes three containers with the following responsibilities.
+- <code>nginx</code>: Handles communication to the outside world. Serves static files directly and forwards other requests to the application server (gunicorn), which is packaged in the <code>api</code> container.
+- <code>db</code>: The database container. Currently using postgres as we require saving of JSON-format data structures
+- <code>api</code>: The main application container. This container wraps several components, including the web application (written in Django), redis for cache and job queueing, and gunicorn as the application server.</p>
+<p><img alt="" src="../docker_arch.svg" /></p>
+<p>To allow sharing of files/resources between containers, we make use of Docker volumes. For instance, we use a Docker volume to share static files between the <code>nginx</code> and <code>api</code> containers. Additionally, we use Docker volumes to preserve the database and other required files in the event where we only need to update the application code (e.g. for a bug fix).</p>
               
             </div>
           </div>
@@ -168,10 +164,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../mev_cluster_setup/" class="btn btn-neutral float-right" title="MEV cluster setup">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../install/" class="btn btn-neutral float-right" title="Preliminaries">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../general_architecture/" class="btn btn-neutral" title="Architecture"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href=".." class="btn btn-neutral" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -199,10 +195,10 @@
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../general_architecture/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../mev_cluster_setup/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../install/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
