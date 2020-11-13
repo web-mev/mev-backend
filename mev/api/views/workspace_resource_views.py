@@ -12,6 +12,7 @@ from api.serializers.resource import ResourceSerializer
 from api.serializers.workspace_resource import WorkspaceResourceSerializer
 from api.serializers.workspace_resource_add import WorkspaceResourceAddSerializer
 import api.permissions as api_permissions
+from api.utilities.resource_utilities import check_for_resource_operations
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,43 @@ class WorkspaceResourceRemove(APIView):
     def get(self, request, *args, **kwargs):
         workspace_uuid = kwargs['workspace_pk']
         resource_uuid = kwargs['resource_pk']
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            workspace, resource = get_workspace_and_resource(workspace_uuid, resource_uuid)
+        except ParseError as ex:
+            raise ex
+        except Exception as ex:
+            return Response({
+                    'resource_uuid':'The owner of the workspace and '
+                    'resource must be the same.'
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # at this point, the workspace and resource are valid
+        # and have the same owner
+        requesting_user = request.user
+        if (requesting_user.is_staff) or (requesting_user == workspace.owner):
+            # check that the resource is actually in the workspace
+            if workspace in resource.workspaces.all():
+                # check if the resource was used in any of the operations
+                # in that workspace. If it was, we block removal to preserve
+                # the integrity of the entire workflow
+                resource_was_used_in_workspace = check_for_resource_operations(
+                    resource, workspace
+                )
+                if resource_was_used_in_workspace:
+                    return Response(
+                        {'message': ('Resource was used in an analysis operation'
+                            ' and cannot be removed.')
+                        }, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                else: # not used in the workspace
+                    resource.workspaces.remove(workspace)
+                    return Response(status=status.HTTP_200_OK)
+            else:
+                # the resource was NOT associated with that workflow
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 

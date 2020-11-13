@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.utilities.basic_utils import read_local_file
 from api.data_structures import create_attribute
+from api.data_structures.attributes import DataResourceAttribute
 from api.data_structures.user_operation_input import user_operation_input_mapping
 
 logger = logging.getLogger(__name__)
@@ -130,3 +131,39 @@ def validate_operation_inputs(user, inputs, operation, workspace):
         else:
             final_inputs[key] = None
     return final_inputs
+
+def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
+    '''
+    This function goes through the inputs or outputs of an ExecutedOperation
+    to return a set of resource UUIDs that were "used" either as an input
+    or an output.
+
+    op_input_or_output: the dict of inputs/outputs for an Operation. This comes
+      from parsing the operation specification file.
+    exec_op_input_or_output: the dict of actual inputs or outputs created or used
+      in the course of executing an operation.
+    '''
+    resource_uuids = []
+    for k,v in exec_op_input_or_output.items():
+        # k is the 'key' of the output, v is the actual value assigned
+        if not k in op_input_or_output:
+            logger.error('The key "{k}" was NOT in the operation inputs/outputs.'
+                ' Expected keys: {keys}'.format(
+                    k=k,
+                    keys = ', '.join(op_input_or_output.keys())
+                )
+            )
+            raise Exception('Discrepancy between the ExecutedOperation and the Operation'
+                ' it was based on. Should NOT happen!'
+            )
+        else:
+            # the key existed in the Operation (as it should). Get the spec dictating
+            spec = op_input_or_output[k]['spec']
+            if spec['attribute_type'] == DataResourceAttribute.typename:
+                if spec['many']:
+                    assert(type(v) is list)
+                    resource_uuids.extend(v)
+                else:
+                    assert(type(v) is str)
+                    resource_uuids.append(v)
+    return resource_uuids

@@ -3,7 +3,6 @@ import logging
 
 from rest_framework.exceptions import ValidationError
 
-from api.utilities.resource_utilities import get_resource_by_pk
 from api.data_structures import create_attribute, \
     IntegerAttribute, \
     PositiveIntegerAttribute, \

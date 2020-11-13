@@ -335,3 +335,165 @@ class WorkspaceResourceAddTests(BaseAPITestCase):
         self.assertTrue(len(assoc_workspaces) == 1)
         expected_workspace_pk = assoc_workspaces[0]
         self.assertEqual(expected_workspace_pk, self.workspace_pk)
+
+
+class WorkspaceResourceRemoveTests(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+
+        all_resources = Resource.objects.filter(owner=self.regular_user_1)
+        workspace_resources = []
+        # to check that we have generic enough tests, want to ensure we have
+        # one resource that is assigned to two workspaces
+        double_assigned_resource = False
+        single_assigned_resource = False
+
+        for r in all_resources:
+            workspaces = r.workspaces.all()
+            if (r.is_active) and (len(workspaces) >= 2):
+                double_assigned_resource = True
+                self.double_assigned_resource = r
+            elif (r.is_active) and (len(workspaces) == 1):
+                single_assigned_resource = True
+                self.single_assigned_resource = r
+
+        if not single_assigned_resource:
+            raise ImproperlyConfigured('Need to have a single resource that'
+                ' is assigned to only one workspace.'
+            )
+        if not double_assigned_resource:
+            raise ImproperlyConfigured('Need to have a single resource that'
+                ' is assigned to more than one workspace.'
+            )
+
+        # Want to ensure we have a workspace featuring 1 and >=2 resources
+        workspace_with_multiple_resources = False
+        workspace_with_single_resource = False
+        all_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        for w in all_workspaces:
+            if len(w.resources.all()) > 1:
+                workspace_with_multiple_resources = True
+                self.workspace_with_multiple_resources = w
+            elif len(w.resources.all()) == 1:
+                workspace_with_single_resource = True
+                self.workspace_with_single_resource = w
+
+        if not workspace_with_multiple_resources:
+            raise ImproperlyConfigured('Need to have at least one Workspace'
+                ' with multiple resources.'
+            )
+        if not workspace_with_single_resource:
+            raise ImproperlyConfigured('Need to have at least one Workspace'
+                ' with only a single resource.'
+            )
+
+        # now get the resources associated with both the single and 
+        # multiple-occupied workspaces
+        self.resource_by_itself = self.workspace_with_single_resource.resources.all()[0]
+        self.resource_with_workspace_sibling = self.workspace_with_multiple_resources.resources.all()[0]
+
+
+    @mock.patch('api.views.workspace_resource_views.check_for_resource_operations')
+    def test_check_basic_removal_case1(self, mock_check_for_resource_operations):
+        '''
+        After removal, check that the workspace is removed the Resource
+        and the workspace does not have that resource marked as 'belonging'
+        to that workspace.
+
+        In this case, we check the workspace that has only a single resource
+        '''
+        mock_check_for_resource_operations.return_value = False
+        url = reverse(
+            'workspace-resource-remove', 
+            kwargs={
+                'workspace_pk': self.workspace_with_single_resource.pk,
+                'resource_pk': self.resource_by_itself.pk
+            }
+        )
+        original_assoc_workspaces = set([x.pk for x in self.resource_by_itself.workspaces.all()])
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # query to see that the workspace is now empty:
+        w = Workspace.objects.get(pk=self.workspace_with_single_resource.pk)
+        self.assertTrue(len(w.resources.all()) == 0)
+
+        # query the Resource to see that the original workspace was removed:
+        r = Resource.objects.get(pk=self.resource_by_itself.pk)
+        current_assoc_workspaces = set([x.pk for x in r.workspaces.all()])
+        self.assertEqual(
+            original_assoc_workspaces.difference(current_assoc_workspaces),
+            set([self.workspace_with_single_resource.pk,])
+        )
+
+    @mock.patch('api.views.workspace_resource_views.check_for_resource_operations')
+    def test_check_basic_removal_case2(self, mock_check_for_resource_operations):
+        '''
+        After removal, check that the workspace is removed the Resource
+        and the workspace does not have that resource marked as 'belonging'
+        to that workspace.
+
+        In this case, we check the workspace that has multiple resources
+        '''
+        mock_check_for_resource_operations.return_value = False
+        url = reverse(
+            'workspace-resource-remove', 
+            kwargs={
+                'workspace_pk': self.workspace_with_multiple_resources.pk,
+                'resource_pk': self.resource_with_workspace_sibling.pk
+            }
+        )
+        original_workspace_resources = set([x.pk for x in self.workspace_with_multiple_resources.resources.all()])
+        original_assoc_workspaces = set([x.pk for x in self.resource_with_workspace_sibling.workspaces.all()])
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # query to see that the workspace "lost" that resource:
+        w = Workspace.objects.get(pk=self.workspace_with_multiple_resources.pk)
+        final_workspace_resources = set([x.pk for x in w.resources.all()])
+        self.assertEqual(
+            original_workspace_resources.difference(final_workspace_resources),
+            set([self.resource_with_workspace_sibling.pk,])
+        )
+
+        # query the Resource to see that the original workspace was removed:
+        r = Resource.objects.get(pk=self.resource_with_workspace_sibling.pk)
+        current_assoc_workspaces = set([x.pk for x in r.workspaces.all()])
+        self.assertEqual(
+            original_assoc_workspaces.difference(current_assoc_workspaces),
+            set([self.workspace_with_multiple_resources.pk,])
+        )
+
+    @mock.patch('api.views.workspace_resource_views.check_for_resource_operations')
+    def test_check_used_resource_not_removed(self, mock_check_for_resource_operations):
+        '''
+        If a workspace has used the output, we block removal
+        '''
+        mock_check_for_resource_operations.return_value = True
+        url = reverse(
+            'workspace-resource-remove', 
+            kwargs={
+                'workspace_pk': self.workspace_with_single_resource.pk,
+                'resource_pk': self.resource_by_itself.pk
+            }
+        )
+        original_workspace_resources = set([x.pk for x in self.workspace_with_single_resource.resources.all()])
+        original_assoc_workspaces = set([x.pk for x in self.resource_by_itself.workspaces.all()])
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # query to see that the workspace resources have not changed:
+        w = Workspace.objects.get(pk=self.workspace_with_single_resource.pk)
+        self.assertTrue(len(w.resources.all()) == 1)
+        final_workspace_resources = set([x.pk for x in w.resources.all()])
+        self.assertEqual(
+            original_workspace_resources,
+            final_workspace_resources)
+
+        # query the Resource to see that the original workspace remains:
+        r = Resource.objects.get(pk=self.resource_by_itself.pk)
+        current_assoc_workspaces = set([x.pk for x in r.workspaces.all()])
+        self.assertEqual(
+            original_assoc_workspaces,
+            current_assoc_workspaces)
