@@ -142,11 +142,11 @@ class UserOperationInputTester(BaseAPITestCase):
         has_valid_setup = False
         user_workspace = None
         for w in user_workspaces:
-            user_resource_list = Resource.objects.filter(
-                is_active=True,
-                owner = self.regular_user_1,
-                workspace=w
-            )
+            workspace_resources = w.resources.all()
+            user_resource_list = []
+            for r in workspace_resources:
+                if (r.is_active) and (r.owner == self.regular_user_1):
+                    user_resource_list.append(r)
             if len(user_resource_list) >= 2:
                 user_workspace = w
                 has_valid_setup = True

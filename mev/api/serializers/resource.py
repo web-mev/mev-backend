@@ -5,6 +5,7 @@ from rest_framework import serializers, exceptions
 
 from api.models import Resource, Workspace
 from api.utilities.resource_utilities import set_resource_to_inactive
+from api.serializers.workspace import WorkspaceSerializer
 import api.async_tasks as api_tasks
 
 from resource_types import DB_RESOURCE_STRING_TO_HUMAN_READABLE
@@ -20,14 +21,15 @@ class ResourceSerializer(serializers.ModelSerializer):
         read_only=True
     )
     owner_email = serializers.EmailField(source='owner.email', required=False)
-    workspace = serializers.PrimaryKeyRelatedField(
-        queryset=Workspace.objects.all(),
-        required=False
-    )
-    workspace_name = serializers.CharField(
-        source='workspace.workspace_name', 
-        default = '', 
-        read_only = True)
+    workspaces = WorkspaceSerializer(many=True, required=False, read_only=True)
+    #workspaces = serializers.PrimaryKeyRelatedField(
+    #    queryset=Workspace.objects.all(),
+    #    required=False
+    #)
+    #associated_workspaces = serializers.CharField(
+    #    source='workspace.workspace_name', 
+    #    default = '', 
+    #    read_only = True)
     path = serializers.CharField(write_only=True, required=False)
     size = serializers.IntegerField(read_only=True)
     readable_resource_type = serializers.SerializerMethodField()
@@ -43,8 +45,7 @@ class ResourceSerializer(serializers.ModelSerializer):
             'is_active',
             'is_public',
             'status',
-            'workspace',
-            'workspace_name',
+            'workspaces',
             'created',
             'path',
             'size',
@@ -66,7 +67,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         '''
         path = validated_data.get('path', '')
         name = validated_data.get('name', '')
-        workspace = validated_data.get('workspace', None),
+        workspaces = validated_data.get('workspaces', None),
         resource_type = validated_data.get('resource_type', None)
         is_public = validated_data.get('is_public', False)
         is_active = validated_data.get('is_active', False)
@@ -75,12 +76,12 @@ class ResourceSerializer(serializers.ModelSerializer):
 
         # the 'get' above returns a tuple so we have to index
         # to get the actual workspace instance or None
-        workspace = workspace[0]
+        #workspace = workspace[0]
 
         return {
             'path': path,
             'name': name,
-            'workspace': workspace, 
+            'workspaces': workspaces, 
             'resource_type': resource_type,
             'is_public' : is_public,
             'is_active' : is_active,
@@ -124,41 +125,15 @@ class ResourceSerializer(serializers.ModelSerializer):
         if internal_call or requesting_user.is_staff:
             params = ResourceSerializer.parse_request_parameters(validated_data)
 
-            # for Resources that have not been associated with a Workspace:
-            if params['workspace'] is None:
-                resource = Resource.objects.create(
-                    owner=resource_owner,
-                    path=params['path'],
-                    name=params['name'],
-                    resource_type=params['resource_type'],
-                    is_public=params['is_public'],
-                    size=params['size']
-                )
-            else:
-                # If the request specifies a Workspace UUID, we need to check 
-                # that the Workspace owner and the Resource owner are the same.
-                workspace_owner = params['workspace'].owner
-                if workspace_owner != resource_owner:
-                    raise exceptions.ValidationError({
-                        'workspace': 'Cannot assign a resource owned by {resource_owner}'
-                        ' to a workspace owned by {workspace_owner}'.format(
-                            workspace_owner = workspace_owner,
-                            resource_owner = resource_owner
-                        )
-                    })
-
-                resource = Resource.objects.create(
-                    workspace=params['workspace'],
-                    owner=resource_owner,
-                    path=params['path'],
-                    name=params['name'],
-                    resource_type=params['resource_type'],
-                    is_public=params['is_public'],
-                    size=params['size']
-                )
-                
+            resource = Resource.objects.create(
+                owner=resource_owner,
+                path=params['path'],
+                name=params['name'],
+                resource_type=params['resource_type'],
+                is_public=params['is_public'],
+                size=params['size']
+            )                
             logger.info('Created a Resource: %s' % resource)
-
             return resource
         else:
             raise exceptions.PermissionDenied()
@@ -166,9 +141,6 @@ class ResourceSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         '''
         When a user updates a Resource, they can only do a few things--
-        - remove from a `Workspace` (since adding to a `Workspace` is an
-        implicit copy).  This will DELETE the workspace-associated
-        `Resource` since the original is still there.
         - change the name
         - change the resource type (which triggers a type validation)
         - change public or private
@@ -209,13 +181,11 @@ class ResourceSerializer(serializers.ModelSerializer):
         # workspace (if assigned) happens to be the same.
         # We could ignore requests to change the associated workspace, but it is
         # more helpful to issue a message.
-        if validated_data.get('workspace', None):
-            if validated_data['workspace'] != instance.workspace:
-                logger.info('A change in Workspace was requested.  Rejecting this request.')
-                raise exceptions.ParseError({'workspace':'Cannot change the workspace directly.'
-                    ' Remove it from the workspace (if possible) and then add it'
-                    ' to the desired workspace'}
-                )
+        if validated_data.get('workspaces', None):
+            logger.info('A change in Workspace was requested.  Rejecting this request.')
+            raise exceptions.ParseError({'workspaces':'Cannot change the workspaces.'
+                ' Use the API methods to add or remove from the respective Workspace(s).'}
+            )
 
         # the following are fields able to be edited by regular users and admins:
         instance.name = validated_data.get('name', instance.name)

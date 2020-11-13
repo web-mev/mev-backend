@@ -651,7 +651,7 @@ class OperationRunTests(BaseAPITestCase):
                 is_active=True,
                 resource_type=t
             )
-            r = [x for x in r if x.workspace is not None]
+            r = [x for x in r if len(x.workspaces.all()) > 0]
             if len(r) > 0:
                 acceptable_resources.extend(r)
 
@@ -662,7 +662,7 @@ class OperationRunTests(BaseAPITestCase):
                 )
             )
 
-        workspace = acceptable_resources[0].workspace
+        workspace = acceptable_resources[0].workspaces.all()[0]
 
         valid_inputs = {
             'count_matrix': str(acceptable_resources[0].id),

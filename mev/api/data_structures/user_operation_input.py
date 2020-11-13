@@ -197,21 +197,26 @@ class DataResourceUserOperationInput(UserOperationInput):
         self.expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
         for v in tmp_val:
             try:
-                matching_resources = Resource.objects.filter(
-                    owner=user,
-                    id=v, 
-                    workspace=workspace)
-                if len(matching_resources) != 1:
-                    raise ValidationError({
-                        key: 'The UUID ({resource_uuid}) did not match'
-                        ' any known resource in your workspace.'.format(
-                            resource_uuid = v
-                        )
-                    })
-                r = matching_resources[0]
+                r = Resource.objects.get(pk=v)
+            except Resource.DoesNotExist as ex:
+                raise ValidationError({
+                    key: 'The UUID ({resource_uuid}) did not match'
+                    ' any known resource.'.format(
+                        resource_uuid = v
+                    )
+                })
             except Exception as ex:
                 # will catch things like bad UUIDs and also other unexpected errors
                 raise ValidationError({key: ex})
+
+            resource_workspaces = r.workspaces.all()
+            if not (workspace in resource_workspaces):
+                raise ValidationError({
+                    key: 'The UUID ({resource_uuid}) did not match'
+                    ' any known resource in your workspace.'.format(
+                        resource_uuid = v
+                    )
+                })
 
             if not r.resource_type in self.expected_resource_types:
                 logger.info('The resource type {rt} is not compatible'

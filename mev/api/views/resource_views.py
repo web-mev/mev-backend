@@ -13,7 +13,6 @@ from api.models import Resource
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import check_for_resource_operations, \
-    check_for_shared_resource_file, \
     get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive
@@ -109,21 +108,10 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         When we receive a delete/destroy request, we have to ensure we
         are not deleting critical data.
 
-        Note that when we attach a Resource to a Workspace, we create a second
-        database record that references the same underlying file/data.  Thus,
-        a deletion request has two components to consider:
-        - deleting the database record
-        - deleting the actual file
-
-        When we go to remove a database record, if there no other records referencing
-        the same file, we ALSO delete the file.  If there are other records
-        that DO reference the same file, we only delete the requested database
-        record.
-
-        In addition, if an attached Resource CANNOT be removed if it has been used
-        in any analysis operations.
-
+        Thus, if a Resource is associated with one or more Workspaces, then
+        no action will happen. 
         '''
+
         instance = self.get_object()
         logger.info('Requesting deletion of Resource: {resource}'.format(
             resource=instance))
@@ -135,38 +123,20 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
                 ))
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            file_shared_by_multiple_resources = check_for_shared_resource_file(instance)
-            logger.info('File underlying the deleted Resource is '
-            ' referenced by multiple Resource instances: {status}'.format(
-                status=file_shared_by_multiple_resources
-            ))
-        except Exception as ex:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if len(instance.workspaces.all()) > 0:
 
-        if instance.workspace is not None:
+            logger.info('Resource was associated with one or more workspaces'
+                ' and cannot be removed.')
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-            # check if the Resource has been used.  If yes, can't delete
-            has_been_used = check_for_resource_operations(instance)
-
-            logger.info('Resource was associated with a workspace ({workspace_uuid})'
-                ' and was used:{used}'.format(
-                    workspace_uuid=instance.workspace.pk,
-                    used=has_been_used
-                )
-            )
-
-            if has_been_used:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-        # if the actual file was not shared referenced by multiple
-        # Resources, delete it.
-        if not file_shared_by_multiple_resources:
-            api_tasks.delete_file.delay(instance.path)
+        # at this point, we have an active Resource associated with
+        # zero workspaces. delete.
+        # delete the actual file
+        api_tasks.delete_file.delay(instance.path)
         
         # Now delete the database object:
         self.perform_destroy(instance)
-        
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_200_OK)
 
 class ResourceContents(APIView):
     '''

@@ -33,7 +33,7 @@ class WorkspaceResourceListTests(BaseAPITestCase):
         found_non_empty_workspace = False
         idx = 0
         while (not found_non_empty_workspace) and (idx < len(user_workspaces)):
-            r = user_workspaces[idx].workspace_resources.all()
+            r = user_workspaces[idx].resources.all()
             if len(r) > 0:
                 found_non_empty_workspace = True
             else:
@@ -47,7 +47,7 @@ class WorkspaceResourceListTests(BaseAPITestCase):
 
         # now get the Workspace and a list of the Resources attached to that Workspace.
         self.demo_workspace = user_workspaces[idx]
-        self.all_workspace_resources = self.demo_workspace.workspace_resources.all()
+        self.all_workspace_resources = self.demo_workspace.resources.all()
 
         self.url = reverse(
             'workspace-resource-list', 
@@ -131,51 +131,85 @@ class WorkspaceResourceListTests(BaseAPITestCase):
             len(uuid_universe.difference(all_known_user_uuids))>0
         )
 
-class WorkpaceResourceAddTests(BaseAPITestCase):
+class WorkspaceResourceAddTests(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()
 
         all_resources = Resource.objects.all()
         workspace_resources = []
+        active_unattached_resources = []
         for r in all_resources:
-            if r.workspace:
+            if (r.is_active) and (len(r.workspaces.all()) > 0):
                 workspace_resources.append(r)
-
+            elif (r.is_active) and (len(r.workspaces.all()) == 0):
+                active_unattached_resources.append(r)
         if len(workspace_resources) == 0:
             raise ImproperlyConfigured('You need at least one'
                 ' workspace-associated resource to run the tests.'
                 ' in this test case.'
             )
-        
-        self.workspace_resource = workspace_resources[0]
-        workspace_pk = self.workspace_resource.workspace.pk
-        self.url = reverse(
-            'workspace-resource-add', 
-            kwargs={'workspace_pk': workspace_pk}
-        )
-
-        active_unattached_resources = Resource.objects.filter(
-            is_active=True,
-            owner = self.regular_user_1,
-            workspace = None
-        )
         if len(active_unattached_resources) == 0:
             raise ImproperlyConfigured('Need at least one'
                 ' active and unattached Resource to'
                 ' run this test.'
             )
+
+        self.workspace_resource = workspace_resources[0]
+        assoc_workspaces = self.workspace_resource.workspaces.all()
+        self.workspace_pk = assoc_workspaces[0].pk
+        self.url = reverse(
+            'workspace-resource-add', 
+            kwargs={'workspace_pk': self.workspace_pk}
+        )
+
         self.unattached_resource = active_unattached_resources[0]
 
 
-    def test_attached_resource_rejected(self):
+    def test_attached_resource_does_not_change(self):
         '''
         Tests that a Resource already associated with a Workspace
-        can't be added
+        can't be added again (i.e. the Resource.workspaces attribute does not
+        change if we try to add a Resource to a Workspace again.)
         '''
+        orig_workspaces = [x.pk for x in self.workspace_resource.workspaces.all()]
         payload = {'resource_uuid': self.workspace_resource.pk}
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        updated_resource = Resource.objects.get(pk=self.workspace_resource.pk)
+        final_workspaces = [x.pk for x in updated_resource.workspaces.all()]
+        self.assertEqual(orig_workspaces, final_workspaces)
+
+    def test_add_another_workspace(self):
+        '''
+        Add a second workspace to a particular resource. That is, the user wishes
+        to associated a single Resource with two Workspaces
+        '''
+        # the resource self.workspace_resource already has an associated workspace
+        # get a different workspace
+        all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        other_user_workspaces = []
+        for w in all_user_workspaces:
+            if w.pk != self.workspace_pk:
+                other_user_workspaces.append(w)
+        if len(other_user_workspaces) == 0:
+            raise ImproperlyConfigured('Need another workspace so we can attach our Resource.')
+
+        other_workspace = other_user_workspaces[0]
+        self.assertEqual(len(self.workspace_resource.workspaces.all()), 1)
+        payload = {'resource_uuid': self.workspace_resource.pk}
+        url = reverse(
+            'workspace-resource-add', 
+            kwargs={'workspace_pk': other_workspace.pk}
+        )
+        response = self.authenticated_regular_client.post(url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        updated_resource = Resource.objects.get(pk=self.workspace_resource.pk)
+        final_workspaces = [x.pk for x in updated_resource.workspaces.all()]
+        self.assertEqual(len(final_workspaces),2)
+        self.assertCountEqual(final_workspaces, [other_workspace.pk, self.workspace_pk])
 
 
     def test_malformatted_request_fails(self):
@@ -204,11 +238,14 @@ class WorkpaceResourceAddTests(BaseAPITestCase):
         Only active and validated resources can be attached
         to workspaces.
         '''
-        inactive_unattached_resources = Resource.objects.filter(
+        inactive_resources = Resource.objects.filter(
             is_active=False,
             owner = self.regular_user_1,
-            workspace = None
         )
+        inactive_unattached_resources = []
+        for r in inactive_resources:
+            if len(r.workspaces.all()) == 0:
+                inactive_unattached_resources.append(r)
         if len(inactive_unattached_resources) == 0:
             raise ImproperlyConfigured('Need at least one'
                 ' inactive and unattached Resource to run'
@@ -225,12 +262,16 @@ class WorkpaceResourceAddTests(BaseAPITestCase):
         (such as when the upload succeeds, but the type they specified was not
         compatible with the file's content).  We can't add this Resource to a workspace
         '''
-        active_unattached_and_unset_resources = Resource.objects.filter(
+        active_and_unset_resources = Resource.objects.filter(
             is_active=True,
             owner = self.regular_user_1,
-            workspace = None,
             resource_type=None
         )
+        active_unattached_and_unset_resources = []
+        for r in active_and_unset_resources:
+            if len(r.workspaces.all()) == 0:
+                active_unattached_and_unset_resources.append(r)
+
         if len(active_unattached_and_unset_resources) == 0:
             raise ImproperlyConfigured('Need at least one'
                 ' active, unattached, and unset Resource to run'
@@ -263,32 +304,34 @@ class WorkpaceResourceAddTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-    @mock.patch('api.views.workspace_resource_views.copy_resource_to_workspace')
-    def test_correct_request_yields_object_creation(self, mock_copy):
+    def test_correct_request_adds_workspace(self):
         '''
         Test that the endpoint returns a 201 if the request
         was correct and the resource was added to the workspace
         '''
-        mock_new_resource = Resource.objects.create(
-            path='/path/to/foo.tsv',
-            name = 'foo.tsv',
-            owner = self.regular_user_1,
-            workspace = self.workspace_resource.workspace,
-            resource_type = 'MTX',
-            is_active = True
-        )
-        mock_copy.return_value = mock_new_resource
 
         # need an active, unattached resource with a type:
-        r = Resource.objects.filter(
-            workspace=None,
+        active_typed_resources = Resource.objects.filter(
             is_active=True
         ).exclude(resource_type__isnull=True)
-        if len(r) == 0:
+        active_unattached_resources = []
+        for r in active_typed_resources:
+            if len(r.workspaces.all()) == 0:
+                active_unattached_resources.append(r)
+        
+        if len(active_unattached_resources) == 0:
             raise ImproperlyConfigured('Need an active, unattached'
                 ' resource with a type specified to run this test.'
             )
-        r = r[0]
+        r = active_unattached_resources[0]
+        self.assertTrue(len(r.workspaces.all()) == 0)
         payload = {'resource_uuid': r.pk}
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # query to check that the workspace was added
+        r = Resource.objects.get(pk=r.pk)
+        assoc_workspaces = [x.pk for x in r.workspaces.all()]
+        self.assertTrue(len(assoc_workspaces) == 1)
+        expected_workspace_pk = assoc_workspaces[0]
+        self.assertEqual(expected_workspace_pk, self.workspace_pk)

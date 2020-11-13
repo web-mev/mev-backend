@@ -26,15 +26,22 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 
 - `Resource` instances are initially "unattached" meaning they are associated with their owner, but have *not* been associated with any user workspaces.  Admins can, however, specify a `Workspace` in their request to create the `Resource` directly via the API.
 
-- When a user chooses to "add" a `Resource` to a `Workspace`, a new database record is created which is a copy of the original, unattached `Resource` with the same attributes *except* the unique `Resource` UUID.  Thus, we have two database records referencing the same file.
-We could accomplish something similar with a many-to-one mapping of `Workspace` to `Resource`s, but this was a choice we made which could allow for resource-copying if we ever allow file-editing in the future.  In that case, attaching a `Resource` to a `Workspace` could create a copy of the file such that the original `Resource` remains unaltered.
-The user can, of course, change any of the *mutable* members of this new `Workspace`-associated `Resource`.  The changes will be independent of the original "unattached" `Resource`.
+- When a user chooses to "add" a `Resource` to a `Workspace`, we append the `Workspace` to the set of `Workspace` instances associated with that `Resource`. That is, each `Resource` tracks which `Workspace`s it is associated with. This is accomplished via a many-to-many mapping in the database.
 
-- Users can remove a `Resource` from a `Workspace` if it has NOT been used for any portions of the analysis.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps. 
+- Users can remove a `Resource` from a `Workspace` if it has NOT been used for any portions of the analysis.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps.
+Note that removing a `Resource` from a `Workspace` does not delete a file- it only modifies the `workspaces` attribute on the `Resource` database instance.
+
 
 **Deletion of Resources**
 
-Since multiple database records can reference the same underlying file, we have a bit of custom logic for determining when we delete only the database record versus deleting the actual underlying file.  Essentially, if a deletion is requested and no other `Resource` database records reference the same file, then we delete *both* the database record AND the file.  In the case where there is another database record referencing that file, we only remove the database record, leaving the file.
+- `Resource`s can only be deleted from the "home" screen (i.e. not in the Workspace view)
+
+- If a `Resource` is associated/attached to one or more `Workspace`s, then you cannot delete the `Resource`. 
+
+- A `Resource` can only be deleted if:
+  - It is associated with zero `Workspace`s
+  - It is not used in any `Operation`
+Technically, we only need the first case. If a `Resource` has been used in an `Operation`, we don't allow the user to remove it from the `Workspace`. Thus, a file being associated with zero `Workspace`s means that it has not been used in any `Operation`s
 
 **Notes related to backend implementation**
 

@@ -4,6 +4,7 @@ import uuid
 import errno
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
@@ -122,25 +123,33 @@ class Command(BaseCommand):
         # for regular user1, associate some Resources
         # with a Workspace
         user1_workspaces = Workspace.objects.filter(owner=user_dict[USER1])
+        if len(user1_workspaces) > 2:
+            raise ImproperlyConfigured('Create at least two Workspaces for user: {user}'.format(
+                user = user_dict[USER1]))
+
         workspace = user1_workspaces[0]
 
         # create a couple new Resources associated with the first Workspace:
-        Resource.objects.create(
+        r1 = Resource.objects.create(
             owner=user_dict[USER1],
             name='file1_in_workspace.tsv',
             resource_type = 'I_MTX',
-            workspace=workspace,
             path='/path/to/file1_in_workspace.tsv',
             is_active = True
         )
-        Resource.objects.create(
+        r2 = Resource.objects.create(
             owner=user_dict[USER1],
             name='file2_in_workspace.tsv',
             resource_type = 'I_MTX',
-            workspace=workspace,
             path='/path/to/file2_in_workspace.tsv',
             is_active = True
         )
+        r1.workspaces.add(workspace)
+        r2.workspaces.add(workspace)
+
+        # for increased complexity, add r1 to a second workspace
+        other_workspace = user1_workspaces[1]
+        r1.workspaces.add(other_workspace)
 
     def add_metadata_to_resources(self):
         all_resources = Resource.objects.all()

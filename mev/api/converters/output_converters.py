@@ -67,10 +67,11 @@ class BaseOutputConverter(object):
         )
         resource_instance = Resource.objects.create(
             owner = workspace.owner,
-            workspace = workspace,
             path = path,
             name = name,
         )
+        resource_instance.workspaces.add(workspace)
+        resource_instance.save()
         return resource_instance
 
         

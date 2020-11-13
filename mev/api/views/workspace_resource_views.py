@@ -12,7 +12,6 @@ from api.serializers.resource import ResourceSerializer
 from api.serializers.workspace_resource import WorkspaceResourceSerializer
 from api.serializers.workspace_resource_add import WorkspaceResourceAddSerializer
 import api.permissions as api_permissions
-from api.utilities.resource_utilities import copy_resource_to_workspace
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +50,69 @@ class WorkspaceResourceList(generics.ListAPIView):
         except Workspace.DoesNotExist:
             raise NotFound()
         user = self.request.user
-        if user.is_staff:
-            return Resource.objects.filter(workspace=workspace)
-        elif user == workspace.owner:                 
-            return Resource.objects.filter(workspace=workspace)
+        if (user.is_staff) or (user == workspace.owner):
+            return workspace.resources.all()
+
+def get_workspace_and_resource(workspace_uuid, resource_uuid):
+    '''
+    Once single function that handles checking the workspace and resource
+    ownership and integrity for addition or removal of Resources to a 
+    specific Workspace
+    '''
+    try:
+        workspace = Workspace.objects.get(pk=workspace_uuid)
+    except Workspace.DoesNotExist:
+        logger.info('Could not locate Workspace ({workspace_uuid}).'.format(
+            workspace_uuid = str(workspace_uuid)
+            )
+        )
+        raise ParseError({
+            'workspace_uuid': 'Workspace referenced by {uuid}'
+            ' was not found.'.format(uuid=workspace_uuid)
+        })
+
+    try:
+        resource = Resource.objects.get(pk=resource_uuid)
+    except Resource.DoesNotExist:
+        logger.info('Could not locate Resource ({resource_uuid})'
+        ' when attempting to add/remove Resource to/from'
+        ' Workspace ({workspace_uuid}).'.format(
+                resource_uuid = resource_uuid,
+                workspace_uuid = str(workspace_uuid)
+            )
+        )
+        raise ParseError({
+            'resource_uuid': 'Resource referenced by {uuid}'
+            ' was not found.'.format(uuid=resource_uuid)
+        })
+
+    # the workspace and resource must have
+    # the same owner.  Requester must be admin or the owner.
+    if not (workspace.owner == resource.owner):
+        logger.info('Resource ({resource_uuid}) and'
+            ' workspace ({workspace_uuid}) did not have'
+            ' the same owner.  Rejecting request.'.format(
+                workspace_uuid = str(workspace_uuid),
+                resource_uuid = str(resource_uuid)
+            )
+        )
+        raise Exception('Workspace and resource did not have the same owner.')
+    else:
+        return workspace, resource               
+
+
+class WorkspaceResourceRemove(APIView):
+    '''
+    This endpoint removes a Resource from a specific Workspace. Note that
+    Resources used in one or more Operations cannot be removed from the Workspace
+    so that the integrity of analysis workflows is maintained.
+    '''
+
+    def get(self, request, *args, **kwargs):
+        workspace_uuid = kwargs['workspace_pk']
+        resource_uuid = kwargs['resource_pk']
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 class WorkspaceResourceAdd(APIView):
@@ -80,31 +138,15 @@ class WorkspaceResourceAdd(APIView):
             )
 
             try:
-                workspace = Workspace.objects.get(pk=workspace_uuid)
-            except Workspace.DoesNotExist:
-                logger.info('Could not locate Workspace ({workspace_uuid})'
-                ' when attempting to add Resource.'.format(
-                    workspace_uuid = str(workspace_uuid)
-                    )
+                workspace, resource = get_workspace_and_resource(workspace_uuid, resource_uuid)
+            except ParseError as ex:
+                raise ex
+            except Exception as ex:
+                return Response({
+                        'resource_uuid':'The owner of the workspace and '
+                        'resource must be the same.'
+                    }, status=status.HTTP_400_BAD_REQUEST
                 )
-                raise ParseError({
-                    'workspace_uuid': 'Workspace referenced by {uuid}'
-                    ' was not found.'.format(uuid=workspace_uuid)
-                })
-            try:
-                resource = Resource.objects.get(pk=resource_uuid)
-            except Resource.DoesNotExist:
-                logger.info('Could not locate Resource ({resource_uuid})'
-                ' when attempting to add Resource to'
-                ' Workspace ({workspace_uuid}).'.format(
-                        resource_uuid = resource_uuid,
-                        workspace_uuid = str(workspace_uuid)
-                    )
-                )
-                raise ParseError({
-                    'resource_uuid': 'Resource referenced by {uuid}'
-                    ' was not found.'.format(uuid=resource_uuid)
-                })
 
             if not resource.is_active:
                 logger.info('Attempted to add an inactive Resource {resource} to'
@@ -119,42 +161,20 @@ class WorkspaceResourceAdd(APIView):
                 raise ParseError('The requested Resource'
                 ' has not been successfully validated.')
 
-            if resource.workspace:
-                logger.info('Attempted to add a workspace-associated'
-                ' Resource {resource_uuid} to a workspace. Rejecting.'.format(
-                    resource_uuid = resource_uuid
-                ))
-                raise ParseError('The requested resource ({resource_uuid})'
-                    ' is already associated with a workspace.'.format(
-                        resource_uuid = resource_uuid
-                    )
-            )
-
-            # the workspace and resource must have
-            # the same owner.  Requester must be admin or the owner.
-            if not (workspace.owner == resource.owner):
-                logger.info('Resource ({resource_uuid}) and'
-                    ' workspace ({workspace_uuid}) did not have'
-                    ' the same owner.  Rejecting request.'.format(
-                        workspace_uuid = str(workspace_uuid),
-                        resource_uuid = str(resource_uuid)
-                    )
-                )                
-                return Response({
-                        'resource_uuid':'The owner of the workspace and '
-                        'resource must be the same.'
-                    }, status=status.HTTP_400_BAD_REQUEST
-                )
-
             # if here, workspace and resource have the same owner.
             # Now check if the requester is either that same owner
             # or an admin
             requesting_user = request.user
             if (requesting_user.is_staff) or (requesting_user == workspace.owner):
                 try:
-                    r = copy_resource_to_workspace(resource, workspace)
-                    rs = ResourceSerializer(r, context={'request': request})
-                    return Response(rs.data, status=status.HTTP_201_CREATED)
+                    current_workspaces = resource.workspaces.all()
+                    if workspace in current_workspaces:
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+                    else:
+                        resource.workspaces.add(workspace)
+                        resource.save()
+                        rs = ResourceSerializer(resource, context={'request': request})
+                        return Response(rs.data, status=status.HTTP_201_CREATED)
                 except Exception as ex:
                     logger.error('An exception was raised when adding a resource'
                     ' {resource_uuid} to workspace {workspace_uuid}.  Exception was:' 
@@ -167,7 +187,8 @@ class WorkspaceResourceAdd(APIView):
             else:
                 return Response({
                         'resource_uuid':'The owner of the workspace and '
-                        'resource must match the requesting user.'
+                        'resource must match the requesting user or be'
+                        ' requested by admin.'
                     }, status=status.HTTP_400_BAD_REQUEST
                 )
         else:

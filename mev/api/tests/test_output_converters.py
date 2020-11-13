@@ -35,7 +35,7 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         if len(all_user_workspaces) < 1:
             raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
         workspace = all_user_workspaces[0]
-        workspace_resources = Resource.objects.filter(workspace=workspace)
+        workspace_resources = workspace.resources.all()
         w0 = len(workspace_resources)
 
         c = LocalDockerOutputConverter()
@@ -63,7 +63,7 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         updated_all_user_resources = Resource.objects.filter(owner=self.regular_user_1)
         n1 = len(updated_all_user_resources)
         self.assertEqual(n1-n0, 1)
-        updated_workspace_resources = Resource.objects.filter(workspace=workspace)
+        updated_workspace_resources = workspace.resources.all()
         w1 = len(updated_workspace_resources)
         self.assertEqual(w1-w0, 1)
 

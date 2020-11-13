@@ -102,12 +102,11 @@ class Resource(models.Model):
 
     # Can attach a Resource to a Workspace, but 
     # this is not required.
-    workspace = models.ForeignKey(
+    workspaces = models.ManyToManyField(
         Workspace,
-        related_name = 'workspace_resources',
+        related_name = 'resources',
         blank = True,
-        null = True,
-        on_delete = models.CASCADE
+        null = True
     )
 
     # the location of the file.  Since the files can be added in
@@ -183,16 +182,16 @@ class Resource(models.Model):
 
 
     def __str__(self):
-        workspace_str = str(self.workspace.pk) if self.workspace else 'None'
+        workspaces_str = ','.join([str(x.pk) for x in self.workspaces.all()])
         return '''Resource ({uuid})
           Name: {name}
           Owner: {owner}
-          Workspace: {workspace}
+          Workspaces: {workspaces}
           Created: {date}'''.format(
                 name = self.name,
                 uuid = str(self.id),
                 owner = str(self.owner),
-                workspace = workspace_str,
+                workspaces = workspaces_str,
                 date = self.creation_datetime
         )
 
