@@ -69,7 +69,7 @@
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
@@ -237,7 +237,6 @@
 
 
 <p>This information regarding user-defined groupings can be cached client-side. However, the ultimate "source" of the metadata is provided by the <code>Workspace</code>, which maintains the <code>ObservationSet</code>s, <code>FeatureSet</code>s, and possibly other metadata.</p>
-<p>We could use a heatmap to visualize how users have created various selections:</p>
 <h3 id="using-the-metadata-for-analyses"><a class="toclink" href="#using-the-metadata-for-analyses">Using the metadata for analyses</a></h3>
 <p>After the user has created their own <code>ObservationSet</code> instances, they can use them for analyses such as a differential expression analysis. For instance, the inputs to such an analysis would be an expression matrix (perhaps the result of merging the "S" and "P" samples/<code>Observation</code>s) and two <code>ObservationSet</code> instances. The payload to start such an analysis (sent to <code>/api/operations/run/</code>) would look something like:</p>
 <pre class="codehilite"><code>{
@@ -319,7 +318,6 @@
 }</code></pre>
 
 
-<p>Unsure how this might work on the front-end in terms of updating the <code>Observation</code> instances so that they all have this information. If the <code>ObservationSet</code> was setup to have pointers/references to the <code>Observation</code> instances then the changes could percolate to all the <code>ObservationSet</code> instances.</p>
 <h3 id="backend-endpoints"><a class="toclink" href="#backend-endpoints">Backend endpoints</a></h3>
 <p>To provide a "single source of truth", there will be a "workspace metadata" endpoint at <code>/api/workspace/&lt;UUID&gt;/metadata/</code> which will track the <em>union</em> of all the <code>Resource</code> metadata in the <code>Workspace</code>. To reduce the amount of data returned, there will also be specific endpoints for <code>Observation</code>s and <code>Feature</code>s at <code>/api/workspace/&lt;UUID&gt;/metadata/observations/</code> and <code>/api/workspace/&lt;UUID&gt;/metadata/features/</code>.</p>
 <p>The front-end will maintain the various user selections (formerly "sample sets", now <code>ObservationSet</code>) but the full set of available <code>Observation</code> instances will be kept on the backend.</p>

@@ -69,7 +69,7 @@
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
@@ -196,23 +196,35 @@
 <p><strong>Resources and Workspaces</strong></p>
 <ul>
 <li>
-<p><code>Resource</code> instances are initially "unattached" meaning they are associated with their owner, but have <em>not</em> been associated with any user workspaces.  Admins can, however, specify a <code>Workspace</code> in their request to create the <code>Resource</code> directly via the API.</p>
+<p><code>Resource</code> instances are initially "unattached" meaning they are associated with their owner, but have <em>not</em> been associated with any user workspaces.</p>
 </li>
 <li>
-<p>When a user chooses to "add" a <code>Resource</code> to a <code>Workspace</code>, a new database record is created which is a copy of the original, unattached <code>Resource</code> with the same attributes <em>except</em> the unique <code>Resource</code> UUID.  Thus, we have two database records referencing the same file.
-We could accomplish something similar with a many-to-one mapping of <code>Workspace</code> to <code>Resource</code>s, but this was a choice we made which could allow for resource-copying if we ever allow file-editing in the future.  In that case, attaching a <code>Resource</code> to a <code>Workspace</code> could create a copy of the file such that the original <code>Resource</code> remains unaltered.
-The user can, of course, change any of the <em>mutable</em> members of this new <code>Workspace</code>-associated <code>Resource</code>.  The changes will be independent of the original "unattached" <code>Resource</code>.</p>
+<p>When a user chooses to "add" a <code>Resource</code> to a <code>Workspace</code>, we append the <code>Workspace</code> to the set of <code>Workspace</code> instances associated with that <code>Resource</code>. That is, each <code>Resource</code> tracks which <code>Workspace</code>s it is associated with. This is accomplished via a many-to-many mapping in the database.</p>
 </li>
 <li>
-<p>Users can remove a <code>Resource</code> from a <code>Workspace</code> if it has NOT been used for any portions of the analysis.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps. </p>
+<p>Users can remove a <code>Resource</code> from a <code>Workspace</code>, but <em>only if it has NOT been used for any portions of the analysis</em>.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps.
+Note that removing a <code>Resource</code> from a <code>Workspace</code> does not delete a file- it only modifies the <code>workspaces</code> attribute on the <code>Resource</code> database instance.</p>
 </li>
 </ul>
 <p><strong>Deletion of Resources</strong></p>
-<p>Since multiple database records can reference the same underlying file, we have a bit of custom logic for determining when we delete only the database record versus deleting the actual underlying file.  Essentially, if a deletion is requested and no other <code>Resource</code> database records reference the same file, then we delete <em>both</em> the database record AND the file.  In the case where there is another database record referencing that file, we only remove the database record, leaving the file.</p>
+<ul>
+<li>
+<p><code>Resource</code>s can only be deleted from the "home" screen (i.e. not in the Workspace view)</p>
+</li>
+<li>
+<p>If a <code>Resource</code> is associated/attached to one or more <code>Workspace</code>s, then you cannot delete the <code>Resource</code>. </p>
+</li>
+<li>
+<p>A <code>Resource</code> can only be deleted if:</p>
+</li>
+<li>It is associated with zero <code>Workspace</code>s</li>
+<li>It is not used in any <code>Operation</code>
+Technically, we only need the first case. If a <code>Resource</code> has been used in an <code>Operation</code>, we don't allow the user to remove it from the <code>Workspace</code>. Thus, a file being associated with zero <code>Workspace</code>s means that it has not been used in any <code>Operation</code>s</li>
+</ul>
 <p><strong>Notes related to backend implementation</strong></p>
 <ul>
 <li>
-<p>In general, the <code>is_active = False</code> flag disallows any updating of the <code>Resource</code> attributes via the API.  All post/patch/put requests will return a 400 status.  This prevents multiple requests from interfering with an ongoing background process.</p>
+<p>In general, the <code>is_active = False</code> flag disallows any updating of the <code>Resource</code> attributes via the API.  All post/patch/put requests will return a 400 status.  This prevents multiple requests from interfering with an ongoing background process, such as validation.</p>
 </li>
 <li>
 <p>Users cannot change the <code>path</code> member.  The actual storage of the files should not matter to the users so they are unable to change the <code>path</code> member.</p>

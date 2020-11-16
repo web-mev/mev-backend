@@ -69,7 +69,7 @@
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
@@ -159,9 +159,9 @@
               
                 <p><a id="observations"></a></p>
 <h3 id="elements-observations-and-features"><a class="toclink" href="#elements-observations-and-features">Elements, Observations, and Features</a></h3>
-<p>We adopt the convention from statistical learning of referring to <code>Observation</code>s and <code>Feature</code>s of data.  Both of these data structures derive from <code>BaseElement</code>, which captures their common structure.  Specialization specific to each can be overridden in the child classes.  </p>
-<p>In an experimental context, <code>Observation</code>s are analogous to samples.  That is, each <code>Observation</code> has one or more <code>Feature</code>s associated with it (e.g. gene expressions for 30,000 genes).  Collectively, we can think of <code>Observation</code>s and <code>Feature</code>s as comprising the rows and columns of a two-dimensional matrix.</p>
-<p>We use <code>Observation</code>s and <code>Feature</code>s to hold metadata about data that we manipulating in MEV.  We can attach <a href="../attributes/">attributes</a> to these to allow users to set experimental groups, or other information usedful for visualization or filtering.</p>
+<p>We adopt the convention from statistical learning of referring to <code>Observation</code>s and <code>Feature</code>s of data.  Both of these data structures derive from the <code>BaseElement</code> class, which captures their common structure and behavior.  Specialization for each can be overridden in the child classes.  </p>
+<p>In the context of a biological experimental, <code>Observation</code>s are synonymous with samples.  Further, each <code>Observation</code> can have <code>Feature</code>s associated with it (e.g. gene expressions for 30,000 genes).  One can think of <code>Observation</code>s and <code>Feature</code>s as comprising the columns and rows of a two-dimensional matrix. Note that in our convention, due to the typical format of expression matrices, we take each column to represent an <code>Observation</code> and each row to represent a <code>Feature</code>. </p>
+<p>We use <code>Observation</code>s and <code>Feature</code>s to hold metadata (as key-value pairs) about data that we manipulating in WebMEV. For instance, given a typical gene expression matrix we have information about only the <em>names</em> of the <code>Observation</code>s/samples and <code>Feature</code>s/genes. We can then specify <a href="../attributes/">attributes</a> to annotate the <code>Observation</code>s and <code>Feature</code>s, allowing users to define experimental groups, or specify other information useful for visualization or filtering.</p>
 <p>These data structures have similar (if not exactly the same) behavior but we separate them for future compatability in case specialization of each class is needed.</p>
 <div class="autodoc">
 <div class="autodoc-signature"><em>class </em><code>api.data_structures.element.<strong>BaseElement</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>

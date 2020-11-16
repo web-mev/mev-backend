@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Intro - MEV REST API</title>
+  <title>Intro and core concepts - MEV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../css/theme.css" />
@@ -19,7 +19,7 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Intro";
+    var mkdocs_page_name = "Intro and core concepts";
     var mkdocs_page_input_path = "api.md";
     var mkdocs_page_url = null;
   </script>
@@ -69,8 +69,10 @@
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Intro</a>
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Intro and core concepts</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#core-concepts">Core concepts</a>
+    </li>
     </ul>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
@@ -139,7 +141,7 @@
         
       
     
-    <li>Intro</li>
+    <li>Intro and core concepts</li>
     <li class="wy-breadcrumbs-aside">
       
         <a href="https://github.com/web-mev/mev-backend/edit/master/docs/api.md"
@@ -154,8 +156,14 @@
             <div class="section">
               
                 <h2 id="documentation-on-the-api"><a class="toclink" href="#documentation-on-the-api">Documentation on the API</a></h2>
-<p>There are a couple aspects to the WevMEV REST API.  We have the actual API endpoints which are used to drive analysis or a frontend visualization.  Documentation of the API interaction is provided by auto-generated documentation conforming to the OpenAPI spec here: <a href="../api_spec.html">API documentation</a>  </p>
-<p>Behind the API itself are the data structures and models that we use to architect the system.  You will find information about these entities and their relationships in this section.</p>
+<p>There are two aspects of the WebMEV backend.  </p>
+<p>First, we have the public-facing RESTful API endpoints which are used to drive an analysis, upload files, and other actions.  Documentation of the API interaction is provided by auto-generated documentation conforming to the OpenAPI spec here: <a href="../api_spec.html">API documentation</a>  </p>
+<p>The second aspect of WebMEV is the data structures, models, and concepts that we use to architect the system. You will find information about these entities and their relationships in this section.</p>
+<h3 id="core-concepts"><a class="toclink" href="#core-concepts">Core concepts</a></h3>
+<p>The goal of WebMEV is to provide a suite of analysis tools and visualizations to guide users through common analyses, most commonly with genomic (particularly transcriptomic) data. </p>
+<p>Users upload their own files or import data from selected public repositories. These data can then be manipulated within <em>workspaces</em>, which provide a way to separate out distinct analysis flows to keep a user's data and analyses organized.</p>
+<p>One of the guiding principles within WebMEV is to provide transparent and reproducible analysis. As a result, the system is architected such that all analysis modules and workflows are available as standalone repositories; all code and supporting files are version-controlled and able to be executed independent of WebMEV (typically with containers such as Docker).</p>
+<p>In accordance with this principle of reproducibility, WebMEV does not modify files in-place. That is, if a subset operation occurs, or crucial intermediate data is created, all those components are made available and are able to visualized as a tree structure. </p>
               
             </div>
           </div>

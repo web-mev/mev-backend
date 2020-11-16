@@ -835,11 +835,34 @@
                         "nullable": true,
                         "maxLength": 255
                       },
-                      "workspace": {
-                        "type": "string"
-                      },
-                      "workspace_name": {
-                        "type": "string",
+                      "workspaces": {
+                        "type": "array",
+                        "items": {
+                          "properties": {
+                            "url": {
+                              "type": "string",
+                              "readOnly": true
+                            },
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "readOnly": true
+                            },
+                            "workspace_name": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "owner_email": {
+                              "type": "string",
+                              "format": "email"
+                            },
+                            "created": {
+                              "type": "string",
+                              "format": "date-time",
+                              "readOnly": true
+                            }
+                          }
+                        },
                         "readOnly": true
                       },
                       "created": {
@@ -908,9 +931,6 @@
                     "nullable": true,
                     "maxLength": 255
                   },
-                  "workspace": {
-                    "type": "string"
-                  },
                   "path": {
                     "type": "string",
                     "writeOnly": true
@@ -956,9 +976,6 @@
                     "nullable": true,
                     "maxLength": 255
                   },
-                  "workspace": {
-                    "type": "string"
-                  },
                   "path": {
                     "type": "string",
                     "writeOnly": true
@@ -1003,9 +1020,6 @@
                     "type": "string",
                     "nullable": true,
                     "maxLength": 255
-                  },
-                  "workspace": {
-                    "type": "string"
                   },
                   "path": {
                     "type": "string",
@@ -1066,11 +1080,34 @@
                       "nullable": true,
                       "maxLength": 255
                     },
-                    "workspace": {
-                      "type": "string"
-                    },
-                    "workspace_name": {
-                      "type": "string",
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "readOnly": true
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "readOnly": true
+                          },
+                          "workspace_name": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "owner_email": {
+                            "type": "string",
+                            "format": "email"
+                          },
+                          "created": {
+                            "type": "string",
+                            "format": "date-time",
+                            "readOnly": true
+                          }
+                        }
+                      },
                       "readOnly": true
                     },
                     "created": {
@@ -1160,11 +1197,34 @@
                       "nullable": true,
                       "maxLength": 255
                     },
-                    "workspace": {
-                      "type": "string"
-                    },
-                    "workspace_name": {
-                      "type": "string",
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "readOnly": true
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "readOnly": true
+                          },
+                          "workspace_name": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "owner_email": {
+                            "type": "string",
+                            "format": "email"
+                          },
+                          "created": {
+                            "type": "string",
+                            "format": "date-time",
+                            "readOnly": true
+                          }
+                        }
+                      },
                       "readOnly": true
                     },
                     "created": {
@@ -1242,9 +1302,6 @@
                     "nullable": true,
                     "maxLength": 255
                   },
-                  "workspace": {
-                    "type": "string"
-                  },
                   "path": {
                     "type": "string",
                     "writeOnly": true
@@ -1290,9 +1347,6 @@
                     "nullable": true,
                     "maxLength": 255
                   },
-                  "workspace": {
-                    "type": "string"
-                  },
                   "path": {
                     "type": "string",
                     "writeOnly": true
@@ -1337,9 +1391,6 @@
                     "type": "string",
                     "nullable": true,
                     "maxLength": 255
-                  },
-                  "workspace": {
-                    "type": "string"
                   },
                   "path": {
                     "type": "string",
@@ -1400,11 +1451,34 @@
                       "nullable": true,
                       "maxLength": 255
                     },
-                    "workspace": {
-                      "type": "string"
-                    },
-                    "workspace_name": {
-                      "type": "string",
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "readOnly": true
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "readOnly": true
+                          },
+                          "workspace_name": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "owner_email": {
+                            "type": "string",
+                            "format": "email"
+                          },
+                          "created": {
+                            "type": "string",
+                            "format": "date-time",
+                            "readOnly": true
+                          }
+                        }
+                      },
                       "readOnly": true
                     },
                     "created": {
@@ -1482,9 +1556,6 @@
                     "nullable": true,
                     "maxLength": 255
                   },
-                  "workspace": {
-                    "type": "string"
-                  },
                   "path": {
                     "type": "string",
                     "writeOnly": true
@@ -1530,9 +1601,6 @@
                     "nullable": true,
                     "maxLength": 255
                   },
-                  "workspace": {
-                    "type": "string"
-                  },
                   "path": {
                     "type": "string",
                     "writeOnly": true
@@ -1577,9 +1645,6 @@
                     "type": "string",
                     "nullable": true,
                     "maxLength": 255
-                  },
-                  "workspace": {
-                    "type": "string"
                   },
                   "path": {
                     "type": "string",
@@ -1640,11 +1705,34 @@
                       "nullable": true,
                       "maxLength": 255
                     },
-                    "workspace": {
-                      "type": "string"
-                    },
-                    "workspace_name": {
-                      "type": "string",
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "readOnly": true
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "readOnly": true
+                          },
+                          "workspace_name": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "owner_email": {
+                            "type": "string",
+                            "format": "email"
+                          },
+                          "created": {
+                            "type": "string",
+                            "format": "date-time",
+                            "readOnly": true
+                          }
+                        }
+                      },
                       "readOnly": true
                     },
                     "created": {
@@ -1996,11 +2084,34 @@
                         "nullable": true,
                         "maxLength": 255
                       },
-                      "workspace": {
-                        "type": "string"
-                      },
-                      "workspace_name": {
-                        "type": "string",
+                      "workspaces": {
+                        "type": "array",
+                        "items": {
+                          "properties": {
+                            "url": {
+                              "type": "string",
+                              "readOnly": true
+                            },
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "readOnly": true
+                            },
+                            "workspace_name": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "owner_email": {
+                              "type": "string",
+                              "format": "email"
+                            },
+                            "created": {
+                              "type": "string",
+                              "format": "date-time",
+                              "readOnly": true
+                            }
+                          }
+                        },
                         "readOnly": true
                       },
                       "created": {
@@ -2018,6 +2129,45 @@
                       }
                     }
                   }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspace_pk}/resources/{resource_pk}/remove/": {
+      "get": {
+        "operationId": "listWorkspaceResourceRemoves",
+        "description": "This endpoint removes a Resource from a specific Workspace. Note that\nResources used in one or more Operations cannot be removed from the Workspace\nso that the integrity of analysis workflows is maintained.",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
                 }
               }
             },

@@ -69,7 +69,7 @@
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
@@ -116,6 +116,10 @@
         </ul>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#remote-cromwell-based-jobs">Remote, Cromwell-based jobs</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#additional-notes">Additional notes:</a>
+    </li>
+        </ul>
     </li>
     </ul>
                     </li>
@@ -370,7 +374,133 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))</code><
 <p>Once all these files are in place, create a git repository and check the code into github. The analysis is ready for ingestion with WebMEV.</p>
 <hr />
 <h3 id="remote-cromwell-based-jobs"><a class="toclink" href="#remote-cromwell-based-jobs">Remote, Cromwell-based jobs</a></h3>
-<p>TODO</p>
+<p>For jobs that are run remotely with the help of the Cromwell job engine, we have slightly different required files. </p>
+<p>Cromwell-based jobs are executed using "Workflow Definition Language" (WDL) syntax files (https://openwdl.org/). When using this job engine, the primary purpose of WebMEV is to validate user inputs and reformat them to be compatible with the inputs required to run the workflow. For those who have not used Broad's Cromwell engine before, the three components of an analysis workflow include:</p>
+<ul>
+<li>WDL file(s): Specifies the commands that are run. You can think of this as you would a typical shell script.</li>
+<li>A JSON-format inputs file: This maps the expected workflow inputs (e.g. strings, numbers, or files) to specific values. For instance, if we expect a file, then the inputs JSON file will map the input variable to a file path. WebMEV is responsible for creating this file at runtime.</li>
+<li>One of more Docker containers: Cromwell orchestrates the startup/shutdown of cloud-based virtual machines but all commands are run within Docker runtimes on those machines. Thus, the WDL files will dictate which Docker images are used for each step in the analysis. There can be an arbitrary number of these. </li>
+</ul>
+<p>Thus, to create a Cromwell-based job that is compatible with WebMEV we require: </p>
+<ul>
+<li>
+<p><code>operation_spec.json</code></p>
+<ul>
+<li>This file dictates the input and output parameters for the analysis. Of type <code>Operation</code>. This file is the same as with any WebMEV analysis. To specifically create an <code>Operation</code> for the Cromwell job runner, you <em>must</em> specify <code>"mode": "cromwell"</code> in the <code>Operation</code> object.</li>
+</ul>
+</li>
+<li>
+<p><code>main.wdl</code></p>
+<ul>
+<li>In general there can be any number of WDL-format files in the repository. However, the primary or "entry" WDL file <em>must</em> be named as <code>main.wdl</code>.</li>
+</ul>
+</li>
+<li>
+<p><code>inputs.json</code></p>
+<ul>
+<li>This is the JSON-format file which dictates the inputs to the workflow. It is a template that will be appropriately filled at runtime. Thus, the "values" of the mapping do not matter, but the keys must map to input variables in <code>main.wdl</code>. Typically, this file is easily created by Broad's WOMTool. See below for an example.</li>
+</ul>
+</li>
+<li><code>converters.json</code><ul>
+<li>This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/<code>Observation</code>s)
+and format it to be used in <code>inputs.json</code>. As above, this is a mapping of the input name to a "dotted" class implementation.</li>
+</ul>
+</li>
+<li><code>docker/</code><ul>
+<li>The <code>docker</code> folder contains one or more Dockerfile-format files and the dependencies to create those Docker images. Each Dockerfile is named according to its target image. For instance, if one of the WDL files specifies that it depends on a Docker image named <code>docker.io/myUser/foo</code>, then the Dockerfile defining that image should be named <code>Dockerfile.foo</code>.</li>
+</ul>
+</li>
+</ul>
+<h4 id="additional-notes"><a class="toclink" href="#additional-notes">Additional notes:</a></h4>
+<p><strong>Remarks about dependencies between <code>main.wdl</code>, <code>inputs.json</code> and <code>operation_spec.json</code></strong></p>
+<p>As much as we try to remove interdependencies between files (for ease of development), there are situations we can't resolve easily. One such case is the interdependencies between <code>main.wdl</code>, <code>inputs.json</code>, and the <code>operation_spec.json</code> files.</p>
+<p>As mentioned above, the <code>inputs.json</code> file supplied in the repository is effectively a template which is filled at runtime. The keys of that object correspond to inputs to the main WDL script <code>main.wdl</code>. For example, given a WDL script with the following input definition:</p>
+<pre class="codehilite"><code>workflow SomeWorkflow {
+    ...
+    Array[String] samples
+    ....
+}</code></pre>
+
+
+<p>then the <code>inputs.json</code> would require the key <code>SomeWorkflow.samples</code>. Generally, WDL constructs its inputs in the format of <code>&lt;Workflow name&gt;.&lt;input variable name&gt;</code>. Thus, <code>inputs.json</code> would appear, in part, like</p>
+<pre class="codehilite"><code>{
+    ...
+    &quot;SomeWorkflow.samples&quot;: &quot;Array[String]&quot;,
+    ...
+}</code></pre>
+
+
+<p>As mentioned above, the "value" (here, <code>"Array[String]"</code>) does not matter; Broad's WOMTool will typically fill-in the expected type (as a string) to serve as a cue.</p>
+<p>Finally, WebMEV has to know which inputs of the <code>Operation</code> correspond to which inputs of the WDL script. Thus, in our <code>operation_spec.json</code>, the keys in our <code>inputs</code> object must be consistent with <code>main.wdl</code> and <code>inputs.json</code>:</p>
+<pre class="codehilite"><code>{
+    ...
+    &quot;inputs&quot;: {
+        ...
+        &quot;SomeWorkflow.samples&quot;: &lt;OperationInput&gt;
+        ...
+    }
+}</code></pre>
+
+
+<p><strong>Converting inputs</strong></p>
+<p>As with all analysis execution modes, we have "converter" classes which translate user inputs into formats that are compatible with the job runner. </p>
+<p>For instance, using the example above, one of the inputs for a WDL could be an array of strings (<code>Array[String]</code> in WDL-type syntax). Thus, a converter would be responsible for taking say, an <code>ObservationSet</code>, and turning that into a list of strings to provide the same names. For example, we may wish to convert an <code>ObservationSet</code> given as:</p>
+<pre class="codehilite"><code>{
+    &quot;multiple&quot;: true,
+    &quot;elements&quot;: [
+        {
+            &quot;id&quot;:&quot;sampleA&quot;,
+            &quot;attributes&quot;: {}
+        },
+        {
+            &quot;id&quot;:&quot;sampleB&quot;,
+            &quot;attributes&quot;: {}
+        }    
+    ]
+}</code></pre>
+
+
+<p>Then, the "inputs" data structure submitted to Cromwell (basically <code>inputs.json</code> after it has been filled-in) would, in part, look like:</p>
+<pre class="codehilite"><code>{
+    ...
+    &quot;SomeWorkflow.samples&quot;: [&quot;sampleA&quot;, &quot;sampleB&quot;],
+    ...
+}</code></pre>
+
+
+<p><strong>Creation of Docker images</strong></p>
+<p>As described above, each repository can contain an arbitrary (non-zero) number of WDL files, each of which can depend on one more Docker images for their runtime. There are some custom steps involved during the ingestion of new Cromwell-based workflow, which we explain below.</p>
+<p>When Docker images are specified in the <code>runtime</code> section of the WDL files, the line is formatted as:</p>
+<pre class="codehilite"><code>runtime {
+    ...
+    docker: &quot;&lt;repo name&gt;/&lt;username&gt;/&lt;image name&gt;:&lt;tag&gt;&quot;
+    ...
+}</code></pre>
+
+
+<p>e.g.</p>
+<pre class="codehilite"><code>runtime {
+    ...
+    docker: &quot;docker.io/myUser/foo:v1&quot;
+    ...
+}</code></pre>
+
+
+<p>Note that we only use the image name (<code>foo</code>) when we are ingesting and preparing a new workflow for use in WebMEV. The reason is that we wish to keep all Docker images "in house" within our own Dockerhub account; we do not want to depend on external Docker resources which may change without our knowledge or control. Therefore, the repository and username are not used. Further, the tag is also ignored as we ultimately replace it with the git commit hash. Since the git commit hash is not produced until <em>after</em> the commit, we obviously can't append the images with the proper tag prior to the commit. Thus, during the ingestion process we perform the following:</p>
+<ul>
+<li>Parse all WDL files in the github repo and extract out all the runtime Docker images. This will be a set of strings.</li>
+<li>For each Docker "image string" (e.g. <code>someUser/foo:v1</code>):<ul>
+<li>Extract the image name, e.g. <code>foo</code></li>
+<li>Search for a corresponding Dockerfile in the repo, e.g. <code>docker/Dockerfile.foo</code></li>
+<li>Build the image, tagging with the github commit ID, e.g. <code>abc123</code></li>
+<li>Push the image to the WebMEV Dockerhub, e.g. <code>docker.io/web-mev</code></li>
+<li>Edit and save the WDL file with the newly-built Docker image, e.g. <code>docker.io/web-mev/foo:abc123</code>.</li>
+</ul>
+</li>
+</ul>
+<p>Thus, regardless of whoever creates the original image, the repository should have all the files necessary to build a fresh image which we "claim as our own" by assigning our username/tag and pushing it to the WebMEV Dockerhub account. </p>
+<p>We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not <em>exactly</em> the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.</p>
+<p>Note that repositories based on many Docker containers may take a significant time to ingest, as each image must be built and pushed to Dockerhub.</p>
               
             </div>
           </div>

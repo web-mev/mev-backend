@@ -69,7 +69,7 @@
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
@@ -304,8 +304,7 @@ In the backend, we locate the proper <code>Operation</code> by its UUID. In our 
 <p>For the <code>"p_val"</code> field, we receive a value of 0.01. The <code>spec</code> states that this input should be of type <code>BoundedFloat</code> with a min of 0.0 and a max of 1.0. The backend validates that 0.01 is indeed in the range [0.0,1.0].</p>
 <h3 id="operation-modes"><a class="toclink" href="#operation-modes">Operation modes</a></h3>
 <p>Depending on how the <code>Operation</code> should be run, we perform different actions upon ingestion. For local docker-based runs, we obviously require that the image be located on the same machine as the MEV instance. To ensure everything is "aligned", we require additional files depending on the run mode. These are verified during the ingestion process.</p>
-<p>For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be </p>
-<p>Given that all the inputs successfully validate, we can move on to create an <code>ExecutedOperation</code> and actually run the analysis.</p>
+<p>For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be built and pushed to Dockerhub during ingestion. The image will be tagged with the github commit hash so that the file(s) used to build the image can be uniquely identified and re-traced over time.</p>
               
             </div>
           </div>
