@@ -22,7 +22,7 @@ nav:
    - Configuration: 'setup_configuration.md'
    - Cromwell job runner setup: 'cromwell_setup.md'
  - API: 
-   - Intro: 'api.md'
+   - Intro and core concepts: 'api.md'
    - Data Structures:
       - Attributes: 'attributes.md'
       - Observations and Features: 'elements.md'

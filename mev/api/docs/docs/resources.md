@@ -24,11 +24,11 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 
 **Resources and Workspaces**
 
-- `Resource` instances are initially "unattached" meaning they are associated with their owner, but have *not* been associated with any user workspaces.  Admins can, however, specify a `Workspace` in their request to create the `Resource` directly via the API.
+- `Resource` instances are initially "unattached" meaning they are associated with their owner, but have *not* been associated with any user workspaces.
 
 - When a user chooses to "add" a `Resource` to a `Workspace`, we append the `Workspace` to the set of `Workspace` instances associated with that `Resource`. That is, each `Resource` tracks which `Workspace`s it is associated with. This is accomplished via a many-to-many mapping in the database.
 
-- Users can remove a `Resource` from a `Workspace` if it has NOT been used for any portions of the analysis.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps.
+- Users can remove a `Resource` from a `Workspace`, but *only if it has NOT been used for any portions of the analysis*.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps.
 Note that removing a `Resource` from a `Workspace` does not delete a file- it only modifies the `workspaces` attribute on the `Resource` database instance.
 
 
@@ -45,7 +45,7 @@ Technically, we only need the first case. If a `Resource` has been used in an `O
 
 **Notes related to backend implementation**
 
-- In general, the `is_active = False` flag disallows any updating of the `Resource` attributes via the API.  All post/patch/put requests will return a 400 status.  This prevents multiple requests from interfering with an ongoing background process.
+- In general, the `is_active = False` flag disallows any updating of the `Resource` attributes via the API.  All post/patch/put requests will return a 400 status.  This prevents multiple requests from interfering with an ongoing background process, such as validation.
 
 - Users cannot change the `path` member.  The actual storage of the files should not matter to the users so they are unable to change the `path` member.
 

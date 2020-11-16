@@ -89,7 +89,7 @@ In the course of performing an analysis, the user might wish to create meaningfu
 ```
 This information regarding user-defined groupings can be cached client-side. However, the ultimate "source" of the metadata is provided by the `Workspace`, which maintains the `ObservationSet`s, `FeatureSet`s, and possibly other metadata.
 
-We could use a heatmap to visualize how users have created various selections:
+[//]: <> (We could use a heatmap to visualize how users have created various selections:)
 
 
 ### Using the metadata for analyses
@@ -147,7 +147,7 @@ This would then incorporate into the existing `Observation` instances so they no
 }
 ```
 
-Unsure how this might work on the front-end in terms of updating the `Observation` instances so that they all have this information. If the `ObservationSet` was setup to have pointers/references to the `Observation` instances then the changes could percolate to all the `ObservationSet` instances.
+[//]: <> (Unsure how this might work on the front-end in terms of updating the `Observation` instances so that they all have this information. If the `ObservationSet` was setup to have pointers/references to the `Observation` instances then the changes could percolate to all the `ObservationSet` instances.)
 
 ### Backend endpoints
 

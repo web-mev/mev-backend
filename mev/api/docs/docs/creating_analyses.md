@@ -252,4 +252,136 @@ Once all these files are in place, create a git repository and check the code in
 
 ### Remote, Cromwell-based jobs
 
-TODO
+For jobs that are run remotely with the help of the Cromwell job engine, we have slightly different required files. 
+
+Cromwell-based jobs are executed using "Workflow Definition Language" (WDL) syntax files (https://openwdl.org/). When using this job engine, the primary purpose of WebMEV is to validate user inputs and reformat them to be compatible with the inputs required to run the workflow. For those who have not used Broad's Cromwell engine before, the three components of an analysis workflow include:
+
+- WDL file(s): Specifies the commands that are run. You can think of this as you would a typical shell script.
+- A JSON-format inputs file: This maps the expected workflow inputs (e.g. strings, numbers, or files) to specific values. For instance, if we expect a file, then the inputs JSON file will map the input variable to a file path. WebMEV is responsible for creating this file at runtime.
+- One of more Docker containers: Cromwell orchestrates the startup/shutdown of cloud-based virtual machines but all commands are run within Docker runtimes on those machines. Thus, the WDL files will dictate which Docker images are used for each step in the analysis. There can be an arbitrary number of these. 
+
+
+Thus, to create a Cromwell-based job that is compatible with WebMEV we require: 
+
+- `operation_spec.json`
+    - This file dictates the input and output parameters for the analysis. Of type `Operation`. This file is the same as with any WebMEV analysis. To specifically create an `Operation` for the Cromwell job runner, you *must* specify `"mode": "cromwell"` in the `Operation` object.
+
+- `main.wdl`
+    - In general there can be any number of WDL-format files in the repository. However, the primary or "entry" WDL file *must* be named as `main.wdl`.
+
+- `inputs.json`
+    - This is the JSON-format file which dictates the inputs to the workflow. It is a template that will be appropriately filled at runtime. Thus, the "values" of the mapping do not matter, but the keys must map to input variables in `main.wdl`. Typically, this file is easily created by Broad's WOMTool. See below for an example.
+- `converters.json`
+    - This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/`Observation`s)
+    and format it to be used in `inputs.json`. As above, this is a mapping of the input name to a "dotted" class implementation.
+- `docker/`
+    - The `docker` folder contains one or more Dockerfile-format files and the dependencies to create those Docker images. Each Dockerfile is named according to its target image. For instance, if one of the WDL files specifies that it depends on a Docker image named `docker.io/myUser/foo`, then the Dockerfile defining that image should be named `Dockerfile.foo`.
+
+#### Additional notes:
+
+
+**Remarks about dependencies between `main.wdl`, `inputs.json` and `operation_spec.json`**
+
+As much as we try to remove interdependencies between files (for ease of development), there are situations we can't resolve easily. One such case is the interdependencies between `main.wdl`, `inputs.json`, and the `operation_spec.json` files.
+
+As mentioned above, the `inputs.json` file supplied in the repository is effectively a template which is filled at runtime. The keys of that object correspond to inputs to the main WDL script `main.wdl`. For example, given a WDL script with the following input definition:
+```
+workflow SomeWorkflow {
+    ...
+    Array[String] samples
+    ....
+}
+```
+
+then the `inputs.json` would require the key `SomeWorkflow.samples`. Generally, WDL constructs its inputs in the format of `<Workflow name>.<input variable name>`. Thus, `inputs.json` would appear, in part, like
+
+```
+{
+    ...
+    "SomeWorkflow.samples": "Array[String]",
+    ...
+}
+```
+As mentioned above, the "value" (here, `"Array[String]"`) does not matter; Broad's WOMTool will typically fill-in the expected type (as a string) to serve as a cue.
+
+Finally, WebMEV has to know which inputs of the `Operation` correspond to which inputs of the WDL script. Thus, in our `operation_spec.json`, the keys in our `inputs` object must be consistent with `main.wdl` and `inputs.json`:
+
+```
+{
+    ...
+    "inputs": {
+        ...
+        "SomeWorkflow.samples": <OperationInput>
+        ...
+    }
+}
+```
+
+**Converting inputs**
+
+As with all analysis execution modes, we have "converter" classes which translate user inputs into formats that are compatible with the job runner. 
+
+For instance, using the example above, one of the inputs for a WDL could be an array of strings (`Array[String]` in WDL-type syntax). Thus, a converter would be responsible for taking say, an `ObservationSet`, and turning that into a list of strings to provide the same names. For example, we may wish to convert an `ObservationSet` given as:
+
+```
+{
+    "multiple": true,
+    "elements": [
+        {
+            "id":"sampleA",
+            "attributes": {}
+        },
+        {
+            "id":"sampleB",
+            "attributes": {}
+        }    
+    ]
+}
+```
+Then, the "inputs" data structure submitted to Cromwell (basically `inputs.json` after it has been filled-in) would, in part, look like:
+```
+{
+    ...
+    "SomeWorkflow.samples": ["sampleA", "sampleB"],
+    ...
+}
+```
+
+**Creation of Docker images**
+
+As described above, each repository can contain an arbitrary (non-zero) number of WDL files, each of which can depend on one more Docker images for their runtime. There are some custom steps involved during the ingestion of new Cromwell-based workflow, which we explain below.
+
+When Docker images are specified in the `runtime` section of the WDL files, the line is formatted as:
+
+```
+runtime {
+    ...
+    docker: "<repo name>/<username>/<image name>:<tag>"
+    ...
+}
+```
+e.g.
+
+```
+runtime {
+    ...
+    docker: "docker.io/myUser/foo:v1"
+    ...
+}
+```
+Note that we only use the image name (`foo`) when we are ingesting and preparing a new workflow for use in WebMEV. The reason is that we wish to keep all Docker images "in house" within our own Dockerhub account; we do not want to depend on external Docker resources which may change without our knowledge or control. Therefore, the repository and username are not used. Further, the tag is also ignored as we ultimately replace it with the git commit hash. Since the git commit hash is not produced until *after* the commit, we obviously can't append the images with the proper tag prior to the commit. Thus, during the ingestion process we perform the following:
+
+- Parse all WDL files in the github repo and extract out all the runtime Docker images. This will be a set of strings.
+- For each Docker "image string" (e.g. `someUser/foo:v1`):
+    - Extract the image name, e.g. `foo`
+    - Search for a corresponding Dockerfile in the repo, e.g. `docker/Dockerfile.foo`
+    - Build the image, tagging with the github commit ID, e.g. `abc123`
+    - Push the image to the WebMEV Dockerhub, e.g. `docker.io/web-mev`
+    - Edit and save the WDL file with the newly-built Docker image, e.g. `docker.io/web-mev/foo:abc123`.
+
+Thus, regardless of whoever creates the original image, the repository should have all the files necessary to build a fresh image which we "claim as our own" by assigning our username/tag and pushing it to the WebMEV Dockerhub account. 
+
+We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not *exactly* the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.
+
+Note that repositories based on many Docker containers may take a significant time to ingest, as each image must be built and pushed to Dockerhub.
+

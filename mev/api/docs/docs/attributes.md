@@ -1,8 +1,9 @@
 ### Attributes
 
-`Attribute`s could also be thought of as "parameters" and are a way of providing validated key-value pairs.  The different types enforce various constraints on the underlying primitive type (e.g. a float bounded between [0,1] can represent a probability).
+`Attribute`s serve as "parameters" and are a way of providing validation and type-checking for values that are passed around within WebMEV.  The different types represent different simple entities within WebMEV. For example, we have simple wrappers around primitives like integers and other types that represent abstract "data resources".  which enforce constraints on the underlying primitive type (e.g. for a probability, we can use a `BoundedFloatAttribute` set with bounds of [0,1]).
 
-Mainly, `Attribute`s are a way to add information to [`Observation` or `Feature`](elements.md) instances.  For example, one could specify the phenotype or experimental group of an `Observation` via a `StringAttribute`.
+`Attribute`s are used to provide metadata (e.g. a phenotype of a sample given as a `StringAttribute`) or as parameters to analyses (e.g. a `BoundedFloatAttribute` for filtering p-values less than a particular value)
+
 
 ::: api.data_structures.attributes.BaseAttribute
     :docstring:
@@ -35,6 +36,15 @@ Mainly, `Attribute`s are a way to add information to [`Observation` or `Feature`
     :docstring:
 
 ::: api.data_structures.attributes.StringAttribute
+    :docstring:
+
+::: api.data_structures.attributes.OptionStringAttribute
+    :docstring:
+
+::: api.data_structures.attributes.BooleanAttribute
+    :docstring:
+
+::: api.data_structures.attributes.DataResourceAttribute
     :docstring:
 
 ::: api.data_structures.attributes.create_attribute

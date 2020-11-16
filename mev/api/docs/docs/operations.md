@@ -185,6 +185,4 @@ For the `"p_val"` field, we receive a value of 0.01. The `spec` states that this
 
 Depending on how the `Operation` should be run, we perform different actions upon ingestion. For local docker-based runs, we obviously require that the image be located on the same machine as the MEV instance. To ensure everything is "aligned", we require additional files depending on the run mode. These are verified during the ingestion process.
 
-For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be 
-
-Given that all the inputs successfully validate, we can move on to create an `ExecutedOperation` and actually run the analysis.
+For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be built and pushed to Dockerhub during ingestion. The image will be tagged with the github commit hash so that the file(s) used to build the image can be uniquely identified and re-traced over time.
