@@ -11,6 +11,9 @@ from .social_views import GoogleOauth2View
 from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, ResourceDetail, ResourceContents
 from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAdd, WorkspaceResourceRemove
+from .workspace_metadata_views import WorkspaceMetadataView, \
+    WorkspaceMetadataObservationsView, \
+    WorkspaceMetadataFeaturesView
 from .resource_upload_views import ServerLocalResourceUpload, ServerLocalResourceUploadProgress
 from .resource_metadata import ResourceMetadataView, \
     ResourceMetadataObservationsView, \

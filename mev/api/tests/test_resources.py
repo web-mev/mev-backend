@@ -452,7 +452,6 @@ class ResourceDetailTests(BaseAPITestCase):
             self.url_for_workspace_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        print(response.json())
 
 
     def test_user_cannot_change_active_status(self):

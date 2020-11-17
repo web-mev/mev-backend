@@ -7,7 +7,8 @@ from api.data_structures import Observation, \
     ObservationSet, \
     Feature, \
     FeatureSet, \
-    StringAttribute
+    StringAttribute, \
+    merge_element_set
 
 from api.serializers.observation import ObservationSerializer
 from api.serializers.observation_set import ObservationSetSerializer
@@ -101,6 +102,20 @@ class ElementSetTester(object):
         testcase.assertEqual(len(int_set), 1)
         testcase.assertEqual(int_set, set([testcase.el2]))
 
+    def test_element_set_merge(self, testcase):
+        element_list1 = [testcase.el1, testcase.el2]
+        element_list2 = [testcase.el3]
+        element_set1 = self.element_set_class(element_list1)  
+        element_set2 = self.element_set_class(element_list2)  
+        new_set = merge_element_set([element_set1, element_set2])
+        testcase.assertCountEqual(new_set.elements, set([testcase.el1, testcase.el2, testcase.el3]))
+
+        element_list1 = [testcase.el1, testcase.el2]
+        element_list2 = [testcase.el2] # same sample as in the first list
+        element_set1 = self.element_set_class(element_list1)  
+        element_set2 = self.element_set_class(element_list2)  
+        new_set = merge_element_set([element_set1, element_set2])
+        testcase.assertCountEqual(new_set.elements, set([testcase.el1, testcase.el2]))
 
 class TestObservationSet(unittest.TestCase):
 
@@ -111,6 +126,10 @@ class TestObservationSet(unittest.TestCase):
         })
 
         self.el2 = Observation('sampleB', {
+            'phenotype': StringAttribute('KO')
+        })
+
+        self.el3 = Observation('sampleC', {
             'phenotype': StringAttribute('KO')
         })
 
@@ -132,6 +151,35 @@ class TestObservationSet(unittest.TestCase):
             m = getattr(self.tester_class, t)
             m(self)
 
+    def test_merge_of_different_types_fails(self):
+        '''
+        We cannot merge two different types (e.g. and Obs Set and Feat. Set)
+        Test that it raises an exception.
+        '''
+        element_list1 = [self.el1, self.el2]
+        some_feature = Feature('geneA', {
+            'oncogene': StringAttribute('Y')
+        })
+        element_list2 = [some_feature,]
+        obs_set = ObservationSet(element_list1)  
+        feature_set = FeatureSet(element_list2)
+        with self.assertRaises(Exception):
+            new_set = merge_element_set([obs_set, feature_set])
+
+    def test_merge_of_unexpected_types_fails(self):
+        '''
+        We can only merge types that subclasses of BaseElementSet
+        Give a list of a single type, but an unexpected type and
+        see that it correctly fails
+        '''
+        class SomeClass(object):
+            pass
+
+        sc1 = SomeClass()
+        sc2 = SomeClass()
+        sc3 = SomeClass()
+        with self.assertRaises(Exception):
+            merge_element_set([sc1, sc2, sc3])
 
 class TestFeatureSet(unittest.TestCase):
 
@@ -142,6 +190,10 @@ class TestFeatureSet(unittest.TestCase):
         })
 
         self.el2 = Feature('sampleB', {
+            'oncogene': StringAttribute('N')
+        })
+
+        self.el3 = Feature('sampleC', {
             'oncogene': StringAttribute('N')
         })
 

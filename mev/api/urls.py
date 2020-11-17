@@ -49,6 +49,9 @@ urlpatterns = [
 
     # Resources that are associated with specific Workspaces
     path('workspaces/<uuid:workspace_pk>/resources/', api.views.WorkspaceResourceList.as_view(), name='workspace-resource-list'),
+    path('workspaces/<uuid:workspace_pk>/metadata/', api.views.WorkspaceMetadataView.as_view(), name='workspace-metadata'),
+    path('workspaces/<uuid:workspace_pk>/metadata/observations/', api.views.WorkspaceMetadataObservationsView.as_view(), name='workspace-observations-metadata'),
+    path('workspaces/<uuid:workspace_pk>/metadata/features/', api.views.WorkspaceMetadataFeaturesView.as_view(), name='workspace-features-metadata'),
     path('workspaces/<uuid:workspace_pk>/resources/<uuid:resource_pk>/remove/', api.views.WorkspaceResourceRemove.as_view(), name='workspace-resource-remove'),
     path('workspaces/<uuid:workspace_pk>/resources/add/', api.views.WorkspaceResourceAdd.as_view(), name='workspace-resource-add'),
 

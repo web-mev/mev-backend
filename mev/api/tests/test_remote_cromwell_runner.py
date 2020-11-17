@@ -153,7 +153,6 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         rcr.handle_submission_response(mock_response, self.executed_op)
         self.assertEqual(self.executed_op.job_id, str(u))
         self.assertEqual(self.executed_op.execution_start_datetime, now)
-        print(self.executed_op.status)
 
         mock_response.status_code = 400
         rcr.handle_submission_response(mock_response, self.executed_op)
