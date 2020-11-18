@@ -46,6 +46,7 @@ class DagNode(object):
         node_info = {}
         node_info['id'] = self.node_id
         node_info['node_type'] = self.node_type
+        node_info['node_name'] = self.node_name
         node_info['parentIds'] = [x.node_id for x in self.parents]
         return node_info
 
