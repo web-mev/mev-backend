@@ -15,7 +15,8 @@ import api.permissions as api_permissions
 from api.utilities.operations import check_for_resource_operations
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
-    set_resource_to_inactive
+    set_resource_to_inactive, \
+    resource_supports_pagination
 import api.async_tasks as api_tasks
 
 from resource_types import ParseException
@@ -204,7 +205,7 @@ class ResourceContents(APIView):
                     status=status.HTTP_200_OK
                 )
             else:
-                if settings.PAGE_PARAM in request.query_params:
+                if (settings.PAGE_PARAM in request.query_params) and (resource_supports_pagination(r.resource_type)):
                     paginator = get_resource_paginator(r.resource_type)
                     results = paginator.paginate_queryset(contents, request)
                     return paginator.get_paginated_response(results)

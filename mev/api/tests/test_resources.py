@@ -778,6 +778,48 @@ class ResourceContentTests(BaseAPITestCase):
         )
 
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_page_param_ignored_for_non_paginated_resource(self, mock_get_storage_backend):
+        '''
+        Certain resource types (e.g. JSON) don't have straightforward
+        pagination schemes. If the JSON was a list, fine...but generally
+        that's not the case.
+
+        Check that any page params supplied are ignored and the entire
+        resource is returned
+        '''
+        f = os.path.join(self.TESTDIR, 'json_file.json')
+        self.resource.path = f
+        self.resource.resource_type = 'JSON'
+        self.resource.save()
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        # check that full file works without query params
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        file_contents = json.load(open(f))
+        self.assertDictEqual(results, file_contents)
+
+        # add the query params onto the end of the url.
+        # See that it still works (i.e. query params are ignored)
+        url = base_url + '?page=1'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        j = response.json()
+        self.assertDictEqual(results, file_contents)
+
+
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_response_with_na_and_inf(self, mock_get_storage_backend):
         '''
         Tests the case where the requested resource has infinities and NA's

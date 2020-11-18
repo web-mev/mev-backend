@@ -15,6 +15,7 @@ from api.storage_backends import get_storage_backend
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     extension_is_consistent_with_type, \
+    resource_supports_pagination as _resource_supports_pagination, \
     get_acceptable_extensions, \
     DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
     get_resource_type_instance, \
@@ -290,3 +291,9 @@ def validate_and_store_resource(resource, requested_resource_type):
     # save the filesize as well
     resource.size = get_resource_size(resource)
     resource.save()
+
+def resource_supports_pagination(resource_type_str):
+    logger.info('Check if resource type "{t}" supports pagination.'.format(
+        t = resource_type_str
+    ))
+    return _resource_supports_pagination(resource_type_str)

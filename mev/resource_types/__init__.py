@@ -165,6 +165,17 @@ def get_resource_paginator(resource_type_str):
     resource_type = resource_class()
     return resource_type.get_paginator()
 
+def resource_supports_pagination(resource_type_str):
+    try:
+        get_resource_paginator(resource_type_str)
+        logger.info('Was able to successfully obtain a paginator')
+        return True
+    except NotImplementedError:
+        logger.info('Failed to find a paginator class. Default to ignore'
+            ' any requests for pagination.'
+        )
+        return False
+
 def get_acceptable_extensions(resource_type):
     '''
     Given the resource type "string", return a list of
