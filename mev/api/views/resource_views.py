@@ -12,8 +12,8 @@ from rest_framework.pagination import PageNumberPagination
 from api.models import Resource
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
-from api.utilities.resource_utilities import check_for_resource_operations, \
-    get_resource_view, \
+from api.utilities.operations import check_for_resource_operations
+from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive
 import api.async_tasks as api_tasks

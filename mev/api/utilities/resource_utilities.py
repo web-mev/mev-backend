@@ -10,7 +10,6 @@ from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
     move_resource, \
     copy_local_resource
-from .operations import get_operation_instance_data, collect_resource_uuids
 from api.data_structures.attributes import DataResourceAttribute
 from api.storage_backends import get_storage_backend
 from resource_types import get_contents, \
@@ -36,63 +35,6 @@ def get_resource_by_pk(resource_pk):
         ' PK was {uuid}.'.format(uuid=str(resource_pk))
     )
         raise ex
-
-def check_for_resource_operations(resource_instance, workspace_instance):
-    '''
-    To prevent deleting critical resources, we check to see if a
-    `Resource` instance has been used for any operations within a
-    `Workspace`.  If it has, return True.  Otherwise return False.
-    '''
-    # need to look through all the executed operations to see if the 
-    # resource was used in any of those, either as an input or output
-    logger.info('Search within workspace ({w}) to see if resource ({r}) was used.'.format(
-        w = str(workspace_instance.pk),
-        r = str(resource_instance.pk)
-    ))
-    workspace_executed_ops = ExecutedOperation.objects.filter(workspace=workspace_instance)
-    used_resource_uuids = set()
-    for exec_op in workspace_executed_ops:
-        logger.info('Look in executedOp: {u}'.format(u = str(exec_op.pk)))
-        # get the corresponding operation spec:
-        op = exec_op.operation
-        op_data = get_operation_instance_data(op)
-
-        # the operation spec will tell us what the "types" of each input/output are
-        op_inputs = op_data['inputs']
-        op_outputs = op_data['outputs']
-
-        # the executed ops will have the actual args used. So, for a DataResource
-        # "type", it will be a UUID
-        exec_op_inputs = exec_op.inputs
-        exec_op_outputs = exec_op.outputs
-
-        # list of dataResources used in the inputs of this executed op:
-        logger.info('Compare inputs:\n{x}\nto\n{y}'.format(
-            x = op_inputs,
-            y = exec_op_inputs
-        ))
-        s1 = collect_resource_uuids(op_inputs, exec_op_inputs)
-        logger.info('Found the following DataResources among'
-            ' the inputs: {u}'.format(
-                u = ', '.join(s1)
-            ))
-        if str(resource_instance.pk) in s1:
-            return True
-        logger.info('Was not in the inputs. Check the outputs.')
-        s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
-        logger.info('Found the following DataResources among'
-            ' the outputs: {u}'.format(
-                u = ', '.join(s2)
-            ))
-        if str(resource_instance.pk) in s2:
-            return True
-        logger.info('Was not in the outputs. Done checking ExecutedOp ({u}).'.format(
-            u = str(exec_op.pk)
-        ))
-    
-    # if we made it this far and have not returned, then the Resource was
-    # not used in any of the ExecutedOps in the Workspace
-    return False
 
 def set_resource_to_inactive(resource_instance):
     '''

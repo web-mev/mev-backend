@@ -22,9 +22,9 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     validate_resource, \
     handle_valid_resource, \
     handle_invalid_resource, \
-    check_extension, \
+    check_extension
+from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
-from api.utilities.operations import read_operation_json
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -235,7 +235,7 @@ class TestResourceUtilities(BaseAPITestCase):
         )
         self.assertEqual(resource.status, expected_status)
 
-    @mock.patch('api.utilities.resource_utilities.get_operation_instance_data')
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_check_for_resource_operations_case1(self, mock_get_operation_instance_data):
         '''
         When removing a Resource from a Workspace, we need to ensure
@@ -299,7 +299,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(was_used)
 
 
-    @mock.patch('api.utilities.resource_utilities.get_operation_instance_data')
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_check_for_resource_operations_case2(self, mock_get_operation_instance_data):
         '''
         When removing a Resource from a Workspace, we need to ensure
@@ -360,13 +360,5 @@ class TestResourceUtilities(BaseAPITestCase):
         )
         was_used = check_for_resource_operations(mock_used_resource, workspace_with_resource)
         self.assertFalse(was_used)
-
-    # def test_all_resources_have_acceptable_extensions(self):
-    #     '''
-    #     This tests that all the known Resource types have the required
-    #     ACCEPTABLE_EXTENSIONS key. Could more appropriately be placed
-    #     inside the resource_types folder, but that would require 
-    #     '''
-    #     pass
 
 

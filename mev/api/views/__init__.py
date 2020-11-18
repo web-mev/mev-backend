@@ -14,6 +14,7 @@ from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAd
 from .workspace_metadata_views import WorkspaceMetadataView, \
     WorkspaceMetadataObservationsView, \
     WorkspaceMetadataFeaturesView
+from .workspace_tree_views import WorkspaceTreeView
 from .resource_upload_views import ServerLocalResourceUpload, ServerLocalResourceUploadProgress
 from .resource_metadata import ResourceMetadataView, \
     ResourceMetadataObservationsView, \

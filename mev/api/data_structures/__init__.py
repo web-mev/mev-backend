@@ -57,6 +57,7 @@ from .operation_output_spec import IntegerOutputSpec, \
     FeatureSetOutputSpec, \
     DataResourceOutputSpec
 from .operation import Operation
+from .dag_components import DagNode, SimpleDag
 
 def merge_element_set(element_set_list):
     '''
