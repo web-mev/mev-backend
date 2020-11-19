@@ -13,15 +13,15 @@ class FeatureSetSerializer(ElementSetSerializer):
         Returns an FeatureSet instance from the validated
         data.
         '''
-        obs_list = []
-        for obs_dict in validated_data['elements']:
+        feature_list = []
+        for feature_dict in validated_data['elements']:
             # the validated data has the Feature info as an OrderedDict
             # below, we use the FeatureSerializer to turn that into
             # proper Feature instance.
-            obs_serializer = FeatureSerializer(data=obs_dict)
-            obs = obs_serializer.get_instance()
-            obs_list.append(obs)
+            feature_serializer = FeatureSerializer(data=feature_dict)
+            feat = feature_serializer.get_instance()
+            feature_list.append(feat)
         return FeatureSet(
-            obs_list, 
+            feature_list, 
             validated_data['multiple']
         )

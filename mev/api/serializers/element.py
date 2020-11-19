@@ -34,7 +34,7 @@ class BaseElementSerializer(serializers.Serializer):
         attr_dict = {}
         for k, v in validated_data['attributes'].items():
             if type(v) == dict:
-                attr = create_attribute(k, val_dict)
+                attr = create_attribute(k, v)
             else:
                 attr = v
             attr_dict[k] = attr   
