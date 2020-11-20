@@ -1,4 +1,6 @@
+import os
 from django.urls import reverse
+from django.core.exceptions import ImproperlyConfigured
 
 from api.models import Resource, ResourceMetadata, Workspace
 from api.data_structures import Observation, \
@@ -15,6 +17,8 @@ from resource_types import OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
     RESOURCE_KEY, \
     PARENT_OP_KEY
+from resource_types.table_types import Matrix, FeatureTable
+from api.utilities.resource_utilities import add_metadata_to_resource
 
 from api.tests.base import BaseAPITestCase
 
@@ -347,3 +351,45 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         self.assertTrue(FEATURE_SET_KEY in response_json)
         self.assertEqual(response_json[OBSERVATION_SET_KEY]['elements'], [])
         self.assertEqual(response_json[FEATURE_SET_KEY]['elements'], [])
+
+    def test_with_real_files(self):
+        '''
+        Runs the test with real files rather than providing mocked
+        metadata. Not a true unit test, but whatever.
+        '''
+        # get a workspace in our db:
+        workpaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(workpaces) == 0:
+            raise ImproperlyConfigured('Need at least one workspace.')
+
+        workspace = workpaces[0]
+        # we will attach the metadata to two resources:
+        all_resources = workspace.resources.all()
+        all_resources = [x for x in all_resources if x.is_active]
+        if len(all_resources) < 2:
+            raise ImproperlyConfigured('Need at least two resources that'
+                ' and in a workspace.'
+            )
+
+        TESTDIR = os.path.dirname(__file__)
+        TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
+
+        resource_path = os.path.join(TESTDIR, 'deseq_results_example_concat.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        t = FeatureTable()
+        metadata0 = t.extract_metadata(resource_path)
+        r0 = all_resources[0]
+        add_metadata_to_resource(r0, metadata0)
+
+        resource_path = os.path.join(TESTDIR, 'test_matrix.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        m = Matrix()
+        metadata1 = m.extract_metadata(resource_path)
+        r1 = all_resources[1]
+        add_metadata_to_resource(r1, metadata1)
+        url = reverse(
+            'workspace-metadata', 
+            kwargs={'workspace_pk':workspace.pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()

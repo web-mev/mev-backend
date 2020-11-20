@@ -11,8 +11,8 @@ from api.data_structures import Observation, \
     BoundedFloatAttribute, \
     BoundedIntegerAttribute, \
     BooleanAttribute
-from api.serializers.observation import ObservationSerializer
-from api.serializers.feature import FeatureSerializer
+from api.serializers.observation import ObservationSerializer, NullableObservationSerializer
+from api.serializers.feature import FeatureSerializer, NullableFeatureSerializer
 from api.exceptions import StringIdentifierException
 
 
@@ -195,6 +195,20 @@ class ElementSerializerTester(object):
         element_serializer = self.element_serializer_class(data=data)
         testcase.assertFalse(element_serializer.is_valid())
 
+    def test_null_attribute_rejected_in_regular_serializer(self, testcase):
+        '''
+        Recall that we have "regular" and "nullable" Observation and Feature 
+        classes. The latter permit attributes containing a null/None value
+        while the former do NOT
+        '''
+        data = {'id': 'my_identifier', 
+            'attributes':{
+                'keyA':{'value': None,'attribute_type':'Float'}
+            }
+        }
+        element_serializer = self.element_serializer_class(data=data)
+        testcase.assertFalse(element_serializer.is_valid())
+
     def test_serialization(self, testcase):
         '''
         Check that Observation instances are correctly
@@ -351,6 +365,21 @@ class TestObservationSerializer(unittest.TestCase):
             m = getattr(self.tester_class, t)
             m(self)
 
+    def test_nullable_serializer(self):
+        '''
+        Here we test out the specialization class where we permit the 
+        attributes dict to have null values
+        '''
+        data = {'id': 'my_identifier', 
+            'attributes':{
+                'keyA':{'attribute_type':'Float', 'value': None}
+            }
+        }
+        element_serializer = ObservationSerializer(data=data)
+        self.assertFalse(element_serializer.is_valid())
+
+        element_serializer = NullableObservationSerializer(data=data)
+        self.assertTrue(element_serializer.is_valid())
 
 class TestFeatureSerializer(unittest.TestCase):
 
@@ -491,6 +520,21 @@ class TestFeatureSerializer(unittest.TestCase):
             m = getattr(self.tester_class, t)
             m(self)
 
+    def test_nullable_serializer(self):
+        '''
+        Here we test out the specialization class where we permit the 
+        attributes dict to have null values
+        '''
+        data = {'id': 'my_identifier', 
+            'attributes':{
+                'keyA':{'attribute_type':'Float', 'value': None}
+            }
+        }
+        element_serializer = FeatureSerializer(data=data)
+        self.assertFalse(element_serializer.is_valid())
+
+        element_serializer = NullableFeatureSerializer(data=data)
+        self.assertTrue(element_serializer.is_valid())
 
 class ElementTester(object):
     '''

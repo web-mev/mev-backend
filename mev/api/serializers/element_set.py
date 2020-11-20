@@ -1,4 +1,5 @@
-from rest_framework import serializers, exceptions
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 
 class ElementSetSerializer(serializers.Serializer):
@@ -12,7 +13,7 @@ class ElementSetSerializer(serializers.Serializer):
         with the `multiple` flag
         '''
         if (len(data['elements']) > 1) and (not data['multiple']):
-            raise exceptions.ValidationError({'elements':
+            raise ValidationError({'elements':
                 'Multiple elements were specified, but the "multiple" key'
                 ' was set to False.'})
         return data

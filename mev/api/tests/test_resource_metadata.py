@@ -354,6 +354,7 @@ class TestMatrixMetadata(unittest.TestCase):
         self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
+
 class TestIntegerMatrixMetadata(unittest.TestCase):
     def test_metadata_correct_case1(self):
         '''
@@ -512,7 +513,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         self.assertTrue(os.path.exists(resource_path))
         t = FeatureTable()
         metadata = t.extract_metadata(resource_path)
-        r = Resource.objects.filter(owner=self.regular_user_1)[0]
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
         add_metadata_to_resource(r, metadata)
 
         url = reverse(
@@ -520,6 +521,28 @@ class TestFeatureTableMetadata(BaseAPITestCase):
             kwargs={'pk':r.pk}
         )
         response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_dge_concat_output_with_na(self):
+        '''
+        This tests that the metadata extraction handles the case where
+        there are nan/NaN among the covariates in a FeatureTable
+        '''
+        # this file has a row with nan for some of the values; a p-value was not called
+        resource_path = os.path.join(TESTDIR, 'deseq_results_example_concat.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        t = FeatureTable()
+        metadata = t.extract_metadata(resource_path)
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        add_metadata_to_resource(r, metadata)
+
+        url = reverse(
+            'resource-metadata-detail', 
+            kwargs={'pk':r.pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        j = response.json()
 
 
 class TestBedFileMetadata(unittest.TestCase):

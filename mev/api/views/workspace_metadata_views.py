@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError, PermissionDenied
 
 from api.models import Workspace, ResourceMetadata
-from api.serializers.observation_set import ObservationSetSerializer
-from api.serializers.feature_set import FeatureSetSerializer
+from api.serializers.observation_set import NullableObservationSetSerializer, ObservationSetSerializer
+from api.serializers.feature_set import NullableFeatureSetSerializer, FeatureSetSerializer
 from api.data_structures import merge_element_set
 
 logger = logging.getLogger(__name__)
@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 from resource_types import OBSERVATION_SET_KEY, FEATURE_SET_KEY
 
 class WorkspaceMetadataView(APIView):
+
+    # this allows us to change the serializer class in a single location
+    observation_set_serializer_class = NullableObservationSetSerializer
+    feature_set_serializer_class = NullableFeatureSetSerializer
 
     def get_element_set(self, feature_or_obs_data, element_set_serializer_class):
         s = element_set_serializer_class(data=feature_or_obs_data)
@@ -90,9 +94,9 @@ class WorkspaceMetadataView(APIView):
                 }
             )
         full_obs_set_data = self.get_merged_element_sets(all_metadata, 
-            ObservationSetSerializer, OBSERVATION_SET_KEY)
+            self.observation_set_serializer_class, OBSERVATION_SET_KEY)
         full_feature_set_data = self.get_merged_element_sets(all_metadata, 
-            FeatureSetSerializer, FEATURE_SET_KEY)
+            self.feature_set_serializer_class, FEATURE_SET_KEY)
         return Response(
             {
                 OBSERVATION_SET_KEY: full_obs_set_data,
@@ -106,7 +110,7 @@ class WorkspaceMetadataObservationsView(WorkspaceMetadataView):
     def get(self, request, *args, **kwargs):
         all_metadata = self.fetch_metadata(request, *args, **kwargs)
         full_obs_set_data = self.get_merged_element_sets(all_metadata, 
-            ObservationSetSerializer, OBSERVATION_SET_KEY)
+            self.observation_set_serializer_class, OBSERVATION_SET_KEY)
         return Response(
             {
                 OBSERVATION_SET_KEY: full_obs_set_data
@@ -118,8 +122,9 @@ class WorkspaceMetadataFeaturesView(WorkspaceMetadataView):
     def get(self, request, *args, **kwargs):
         
         all_metadata = self.fetch_metadata(request, *args, **kwargs)
+        print(all_metadata)
         full_feature_set_data = self.get_merged_element_sets(all_metadata, 
-            FeatureSetSerializer, FEATURE_SET_KEY)
+            self.feature_set_serializer_class, FEATURE_SET_KEY)
         return Response(
             {
                 FEATURE_SET_KEY: full_feature_set_data

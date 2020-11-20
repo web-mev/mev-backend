@@ -2,7 +2,7 @@ from rest_framework import serializers, exceptions
 
 from api.data_structures import ObservationSet
 from .element_set import ElementSetSerializer
-from .observation import ObservationSerializer
+from .observation import ObservationSerializer, NullableObservationSerializer
 
 class ObservationSetSerializer(ElementSetSerializer):
 
@@ -25,3 +25,6 @@ class ObservationSetSerializer(ElementSetSerializer):
             obs_list, 
             validated_data['multiple']
         )
+
+class NullableObservationSetSerializer(ObservationSetSerializer):
+    elements = NullableObservationSerializer(required=False, many=True)

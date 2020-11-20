@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from api.utilities import normalize_identifier
 from api.data_structures import create_attribute
-from .attributes import AttributeSerializer
+from .attributes import AttributeSerializer, NullableAttributeSerializer
 
 
 class BaseElementSerializer(serializers.Serializer):
@@ -49,3 +49,11 @@ class BaseElementSerializer(serializers.Serializer):
         '''
         self.is_valid(raise_exception=True)
         return self.create(self.validated_data)
+
+
+class NullableBaseElementSerializer(BaseElementSerializer):
+    '''
+    Specialization that allows the `attributes` dict to have 
+    Attributes containing nulls.
+    '''
+    attributes = NullableAttributeSerializer(required=False)

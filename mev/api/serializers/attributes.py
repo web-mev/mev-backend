@@ -21,6 +21,9 @@ class AttributeSerializer(serializers.BaseSerializer):
                 output[key] = attr_obj.to_dict()
         return output
 
+    def _create_attribute(self, k, v):
+        return api_ds.create_attribute(k, v)
+
     def to_internal_value(self, data):
         if type(data) != dict:
             raise serializers.ValidationError('Attributes must be '
@@ -29,7 +32,7 @@ class AttributeSerializer(serializers.BaseSerializer):
         for k in data.keys():
             v = data[k]
             if type(v) == dict:
-                v=api_ds.create_attribute(k, v)
+                v=self._create_attribute(k,v)
                 data[k]=v
             elif type(v) in api_ds.all_attribute_types:
                 data[k] = v
@@ -57,3 +60,12 @@ class AttributeSerializer(serializers.BaseSerializer):
         '''
         self.is_valid(raise_exception=True)
         return self.create(self.validated_data)
+
+
+class NullableAttributeSerializer(AttributeSerializer):
+    '''
+    Specialization which permits Attributes that contain null/None
+    values.
+    '''
+    def _create_attribute(self, k, v):
+        return api_ds.create_attribute(k, v, allow_null=True)

@@ -11,9 +11,9 @@ from api.data_structures import Observation, \
     merge_element_set
 
 from api.serializers.observation import ObservationSerializer
-from api.serializers.observation_set import ObservationSetSerializer
+from api.serializers.observation_set import ObservationSetSerializer, NullableObservationSetSerializer
 from api.serializers.feature import FeatureSerializer
-from api.serializers.feature_set import FeatureSetSerializer
+from api.serializers.feature_set import FeatureSetSerializer, NullableFeatureSetSerializer
 
 class ElementSetTester(object):
     '''
@@ -359,6 +359,43 @@ class TestObservationSetSerializer(unittest.TestCase):
             m = getattr(self.tester_class, t)
             m(self)
 
+    def test_nullable_observation_set_serializer(self):
+        '''
+        Depending on our needs, we can permit attributes of Observation
+        instances to have null values. Therefore, we created the NullableObservationSet
+        class which holds a set (`elements`) of NullableObservations.
+
+        Check that it works and that the original, non-nullable implementation rejects
+        the null value
+        '''
+        data = {
+            'multiple': True,
+            'elements': [
+                {
+                    'id':'foo',
+                    'attributes': {
+                        'keyA': {
+                            'attribute_type': 'String',
+                            'value': None
+                        }
+                    }
+                },
+                {
+                    'id':'bar',
+                    'attributes': {
+                        'keyA': {
+                            'attribute_type': 'String',
+                            'value': 'abc'
+                        }
+                    }
+                }
+            ]
+        }
+        s = ObservationSetSerializer(data=data)
+        self.assertFalse(s.is_valid())
+
+        s = NullableObservationSetSerializer(data=data)
+        self.assertTrue(s.is_valid())
 
 class TestFeatureSetSerializer(unittest.TestCase):
 
@@ -399,3 +436,41 @@ class TestFeatureSetSerializer(unittest.TestCase):
         for t in test_methods:
             m = getattr(self.tester_class, t)
             m(self)
+
+    def test_nullable_feature_set_serializer(self):
+        '''
+        Depending on our needs, we can permit attributes of Feature
+        instances to have null values. Therefore, we created the NullableFeatureSet
+        class which holds a set (`elements`) of NullableFeatures.
+
+        Check that it works and that the original, non-nullable implementation rejects
+        the null value
+        '''
+        data = {
+            'multiple': True,
+            'elements': [
+                {
+                    'id':'foo',
+                    'attributes': {
+                        'keyA': {
+                            'attribute_type': 'String',
+                            'value': None
+                        }
+                    }
+                },
+                {
+                    'id':'bar',
+                    'attributes': {
+                        'keyA': {
+                            'attribute_type': 'String',
+                            'value': 'abc'
+                        }
+                    }
+                }
+            ]
+        }
+        s = FeatureSetSerializer(data=data)
+        self.assertFalse(s.is_valid())
+
+        s = NullableFeatureSetSerializer(data=data)
+        self.assertTrue(s.is_valid())

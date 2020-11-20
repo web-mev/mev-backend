@@ -2,12 +2,12 @@ from rest_framework import serializers, exceptions
 
 from api.data_structures import FeatureSet
 from .element_set import ElementSetSerializer
-from .feature import FeatureSerializer
+from .feature import FeatureSerializer, NullableFeatureSerializer
 
 class FeatureSetSerializer(ElementSetSerializer):
 
     elements = FeatureSerializer(required=False, many=True)
-        
+
     def create(self, validated_data):
         '''
         Returns an FeatureSet instance from the validated
@@ -25,3 +25,6 @@ class FeatureSetSerializer(ElementSetSerializer):
             feature_list, 
             validated_data['multiple']
         )
+
+class NullableFeatureSetSerializer(FeatureSetSerializer):
+    elements = NullableFeatureSerializer(required=False, many=True)
