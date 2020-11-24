@@ -1,6 +1,6 @@
 import logging
 
-from .base import DataResource, ParseException
+from .base import DataResource, ParseException, WILDCARD
 
 from .sequence_types import FastAResource, \
     FastQResource, \
@@ -13,6 +13,7 @@ from .table_types import TableResource, \
     FeatureTable, \
     BEDFile
 
+from .general_types import GeneralResource
 from .json_types import JsonResource
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,8 @@ DATABASE_RESOURCE_TYPES = [
     ('RNASEQ_COUNT_MTX','RNA-seq count matrix'),
     ('ANN','Annotation table'),
     ('BED','BED-format file'),
-    ('JSON','JSON-format file')
+    ('JSON','JSON-format file'),
+    (WILDCARD, 'General file')
 ]
 
 
@@ -69,7 +71,8 @@ RESOURCE_MAPPING = {
     'RNASEQ_COUNT_MTX': IntegerMatrix,
     'ANN': AnnotationTable,
     'BED': BEDFile,
-    'JSON': JsonResource
+    'JSON': JsonResource,
+    WILDCARD: GeneralResource
 } 
 
 # These types are skipped when files are validated.
@@ -83,8 +86,14 @@ RESOURCE_MAPPING = {
 RESOURCE_TYPES_WITHOUT_VALIDATION = set([
     FastAResource,
     FastQResource,
-    AlignedSequenceResource
+    AlignedSequenceResource,
+    GeneralResource
 ])
+
+# At minimum, those types that don't have validation methods also 
+# will not return resource previews. For instance, we do not want to 
+# produce the contents of a FASTQ file. 
+RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW = RESOURCE_TYPES_WITHOUT_VALIDATION
 
 def get_resource_type_instance(resource_type_str):
     '''
@@ -200,6 +209,8 @@ def extension_is_consistent_with_type(filename, resource_type):
     return True
     '''
     for ext in get_acceptable_extensions(resource_type):
+        if ext == WILDCARD:
+            return True
         n = len(ext)
         suffix = filename[(-n-1):].lower()
         if suffix == '.' + ext.lower():

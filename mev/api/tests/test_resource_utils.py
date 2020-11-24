@@ -11,7 +11,10 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
 from resource_types import RESOURCE_MAPPING, \
-    DB_RESOURCE_STRING_TO_HUMAN_READABLE
+    DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
+    GeneralResource, \
+    WILDCARD, \
+    DataResource
 from api.models import Resource, \
     Workspace, \
     ResourceMetadata, \
@@ -360,5 +363,63 @@ class TestResourceUtilities(BaseAPITestCase):
         )
         was_used = check_for_resource_operations(mock_used_resource, workspace_with_resource)
         self.assertFalse(was_used)
+
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_proper_steps_taken_with_wildcard_resource(self, mock_check_extension, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
+        '''
+        Here we test that a esource type with a "wildcard" type goes through the proper
+        steps. That is, we should skip the validation, etc.
+        '''
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+
+        mock_check_extension.return_value = True
+        g = GeneralResource()
+        mock_get_resource_type_instance.return_value = g
+
+        validate_resource(r, WILDCARD)
+
+        mock_handle_valid_resource.assert_called()
+        mock_get_storage_backend.assert_not_called()
+
+    def test_check_extension_for_wildcard_resource(self):
+        '''
+        Checks that the extension checking method just returns True
+        since we are trying to set to a wildcard/generic resource type
+        '''
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        self.assertTrue(check_extension(r, WILDCARD))
+
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    def test_check_handle_valid_resource_for_wildcard_type(self, mock_move_resource_to_final_location):
+        '''
+        Check that we do the proper things when we handle the apparently 
+        "valid" resource. For wildcard types, they are trivially valid, but
+        we need to check that we are not calling any methods that wouldn't 
+        make sense in this context.
+        '''
+        mock_move_resource_to_final_location.return_value = '/a/b/c.txt'
+
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        g = GeneralResource()
+        handle_valid_resource(r, g, WILDCARD)
+
+        self.assertEqual(r.path, '/a/b/c.txt')
+
+        metadata = ResourceMetadata.objects.get(resource=r)
+        self.assertIsNone(getattr(metadata, DataResource.PARENT_OP))
+        self.assertIsNone(getattr(metadata, DataResource.FEATURE_SET))
+        self.assertIsNone(getattr(metadata, DataResource.OBSERVATION_SET))
+        self.assertEqual(getattr(metadata, DataResource.RESOURCE), r)
+        
 
 

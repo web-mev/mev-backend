@@ -240,6 +240,10 @@ class TestOutputSpec(unittest.TestCase):
         with self.assertRaises(ValidationError):
             ds = DataResourceOutputSpec(many=True, resource_type=[valid_resource_type,])
 
+        # `resource_type` key is a wildcard (e.g. for remote uploads where we don't 
+        # know ahead of time what the file type is)
+        ds = DataResourceOutputSpec(many=True, resource_type='*')
+
 
 
 class OutputSpecSerializerTester(unittest.TestCase):
@@ -321,6 +325,23 @@ class OutputSpecSerializerTester(unittest.TestCase):
         }
         i = OutputSpecSerializer(data=invalid_output_spec_dict)
         self.assertFalse(i.is_valid())
+
+        # test that the wildcard output type without 'many' key is rejected
+        ds_spec_dict = {
+            'attribute_type': 'DataResource', 
+            'resource_type': '*'
+        }
+        i = OutputSpecSerializer(data=ds_spec_dict)
+        self.assertFalse(i.is_valid())
+
+        # test that the wildcard output type is fine
+        ds_spec_dict = {
+            'attribute_type': 'DataResource', 
+            'resource_type': '*',
+            'many': True
+        }
+        i = OutputSpecSerializer(data=ds_spec_dict)
+        self.assertTrue(i.is_valid())
 
     def test_non_native_types(self):
         '''

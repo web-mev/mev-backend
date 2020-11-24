@@ -22,7 +22,8 @@ from resource_types import get_contents, \
     PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
-    RESOURCE_KEY
+    RESOURCE_KEY, \
+    RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +60,16 @@ def get_resource_view(resource_instance, query_params={}):
     ))
 
     if not resource_instance.resource_type:
-        logger.error('No resource type was known for resource: {resource}.'.format(
+        logger.info('No resource type was known for resource: {resource}.'.format(
             resource = resource_instance
         ))
         return
-    local_path = get_storage_backend().get_local_resource_path(resource_instance)
-    return get_contents(local_path, resource_instance.resource_type, query_params)
+    if resource_instance.resource_type in RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW:
+        # prevents us from pulling remote resources if we can't view the contents anyway
+        return None
+    else:
+        local_path = get_storage_backend().get_local_resource_path(resource_instance)
+        return get_contents(local_path, resource_instance.resource_type, query_params)
 
 def get_resource_paginator(resource_type):
     '''

@@ -1,3 +1,5 @@
+WILDCARD = '*'
+
 class ParseException(Exception):
     '''
     For raising exceptions when the parser
