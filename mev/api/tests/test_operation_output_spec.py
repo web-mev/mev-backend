@@ -20,7 +20,9 @@ from api.data_structures import IntegerOutputSpec, \
     ObservationSetOutputSpec, \
     FeatureOutputSpec, \
     FeatureSetOutputSpec, \
-    OperationOutput
+    OperationOutput, \
+    StringListOutputSpec, \
+    UnrestrictedStringListOutputSpec
 from api.serializers.output_spec import OutputSpecSerializer
 
 class TestOutputSpec(unittest.TestCase):
@@ -244,7 +246,22 @@ class TestOutputSpec(unittest.TestCase):
         # know ahead of time what the file type is)
         ds = DataResourceOutputSpec(many=True, resource_type='*')
 
+    def test_stringlist_output_spec(self):
+        s = StringListOutputSpec()
+        s = StringListOutputSpec(default='abc')
 
+        with self.assertRaises(ValidationError):
+            s = StringListOutputSpec(xyz='def')
+        with self.assertRaises(ValidationError):
+            s = StringListOutputSpec(default='???')
+
+    def test_unrestrictedstringlist_output_spec(self):
+        s = UnrestrictedStringListOutputSpec()
+        s = UnrestrictedStringListOutputSpec(default='abc')
+        s = UnrestrictedStringListOutputSpec(default='???')
+
+        with self.assertRaises(ValidationError):
+            s = UnrestrictedStringListOutputSpec(xyz='def')
 
 class OutputSpecSerializerTester(unittest.TestCase):
 
@@ -269,7 +286,24 @@ class OutputSpecSerializerTester(unittest.TestCase):
             'min': self.min_val, 
             'max': self.max_val, 
             'default':self.default
-        }   
+        } 
+
+    def test_list_types_serialization(self):
+        spec = StringListOutputSpec(default=['abc', 'xyz'])
+        i = OutputSpecSerializer(spec)
+        self.assertDictEqual(i.data, {'attribute_type': 'StringList', 'default': ['abc', 'xyz']})
+        
+        spec = StringListOutputSpec(default=['a b'])
+        i = OutputSpecSerializer(spec)
+        # below, note that the default didn't change to "a_b". The value of "a b" (with a space)
+        # is valid, and that's all that gets checked.
+        self.assertDictEqual(i.data, {'attribute_type': 'StringList', 'default': ['a b']})
+       
+        spec = UnrestrictedStringListOutputSpec(default=['a?b', 'xyz'])
+        i = OutputSpecSerializer(spec)
+        self.assertDictEqual(i.data, {'attribute_type': 'UnrestrictedStringList', 
+            'default': ['a?b', 'xyz']})
+
 
     def test_serialization(self):
         '''

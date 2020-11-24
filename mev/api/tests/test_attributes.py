@@ -12,6 +12,7 @@ from api.data_structures import IntegerAttribute, \
     PositiveFloatAttribute, \
     NonnegativeFloatAttribute, \
     StringAttribute, \
+    UnrestrictedStringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
@@ -142,11 +143,25 @@ class TestAttributes(unittest.TestCase):
         s = StringAttribute('abc')
         self.assertEqual(s.value, 'abc')
 
+        s = StringAttribute('a string with space')
+        self.assertEqual(s.value, 'a_string_with_space')
+
         with self.assertRaises(ValidationError):
             StringAttribute('-9abc')
 
         with self.assertRaises(ValidationError):
             StringAttribute(3.4)
+
+    def test_unrestrictedstring_attribute(self):
+        # this is sort of double test-coverage, but that can't hurt
+        s = UnrestrictedStringAttribute('-9abc')
+        self.assertEqual(s.value, '-9abc')
+
+        s = UnrestrictedStringAttribute('String with space')
+        self.assertEqual(s.value, 'String with space')
+
+        s = UnrestrictedStringAttribute(3.4)
+        self.assertEqual(s.value, '3.4')
 
     def test_missing_keys_for_bounded_attributes(self):
 

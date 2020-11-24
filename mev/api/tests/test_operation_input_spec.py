@@ -20,7 +20,9 @@ from api.data_structures import IntegerInputSpec, \
     ObservationSetInputSpec, \
     FeatureInputSpec, \
     FeatureSetInputSpec, \
-    OperationInput
+    OperationInput, \
+    StringListInputSpec, \
+    UnrestrictedStringListInputSpec
 from api.serializers.input_spec import InputSpecSerializer
 
 class TestInputSpec(unittest.TestCase):
@@ -236,7 +238,22 @@ class TestInputSpec(unittest.TestCase):
         with self.assertRaises(ValidationError):
             ds = DataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
 
+    def test_stringlist_input_spec(self):
+        s = StringListInputSpec()
+        s = StringListInputSpec(default='abc')
 
+        with self.assertRaises(ValidationError):
+            s = StringListInputSpec(xyz='def')
+        with self.assertRaises(ValidationError):
+            s = StringListInputSpec(default='???')
+
+    def test_unrestrictedstringlist_input_spec(self):
+        s = UnrestrictedStringListInputSpec()
+        s = UnrestrictedStringListInputSpec(default='abc')
+        s = UnrestrictedStringListInputSpec(default='???')
+
+        with self.assertRaises(ValidationError):
+            s = UnrestrictedStringListInputSpec(xyz='def')
 
 class InputSpecSerializerTester(unittest.TestCase):
 
@@ -262,6 +279,21 @@ class InputSpecSerializerTester(unittest.TestCase):
             'max': self.max_val, 
             'default':self.default
         }
+
+    def test_list_types_serialization(self):
+        spec = StringListInputSpec(default=['abc', 'xyz'])
+        i = InputSpecSerializer(spec)
+        self.assertDictEqual(i.data, {'attribute_type': 'StringList', 'default': ['abc', 'xyz']})
+        
+        spec = StringListInputSpec(default=['a b'])
+        i = InputSpecSerializer(spec)
+        # below, note that the default didn't change to "a_b". The value of "a b" (with a space)
+        # is valid, and that's all that gets checked.
+        self.assertDictEqual(i.data, {'attribute_type': 'StringList', 'default': ['a b']})
+       
+        spec = UnrestrictedStringListInputSpec(default=['a?b', 'xyz'])
+        i = InputSpecSerializer(spec)
+        self.assertDictEqual(i.data, {'attribute_type': 'UnrestrictedStringList', 'default': ['a?b', 'xyz']})
 
     def test_serialization(self):
         '''

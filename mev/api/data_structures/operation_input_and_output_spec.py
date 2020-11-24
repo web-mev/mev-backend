@@ -12,9 +12,12 @@ from api.data_structures.attributes import IntegerAttribute, \
     NonnegativeFloatAttribute, \
     BoundedFloatAttribute, \
     StringAttribute, \
+    UnrestrictedStringAttribute, \
     OptionStringAttribute, \
     BooleanAttribute, \
     DataResourceAttribute
+from api.data_structures.list_attributes import StringListAttribute, \
+    UnrestrictedStringListAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -305,6 +308,27 @@ class StringInputOutputSpec(InputOutputSpec, StringAttribute):
         return InputOutputSpec.to_dict(self, StringAttribute)
 
 
+class UnrestrictedStringInputOutputSpec(InputOutputSpec, UnrestrictedStringAttribute):
+    '''
+    UnrestrictedStringInputOutputSpec is a string that is simply accepted
+    without checking anything.
+    ```
+    {
+        "attribute_type": "UnrestrictedString",
+        "default": <str>
+    }
+    ```
+    '''
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+        kwargs = self.handle_common_kwargs(kwargs)
+        if self.default is not None:
+            self.check_default(UnrestrictedStringAttribute, **kwargs)
+
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, UnrestrictedStringAttribute)
+
+
 class OptionStringInputOutputSpec(InputOutputSpec, OptionStringAttribute):
     '''
     OptionStringInputOutputSpec is a string with that must match one from 
@@ -436,3 +460,28 @@ class FeatureSetInputOutputSpec(InputOutputSpec):
         return {
             'attribute_type': self.typename
         }
+
+
+class ListInputOutputSpec(InputOutputSpec):
+    '''
+    Mixin-like class for Input/OutputSpec that are
+    a list of the more primitive types
+
+    Actual implementation classes should specify the 
+    `attribute_list_type` which defines the list type
+    that we are providing a spec for.
+    '''
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+        kwargs = self.handle_common_kwargs(kwargs)
+        if self.default is not None:
+            self.check_default(self.attribute_list_type, **kwargs)
+
+    def to_dict(self):
+        return InputOutputSpec.to_dict(self, self.base_attribute_type)
+
+class StringListInputOutputSpec(ListInputOutputSpec, StringListAttribute):
+    attribute_list_type = StringListAttribute
+
+class UnrestrictedStringListInputOutputSpec(ListInputOutputSpec, UnrestrictedStringListAttribute):
+    attribute_list_type = UnrestrictedStringListAttribute

@@ -422,6 +422,22 @@ class StringAttribute(BaseAttribute):
         except api_exceptions.StringIdentifierException as ex:
             raise ValidationError(str(ex))
 
+class UnrestrictedStringAttribute(BaseAttribute):
+    '''
+    String type that doesn't check for spacing, etc.
+    ```
+    {
+        "attribute_type": "UnrestrictedString",
+        "value": <str>
+    }
+    ```
+    '''
+    typename = 'UnrestrictedString'
+
+    def value_validator(self, val, set_value=True, allow_null=False):
+        if set_value:
+            self.value = str(val)
+
 
 class OptionStringAttribute(BaseAttribute):
     '''

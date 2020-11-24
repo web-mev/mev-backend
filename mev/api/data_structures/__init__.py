@@ -13,6 +13,7 @@ from .attributes import IntegerAttribute, \
     PositiveFloatAttribute, \
     NonnegativeFloatAttribute, \
     StringAttribute, \
+    UnrestrictedStringAttribute, \
     OptionStringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
@@ -22,6 +23,8 @@ from .attributes import IntegerAttribute, \
     convert_dtype, \
     all_attribute_types, \
     numeric_attribute_typenames
+from .list_attributes import StringListAttribute, \
+    UnrestrictedStringListAttribute
 from .operation_input import OperationInput
 from .operation_input_spec import IntegerInputSpec, \
     PositiveIntegerInputSpec, \
@@ -38,7 +41,9 @@ from .operation_input_spec import IntegerInputSpec, \
     ObservationSetInputSpec, \
     FeatureInputSpec, \
     FeatureSetInputSpec, \
-    DataResourceInputSpec
+    DataResourceInputSpec, \
+    StringListInputSpec, \
+    UnrestrictedStringListInputSpec
 from .operation_output import OperationOutput
 from .operation_output_spec import IntegerOutputSpec, \
     PositiveIntegerOutputSpec, \
@@ -55,7 +60,9 @@ from .operation_output_spec import IntegerOutputSpec, \
     ObservationSetOutputSpec, \
     FeatureOutputSpec, \
     FeatureSetOutputSpec, \
-    DataResourceOutputSpec
+    DataResourceOutputSpec, \
+    StringListOutputSpec, \
+    UnrestrictedStringListOutputSpec
 from .operation import Operation
 from .dag_components import DagNode, SimpleDag
 

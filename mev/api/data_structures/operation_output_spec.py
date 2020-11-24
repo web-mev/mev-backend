@@ -19,7 +19,9 @@ from api.data_structures.operation_input_and_output_spec import InputOutputSpec,
     ObservationInputOutputSpec, \
     FeatureInputOutputSpec, \
     ObservationSetInputOutputSpec, \
-    FeatureSetInputOutputSpec
+    FeatureSetInputOutputSpec, \
+    StringListInputOutputSpec, \
+    UnrestrictedStringListInputOutputSpec
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +152,12 @@ class ObservationSetOutputSpec(ObservationSetInputOutputSpec):
 class FeatureSetOutputSpec(FeatureSetInputOutputSpec):
     pass
 
+class StringListOutputSpec(StringListInputOutputSpec):
+    pass
+
+class UnrestrictedStringListOutputSpec(UnrestrictedStringListInputOutputSpec):
+    pass
+
 # So we can just the `typename` to retrieve the proper class:
 all_output_spec_types = [
     IntegerOutputSpec,
@@ -167,7 +175,9 @@ all_output_spec_types = [
     ObservationOutputSpec,
     FeatureOutputSpec,
     ObservationSetOutputSpec,
-    FeatureSetOutputSpec
+    FeatureSetOutputSpec,
+    StringListOutputSpec,
+    UnrestrictedStringListOutputSpec
 ]
 all_output_spec_typenames = [x.typename for x in all_output_spec_types]
 output_spec_mapping = dict(zip(all_output_spec_typenames, all_output_spec_types))
