@@ -19,6 +19,7 @@ from api.models import Resource, \
     Workspace, \
     ResourceMetadata, \
     ExecutedOperation, \
+    WorkspaceExecutedOperation, \
     Operation
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_view, \
@@ -272,7 +273,7 @@ class TestResourceUtilities(BaseAPITestCase):
         
         f = os.path.join(
             TESTDIR,
-            'valid_operation.json'
+            'valid_workspace_operation.json'
         )
         op_data = read_operation_json(f)
         mock_get_operation_instance_data.return_value = op_data
@@ -288,9 +289,10 @@ class TestResourceUtilities(BaseAPITestCase):
             'count_matrix': str(mock_used_resource.pk), 
             'p_val': 0.01
         }
-        ex_op = ExecutedOperation.objects.create(
+        ex_op = WorkspaceExecutedOperation.objects.create(
             id=executed_op_pk,
-            workspace=workspace_with_resource,
+            owner = self.regular_user_1, 
+            workspace = workspace_with_resource,
             job_name = 'abc',
             inputs = mock_validated_inputs,
             outputs = {},
@@ -336,7 +338,7 @@ class TestResourceUtilities(BaseAPITestCase):
         
         f = os.path.join(
             TESTDIR,
-            'simple_op_test.json'
+            'simple_workspace_op_test.json'
         )
         op_data = read_operation_json(f)
         mock_get_operation_instance_data.return_value = op_data
@@ -351,8 +353,9 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_validated_inputs = {
             'some_string': 'xyz'
         }
-        ex_op = ExecutedOperation.objects.create(
+        ex_op = WorkspaceExecutedOperation.objects.create(
             id=executed_op_pk,
+            owner = self.regular_user_1,
             workspace=workspace_with_resource,
             job_name = 'abc',
             inputs = mock_validated_inputs,

@@ -4,6 +4,7 @@ import uuid
 
 from django.conf import settings
 
+from rest_framework import generics
 from rest_framework import permissions as framework_permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,8 +13,9 @@ from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation import OperationSerializer
 from api.serializers.executed_operation import ExecutedOperationSerializer
+from api.serializers.workspace_executed_operation import WorkspaceExecutedOperationSerializer
 from api.models import Operation as OperationDbModel
-from api.models import Workspace, ExecutedOperation
+from api.models import Workspace, ExecutedOperation, WorkspaceExecutedOperation
 import api.permissions as api_permissions
 from api.utilities.operations import read_operation_json, \
     validate_operation, \
@@ -134,6 +136,38 @@ class OperationCreate(APIView):
 
 class ExecutedOperationList(APIView):
     '''
+    Lists all the ExecutedOperations, both workspace and 
+    non-workspace associated.
+
+    Admins can list all, while other users can only see ExecutedOperations
+    that they own
+    '''
+    permission_classes = [ 
+        framework_permissions.IsAuthenticated
+    ]
+
+
+    def get(self, request, *args, **kwargs):
+
+        user = request.user
+        if user.is_staff:
+            all_executed_operations = ExecutedOperation.objects.all()
+        else:
+            all_executed_operations = ExecutedOperation.objects.filter(owner=user)
+        response_payload = []
+        for op in all_executed_operations:
+            if type(op) == WorkspaceExecutedOperation:
+                response_payload.append(WorkspaceExecutedOperationSerializer(op).data)
+            else:
+                response_payload.append(ExecutedOperationSerializer(op).data)
+        return Response(response_payload, 
+            status=status.HTTP_200_OK
+        )
+
+
+
+class WorkspaceExecutedOperationList(APIView):
+    '''
     Lists available ExecutedOperation instances for a given Workspace.
 
     Admins can list all available executedOperations in a Workspace.
@@ -161,7 +195,7 @@ class ExecutedOperationList(APIView):
         # check ownership via workspace. Users should only be able to query their own
         # analyses:
         if (user.is_staff) or (user == workspace.owner):
-            executed_ops = ExecutedOperation.objects.filter(workspace=workspace)
+            executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace)
             response_payload = ExecutedOperationSerializer(executed_ops, many=True).data
             return Response(response_payload, 
                 status=status.HTTP_200_OK
@@ -199,10 +233,10 @@ class ExecutedOperationCheck(APIView):
         except ExecutedOperation.DoesNotExist as ex:
             return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, status=status.HTTP_404_NOT_FOUND)
 
-        # check ownership via workspace. Users should only be able to query their own
+        # check ownership. Users should only be able to query their own
         # analyses:
-        workspace = matching_op.workspace
-        if (user.is_staff) or (user == workspace.owner):
+        owner = matching_op.owner
+        if (user.is_staff) or (user == owner):
             if matching_op.execution_stop_datetime is None:
                 logger.info('The stop time has not been set and job ({id})'
                     ' is still running or is finalizing.'.format(
@@ -273,7 +307,7 @@ class OperationRun(APIView):
     WORKSPACE_UUID = 'workspace_id'
     INPUTS = 'inputs'
     JOB_NAME = 'job_name'
-    REQUIRED_KEYS = [OP_UUID, WORKSPACE_UUID, INPUTS]
+    REQUIRED_KEYS = [OP_UUID, INPUTS]
     REQUIRED_MESSAGE = 'This field is required.'
     BAD_UUID_MESSAGE = ('{field}: {uuid} could not'
         ' be cast as a valid UUID')
@@ -327,26 +361,42 @@ class OperationRun(APIView):
                 status=status.HTTP_404_NOT_FOUND)
         matching_op = matching_ops[0]
 
-        # check workspace uuid:
-        try:
-            workspace_uuid = uuid.UUID(payload[self.WORKSPACE_UUID])
-        except Exception as ex:
-            message = self.BAD_UUID_MESSAGE.format(
-                field=self.WORKSPACE_UUID,
-                uuid=payload[self.WORKSPACE_UUID]
-            )
-            return Response({self.WORKSPACE_UUID: message}, 
-                status=status.HTTP_400_BAD_REQUEST)
+        # check workspace uuid if the Operation is required to be performed
+        # in the context of a Workspace:
+        if matching_op.workspace_operation:
+            try:
+                workspace_uuid = uuid.UUID(payload[self.WORKSPACE_UUID])
+            except KeyError as ex:
+                return Response({self.WORKSPACE_UUID: 'Since the requested operation'
+                        ' was intended to be run in the context of a Workspace, you'
+                        ' must supply a workspace UUID in the payload.'
+                    }, 
+                    status=status.HTTP_400_BAD_REQUEST)
+            except Exception as ex:
+                message = self.BAD_UUID_MESSAGE.format(
+                    field=self.WORKSPACE_UUID,
+                    uuid=payload[self.WORKSPACE_UUID]
+                )
+                return Response({self.WORKSPACE_UUID: message}, 
+                    status=status.HTTP_400_BAD_REQUEST)
 
-        # ensure that there is a Workspace corresponding to that UUID:
-        try:
-            workspace = Workspace.objects.get(id=workspace_uuid, owner=user)
-        except Workspace.DoesNotExist:
-            message = self.NOT_FOUND_MESSAGE.format(
-                uuid=payload[self.WORKSPACE_UUID]
-            )
-            return Response({self.WORKSPACE_UUID: message}, 
-                status=status.HTTP_404_NOT_FOUND)
+            # ensure that there is a Workspace corresponding to that UUID:
+            try:
+                workspace = Workspace.objects.get(id=workspace_uuid, owner=user)
+            except Workspace.DoesNotExist:
+                message = self.NOT_FOUND_MESSAGE.format(
+                    uuid=payload[self.WORKSPACE_UUID]
+                )
+                return Response({self.WORKSPACE_UUID: message}, 
+                    status=status.HTTP_404_NOT_FOUND)
+        else: # not a workspace operation-
+            # need to set the workspace_uuid to None since we cannot pass
+            # the database model instance to the async call.
+            workspace_uuid = None
+
+            # explicitly set the workspace to None so any workspace-related
+            # checks are ignored in the input validation methods
+            workspace = None
 
         # we can now validate the inputs:
         inputs = payload[self.INPUTS]
@@ -391,6 +441,7 @@ class OperationRun(APIView):
             submit_async_job.delay(
                 executed_op_uuid, 
                 matching_op.id,
+                user.pk,
                 workspace_uuid,
                 job_name,
                 dict_representation)

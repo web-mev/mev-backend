@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from api.utilities.operations import create_workspace_dag
-from api.models import Workspace, ExecutedOperation
+from api.models import Workspace, WorkspaceExecutedOperation
 
 class WorkspaceTreeView(APIView):
 
@@ -27,7 +27,7 @@ class WorkspaceTreeView(APIView):
             })
 
         if (request.user.is_staff) or (request.user == workspace.owner):
-            executed_ops = ExecutedOperation.objects.filter(workspace=workspace)
+            executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace)
             dag = create_workspace_dag(executed_ops)
             return Response(dag)
         else:

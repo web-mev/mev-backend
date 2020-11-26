@@ -23,7 +23,7 @@ TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 class OperationUtilsTester(BaseAPITestCase):
 
     def setUp(self):
-        self.filepath = os.path.join(TESTDIR, 'valid_operation.json')
+        self.filepath = os.path.join(TESTDIR, 'valid_workspace_operation.json')
         fp = open(self.filepath)
         self.valid_dict = json.load(fp)
         fp.close()
@@ -201,7 +201,7 @@ class OperationUtilsTester(BaseAPITestCase):
         # test a non-empty return
         f = os.path.join(
             TESTDIR,
-            'valid_operation.json'
+            'valid_workspace_operation.json'
         )
         d = read_operation_json(f)
         mock_outputs = {

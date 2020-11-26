@@ -27,7 +27,8 @@ from .operation_views import OperationList, \
     OperationCreate, \
     OperationRun, \
     ExecutedOperationCheck, \
-    ExecutedOperationList
+    ExecutedOperationList, \
+    WorkspaceExecutedOperationList
 
 def sentry_debug(request):
     '''

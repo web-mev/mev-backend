@@ -11,6 +11,7 @@ from api.utilities.operations import read_operation_json
 from api.runners.remote_cromwell import RemoteCromwellRunner
 from api.models.operation import Operation
 from api.models.executed_operation import ExecutedOperation
+from api.models.workspace_executed_operation import WorkspaceExecutedOperation
 from api.models.workspace import Workspace
 
 # the api/tests dir
@@ -20,6 +21,8 @@ TESTDIR = os.path.join(TESTDIR, 'operation_test_files', 'demo_cromwell_workflow'
 class RemoteCromwellRunnerTester(BaseAPITestCase):
 
     def setUp(self):
+        self.establish_clients()
+
         os.environ['CROMWELL_SERVER_URL'] = 'http://mock-cromwell-server:8080'
         os.environ['CROMWELL_BUCKET'] = 'my-bucket'
 
@@ -32,11 +35,24 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         if len(workspaces) == 0:
             raise ImproperlyConfigured('Need at least one Workspace to run this test.')
         workspace = workspaces[0]
-        exec_op_pk = uuid.uuid4()
+        workspace_exec_op_pk = uuid.uuid4()
         job_name = 'foo'
+        self.workspace_executed_op = WorkspaceExecutedOperation.objects.create(
+            id=workspace_exec_op_pk,
+            owner = self.regular_user_1,
+            workspace=workspace,
+            job_name = job_name,
+            inputs = {},
+            operation = op,
+            mode = 'cromwell',
+            status = WorkspaceExecutedOperation.SUBMITTED
+        )
+
+        exec_op_pk = uuid.uuid4()
+        job_name = 'bar'
         self.executed_op = ExecutedOperation.objects.create(
             id=exec_op_pk,
-            workspace=workspace,
+            owner = self.regular_user_1,
             job_name = job_name,
             inputs = {},
             operation = op,
@@ -350,7 +366,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         dt_w_tzinfo = exec_op.execution_stop_datetime
         dt_wout_tzinfo = dt_w_tzinfo.replace(tzinfo=None)
         self.assertEqual(dt_wout_tzinfo, expected_end_datetime)
-        error_messages = [x.strip() for x in exec_op.error_message.split(',')]
+        error_messages = exec_op.error_messages
         self.assertCountEqual(
             error_messages, 
             ['Workflow input processing failed', 'Something bad']

@@ -1,19 +1,20 @@
 from rest_framework import serializers, exceptions
 
-from api.models import ExecutedOperation, Operation
+from api.models import WorkspaceExecutedOperation, Operation
 
 class OperationField(serializers.RelatedField):
     def to_representation(self, value):
         return value.name
 
-class ExecutedOperationSerializer(serializers.ModelSerializer):
+class WorkspaceExecutedOperationSerializer(serializers.ModelSerializer):
     operation = OperationField(many=False, read_only=True)
 
     class Meta:
-        model = ExecutedOperation
+        model = WorkspaceExecutedOperation
         fields = [
-            'id', 
-            'owner', 
+            'id',
+            'owner',
+            'workspace', 
             'operation',
             'job_id',
             'job_name',

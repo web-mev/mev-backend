@@ -189,15 +189,13 @@ class WorkspaceResourceAddTests(BaseAPITestCase):
         # the resource self.workspace_resource already has an associated workspace
         # get a different workspace
         all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
-        other_user_workspaces = []
-        for w in all_user_workspaces:
-            if w.pk != self.workspace_pk:
-                other_user_workspaces.append(w)
-        if len(other_user_workspaces) == 0:
-            raise ImproperlyConfigured('Need another workspace so we can attach our Resource.')
 
-        other_workspace = other_user_workspaces[0]
-        self.assertEqual(len(self.workspace_resource.workspaces.all()), 1)
+        # create a new Workspace for that user
+        other_workspace = Workspace.objects.create(
+            owner = self.regular_user_1
+        )
+
+        n0 = len(self.workspace_resource.workspaces.all())
         payload = {'resource_uuid': self.workspace_resource.pk}
         url = reverse(
             'workspace-resource-add', 
@@ -208,8 +206,9 @@ class WorkspaceResourceAddTests(BaseAPITestCase):
 
         updated_resource = Resource.objects.get(pk=self.workspace_resource.pk)
         final_workspaces = [x.pk for x in updated_resource.workspaces.all()]
-        self.assertEqual(len(final_workspaces),2)
-        self.assertCountEqual(final_workspaces, [other_workspace.pk, self.workspace_pk])
+        self.assertEqual(len(final_workspaces)-n0,1)
+        print(final_workspaces)
+        self.assertTrue(other_workspace.pk in final_workspaces)
 
 
     def test_malformatted_request_fails(self):

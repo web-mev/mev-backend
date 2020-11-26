@@ -193,6 +193,35 @@ class Command(BaseCommand):
         save_operation(op_data, dummy_dir_path)
         OperationDbModel.objects.create(id=op.id, name=op.name)
         
+        # use a valid operation spec contained in the test folder
+        op_spec_file = os.path.join(
+            settings.BASE_DIR, 
+            'api', 
+            'tests', 
+            'operation_test_files',
+            'valid_workspace_operation.json'
+        )
+        d=read_operation_json(op_spec_file)
+        d['id'] = str(uuid.uuid4())
+        d['git_hash'] = 'abcd'
+        d['repository_url'] = 'https://github.com/some-repo/'
+        d['repo_name'] = 'some-repo'
+        op_serializer = validate_operation(d)
+
+        # need to make a directory with dummy files to use the 
+        # `save_operation` function
+        dummy_dir_path = os.path.join(settings.BASE_DIR, 'dummy_op2')
+        try:
+            os.mkdir(dummy_dir_path)
+        except OSError as ex:
+            if ex.errno == errno.EEXIST:
+                pass
+            else:
+                raise Exception('Failed to create directory at {p}'.format(p=dummy_dir_path))
+        op = op_serializer.get_instance()
+        op_data = OperationSerializer(op).data
+        save_operation(op_data, dummy_dir_path)
+        OperationDbModel.objects.create(id=op.id, name=op.name)
 
     def handle(self, *args, **options):
         self.populate_users()

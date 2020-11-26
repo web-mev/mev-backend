@@ -161,7 +161,7 @@ class OperationRunner(object):
         to MEV-compatible data structures or resources.
         '''
         # the workspace so we know which workspace to associate outputs with:
-        user_workspace = executed_op.workspace
+        user_workspace = getattr(executed_op, 'workspace', None)
 
         # get the operation spec so we know which types correspond to each output
         op_data = get_operation_instance_data(executed_op.operation)

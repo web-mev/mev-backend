@@ -454,7 +454,7 @@ class RemoteCromwellRunner(OperationRunner):
             failure_messages.add(f['message'])
 
         # set fields on the executed op:
-        executed_op.error_message = ', '.join(failure_messages)
+        executed_op.error_messages = list(failure_messages)
         executed_op.execution_stop_datetime = end_time
         executed_op.job_failed = True
         executed_op.status = ExecutedOperation.COMPLETION_ERROR

@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import JSONField
 
 from api.models import Operation, Workspace
@@ -29,15 +30,16 @@ class ExecutedOperation(models.Model):
         editable = False
     )
 
-    # the workspace to which we associate this ExecutedOperation
-    workspace = models.ForeignKey(
-        Workspace,
-        on_delete = models.CASCADE
-    )
-
     # the reference to the type of Operation performed.
     operation = models.ForeignKey(
         Operation,
+        on_delete = models.CASCADE
+    )
+
+    # ExecutedOperations are owned by someone.
+    owner = models.ForeignKey(
+        get_user_model(), 
+        related_name = 'executed_operations', 
         on_delete = models.CASCADE
     )
 
@@ -63,11 +65,11 @@ class ExecutedOperation(models.Model):
 
     # The outputs of the job. Initially blank, but ultimately filled 
     # with the appropriate output in the form of an
-    # api.data_structures.OperationOutput
+    # api.data_structures.OperationOutputmodels.Model
     outputs = JSONField(null=True)
 
     # error message(s) for display and help with diagnosing issues.
-    error_message = models.CharField(null=True, max_length = 5000)
+    error_messages = JSONField(null=True)
 
     # The job status-- for displaying updates/current status (e.g. "running").
     # Depends on which runner, etc.

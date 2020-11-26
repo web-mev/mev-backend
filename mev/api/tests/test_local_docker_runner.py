@@ -12,7 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from api.tests.base import BaseAPITestCase
 from api.utilities.operations import read_operation_json
 from api.runners.local_docker import LocalDockerRunner
-from api.models import Resource
+from api.models import Resource, Workspace, WorkspaceExecutedOperation, Operation
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -21,6 +21,7 @@ TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 class LocalDockerRunnerTester(BaseAPITestCase):
 
     def setUp(self):
+        self.establish_clients()
         self.filepath = os.path.join(TESTDIR, 'valid_operation.json')
 
     @mock.patch('api.runners.local_docker.copy_local_resource')
@@ -84,11 +85,66 @@ class LocalDockerRunnerTester(BaseAPITestCase):
 
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 1
+        mock_get_logs.return_value = 'foo'
 
         runner.finalize(mock_executed_op)
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
+
+
+    @mock.patch('api.runners.local_docker.check_container_exit_code')
+    @mock.patch('api.runners.local_docker.get_finish_datetime')
+    @mock.patch('api.runners.local_docker.remove_container')
+    @mock.patch('api.runners.local_docker.get_logs')
+    def test_handles_job_failure_case2(self, mock_get_logs, \
+        mock_remove_container, \
+        mock_get_finish_datetime, \
+        mock_check_container_exit_code):
+        '''
+        If a job fails, the container should issue a non-zero exit code
+        If that happens, test that we handle the failure appropriately and
+        set the proper fields on the database object
+
+        Here, we use an actual instance of an ExecutedOperation so we can test 
+        that the save happens appropriately
+        '''
+        runner = LocalDockerRunner()
+
+        # need a user's workspace to create an ExecutedOperation
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Workspace for user {user}.
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+        workspace = user_workspaces[0]
+        workspace_exec_op_uuid = uuid.uuid4()
+        ops = Operation.objects.all()
+        op = ops[0]
+        op.workspace_operation = True
+        op.save()
+        workspace_exec_op = WorkspaceExecutedOperation.objects.create(
+            id = workspace_exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= workspace,
+            operation = op,
+            job_id = workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+
+        mock_get_finish_datetime.return_value = datetime.datetime.now()
+        mock_check_container_exit_code.return_value = 1
+        mock_get_logs.return_value = 'ACK'
+
+        runner.finalize(workspace_exec_op)
+        mock_remove_container.assert_called()
+        # query the db:
+        workspace_exec_op = WorkspaceExecutedOperation.objects.get(pk=workspace_exec_op_uuid)
+        self.assertTrue(workspace_exec_op.job_failed)
+        self.assertTrue(workspace_exec_op.error_messages == ['ACK'])
+
 
     @mock.patch('api.runners.local_docker.alert_admins')
     @mock.patch('api.runners.local_docker.make_local_directory')

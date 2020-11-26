@@ -2,6 +2,8 @@ import unittest
 import uuid
 import random
 import copy
+import json
+import os
 
 from api.runners import AVAILABLE_RUN_MODES
 from resource_types import RESOURCE_MAPPING
@@ -9,6 +11,9 @@ from api.serializers.operation import OperationSerializer
 from api.data_structures.operation import Operation
 from api.serializers.operation_input import OperationInputSerializer
 from api.serializers.operation_output import OperationOutputSerializer
+
+TESTDIR = os.path.dirname(__file__)
+TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 
 class OperationTester(unittest.TestCase):
     def setUp(self):
@@ -66,6 +71,7 @@ class OperationTester(unittest.TestCase):
         self.repository_url = 'https://github.com/some-repo/'
         self.git_hash = 'abcd1234'
         self.repo_name = 'some-repo'
+        self.workspace_operation = True
         self.operation_dict = {
             'id': self.op_id,
             'name': self.op_name,
@@ -81,7 +87,8 @@ class OperationTester(unittest.TestCase):
             'mode': self.mode, 
             'repository_url': self.repository_url,
             'git_hash': self.git_hash,
-            'repo_name': self.repo_name
+            'repo_name': self.repo_name,
+            'workspace_operation': self.workspace_operation
         }
         self.operation_instance = Operation(
             self.op_id,
@@ -98,7 +105,8 @@ class OperationTester(unittest.TestCase):
             self.mode,
             self.repository_url,
             self.git_hash,
-            self.repo_name
+            self.repo_name,
+            self.workspace_operation
         )
 
     def test_serialization(self):

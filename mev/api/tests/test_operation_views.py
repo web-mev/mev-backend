@@ -12,7 +12,10 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
 from api.models import Operation as OperationDbModel
-from api.models import Workspace, Resource, ExecutedOperation
+from api.models import Workspace, \
+    Resource, \
+    WorkspaceExecutedOperation, \
+    ExecutedOperation
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 from api.utilities.basic_utils import copy_local_resource
@@ -39,7 +42,7 @@ def setup_db_elements(self, mock_clone_repository, \
     self.dummy_src_path = os.path.join(settings.BASE_DIR, 'test_dummy_dir')
     os.mkdir(self.dummy_src_path)
     copy_local_resource(
-        os.path.join(TESTDIR, 'valid_operation.json'), 
+        os.path.join(TESTDIR, 'valid_workspace_operation.json'), 
         os.path.join(self.dummy_src_path, settings.OPERATION_SPEC_FILENAME)
     )
 
@@ -64,6 +67,128 @@ def tear_down_db_elements(self):
     )
     shutil.rmtree(dest_dir)
 
+class ExecutedOperationListTests(BaseAPITestCase):
+    '''
+    Tests where we list the ExecutedOperations within a Workspace
+    '''
+    def setUp(self):
+        setup_db_elements(self) # creates an Operation to use
+        self.establish_clients()
+
+        # need a user's workspace to create an ExecutedOperation
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Workspace for user {user}.
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+        self.workspace = user_workspaces[0]
+
+        # create a mock ExecutedOperation
+        self.workspace_exec_op_uuid = uuid.uuid4()
+        self.workspace_exec_op = WorkspaceExecutedOperation.objects.create(
+            id = self.workspace_exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            operation = self.op,
+            job_id = self.workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        self.exec_op_uuid = uuid.uuid4()
+        self.exec_op = ExecutedOperation.objects.create(
+            id = self.exec_op_uuid,
+            owner = self.regular_user_1,
+            operation = self.op,
+            job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+
+    def tearDown(self):
+        tear_down_db_elements(self)
+
+    def test_only_one_exec_op_reported(self):
+        '''
+        In our setup, we only have one ExecutedOperation associated
+        with a Workspace. Test that our query to the workspace-assoc.
+        executed ops returns only a single record
+        ''' 
+        url = reverse('workspace-executed-operation-list',
+            kwargs={'workspace_pk': self.workspace.pk}
+        )
+        all_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_1)
+        all_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(owner=self.regular_user_1)
+        # check that the test is not trivial (i.e. we should be excluding an 
+        # ExecutedOperation that is NOT part of this workspace)
+        self.assertTrue((len(all_exec_ops)-len(all_workspace_exec_ops)) > 0)
+        response = self.authenticated_regular_client.get(url)
+        j = response.json()
+        self.assertTrue(len(j)==len(all_workspace_exec_ops))
+
+    def test_list_of_exec_ops(self):
+        '''
+        In our setup, we only have one ExecutedOperation associated
+        with a Workspace. Test that our query to the workspace-assoc.
+        executed ops returns only a single record
+        ''' 
+        url = reverse('executed-operation-list')
+        all_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_1)
+        all_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(owner=self.regular_user_1)
+        self.assertTrue(len(all_exec_ops)==2)
+        self.assertTrue(len(all_workspace_exec_ops)==1)
+        response = self.authenticated_regular_client.get(url)
+        j = response.json()
+        self.assertTrue(len(j)==2)
+        op_uuids = [x['id'] for x in j]
+        self.assertCountEqual(
+            op_uuids, 
+            [str(self.exec_op_uuid), str(self.workspace_exec_op_uuid)]
+        )
+
+    def test_other_user_request(self):
+        '''
+        Tests that requests made by another user don't return any records
+        (since the test was setup such that the "other user" does not have
+        any executed operations)
+        '''
+
+        # test for an empty list response
+        url = reverse('executed-operation-list')
+        reg_user_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_1) 
+        other_user_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_2)
+        self.assertTrue(len(other_user_exec_ops) == 0)
+        response = self.authenticated_other_client.get(url)
+        j = response.json()
+        self.assertCountEqual(j, [])
+
+        # create an ExecutedOp for that other user
+        other_user_op_uuid = uuid.uuid4()
+        other_user_op = ExecutedOperation.objects.create(
+            id = other_user_op_uuid,
+            owner = self.regular_user_2,
+            operation = self.op,
+            job_id = other_user_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        other_user_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_2)
+        self.assertTrue(len(other_user_exec_ops) == 1)
+        response = self.authenticated_other_client.get(url)
+        j = response.json()
+        s1 = set([x.pk for x in reg_user_exec_ops])
+        s2 = set([x.pk for x in other_user_exec_ops])
+        i_set = list(s1.intersection(s2))
+        self.assertTrue(len(i_set) == 0)
+        self.assertTrue(len(j)==1)
+        self.assertCountEqual(j[0]['id'], str(other_user_op_uuid))
+
+    def test_admin_request(self):
+        all_ops = ExecutedOperation.objects.all()
+        url = reverse('executed-operation-list')
+        response = self.authenticated_admin_client.get(url)
+        j = response.json()
+        self.assertEqual(len(all_ops), len(j))
+
+
 class ExecutedOperationTests(BaseAPITestCase):
 
     def setUp(self):
@@ -81,15 +206,27 @@ class ExecutedOperationTests(BaseAPITestCase):
         self.workspace = user_workspaces[0]
 
         # create a mock ExecutedOperation
+        self.workspace_exec_op_uuid = uuid.uuid4()
+        self.workspace_exec_op = WorkspaceExecutedOperation.objects.create(
+            id = self.workspace_exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            operation = self.op,
+            job_id = self.workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
         self.exec_op_uuid = uuid.uuid4()
         self.exec_op = ExecutedOperation.objects.create(
             id = self.exec_op_uuid,
-            workspace= self.workspace,
+            owner = self.regular_user_1,
             operation = self.op,
             job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
-        self.good_url = reverse('operation-check',
+        self.good_workspace_exec_op_url = reverse('operation-check',
+            kwargs={'exec_op_uuid': self.workspace_exec_op_uuid}
+        )
+        self.good_exec_op_url = reverse('operation-check',
             kwargs={'exec_op_uuid': self.exec_op_uuid}
         )
 
@@ -100,7 +237,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         """
         Test that general requests to the endpoint generate 401
         """
-        response = self.regular_client.get(self.good_url)
+        response = self.regular_client.get(self.good_workspace_exec_op_url)
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
@@ -139,12 +276,16 @@ class ExecutedOperationTests(BaseAPITestCase):
         mock_runner.check_status.return_value = False
         mock_runner_class.return_value = mock_runner
         mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_url)
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 204)
+        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 204)
 
         # now try making the request as another user and it should fail
         # with a 404 not found
-        response = self.authenticated_other_client.get(self.good_url)
+        response = self.authenticated_other_client.get(self.good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 404)
+        response = self.authenticated_other_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 404)
 
     @mock.patch('api.views.operation_views.get_runner')
@@ -159,7 +300,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         mock_runner.check_status.return_value = False 
         mock_runner_class.return_value = mock_runner
         mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_admin_client.get(self.good_url)
+        response = self.authenticated_admin_client.get(self.good_workspace_exec_op_url)
         self.assertTrue(response.status_code == 204)
 
     @mock.patch('api.views.operation_views.get_runner')
@@ -177,8 +318,8 @@ class ExecutedOperationTests(BaseAPITestCase):
         mock_runner.check_status.return_value = True 
         mock_runner_class.return_value = mock_runner
         mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_url)
-        mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        mock_finalize_executed_op.delay.assert_called_with(str(self.workspace_exec_op_uuid))
         self.assertTrue(response.status_code == 202)
 
     def test_request_to_finalizing_process_returns_208(self):
@@ -187,9 +328,26 @@ class ExecutedOperationTests(BaseAPITestCase):
         return 208 ("already reported") to inform that things are still processing.
         '''
         exec_op_uuid = uuid.uuid4()
+        exec_op = WorkspaceExecutedOperation.objects.create(
+            id = exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            operation = self.op,
+            job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo',
+            is_finalizing = True
+        )
+        url = reverse('operation-check',
+            kwargs={'exec_op_uuid': exec_op_uuid}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertTrue(response.status_code == 208)
+
+        # test the non-workspace associated ExecutedOperation
+        exec_op_uuid = uuid.uuid4()
         exec_op = ExecutedOperation.objects.create(
             id = exec_op_uuid,
-            workspace= self.workspace,
+            owner = self.regular_user_1,
             operation = self.op,
             job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo',
@@ -214,7 +372,9 @@ class ExecutedOperationTests(BaseAPITestCase):
         mock_runner.check_status.return_value = False
         mock_runner_class.return_value = mock_runner
         mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_url)
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 204)
+        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 204)
 
     @mock.patch('api.views.operation_views.get_runner')
@@ -228,17 +388,36 @@ class ExecutedOperationTests(BaseAPITestCase):
         know that things are still processing.
         '''
         # query the op to start to ensure the test is setup properly
-        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
         self.assertFalse(op.is_finalizing)
 
         mock_runner_class = mock.MagicMock()
         mock_runner = mock.MagicMock()
-        # mocks that process is still running so it shoudl return 204 status
+        # mocks that process has completed
         mock_runner.check_status.return_value = True 
         mock_runner_class.return_value = mock_runner
         mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_url)
-        #mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        #mock_finalize_executed_op.delay.assert_called_with(str(self.workspace_exec_op_uuid))
+        self.assertTrue(response.status_code == 202)
+
+        # query the op:
+        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
+        self.assertTrue(op.is_finalizing)
+
+        # make a second query. since the process is finalizing, should return 208
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 208)
+
+        # check that the finalization was only called once.
+        mock_finalize_executed_op.delay.assert_called_once_with(str(self.workspace_exec_op_uuid))
+
+        # now check for the non-workspace ExecOp
+        mock_finalize_executed_op.reset_mock()
+        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        self.assertFalse(op.is_finalizing)
+
+        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 202)
 
         # query the op:
@@ -246,11 +425,12 @@ class ExecutedOperationTests(BaseAPITestCase):
         self.assertTrue(op.is_finalizing)
 
         # make a second query. since the process is finalizing, should return 208
-        response = self.authenticated_regular_client.get(self.good_url)
+        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 208)
 
         # check that the finalization was only called once.
         mock_finalize_executed_op.delay.assert_called_once_with(str(self.exec_op_uuid))
+
 
 
     @mock.patch('api.views.operation_views.get_runner')
@@ -263,16 +443,39 @@ class ExecutedOperationTests(BaseAPITestCase):
         is complete, and the API should respond with the outputs
         '''
         # query the op to start to ensure the test is setup properly
-        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
         self.assertFalse(op.is_finalizing)
 
         mock_runner_class = mock.MagicMock()
         mock_runner = mock.MagicMock()
-        # mocks that process is still running so it shoudl return 204 status
+        # mocks that process is complete
         mock_runner.check_status.return_value = True 
         mock_runner_class.return_value = mock_runner
         mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_url)
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        mock_finalize_executed_op.delay.assert_called_with(str(self.workspace_exec_op_uuid))
+        self.assertTrue(response.status_code == 202)
+
+        # query the op:
+        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
+        self.assertTrue(op.is_finalizing)
+
+        # mock the finalization is complete by assigning the
+        # `execution_stop_datetime` field:
+        op.execution_stop_datetime = datetime.datetime.now()
+        op.is_finalizing = False
+        op.save()
+
+        # make a second query. since the process is finalizing, should return 208
+        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 200)
+
+        # check the non-workspace ExecOp:
+        mock_finalize_executed_op.reset_mock()
+        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
+        self.assertFalse(op.is_finalizing)
+
+        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
         self.assertTrue(response.status_code == 202)
 
@@ -287,7 +490,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         op.save()
 
         # make a second query. since the process is finalizing, should return 208
-        response = self.authenticated_regular_client.get(self.good_url)
+        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 200)
 
 
@@ -475,7 +678,6 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         s = response.json()
         expected_response = {
-            OperationRun.WORKSPACE_UUID: OperationRun.REQUIRED_MESSAGE,
             OperationRun.INPUTS: OperationRun.REQUIRED_MESSAGE
         }
         self.assertDictEqual(s, expected_response)
@@ -506,6 +708,9 @@ class OperationRunTests(BaseAPITestCase):
             raise ImproperlyConfigured('Need at least one Operation that is active')
 
         op = ops[0]
+        # make it a workspace operation if it's not already
+        op.workspace_operation = True
+        op.save()
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: [],
@@ -536,6 +741,9 @@ class OperationRunTests(BaseAPITestCase):
         workspace_uuid = uuid.uuid4()
 
         op = ops[0]
+        # make it a workspace operation if it's not already
+        op.workspace_operation = True
+        op.save()
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: [],
@@ -571,6 +779,9 @@ class OperationRunTests(BaseAPITestCase):
 
         workspace = user_workspaces[0]
         op = ops[0]
+        # make it a workspace operation if it's not already
+        op.workspace_operation = True
+        op.save()
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: [],
@@ -626,7 +837,7 @@ class OperationRunTests(BaseAPITestCase):
         # set the mock to return True so that we mock the inputs passing validation
         f = os.path.join(
             TESTDIR,
-            'valid_operation.json'
+            'valid_workspace_operation.json'
         )
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
@@ -717,7 +928,7 @@ class OperationRunTests(BaseAPITestCase):
         # set the mock to return True so that we mock the inputs passing validation
         f = os.path.join(
             TESTDIR,
-            'valid_operation.json'
+            'valid_workspace_operation.json'
         )
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
@@ -869,6 +1080,54 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.reset_mock()
 
 
+
+    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_proper_call_with_nonworkspace_op(self, mock_get_operation_instance_data, mock_submit_async_job):
+        '''
+        Test that the proper call is made when the Operation is not a workspace-assoc.
+        Operation.
+        '''
+        # set the mock to return True so that we mock the inputs passing validation
+        f = os.path.join(
+            TESTDIR,
+            'simple_op_test.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        op = ops[0]
+        # make it a non-workspace operation if it's not already
+        op.workspace_operation = False
+        op.save()
+
+        # first try a payload where the job_name field is not given.
+        # Check that the given name is the same as the execution job_id
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            }
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            None, 
+            executed_op_uuid,
+            payload[OperationRun.INPUTS]
+        )
+
+
     @mock.patch('api.views.operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_job_name_set(self, mock_get_operation_instance_data, mock_submit_async_job):
@@ -878,7 +1137,7 @@ class OperationRunTests(BaseAPITestCase):
         # set the mock to return True so that we mock the inputs passing validation
         f = os.path.join(
             TESTDIR,
-            'simple_op_test.json'
+            'simple_workspace_op_test.json'
         )
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
@@ -895,6 +1154,9 @@ class OperationRunTests(BaseAPITestCase):
 
         workspace = user_workspaces[0]
         op = ops[0]
+        # make it a workspace operation if it's not already
+        op.workspace_operation = True
+        op.save()
 
         # first try a payload where the job_name field is not given.
         # Check that the given name is the same as the execution job_id
@@ -912,6 +1174,7 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
             op.id, 
+            self.regular_user_1.pk,
             workspace.id, 
             executed_op_uuid,
             payload[OperationRun.INPUTS]
@@ -935,6 +1198,7 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
             op.id, 
+            self.regular_user_1.pk,
             workspace.id, 
             job_name,
             payload[OperationRun.INPUTS]

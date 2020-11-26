@@ -10,7 +10,14 @@ logger = logging.getLogger(__name__)
 class BaseOutputConverter(object):
 
     def convert_output(self, executed_op, workspace, output_spec, output_val):
+        '''
+        Converts the output payload from an ExecutedOperation into something
+        that WebMEV can work with.
 
+        Note that the `workspace` arg can be None if the ExecutedOperation was
+        not associated with any Workspace (As would be the case for an upload
+        performed by a job runner)
+        '''
         attribute_type = output_spec['attribute_type']
         if attribute_type == DataResourceAttribute.typename:
             # check if many
@@ -40,7 +47,7 @@ class BaseOutputConverter(object):
                     id = str(executed_op.pk),
                     n = os.path.basename(p)
                 )
-                resource = self.create_resource(workspace, p, name)
+                resource = self.create_resource(executed_op.owner, workspace, p, name)
                 validate_and_store_resource(resource, resource_type)
 
                 # add the info about the parent operation to the resource metadata
@@ -58,7 +65,7 @@ class BaseOutputConverter(object):
         else:
             return output_val
             
-    def create_resource(self, workspace, path, name):
+    def create_resource(self, owner, workspace, path, name):
         logger.info('From executed operation outputs, create'
             ' a resource at {p} with name {n}'.format(
                 p = path,
@@ -66,11 +73,12 @@ class BaseOutputConverter(object):
             )
         )
         resource_instance = Resource.objects.create(
-            owner = workspace.owner,
+            owner = owner,
             path = path,
-            name = name,
+            name = name
         )
-        resource_instance.workspaces.add(workspace)
+        if workspace:
+            resource_instance.workspaces.add(workspace)
         resource_instance.save()
         return resource_instance
 

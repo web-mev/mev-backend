@@ -12,7 +12,7 @@ from api.data_structures import create_attribute, \
     DagNode
 from api.utilities.resource_utilities import get_resource_by_pk
 from api.data_structures.user_operation_input import user_operation_input_mapping
-from api.models import Resource, ExecutedOperation
+from api.models import Resource, WorkspaceExecutedOperation
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,10 @@ def validate_operation_inputs(user, inputs, operation, workspace):
     `inputs` is a dictionary of input parameters for the Operation
     `operation` is an instance of Operation (the database model)
     `workspace` is an instance of Workspace (database model)
+
+    Note that `workspace` is not required, as some operations can be run
+    outside the context of a workspace. In that instance, `workspace`
+    should be explicitly set to None
     '''
 
     # get the Operation data structure given the operation database instance:
@@ -148,7 +152,7 @@ def check_for_resource_operations(resource_instance, workspace_instance):
         w = str(workspace_instance.pk),
         r = str(resource_instance.pk)
     ))
-    workspace_executed_ops = ExecutedOperation.objects.filter(workspace=workspace_instance)
+    workspace_executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace_instance)
     used_resource_uuids = set()
     for exec_op in workspace_executed_ops:
         logger.info('Look in executedOp: {u}'.format(u = str(exec_op.pk)))

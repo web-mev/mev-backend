@@ -2,12 +2,15 @@ import logging
 import os
 import json
 
+from django.contrib.auth import get_user_model
+
 from celery.decorators import task
 
 from api.models import Resource, \
     ResourceMetadata, \
     Operation, \
     ExecutedOperation, \
+    WorkspaceExecutedOperation, \
     Workspace
 from api.utilities import basic_utils
 from api.utilities.ingest_operation import perform_operation_ingestion
@@ -77,7 +80,7 @@ def ingest_new_operation(operation_uuid_str, repository_url):
         operation.save()
 
 @task(name='submit_async_job')
-def submit_async_job(executed_op_pk, op_pk, workspace_pk, job_name, validated_inputs):
+def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, validated_inputs):
     '''
 
     '''
@@ -85,8 +88,15 @@ def submit_async_job(executed_op_pk, op_pk, workspace_pk, job_name, validated_in
         exec_op = str(executed_op_pk)
     ))
 
-    # get the workspace instance:
-    workspace = Workspace.objects.get(id=workspace_pk)
+    # get the user:
+    user = get_user_model().objects.get(pk=user_pk)
+
+    # get the workspace instance if the pk was given:
+    if workspace_pk is not None:
+        workspace_related_job = True
+        workspace = Workspace.objects.get(id=workspace_pk)
+    else:
+        workspace_related_job = False
 
     try:
         op = Operation.objects.get(pk=op_pk)
@@ -105,16 +115,27 @@ def submit_async_job(executed_op_pk, op_pk, workspace_pk, job_name, validated_in
     op_data = get_operation_instance_data(op)
 
     # Create an ExecutedOperation to track the job
-    executed_op = ExecutedOperation.objects.create(
-        id=executed_op_pk,
-        workspace=workspace,
-        job_name = job_name,
-        inputs = validated_inputs,
-        operation = op,
-        mode = op_data['mode'],
-        status = ExecutedOperation.SUBMITTED
-    )
-
+    if workspace_related_job:
+        executed_op = WorkspaceExecutedOperation.objects.create(
+            id=executed_op_pk,
+            owner = user,
+            workspace=workspace,
+            job_name = job_name,
+            inputs = validated_inputs,
+            operation = op,
+            mode = op_data['mode'],
+            status = ExecutedOperation.SUBMITTED
+        )
+    else:
+        executed_op = ExecutedOperation.objects.create(
+            id=executed_op_pk,
+            owner = user,
+            job_name = job_name,
+            inputs = validated_inputs,
+            operation = op,
+            mode = op_data['mode'],
+            status = ExecutedOperation.SUBMITTED
+        )
     submit_job(executed_op, op_data, validated_inputs)
 
 @task(name='finalize_executed_op')

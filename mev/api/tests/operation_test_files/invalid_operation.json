@@ -42,6 +42,5 @@
     }, 
     "mode": "local_docker", 
     "repository_url": "https://github.com/some-repo/", 
-    "git_hash": "abcd1234",
-    "workspace_operation": false
+    "git_hash": "abcd1234"
 }

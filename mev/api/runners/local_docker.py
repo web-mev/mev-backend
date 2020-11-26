@@ -90,7 +90,7 @@ class LocalDockerRunner(OperationRunner):
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
             # collect the errors that are  reported in the logs
             log_msg = get_logs(job_id)
-            executed_op.error_message = log_msg
+            executed_op.error_messages = [log_msg,]
         else:
             executed_op.job_failed = False
             executed_op.status = ExecutedOperation.COMPLETION_SUCCESS

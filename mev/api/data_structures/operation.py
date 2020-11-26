@@ -20,14 +20,15 @@ class Operation(object):
         "mode": <string>,
         "repository_url": <string url>,
         "git_hash": <string>,
-        "repo_name": <string>
+        "repo_name": <string>,
+        "workspace_operation": <bool>
     }
     ```
     '''
 
     def __init__(self, id, name, \
         description, inputs, outputs, \
-        mode, repository_url, git_hash, repo_name):
+        mode, repository_url, git_hash, repo_name, workspace_operation):
 
         self.id = id
         self.name = name
@@ -38,6 +39,7 @@ class Operation(object):
         self.repository_url = repository_url
         self.git_hash = git_hash
         self.repo_name = repo_name
+        self.workspace_operation = workspace_operation
 
     def __eq__(self, other):
         a = self.name == other.name
@@ -47,4 +49,5 @@ class Operation(object):
         e = self.repository_url == other.repository_url
         f = self.git_hash == other.git_hash
         g = self.repo_name == other.repo_name
-        return all([a,b,c,d,e,f,g])
+        h = self.workspace_operation == other.workspace_operation
+        return all([a,b,c,d,e,f,g,h])

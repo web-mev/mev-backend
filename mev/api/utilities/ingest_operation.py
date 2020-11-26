@@ -200,6 +200,7 @@ def perform_operation_ingestion(repository_url, op_uuid):
         o.name = op.name
         o.active = True
         o.successful_ingestion = True
+        o.workspace_op = op_data['workspace_operation']
         o.save()
     except OperationDbModel.DoesNotExist:
         logger.error('Could not find the Operation corresponding to'

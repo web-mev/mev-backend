@@ -5,7 +5,7 @@ import datetime
 
 from django.core.exceptions import ImproperlyConfigured
 
-from api.models import ExecutedOperation, Operation, Workspace
+from api.models import WorkspaceExecutedOperation, Operation, Workspace
 from api.data_structures import DagNode, SimpleDag
 from api.utilities.operations import create_workspace_dag
 from api.tests.base import BaseAPITestCase
@@ -17,6 +17,8 @@ class DagBuildTester(BaseAPITestCase):
         Tests that we create the expected graph given a mocked set of 
         Operations and resources
         '''
+
+        self.establish_clients()
 
         # create the mock data to be returned:
         # Doesn'thave to be a fully-compliant dict- just needs the inputs/outputs
@@ -168,25 +170,27 @@ class DagBuildTester(BaseAPITestCase):
 
         u1 = uuid.uuid4()
         u2 = uuid.uuid4()
-        self.ex1 = ExecutedOperation.objects.create(
+        self.ex1 = WorkspaceExecutedOperation.objects.create(
             id=u1,
+            owner = self.regular_user_1,
             workspace=workspace,
             job_name = 'jobA',
             inputs = mock_inputs1,
             outputs = mock_outputs1,
             operation = op,
             mode = 'xyz',
-            status = ExecutedOperation.SUBMITTED
+            status = WorkspaceExecutedOperation.SUBMITTED
         )
-        self.ex2 = ExecutedOperation.objects.create(
+        self.ex2 = WorkspaceExecutedOperation.objects.create(
             id=u2,
+            owner = self.regular_user_1,
             workspace=workspace,
             job_name = 'jobB',
             inputs = mock_inputs2,
             outputs = mock_outputs2,
             operation = op,
             mode = 'abc',
-            status = ExecutedOperation.SUBMITTED
+            status = WorkspaceExecutedOperation.SUBMITTED
         )
         self.expected_parents = {
             str(self.ex1.pk): ['A', 'B'],

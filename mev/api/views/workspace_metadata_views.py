@@ -122,7 +122,6 @@ class WorkspaceMetadataFeaturesView(WorkspaceMetadataView):
     def get(self, request, *args, **kwargs):
         
         all_metadata = self.fetch_metadata(request, *args, **kwargs)
-        print(all_metadata)
         full_feature_set_data = self.get_merged_element_sets(all_metadata, 
             self.feature_set_serializer_class, FEATURE_SET_KEY)
         return Response(

@@ -208,14 +208,17 @@ class DataResourceUserOperationInput(UserOperationInput):
                 # will catch things like bad UUIDs and also other unexpected errors
                 raise ValidationError({key: ex})
 
-            resource_workspaces = r.workspaces.all()
-            if not (workspace in resource_workspaces):
-                raise ValidationError({
-                    key: 'The UUID ({resource_uuid}) did not match'
-                    ' any known resource in your workspace.'.format(
-                        resource_uuid = v
-                    )
-                })
+            # only need to check the workspace compatability if the 
+            # workspace arg is not None
+            if workspace:
+                resource_workspaces = r.workspaces.all()
+                if not (workspace in resource_workspaces):
+                    raise ValidationError({
+                        key: 'The UUID ({resource_uuid}) did not match'
+                        ' any known resource in your workspace.'.format(
+                            resource_uuid = v
+                        )
+                    })
 
             if not r.resource_type in self.expected_resource_types:
                 logger.info('The resource type {rt} is not compatible'
