@@ -187,10 +187,10 @@ def check_for_resource_operations(resource_instance, workspace_instance):
             logger.info('Inputs to the ExecutedOp were None. Moving on.')
         if exec_op_outputs is not None:
             s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
-                logger.info('Found the following DataResources among'
-                ' the outputs: {u}'.format(
-                    u = ', '.join(s2)
-                ))
+            logger.info('Found the following DataResources among'
+            ' the outputs: {u}'.format(
+                u = ', '.join(s2)
+            ))
             if str(resource_instance.pk) in s2:
                 return True
             logger.info('Was not in the outputs. Done checking ExecutedOp ({u}).'.format(

@@ -146,7 +146,6 @@ class ExecutedOperationList(APIView):
         framework_permissions.IsAuthenticated
     ]
 
-
     def get(self, request, *args, **kwargs):
 
         user = request.user
