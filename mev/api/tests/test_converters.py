@@ -1,14 +1,68 @@
 import unittest
 import unittest.mock as mock
 from django.core.exceptions import ImproperlyConfigured
+from rest_framework.exceptions import ValidationError
+
 from api.models import Resource
 from api.data_structures import Observation, ObservationSet, Feature, FeatureSet
+from api.converters.basic_attributes import StringConverter, \
+    IntegerConverter, \
+    StringListConverter, \
+    UnrestrictedStringConverter, \
+    UnrestrictedStringListConverter
 from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
     LocalDockerSingleDataResourceConverter
 from api.converters.element_set import ObservationSetCsvConverter, FeatureSetCsvConverter
 from api.tests.base import BaseAPITestCase
+
+class TestBasicAttributeConverter(BaseAPITestCase):
+
+    def test_basic_attributes(self):
+        s = StringConverter()
+        v = s.convert('abc')
+        self.assertEqual(v, 'abc')
+
+        v = s.convert('ab c')
+        self.assertEqual(v, 'ab_c')
+
+        with self.assertRaises(ValidationError):
+            v = s.convert('ab?c')
+
+        s = UnrestrictedStringConverter()
+        v = s.convert('abc')
+        self.assertEqual(v, 'abc')
+        v = s.convert('ab c')
+        self.assertEqual(v, 'ab c')
+        v = s.convert('ab?c')
+        self.assertEqual(v, 'ab?c')
+
+        ic = IntegerConverter()
+        i = ic.convert(2)
+        self.assertEqual(i,2)
+
+        with self.assertRaises(ValidationError):
+            ic.convert('1')
+        with self.assertRaises(ValidationError):
+            ic.convert('1.2')
+
+        with self.assertRaises(ValidationError):
+            ic.convert('a')
+
+        s = StringListConverter()
+        v = s.convert(['ab','c d'])
+        self.assertCountEqual(['ab','c_d'], v)
+
+        with self.assertRaises(ValidationError):
+            v = s.convert(2)
+
+        with self.assertRaises(ValidationError):
+            v = s.convert(['1','2'])
+
+        s = UnrestrictedStringListConverter()
+        v = s.convert(['ab','c d'])
+        self.assertCountEqual(['ab','c d'], v)
 
 class TestElementSetConverter(BaseAPITestCase):
 

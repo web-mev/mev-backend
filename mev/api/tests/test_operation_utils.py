@@ -218,3 +218,32 @@ class OperationUtilsTester(BaseAPITestCase):
         }
         with self.assertRaises(Exception):
             result = collect_resource_uuids(d['outputs'], mock_outputs)
+
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_list_attr_inputs(self, mock_get_operation_instance_data):
+        '''
+        Test the case where inputs are of a list type (e.g. a list of strings)
+        Check that it all validates as expected
+        '''
+        # first test one where we expect an empty list-- no resources
+        # are used or created:
+        f = os.path.join(
+            TESTDIR,
+            'valid_op_with_list_inputs.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+        l1 = ['https://foo.com/bar', 'https://foo.com/baz']
+        l2 = ['abc', 'def']
+        inputs = {
+            'link_list': l1,
+            'regular_string_list': l2
+        }
+        ops = OperationDbModel.objects.all()
+        op = ops[0]
+        result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
+        self.assertIsNone(result['optional_input'])
+        self.assertCountEqual(result['link_list'].get_value(), l1)
+        self.assertCountEqual(result['regular_string_list'].get_value(), l2)
+        

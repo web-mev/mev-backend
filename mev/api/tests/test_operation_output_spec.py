@@ -248,20 +248,32 @@ class TestOutputSpec(unittest.TestCase):
 
     def test_stringlist_output_spec(self):
         s = StringListOutputSpec()
-        s = StringListOutputSpec(default='abc')
+
+        s = StringListOutputSpec(default=['abc', 'def'])
+
+        with self.assertRaises(ValidationError):
+            s = StringListOutputSpec(default=['abc', '???'])
+
+        with self.assertRaises(ValidationError):
+            s = StringListOutputSpec(default='abc')
 
         with self.assertRaises(ValidationError):
             s = StringListOutputSpec(xyz='def')
         with self.assertRaises(ValidationError):
-            s = StringListOutputSpec(default='???')
+            s = StringListOutputSpec(default=['???'])
 
     def test_unrestrictedstringlist_output_spec(self):
         s = UnrestrictedStringListOutputSpec()
-        s = UnrestrictedStringListOutputSpec(default='abc')
-        s = UnrestrictedStringListOutputSpec(default='???')
+
+        s = UnrestrictedStringListOutputSpec(default=['abc', '???'])
 
         with self.assertRaises(ValidationError):
-            s = UnrestrictedStringListOutputSpec(xyz='def')
+            s = UnrestrictedStringListOutputSpec(default='abc')
+        with self.assertRaises(ValidationError):
+            s = UnrestrictedStringListOutputSpec(default='???')
+
+        with self.assertRaises(ValidationError):
+            s = UnrestrictedStringListOutputSpec(xyz=['def', 'abc'])
 
 class OutputSpecSerializerTester(unittest.TestCase):
 

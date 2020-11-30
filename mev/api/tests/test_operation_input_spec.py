@@ -240,7 +240,13 @@ class TestInputSpec(unittest.TestCase):
 
     def test_stringlist_input_spec(self):
         s = StringListInputSpec()
-        s = StringListInputSpec(default='abc')
+        x = StringListInputSpec(default=['abc', 'def'])
+
+        with self.assertRaises(ValidationError):
+            s = StringListInputSpec(default=['abc', '???'])
+            
+        with self.assertRaises(ValidationError):
+            s = StringListInputSpec(default='abc')
 
         with self.assertRaises(ValidationError):
             s = StringListInputSpec(xyz='def')
@@ -249,9 +255,12 @@ class TestInputSpec(unittest.TestCase):
 
     def test_unrestrictedstringlist_input_spec(self):
         s = UnrestrictedStringListInputSpec()
-        s = UnrestrictedStringListInputSpec(default='abc')
-        s = UnrestrictedStringListInputSpec(default='???')
+        x = UnrestrictedStringListInputSpec(default=['abc', '???'])
 
+        with self.assertRaises(ValidationError):
+            s = UnrestrictedStringListInputSpec(default='abc')
+        with self.assertRaises(ValidationError):
+            s = UnrestrictedStringListInputSpec(default='???')
         with self.assertRaises(ValidationError):
             s = UnrestrictedStringListInputSpec(xyz='def')
 

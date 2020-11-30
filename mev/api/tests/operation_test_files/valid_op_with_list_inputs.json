@@ -1,0 +1,43 @@
+{
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "link_list": {
+            "description": "A list of some URLs", 
+            "name": "URLs:", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedStringList"
+            }
+        }, 
+        "regular_string_list": {
+            "description": "Some strings", 
+            "name": "Strings:", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "StringList"
+            }
+        },
+        "optional_input": {
+            "description": "Some optional input", 
+            "name": "Optional:", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "StringList"
+            }  
+        }
+    }, 
+    "outputs": {
+        "something": {
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "EXP_MTX", 
+                "many": false
+            }
+        }
+    }, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/some-repo/", 
+    "git_hash": "abcd1234",
+    "workspace_operation": false
+}

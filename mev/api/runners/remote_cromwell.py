@@ -348,6 +348,7 @@ class RemoteCromwellRunner(OperationRunner):
             logging.info('Received an unexpected status code when querying'
                 ' the metadata of a Cromwell job.'
             )
+            
     def query_for_status(self, job_uuid):
         '''
         Performs the work of querying the Cromwell server.

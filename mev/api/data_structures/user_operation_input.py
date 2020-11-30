@@ -11,6 +11,9 @@ from api.data_structures import create_attribute, \
     PositiveFloatAttribute, \
     NonnegativeFloatAttribute, \
     StringAttribute, \
+    StringListAttribute, \
+    UnrestrictedStringAttribute, \
+    UnrestrictedStringListAttribute, \
     OptionStringAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
@@ -104,6 +107,9 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         PositiveFloatAttribute.typename,
         NonnegativeFloatAttribute.typename,
         StringAttribute.typename,
+        UnrestrictedStringAttribute.typename,
+        StringListAttribute.typename,
+        UnrestrictedStringListAttribute.typename,
         OptionStringAttribute.typename, 
         BoundedIntegerAttribute.typename,
         BoundedFloatAttribute.typename,
