@@ -169,29 +169,35 @@ def check_for_resource_operations(resource_instance, workspace_instance):
         exec_op_inputs = exec_op.inputs
         exec_op_outputs = exec_op.outputs
 
-        # list of dataResources used in the inputs of this executed op:
-        logger.info('Compare inputs:\n{x}\nto\n{y}'.format(
-            x = op_inputs,
-            y = exec_op_inputs
-        ))
-        s1 = collect_resource_uuids(op_inputs, exec_op_inputs)
-        logger.info('Found the following DataResources among'
-            ' the inputs: {u}'.format(
-                u = ', '.join(s1)
+        if exec_op_inputs is not None:
+            # list of dataResources used in the inputs of this executed op:
+            logger.info('Compare inputs:\n{x}\nto\n{y}'.format(
+                x = op_inputs,
+                y = exec_op_inputs
             ))
-        if str(resource_instance.pk) in s1:
-            return True
-        logger.info('Was not in the inputs. Check the outputs.')
-        s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
-        logger.info('Found the following DataResources among'
-            ' the outputs: {u}'.format(
-                u = ', '.join(s2)
+            s1 = collect_resource_uuids(op_inputs, exec_op_inputs)
+            logger.info('Found the following DataResources among'
+                ' the inputs: {u}'.format(
+                    u = ', '.join(s1)
+                ))
+            if str(resource_instance.pk) in s1:
+                return True
+            logger.info('Was not in the inputs. Check the outputs.')
+        else:
+            logger.info('Inputs to the ExecutedOp were None. Moving on.')
+        if exec_op_outputs is not None:
+            s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
+                logger.info('Found the following DataResources among'
+                ' the outputs: {u}'.format(
+                    u = ', '.join(s2)
+                ))
+            if str(resource_instance.pk) in s2:
+                return True
+            logger.info('Was not in the outputs. Done checking ExecutedOp ({u}).'.format(
+                u = str(exec_op.pk)
             ))
-        if str(resource_instance.pk) in s2:
-            return True
-        logger.info('Was not in the outputs. Done checking ExecutedOp ({u}).'.format(
-            u = str(exec_op.pk)
-        ))
+        else:
+            logger.info('Outputs of the ExecutedOp were None. Moving on.')
     
     # if we made it this far and have not returned, then the Resource was
     # not used in any of the ExecutedOps in the Workspace
