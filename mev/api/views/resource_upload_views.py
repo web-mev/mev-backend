@@ -13,10 +13,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 
-from api.serializers.upload_serializer import UploadSerializer
+from api.serializers.upload_serializer import UploadSerializer, DropboxUploadSerializer
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
-from api.uploaders import ServerLocalUpload
+from api.uploaders import ServerLocalUpload, DropboxLocalUpload, DropboxRemoteUpload
+from api.async_tasks.uploaders import async_upload
 
 User = get_user_model()
 
@@ -78,5 +79,45 @@ class ServerLocalResourceUploadProgress(APIView):
             error_msg = ('Requests must include a "X-Progress-ID" key'
             ' in the header or as a query parameter with the GET request')
             return Response({'errors': error_msg}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DropboxUpload(APIView):
+    '''
+    Endpoint for uploading resources from Dropbox
+
+    Depending on the storage backend, the files will be uploaded locally
+    or in the remote storage. Either way, the same endpoint is used.
+    '''
+
+    permission_classes = [framework_permissions.IsAuthenticated]
+    serializer_class = DropboxUploadSerializer
+
+    def get_serializer(self):
+        return self.serializer_class()
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            data=request.data, 
+            many=True,
+            context={'requesting_user': request.user})
+
+        if serializer.is_valid():
+
+            data = serializer.data
+
+            if settings.STORAGE_LOCATION == settings.LOCAL:
+                uploader_name = DropboxLocalUpload.__name__
+            elif settings.STORAGE_LOCATION == settings.REMOTE:
+                uploader_name = DropboxRemoteUpload.__name__
+            else:
+                logger.error('Unrecognized storage location. This should not happen')
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # regardless of the ultimate location, we have the same interface to
+            # upload the file(s)
+            async_upload.delay(uploader_name, request.user.pk, data)
+            return Response({}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

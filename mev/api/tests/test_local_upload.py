@@ -19,8 +19,8 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.url = reverse('resource-upload')
         self.establish_clients()
 
-    @mock.patch('api.uploaders.base.api_tasks')
-    def upload_and_cleanup(self, payload, mock_api_tasks):
+    @mock.patch('api.uploaders.base.validate_resource_and_store')
+    def upload_and_cleanup(self, payload, mock_validate_resource_and_store):
         '''
         Same functionality is used by multiple functions, so just
         keep it here
@@ -40,10 +40,10 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         # check that the validation async task was called
         if 'resource_type' in payload:
-            mock_api_tasks.validate_resource_and_store.delay.assert_called_with(
+            mock_validate_resource_and_store.delay.assert_called_with(
                 uuid.UUID(j['id']), payload['resource_type'])
         else:
-            mock_api_tasks.validate_resource_and_store.delay.assert_called_with(
+            mock_validate_resource_and_store.delay.assert_called_with(
                 uuid.UUID(j['id']), None)
 
         # assert that we have more Resources now:

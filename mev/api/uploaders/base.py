@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 from api.serializers.resource import ResourceSerializer
 from api.models import Resource
 from api.utilities.resource_utilities import set_resource_to_inactive
-import api.async_tasks as api_tasks
+from api.async_tasks.async_resource_tasks import validate_resource_and_store
 
 from resource_types import extension_is_consistent_with_type
 
@@ -29,9 +29,9 @@ class BaseUpload(object):
         self.resource_type = None
         self.size = 0
 
-    def handle_upload(self, request):
+    def check_request_and_owner(self, payload, request):
         try:
-            owner_email = request.data['owner_email']
+            owner_email = payload['owner_email']
             if len(owner_email) == 0:
                 owner = request.user
             else: # length of the owner_email field was non-zero
@@ -44,8 +44,10 @@ class BaseUpload(object):
                         )})
         except KeyError:
             owner = request.user
+        return owner
 
-        self.owner = owner
+    def handle_upload(self, request):
+        self.owner = self.check_request_and_owner(request.data, request)
 
         # The resource type is NOT required, but may be specified.
         # If it's not explicitly set, we skip validation-- don't want
@@ -123,7 +125,7 @@ class LocalUpload(BaseUpload):
         resource_instance.save()
 
         # call the validation/storage methods async
-        api_tasks.validate_resource_and_store.delay(
+        validate_resource_and_store.delay(
             resource_instance.pk, 
             self.resource_type 
         )

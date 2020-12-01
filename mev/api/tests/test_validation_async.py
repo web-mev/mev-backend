@@ -7,7 +7,7 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth import get_user_model
 
-from api.async_tasks import validate_resource, validate_resource_and_store
+from api.async_tasks.async_resource_tasks import validate_resource, validate_resource_and_store
 from api.models import Resource, ResourceMetadata
 from resource_types import RESOURCE_MAPPING, \
     DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
@@ -510,7 +510,7 @@ class TestValidateResource(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    @mock.patch('api.async_tasks.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_validation_failure_handled_gracefully(self, 
         mock_get_resource_size,

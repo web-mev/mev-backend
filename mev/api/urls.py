@@ -43,6 +43,7 @@ urlpatterns = [
         api.views.ServerLocalResourceUploadProgress.as_view(), 
         name='resource-upload-progress'
     ),
+    path('resources/dropbox-upload/', api.views.DropboxUpload.as_view(), name='dropbox-upload'),
 
     # For querying the available types of Resources:
     path('resource-types/', api.views.ResourceTypeList.as_view(), name='resource-type-list'),

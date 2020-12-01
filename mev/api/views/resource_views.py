@@ -17,7 +17,8 @@ from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive, \
     resource_supports_pagination
-import api.async_tasks as api_tasks
+from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
+from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
 
 from resource_types import ParseException
 
@@ -74,7 +75,7 @@ class ResourceList(generics.ListCreateAPIView):
         if requested_resource_type:
             set_resource_to_inactive(resource)
 
-            api_tasks.validate_resource.delay(
+            async_validate_resource.delay(
                 resource.pk, 
                 requested_resource_type 
             )
@@ -133,7 +134,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         # at this point, we have an active Resource associated with
         # zero workspaces. delete.
         # delete the actual file
-        api_tasks.delete_file.delay(instance.path)
+        async_delete_file.delay(instance.path)
         
         # Now delete the database object:
         self.perform_destroy(instance)

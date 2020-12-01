@@ -15,3 +15,12 @@ class UploadSerializer(serializers.Serializer):
         if self.context['requesting_user'].email != email:
             raise serializers.ValidationError('Can only upload for your user')
         return email
+
+
+class DropboxUploadSerializer(serializers.Serializer):
+    download_link = serializers.CharField(
+        required=True
+    )
+    filename = serializers.CharField(
+        required=True
+    )

@@ -6,7 +6,7 @@ from rest_framework import serializers, exceptions
 from api.models import Resource, Workspace
 from api.utilities.resource_utilities import set_resource_to_inactive
 from api.serializers.workspace import WorkspaceSerializer
-import api.async_tasks as api_tasks
+import api.async_tasks.async_resource_tasks as api_tasks
 
 from resource_types import DB_RESOURCE_STRING_TO_HUMAN_READABLE
 

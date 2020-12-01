@@ -43,11 +43,11 @@ class ResourceListTests(BaseAPITestCase):
         self.assertEqual(all_known_resource_uuids, received_resource_uuids)
 
 
-    @mock.patch('api.views.resource_views.api_tasks')
+    @mock.patch('api.views.resource_views.async_validate_resource')
     @mock.patch('api.views.resource_views.set_resource_to_inactive')
     def test_admin_can_create_resource(self, 
         mock_set_resource_to_inactive,
-        mock_api_tasks):
+        mock_validate_resource):
         """
         Test that admins can create a Resource and that the proper validation
         methods are called.
@@ -70,7 +70,7 @@ class ResourceListTests(BaseAPITestCase):
 
         # check that the proper validation methods were called
         mock_set_resource_to_inactive.assert_called()
-        mock_api_tasks.validate_resource.delay.assert_called()
+        mock_validate_resource.delay.assert_called()
 
         # check that the resource has the proper members set:
         r = Resource.objects.get(pk=list(difference_set)[0])
@@ -79,12 +79,7 @@ class ResourceListTests(BaseAPITestCase):
         self.assertFalse(r.is_public)
         self.assertIsNone(r.resource_type)
 
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    @mock.patch('api.serializers.resource.set_resource_to_inactive')
-    def test_missing_owner_in_admin_resource_request_fails(self, 
-        mock_set_resource_to_inactive,
-        mock_api_tasks):
+    def test_missing_owner_in_admin_resource_request_fails(self):
         """
         Test that admins must specify an owner_email field in their request
         to create a Resource directly via the API
@@ -342,19 +337,19 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(str(self.regular_user_unattached_resource.pk), response.data['id'])
 
-    @mock.patch('api.views.resource_views.api_tasks')
-    def test_admin_can_delete_resource(self, mock_api_tasks):
+    @mock.patch('api.views.resource_views.async_delete_file')
+    def test_admin_can_delete_resource(self, mock_delete_file):
         """
         Test that admin users can delete an unattached Resource
         """
         response = self.authenticated_admin_client.delete(self.url_for_active_unattached)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_api_tasks.delete_file.delay.assert_called()
+        mock_delete_file.delay.assert_called()
         with self.assertRaises(Resource.DoesNotExist):
             Resource.objects.get(pk=self.regular_user_active_unattached_resource.pk)
 
-    @mock.patch('api.views.resource_views.api_tasks')
-    def test_admin_cannot_delete_workspace_resource(self, mock_api_tasks):
+    @mock.patch('api.views.resource_views.async_delete_file')
+    def test_admin_cannot_delete_workspace_resource(self, mock_delete_file):
         """
         Test that even admin users can't delete a workspace-associated Resource if it 
         has not been used. This is the case whether or not operations were performed
@@ -362,7 +357,7 @@ class ResourceDetailTests(BaseAPITestCase):
         """
         response = self.authenticated_admin_client.delete(self.url_for_workspace_resource)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        mock_api_tasks.delete_file.delay.assert_not_called()
+        mock_delete_file.delay.assert_not_called()
         Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 
     def test_users_can_view_own_resource_detail(self):
@@ -374,11 +369,11 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertEqual(str(self.regular_user_unattached_resource.pk), response.data['id'])
 
 
-    @mock.patch('api.views.resource_views.api_tasks')
+    @mock.patch('api.views.resource_views.async_delete_file')
     @mock.patch('api.views.resource_views.check_for_resource_operations')
     def test_users_cannot_delete_attached_resource(self, 
         mock_check_for_resource_operations,
-        mock_api_tasks):
+        mock_delete_file):
         """
         Test that regular users can't delete their own Resource even if it has 
         NOT been used within a Workspace. Users need to unattach it. Check that the 
@@ -387,7 +382,7 @@ class ResourceDetailTests(BaseAPITestCase):
         mock_check_for_resource_operations.return_value = False
         response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        mock_api_tasks.delete_file.delay.assert_not_called()
+        mock_delete_file.delay.assert_not_called()
         # check that the resource still exists
         Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 

@@ -21,8 +21,8 @@ from api.utilities.operations import read_operation_json, \
     validate_operation, \
     validate_operation_inputs, \
     get_operation_instance_data
-from api.async_tasks import ingest_new_operation as async_ingest_new_operation    
-from api.async_tasks import submit_async_job, finalize_executed_op
+from api.async_tasks.operation_tasks import ingest_new_operation as async_ingest_new_operation    
+from api.async_tasks.operation_tasks import submit_async_job, finalize_executed_op
 from api.runners import get_runner
 
 logger = logging.getLogger(__name__)
