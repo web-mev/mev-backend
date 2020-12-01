@@ -363,6 +363,7 @@ class OperationRun(APIView):
         # check workspace uuid if the Operation is required to be performed
         # in the context of a Workspace:
         if matching_op.workspace_operation:
+            logger.info('A workspace-associated operation was requested.')
             try:
                 workspace_uuid = uuid.UUID(payload[self.WORKSPACE_UUID])
             except KeyError as ex:
@@ -389,6 +390,7 @@ class OperationRun(APIView):
                 return Response({self.WORKSPACE_UUID: message}, 
                     status=status.HTTP_404_NOT_FOUND)
         else: # not a workspace operation-
+            logger.info('A non-workspace operation was requested.')
             # need to set the workspace_uuid to None since we cannot pass
             # the database model instance to the async call.
             workspace_uuid = None

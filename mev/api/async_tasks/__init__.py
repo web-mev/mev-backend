@@ -93,9 +93,11 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
 
     # get the workspace instance if the pk was given:
     if workspace_pk is not None:
+        logger.info('the workspace PK ({pk}) was given, so this is a workspace-associated job'.format(pk=workspace_pk))
         workspace_related_job = True
         workspace = Workspace.objects.get(id=workspace_pk)
     else:
+        logger.info('No workspace PK given.')
         workspace_related_job = False
 
     try:
@@ -116,6 +118,7 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
 
     # Create an ExecutedOperation to track the job
     if workspace_related_job:
+        logger.info('Create a WorkspaceExecutedOperation')
         executed_op = WorkspaceExecutedOperation.objects.create(
             id=executed_op_pk,
             owner = user,
@@ -127,6 +130,7 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
             status = ExecutedOperation.SUBMITTED
         )
     else:
+        logger.info('Create a vanilla ExecutedOperation')
         executed_op = ExecutedOperation.objects.create(
             id=executed_op_pk,
             owner = user,
