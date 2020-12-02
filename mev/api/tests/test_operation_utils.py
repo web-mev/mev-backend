@@ -11,7 +11,8 @@ from rest_framework.exceptions import ValidationError
 
 from api.utilities.operations import read_operation_json, \
     validate_operation_inputs, \
-    collect_resource_uuids
+    collect_resource_uuids, \
+    validate_operation
 from api.tests.base import BaseAPITestCase
 from api.models import Operation as OperationDbModel
 from api.models import Workspace

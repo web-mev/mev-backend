@@ -14,12 +14,12 @@ class OperationSerializer(serializers.Serializer):
     id = serializers.UUIDField(required=True)
     name = serializers.CharField(max_length=100, required=True)
     description = serializers.CharField(max_length=5000, required=True)
-    repository_url = serializers.URLField(required=False)
-    git_hash = serializers.CharField(required=False)
+    repository_url = serializers.URLField(required=True, allow_blank=True)
+    git_hash = serializers.CharField(required=True, allow_blank=True)
     mode = serializers.CharField(max_length=100, required=True)
     inputs = OperationInputDictSerializer(required=True)
     outputs = OperationOutputDictSerializer(required=True)
-    repo_name = serializers.CharField(required=False)
+    repo_name = serializers.CharField(required=True, allow_blank=True)
     workspace_operation = serializers.BooleanField(required=True)
 
     def validate_mode(self, mode):

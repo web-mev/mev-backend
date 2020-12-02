@@ -144,3 +144,13 @@ class OperationTester(unittest.TestCase):
         bad_dict['mode'] = bad_mode
         o = OperationSerializer(data=bad_dict)
         self.assertFalse(o.is_valid())  
+
+        # check that the repo field can be blank, etc.
+        # For operations that are not pulled from github, etc.
+        # we want to allow those fields to be blank.
+        valid_dict = copy.deepcopy(self.operation_dict)
+        valid_dict['git_hash'] = ''
+        valid_dict['repo_name'] = ''
+        valid_dict['repository_url'] = ''
+        o = OperationSerializer(data=valid_dict)
+        self.assertTrue(o.is_valid())  
