@@ -13,6 +13,7 @@ from api.data_structures.operation_input_and_output_spec import InputOutputSpec,
     NonnegativeFloatInputOutputSpec, \
     BoundedFloatInputOutputSpec, \
     StringInputOutputSpec, \
+    UnrestrictedStringInputOutputSpec, \
     OptionStringInputOutputSpec, \
     BooleanInputOutputSpec, \
     DataResourceInputOutputSpec, \
@@ -74,6 +75,10 @@ class BoundedFloatOutputSpec(BoundedFloatInputOutputSpec):
 
 
 class StringOutputSpec(StringInputOutputSpec):
+    pass
+
+
+class UnrestrictedStringOutputSpec(UnrestrictedStringInputOutputSpec):
     pass
 
 
@@ -169,6 +174,7 @@ all_output_spec_types = [
     NonnegativeFloatOutputSpec,
     BoundedFloatOutputSpec,
     StringOutputSpec,
+    UnrestrictedStringOutputSpec,
     OptionStringOutputSpec,
     BooleanOutputSpec,
     DataResourceOutputSpec,
