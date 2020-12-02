@@ -36,4 +36,8 @@ class Command(BaseCommand):
                     dir_name = os.path.basename(os.path.dirname(op_dir))
                 else:
                     dir_name = os.path.basename(op_dir)
+                                
+                # create the database object-- the ingestion assumes a non-active
+                # Operation was created prior to ingestion
+                db_op = OperationDbModel.objects.create(id=op_uuid, active=False)
                 ingest_dir(op_dir, op_uuid, hash_of_dir, dir_name, '')
