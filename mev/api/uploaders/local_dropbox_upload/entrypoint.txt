@@ -1,1 +1,1 @@
-/opt/software/upload.py
+python3 /opt/software/upload.py -l {{dropbox_links}} -n {{filenames}}

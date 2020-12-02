@@ -7,6 +7,8 @@ import argparse
 
 PARTIAL_SUCCESS_EXIT_CODE = 3
 
+WORKDIR = os.environ['WORKDIR']
+
 def download_to_disk(source_link, filename, destination_dir):
 	'''
 	local_filepath is the path on the VM/container of the file that
@@ -35,10 +37,6 @@ def parse_args():
 		help="A comma-delimited list of the names of the files", 
 		dest='filenames', 
 		required=True)
-	parser.add_argument('-d',"--destination", 
-		help="The directory where the files will be downloaded to.", 
-		dest='destination_dir', 
-		required=True)
 	args = parser.parse_args()
 	return args
 
@@ -52,16 +50,15 @@ if __name__ == '__main__':
 		if len(name_list) != n:
 			sys.stderr.write('The number of links and names must be the same.')
 			sys.exit(1)
-		dest_dir = args.destination_dir
-		if not os.path.exists(dest_dir):
-			sys.stderr.write('The directory {d} must already exist.'.format(d=dest_dir))
+		if not os.path.exists(WORKDIR):
+			sys.stderr.write('The directory {d} must already exist.'.format(d=WORKDIR))
 			sys.exit(1)
 		
 		final_paths = []
 		errors = []
 		for link, name in zip(link_list, name_list):
 			try:
-				local_filepath = download_to_disk(link, name, dest_dir)
+				local_filepath = download_to_disk(link, name, WORKDIR)
 				final_paths.append(local_filepath)
 			except Exception as ex:
 				# catch any errors from the upload itself. A single failure
@@ -88,5 +85,5 @@ if __name__ == '__main__':
     outputs = {
         'uploaded_paths': final_paths
     }
-    json.dump(outputs, open(os.path.join(dest_dir, 'outputs.json'), 'w'))
+    json.dump(outputs, open(os.path.join(WORKDIR, 'outputs.json'), 'w'))
 	sys.exit(exit_code)
