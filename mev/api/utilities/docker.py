@@ -22,7 +22,10 @@ def build_docker_image(image, tag, dockerfile, context_dir):
     '''
 
     DOCKER_BUILD_CMD = 'docker build -t {username}/{image}:{tag} -f {dockerfile} {context_dir}'
-
+    
+    if len(tag) == 0:
+        tag = 'latest'
+    
     build_cmd = DOCKER_BUILD_CMD.format(
         username = settings.DOCKERHUB_USERNAME,
         image = image,

@@ -49,6 +49,7 @@ class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     # know where the source is.
     op_dir = os.path.join(THIS_DIR, 'local_dropbox_upload')
 
+
     def rename_inputs(self, user, data):
         '''
         Takes the data provided by the front-end, which looks like:
