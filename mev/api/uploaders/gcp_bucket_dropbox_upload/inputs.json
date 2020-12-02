@@ -1,0 +1,7 @@
+{
+  "GCPDropboxUpload.storage_root": "String",
+  "GCPDropboxUpload.filename": "String",
+  "GCPDropboxUpload.bucketname": "String",
+  "GCPDropboxUpload.dropbox_link": "String"
+}
+

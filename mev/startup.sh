@@ -38,6 +38,10 @@ if [ $POPULATE_DB = 'yes' ]; then
     python3 /www/manage.py populate_db
 fi
 
+# Add on "static" operations, such as the dropbox uploaders, etc.
+python3 /www/manage.py add_static_operations
+
+
 # Startup redis and celery
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread && supervisorctl update

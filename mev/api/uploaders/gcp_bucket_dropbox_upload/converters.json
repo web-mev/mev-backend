@@ -1,0 +1,7 @@
+{
+  "GCPDropboxUpload.storage_root": "api.converters.basic_attributes.StringConverter",
+  "GCPDropboxUpload.filename": "api.converters.basic_attributes.UnrestrictedStringConverter",
+  "GCPDropboxUpload.bucketname": "api.converters.basic_attributes.StringConverter",
+  "GCPDropboxUpload.dropbox_link": "api.converters.basic_attributes.UnrestrictedStringConverter"
+}
+

@@ -1,25 +1,172 @@
+import uuid
+import os
+import logging
+
+from django.conf import settings
+
+from api.models import Operation as OperationDbModel
 from .base import LocalUpload, RemoteUpload
+from api.utilities.operations import validate_operation_inputs
+from api.storage_backends.google_cloud import GoogleBucketStorage
 
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
-class DropboxLocalUpload(LocalUpload):
+logger = logging.getLogger(__name__)
+
+# a key used to locate the proper uploader
+DROPBOX = '__dbx__'
+
+class DropboxUploadMixin(object):
+
+    def validate(self, user, inputs):
+        op = OperationDbModel.objects.get(pk=self.op_id)
+        try:
+            validated_inputs = validate_operation_inputs(user, inputs, op, None)
+            return validated_inputs
+        except ValidationError as ex:
+            # This is double-guarding as we *should be* properly mapping above.
+            # typically, it is more likely that the function above will raise an 
+            # exception if a client request had bad or missing keys. Since we control
+            # everything here, it is unlikely this exception will be raised.
+            logger.error('Failed to map the inputs provided by the Dropbox-payload'
+                ' into inputs compatible with the GCP Dropbox uploader.'
+            )
+            raise ex
+
+class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     '''
     This handles Dropbox-specific behavior for files that are initially uploaded
     to the MEV server before going to the final storage backend
     '''
-    
-    def async_upload(self, user_pk, data):
-        '''
-        
-        '''
-        pass
 
-class DropboxRemoteUpload(RemoteUpload):
+    # This sets a unique identifier on the class which we can use to look up
+    # the corresponding Operation in the database
+    op_id = uuid.uuid4()
+
+    # The directory containing the Operation components. Relative to the
+    # directory of this file. The actual Operation will be executed from the 
+    # files in the "final" operation dir, but this lets the ingestion script 
+    # know where the source is.
+    op_dir = os.path.join(THIS_DIR, 'local_dropbox_upload')
+
+    def rename_inputs(self, user, data):
+        '''
+        Takes the data provided by the front-end, which looks like:
+        ```
+        [
+            {
+                'download_link': 'https://dropbox-url.com/foo.txt',
+                'filename': 'foo.txt'
+            },
+            {
+                'download_link': 'https://dropbox-url.com/bar.txt',
+                'filename': 'bar.txt'
+            }
+        ]
+        ```
+        and reformats it into inputs for this local Dropbox upload, which looks like
+        ```
+        [
+            {
+                "dropbox_links": ["","",...],
+                "filenames": ["","",...],
+            }
+        ]
+        ```
+        The calling function expects a list of objects, which is why the data is structured as 
+        shown above. Each object results in a call
+        to start an asycnrhonous process. To avoid issues with many containers and potential
+        I/O problems, we execute the local uploads sequentially. Thus, we create a list with 
+        only the single item.
+
+        Note that this is different than the "input mapping" which takes place
+        in the creation of the command which is actually run (e.g. a docker run cmd)
+        '''
+        remapped_inputs = []
+        d = {
+            'dropbox_links': [],
+            'filenames': []
+        }
+        for item in data:
+            link = item['download_link']
+            name = item['filename']
+            d['dropbox_links'].append(link)
+            d['filenames'].append(name)
+
+        # double-check to ensure that the data payload is structured properly
+        # for the Docker-based process
+        d = self.validate(user, d)
+        # as mentioned above, we return a one-item list
+        return [d,]
+
+
+class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
     '''
     This handles Dropbox-specific behavior for files that go directly to the 
-    storage backend.
+    storage backend. Since we require google-specific behavior, we have a 
+    GCP-specific class
     '''
-    def async_upload(self, user_pk, data):
+
+    # This sets a unique identifier on the class which we can use to look up
+    # the corresponding Operation in the database
+    op_id = uuid.uuid4()
+
+    # The directory containing the Operation components. Relative to the
+    # directory of this file. The actual Operation will be executed from the 
+    # files in the "final" operation dir, but this lets the ingestion script 
+    # know where the source is.
+    op_dir = os.path.join(THIS_DIR, 'gcp_bucket_dropbox_upload')
+
+    def rename_inputs(self, user, data):
         '''
-        
+        Takes the data provided by the front-end, which looks like:
+        ```
+        [
+            {
+                'download_link': 'https://dropbox-url.com/foo.txt',
+                'filename': 'foo.txt'
+            },
+            {
+                'download_link': 'https://dropbox-url.com/bar.txt',
+                'filename': 'bar.txt'
+            }
+        ]
+        ```
+        and reformats it into inputs for this GCP-based remote Dropbox 
+        upload, which looks like an array where each element is like:
+        ```
+        {
+            "GCPDropboxUpload.dropbox_link": "",
+            "GCPDropboxUpload.filename": "",
+            "GCPDropboxUpload.bucketname": "",
+            "GCPDropboxUpload.storage_root": "" 
+        }
+        ```
+
+        Note that this is different than the "input mapping" which takes that
+        dictionary above and creates the proper inputs.json for submission to
+        the cromwell server. In this case, it's a trivial operation since they
+        are the same thing.
         '''
-        pass
+
+        # get the name of the bucket where we are storing other user files
+        # If we are 
+        google_storage_backend = GoogleBucketStorage()
+        bucket_name = google_storage_backend.BUCKET_NAME
+
+        input_template = {
+            'GCPDropboxUpload.dropbox_link': '',
+            'GCPDropboxUpload.filename': '',
+            'GCPDropboxUpload.bucketname': bucket_name,
+            'GCPDropboxUpload.storage_root': self.tmp_folder_name  
+        }
+        remapped_inputs = []
+        for item in data:
+            d = input_template.copy()
+            link = item['download_link']
+            name = item['filename']
+            d['GCPDropboxUpload.dropbox_link'] = link
+            d['GCPDropboxUpload.filename'] = name
+            d = self.validate(user, d)
+            remapped_inputs.append(d)
+        return remapped_inputs

@@ -143,6 +143,12 @@ def perform_operation_ingestion(repository_url, op_uuid):
     staging_dir = clone_repository(repository_url)
     git_hash = retrieve_commit_hash(staging_dir)
     repo_name = retrieve_repo_name(staging_dir)
+    ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)
+
+    # remove the staging dir:
+    shutil.rmtree(staging_dir)
+
+def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url):
 
     # Parse the JSON file defining this new Operation:
     operation_json_filepath = os.path.join(staging_dir, settings.OPERATION_SPEC_FILENAME)
@@ -209,9 +215,6 @@ def perform_operation_ingestion(repository_url, op_uuid):
         raise Exception('Encountered issue when trying update an Operation'
             ' database instance after ingesting from repository.'
         )
-
-    # remove the staging dir:
-    shutil.rmtree(staging_dir)
 
 def save_operation(op_data, staging_dir):
     logger.info('Save the operation')

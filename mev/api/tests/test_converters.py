@@ -9,7 +9,9 @@ from api.converters.basic_attributes import StringConverter, \
     IntegerConverter, \
     StringListConverter, \
     UnrestrictedStringConverter, \
-    UnrestrictedStringListConverter
+    UnrestrictedStringListConverter, \
+    StringListToCsvConverter, \
+    UnrestrictedStringListToCsvConverter
 from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
@@ -64,6 +66,30 @@ class TestBasicAttributeConverter(BaseAPITestCase):
         v = s.convert(['ab','c d'])
         self.assertCountEqual(['ab','c d'], v)
 
+        c = StringListToCsvConverter()
+        v = c.convert(['aaa','bbb','ccc'])
+        self.assertEqual(v, 'aaa,bbb,ccc')
+
+        c = StringListToCsvConverter()
+        v = c.convert(['a b','c d'])
+        self.assertEqual(v, 'a_b,c_d')
+
+        c = StringListToCsvConverter()
+        with self.assertRaises(ValidationError):
+            v = c.convert(['a?b','c d'])
+
+        c = UnrestrictedStringListToCsvConverter()
+        v = c.convert(['aaa','bbb','ccc'])
+        self.assertEqual(v, 'aaa,bbb,ccc')
+
+        c = UnrestrictedStringListToCsvConverter()
+        v = c.convert(['a b','c d'])
+        self.assertEqual(v, 'a b,c d')
+
+        c = UnrestrictedStringListToCsvConverter()
+        v = c.convert(['a?b','c d'])
+        self.assertEqual(v, 'a?b,c d')
+        
 class TestElementSetConverter(BaseAPITestCase):
 
     def test_observation_set_csv_converter(self):

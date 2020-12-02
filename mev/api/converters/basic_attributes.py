@@ -3,6 +3,7 @@ from api.data_structures import StringAttribute, \
     IntegerAttribute, \
     StringListAttribute, \
     UnrestrictedStringListAttribute
+from api.converters.mixins import CsvMixin
 
 class BaseAttributeConverter(object):
     pass
@@ -27,7 +28,20 @@ class StringListConverter(BaseAttributeConverter):
         s = StringListAttribute(user_input)
         return s.value
 
+class StringListToCsvConverter(BaseAttributeConverter, CsvMixin):
+    '''
+    Converts a StringList to a csv string
+    '''
+    def convert(self, user_input):
+        s = StringListAttribute(user_input)
+        return self.to_string(s.value)
+
 class UnrestrictedStringListConverter(BaseAttributeConverter):
     def convert(self, user_input):
         s = UnrestrictedStringListAttribute(user_input)
         return s.value
+
+class UnrestrictedStringListToCsvConverter(BaseAttributeConverter, CsvMixin):
+    def convert(self, user_input):
+        s = UnrestrictedStringListAttribute(user_input)
+        return self.to_string(s.value)

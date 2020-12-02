@@ -136,4 +136,7 @@ class RemoteUpload(BaseUpload):
     This is a base class for uploads that bypass the server
     and go directly to the storage backend.
     '''
-    pass
+    # the name of the folder inside the bucket where the files will be sent
+    # Note that it's not the final storage location, but rather a temporary
+    # location
+    tmp_folder_name = 'uploads-tmp'

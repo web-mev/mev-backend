@@ -1,0 +1,50 @@
+{
+    "name": "Dropbox upload app for GCP", 
+    "description": "Uploads files from Dropbox directly to a GCP bucket", 
+    "inputs": {
+        "GCPDropboxUpload.dropbox_link": {
+            "description": "The Dropbox download link.", 
+            "name": "Link", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedString" 
+            }
+        },
+        "GCPDropboxUpload.filename": {
+            "description": "The filename of the file.", 
+            "name": "File name", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedString" 
+            }
+        },
+        "GCPDropboxUpload.bucketname": {
+            "description": "The GCP bucket name, without the prefix.", 
+            "name": "GCP bucket name", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "String" 
+            }
+        },
+        "GCPDropboxUpload.storage_root": {
+            "description": "The location (relative to the bucket) where files will be stored.", 
+            "name": "Storage root", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "String",
+                "default": "dropbox-upload"
+            }
+        } 
+    }, 
+    "outputs": {
+        "GCPDropboxUpload.uploaded_path": {
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "*",
+                "many": false
+            }
+        }
+    }, 
+    "mode": "cromwell",
+    "workspace_operation": false
+}

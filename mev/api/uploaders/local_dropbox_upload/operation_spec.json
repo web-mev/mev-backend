@@ -1,0 +1,33 @@
+{
+    "name": "Dropbox upload app for local storage", 
+    "description": "Uploads files from Dropbox to the local storage cache.", 
+    "inputs": {
+        "dropbox_links": {
+            "description": "The set of special Dropbox download links to the files.", 
+            "name": "Links", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedStringList" 
+            }
+        },
+        "filenames": {
+            "description": "The set of filenames of the files to upload.", 
+            "name": "File names", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedStringList" 
+            }
+        }
+    }, 
+    "outputs": {
+        "uploaded_paths": {
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "*",
+                "many": true
+            }
+        }
+    }, 
+    "mode": "local_docker",
+    "workspace_operation": false
+}

@@ -1,19 +1,28 @@
+from django.conf import settings
+
 from .local_upload import ServerLocalUpload
-from .dropbox_upload import DropboxLocalUpload, DropboxRemoteUpload
+from .dropbox_upload import DROPBOX, \
+    DropboxLocalUpload, \
+    DropboxGCPRemoteUpload
 
-# to provide a common interface for uploading, we have an asynchronous
-# function that takes a class name (the __name__ member of a class)
-# To allow that async function to instantiate the proper class, we provide a
-# lookup function below. Thus, the only classes in the list below should be
-# those which expose the `async_upload` method
-uploader_list = [ServerLocalUpload, DropboxRemoteUpload, DropboxLocalUpload]
-uploader_mapping = {x.__name__ for x in uploader_list}
+uploader_list = [
+    DropboxLocalUpload,
+    DropboxGCPRemoteUpload
+]
 
-def get_uploader_by_name(name):
-    try:
-        return uploader_mapping[name]
-    except KeyError as ex:
-        raise Exception('The uploader with name "{n}" has not been'
-            ' registered through this function, or does not exist. Names'
-            ' are: {names}'.format(names=', '.join(uploader_mapping.keys()))
-        )
+def get_async_uploader(uploader_id):
+    '''
+    A single function which handles the logic of which async uploader to use.
+
+    Returns an instantiated uploader
+    '''
+    if uploader_id == DROPBOX:
+        # if local storage, we don't need to worry about which cloud
+        # provider
+        if settings.STORAGE_LOCATION == settings.LOCAL:
+            return DropboxLocalUpload()
+        elif settings.STORAGE_LOCATION == settings.REMOTE:
+            # If we are using remote storage, then we have to know
+            # which cloud environment so we can use the proper uploader
+            if settings.CLOUD_PLATFORM == settings.GOOGLE:
+                return DropboxGCPRemoteUpload()
