@@ -87,6 +87,15 @@
                 "default": "abc"
             }
         },
+        "unrestrictedstring_type": {
+            "description": "", 
+            "name": "", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedString",
+                "default": "abc"
+            }
+        },
         "option_string_type": {
             "description": "", 
             "name": "", 

@@ -3,6 +3,7 @@ import os
 import logging
 
 from django.conf import settings
+from rest_framework.exceptions import ValidationError
 
 from api.models import Operation as OperationDbModel
 from .base import LocalUpload, RemoteUpload

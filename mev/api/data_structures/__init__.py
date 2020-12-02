@@ -36,7 +36,8 @@ numeric_attribute_types = [
 ]
 numeric_attribute_typenames = [x.typename for x in numeric_attribute_types]
 other_attribute_types = [
-    StringAttribute, 
+    StringAttribute,
+    UnrestrictedStringAttribute,
     BooleanAttribute, 
     DataResourceAttribute, 
     OptionStringAttribute,
