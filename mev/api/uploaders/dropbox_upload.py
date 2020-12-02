@@ -40,8 +40,12 @@ class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     '''
 
     # This sets a unique identifier on the class which we can use to look up
-    # the corresponding Operation in the database
-    op_id = uuid.uuid4()
+    # the corresponding Operation in the database.
+    # Initially had this dynamically generated with uuid.uuid4()
+    # but it caused issues as different django instantiations(
+    # e.g. via python3 manage ...) caused different UUIDs and hence
+    # database lookups failed
+    op_id = '825f00ba-3516-43f8-ab04-751c108d1852'
 
     # The directory containing the Operation components. Relative to the
     # directory of this file. The actual Operation will be executed from the 
@@ -109,8 +113,12 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
     '''
 
     # This sets a unique identifier on the class which we can use to look up
-    # the corresponding Operation in the database
-    op_id = uuid.uuid4()
+    # the corresponding Operation in the database.    
+    # # Initially had this dynamically generated with uuid.uuid4()
+    # but it caused issues as different django instantiations(
+    # e.g. via python3 manage ...) caused different UUIDs and hence
+    # database lookups failed
+    op_id = 'be021ec3-6d3d-42e7-8fac-8db10a140681'
 
     # The directory containing the Operation components. Relative to the
     # directory of this file. The actual Operation will be executed from the 
