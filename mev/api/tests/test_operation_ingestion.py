@@ -19,7 +19,8 @@ from api.utilities.ingest_operation import read_operation_json, \
     validate_operation, \
     perform_operation_ingestion, \
     save_operation, \
-    retrieve_repo_name
+    retrieve_repo_name, \
+    ingest_dir
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -197,7 +198,7 @@ class OperationIngestionTester(unittest.TestCase):
         mock_clone_repository.assert_called_with(repo_url)
         mock_retrieve_commit_hash.assert_called_with(mock_dir)
         mock_save_operation.assert_not_called()
-        mock_shutil.rmtree.assert_not_called()
+        mock_shutil.rmtree.assert_called_with(mock_dir)
 
         n3 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n3-n2,0)
@@ -261,7 +262,7 @@ class OperationIngestionTester(unittest.TestCase):
 
         # call the save function:
         op_data = OperationSerializer(operation_instance).data
-        save_operation(op_data, dummy_src_path)
+        save_operation(op_data, dummy_src_path, True)
         self.assertTrue(os.path.exists(expected_final_dir))
 
         # We are expecting to have an operation spec file as well.
@@ -293,3 +294,135 @@ class OperationIngestionTester(unittest.TestCase):
 
         n = retrieve_repo_name('/some/dir/.git')
         self.assertEqual(n, 'some-repo')
+
+    @mock.patch('api.utilities.ingest_operation.prepare_operation')
+    @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
+    @mock.patch('api.utilities.ingest_operation.check_required_files')
+    @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
+    @mock.patch('api.utilities.ingest_operation.clone_repository')
+    @mock.patch('api.utilities.ingest_operation.read_operation_json')
+    @mock.patch('api.utilities.ingest_operation.shutil')
+    @mock.patch('api.utilities.ingest_operation.settings')
+    def test_operation_overwrite_blocked(self,
+        mock_settings,
+        mock_shutil,
+        mock_read_operation_json, 
+        mock_clone_repository,
+        mock_retrieve_commit_hash,
+        mock_check_required_files,
+        mock_retrieve_repo_name,
+        mock_prepare_operation):
+        '''
+        If we do not specifically request that an operation be overwritten,
+        we check that the operation is appropriately marked as failed.
+        '''
+        # make a tmp directory which will act as an existing operation library dir
+        mock_ops_dir = '/tmp/some-fake-op-dir'
+        os.mkdir(mock_ops_dir)
+        mock_settings.OPERATION_LIBRARY_DIR = mock_ops_dir
+        mock_settings.OPERATION_SPEC_FILENAME = 'foo'
+        # setup the remainder of the mocks
+        mock_read_operation_json.return_value = self.valid_dict
+        mock_hash = 'abcd'
+        mock_dir = '/some/mock/staging/dir'
+        mock_clone_repository.return_value = mock_dir
+        mock_retrieve_commit_hash.return_value = 'abcd'
+        repo_url = 'http://github.com/some-repo/'
+        repo_name = 'some-repo'
+        mock_retrieve_repo_name.return_value = repo_name
+
+        n0 = len(OperationDbModel.objects.all())
+
+        op_uuid = uuid.uuid4()
+        # pretend we had an active model prior to this attempted (but failed)
+        # ingestion process
+        o = OperationDbModel.objects.create(id=str(op_uuid), 
+            active=True,
+            successful_ingestion=True)
+        n1 = len(OperationDbModel.objects.all())
+        n2 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n1-n0,1)
+
+        # create the mock operation dir
+        op_dir_path = os.path.join(mock_ops_dir, str(op_uuid))
+        os.mkdir(op_dir_path)
+
+        with self.assertRaises(Exception):
+            perform_operation_ingestion(
+                repo_url, 
+                str(op_uuid)
+            )
+
+        mock_clone_repository.assert_called_with(repo_url)
+        mock_retrieve_commit_hash.assert_called_with(mock_dir)
+        mock_shutil.rmtree.assert_called_with(mock_dir)
+
+        # check that we did NOT add another operation
+        n3 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n3-n2,0)
+
+        # If the ingestion failed due to the failure to overwrite,
+        # we want to maintain the former operation with that same UUID
+        op = OperationDbModel.objects.get(id=op_uuid)
+        self.assertTrue(op.successful_ingestion)
+        self.assertTrue(op.active)
+
+        # cleanup from this test:
+        shutil.rmtree(mock_ops_dir)
+
+
+    @mock.patch('api.utilities.ingest_operation.prepare_operation')
+    @mock.patch('api.utilities.ingest_operation.check_required_files')
+    @mock.patch('api.utilities.ingest_operation.read_operation_json')
+    @mock.patch('api.utilities.ingest_operation.settings')
+    def test_operation_overwrite_allowed(self,
+        mock_settings,
+        mock_read_operation_json, 
+        mock_check_required_files,
+        mock_prepare_operation):
+        '''
+        If we do specifically request that an operation be overwritten,
+        we check that everything goes as planned
+        '''
+        # make a tmp directory which will act as an existing operation library dir
+        mock_ops_dir = '/tmp/some-fake-op-dir'
+        os.mkdir(mock_ops_dir)
+
+        # also need to make a "real" staging dir so that the 
+        # shutil.copytree function works
+        mock_staging_dir = '/tmp/some-fake-staging-dir'
+        os.mkdir(mock_staging_dir)
+
+        mock_settings.OPERATION_LIBRARY_DIR = mock_ops_dir
+        mock_settings.OPERATION_SPEC_FILENAME = 'foo'
+        # setup the remainder of the mocks
+        mock_read_operation_json.return_value = self.valid_dict
+        mock_hash = 'abcd'
+        repo_url = 'http://github.com/some-repo/'
+        repo_name = 'some-repo'
+
+        n0 = len(OperationDbModel.objects.all())
+
+        op_uuid = uuid.uuid4()
+        o = OperationDbModel.objects.create(id=str(op_uuid))
+        n1 = len(OperationDbModel.objects.all())
+        n2 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n1-n0,1)
+
+        # create the mock operation dir
+        op_dir_path = os.path.join(mock_ops_dir, str(op_uuid))
+        os.mkdir(op_dir_path)
+
+        ingest_dir(mock_staging_dir, str(op_uuid), mock_hash, repo_name, repo_url, True)
+
+        # check that the overwrite succeeded and the operation is active
+        n3 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n3-n2,1)
+
+        # check that it was marked as failed:
+        op = OperationDbModel.objects.get(id=op_uuid)
+        self.assertTrue(op.successful_ingestion)
+
+        # cleanup from this test:
+        shutil.rmtree(mock_ops_dir)
+        shutil.rmtree(mock_staging_dir)

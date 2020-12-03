@@ -143,12 +143,18 @@ def perform_operation_ingestion(repository_url, op_uuid):
     staging_dir = clone_repository(repository_url)
     git_hash = retrieve_commit_hash(staging_dir)
     repo_name = retrieve_repo_name(staging_dir)
-    ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)
+    try:
+        ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)
+    except Exception as ex:
+        logger.info('Failed to ingest directory. See logs.'
+            ' Exception was: {ex}'.format(ex=ex)
+        )
+        raise ex
+    finally:
+        # remove the staging dir:
+        shutil.rmtree(staging_dir)
 
-    # remove the staging dir:
-    shutil.rmtree(staging_dir)
-
-def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url):
+def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwrite=False):
 
     # Parse the JSON file defining this new Operation:
     operation_json_filepath = os.path.join(staging_dir, settings.OPERATION_SPEC_FILENAME)
@@ -198,7 +204,7 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url):
     prepare_operation(op_data, staging_dir, repo_name, git_hash)
 
     # save the operation in a final location:
-    save_operation(op_data, staging_dir)
+    save_operation(op_data, staging_dir, overwrite)
 
     # update the database instance.
     try:
@@ -216,7 +222,7 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url):
             ' database instance after ingesting from repository.'
         )
 
-def save_operation(op_data, staging_dir):
+def save_operation(op_data, staging_dir, overwrite):
     logger.info('Save the operation')
     op_uuid = op_data['id']
     dest_dir = os.path.join(
@@ -228,7 +234,7 @@ def save_operation(op_data, staging_dir):
 
     # copy the cloned directory and include the .git folder
     # and any other hidden files/dirs:
-    recursive_copy(staging_dir, dest_dir, include_hidden=True)
+    recursive_copy(staging_dir, dest_dir, include_hidden=True, overwrite=overwrite)
 
     # overwrite the spec file just to ensure it's valid with our 
     # current serializer implementation. Technically it wouldn't validate

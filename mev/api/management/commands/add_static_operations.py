@@ -50,4 +50,4 @@ class Command(BaseCommand):
                         ' but overwriting the operation contents.'
                     )
 
-                ingest_dir(op_dir, op_uuid, hash_of_dir, dir_name, '')
+                ingest_dir(op_dir, op_uuid, hash_of_dir, dir_name, '', overwrite=True)

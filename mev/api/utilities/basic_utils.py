@@ -217,7 +217,7 @@ def read_local_file(filepath):
         ))
         raise ex
 
-def recursive_copy(src, dest, include_hidden=False):
+def recursive_copy(src, dest, include_hidden=False, overwrite=False):
     '''
     Performs a recursive copy from src to dest
 
@@ -230,6 +230,24 @@ def recursive_copy(src, dest, include_hidden=False):
         src=src,
         dest=dest
     ))
+
+    # the shutil method used below does not natively allow for overwrite
+    # so if we specifically request overwrite, we have to first remove
+    # the directory
+    if os.path.exists(dest):
+        if overwrite:
+            logger.info('The destination directory ({d}) existed, but we want to force overwrite.'
+                ' Remove the directory.'.format(d=dest)
+            )
+            shutil.rmtree(dest)
+        else: # dir exists and we do NOT want to overwrite
+            logger.info('The destination directory ({d}) existed, but we did not specifically'
+                ' request overwrite.'.format(d=dest)
+            )
+            raise Exception('Attempted to recursively copy a directory tree, but it already existed'
+                ' and an overwrite was not specifically forced.'
+            )
+
 
     def skip_hidden(dir, listing):
         ret = []

@@ -190,7 +190,7 @@ class Command(BaseCommand):
                 raise Exception('Failed to create directory at {p}'.format(p=dummy_dir_path))
         op = op_serializer.get_instance()
         op_data = OperationSerializer(op).data
-        save_operation(op_data, dummy_dir_path)
+        save_operation(op_data, dummy_dir_path, True)
         OperationDbModel.objects.create(id=op.id, name=op.name)
         
         # use a valid operation spec contained in the test folder
@@ -220,7 +220,7 @@ class Command(BaseCommand):
                 raise Exception('Failed to create directory at {p}'.format(p=dummy_dir_path))
         op = op_serializer.get_instance()
         op_data = OperationSerializer(op).data
-        save_operation(op_data, dummy_dir_path)
+        save_operation(op_data, dummy_dir_path, True)
         OperationDbModel.objects.create(id=op.id, name=op.name)
 
     def handle(self, *args, **options):
