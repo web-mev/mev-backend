@@ -1,11 +1,15 @@
 import os
+import logging
 
 from django.core.management.base import BaseCommand
+from django.db.utils import IntegrityError
 
 from api.models import Operation as OperationDbModel
 from api.uploaders import uploader_list
 from api.utilities.ingest_operation import ingest_dir
 from api.utilities.basic_utils import dir_hash
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Adds operations that are packaged as part of WebMEV'
@@ -16,7 +20,7 @@ class Command(BaseCommand):
             op_dir = uploader_cls.op_dir
 
             if (not os.path.exists(op_dir)) or (not os.path.isdir(op_dir)):
-                sys.stdout.write('Expected a directory containing'
+                logger.error('Expected a directory containing'
                     ' operation components at: {d}.'.format(
                         d = op_dir
                     )
@@ -39,5 +43,11 @@ class Command(BaseCommand):
                                 
                 # create the database object-- the ingestion assumes a non-active
                 # Operation was created prior to ingestion
-                db_op = OperationDbModel.objects.create(id=op_uuid, active=False)
+                try:
+                    db_op = OperationDbModel.objects.create(id=op_uuid, active=False)
+                except IntegrityError as ex:
+                    logger.info('Operation was already in database. Skipping db entry,'
+                        ' but overwriting the operation contents.'
+                    )
+
                 ingest_dir(op_dir, op_uuid, hash_of_dir, dir_name, '')
