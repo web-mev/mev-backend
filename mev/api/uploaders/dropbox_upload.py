@@ -23,7 +23,14 @@ class DropboxUploadMixin(object):
         op = OperationDbModel.objects.get(pk=self.op_id)
         try:
             validated_inputs = validate_operation_inputs(user, inputs, op, None)
-            return validated_inputs
+            logger.info('Validated inputs: {v}'.format(v=validated_inputs))
+            dict_representation = {}
+            for k,v in validated_inputs.items():
+                if v:
+                    dict_representation[k] = v.get_value()
+            logger.info('dict representation of inputs: {d}'.format(d=dict_representation))
+            return dict_representation
+            
         except ValidationError as ex:
             # This is double-guarding as we *should be* properly mapping above.
             # typically, it is more likely that the function above will raise an 
