@@ -16,7 +16,8 @@ def send_to_bucket(local_filepath, args):
 	destination_bucketname = args.destination_bucketname
 	file_uuid = str(uuid.uuid4())
 	bucket_root = args.bucket_root
-	object_name = '{b}/{u}.{n}'.format(b=bucket_root,u = file_uuid, n = args.filename)
+	# places the file in a unique "folder" to prevent collisions from the same filename
+	object_name = '{b}/{u}/{n}'.format(b=bucket_root,u = file_uuid, n = args.filename)
 	full_destination = '{prefix}{bucket}/{obj}'.format(
 		prefix = GOOGLE_BUCKET_PREFIX,
 		bucket = destination_bucketname, 

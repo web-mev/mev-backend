@@ -82,8 +82,14 @@ class ServerLocalResourceUploadProgress(APIView):
             ' in the header or as a query parameter with the GET request')
             return Response({'errors': error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
-class AsyncUpload(APIView):
 
+class AsyncUpload(APIView):
+    '''
+    Base class for uploads that are performed asynchronously, e.g. such as with some third-party API, etc.
+
+    Child classes should define the proper serializer for the request payload and also declare the "type"
+    of the uploader class that should be used.
+    '''
     permission_classes = [framework_permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
