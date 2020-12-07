@@ -23,7 +23,8 @@ from resource_types import get_contents, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
     RESOURCE_KEY, \
-    RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW
+    RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
+    RESOURCE_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def get_resource_view(resource_instance, query_params={}):
             resource = resource_instance
         ))
         return
-    if resource_instance.resource_type in RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW:
+    if RESOURCE_MAPPING[resource_instance.resource_type] in RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW:
         # prevents us from pulling remote resources if we can't view the contents anyway
         return None
     else:
@@ -228,6 +229,7 @@ def validate_resource(resource_instance, requested_resource_type):
         # check the file extension is consistent with the requested type:
         type_is_consistent = check_extension(resource_instance, requested_resource_type)
         if not type_is_consistent:
+            logger.info('The requested type was not consistent with the file extension. Skipping validation.')
             return
 
         # The resource type is the shorthand identifier.

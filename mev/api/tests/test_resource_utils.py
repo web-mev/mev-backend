@@ -95,6 +95,27 @@ class TestResourceUtilities(BaseAPITestCase):
         preview_dict = get_resource_view(r)
         self.assertIsNone(preview_dict)
         
+    @mock.patch('api.utilities.resource_utilities.get_contents')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_preview_for_general_type_does_not_pull_file(self, 
+        mock_get_storage_backend,
+        mock_get_contents):
+        '''
+        If the resource type is such that we cannot generate a preview (e.g.
+        for a general file type), then check that we don't bother to pull
+        the resource to the local cache
+        '''
+        all_resources = Resource.objects.all()
+        resource = all_resources[0]
+        resource.resource_type = WILDCARD
+
+        mock_storage_backend = mock.MagicMock()
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        preview_dict = get_resource_view(resource)
+        self.assertIsNone(preview_dict)
+        mock_storage_backend.get_local_resource_path.assert_not_called()
+        mock_get_contents.assert_not_called()
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
