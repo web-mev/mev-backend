@@ -289,9 +289,10 @@ def create_workspace_dag(workspace_executed_ops):
                 op_spec = op_output_definition['spec']
                 output_type = op_spec['attribute_type']
                 if output_type == DataResourceAttribute.typename:
-                    r = get_resource_by_pk(v)
-                    resource_node = DagNode(str(v), DagNode.DATARESOURCE_NODE, node_name = r.name)
-                    graph.add_node(resource_node)
-                    resource_node.add_parent(op_node)
+                    if v is not None:
+                        r = get_resource_by_pk(v)
+                        resource_node = DagNode(str(v), DagNode.DATARESOURCE_NODE, node_name = r.name)
+                        graph.add_node(resource_node)
+                        resource_node.add_parent(op_node)
     return graph.serialize()
 
