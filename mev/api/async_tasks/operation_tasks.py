@@ -103,5 +103,16 @@ def finalize_executed_op(exec_op_uuid):
     involves tasks like registering files to a user, etc.
     '''
     logger.info('Finalize executed op with ID={id}'.format(id=exec_op_uuid))
+
+    # Depending on the execution context, we either have jobs that are workspace-
+    # independent or those that are attached to a workspace. We therefore need
+    # to get the specific type. We first query the most general kind (Which 
+    # should always be successful), but we then attempt to query the more specific
+    # WorkspaceExecutedOperation, which will fail if the operation was workspace-
+    # independent.
     executed_op = ExecutedOperation.objects.get(pk=exec_op_uuid)
+    try:
+        executed_op = WorkspaceExecutedOperation.objects.get(pk=exec_op_uuid)
+    except WorkspaceExecutedOperation.DoesNotExist:
+        pass 
     finalize_job(executed_op)
