@@ -11,8 +11,8 @@ class ServerLocalUpload(LocalUpload):
     from a user's machine.  The file data is sent as raw bytes
     and we have to parse it out of the request payload.
     '''
-    def handle_upload(self, request):
-        super().handle_upload(request)
+    def handle_upload(self, request, serialized_data):
+        super().handle_upload(request, serialized_data)
 
         # get the remainder of the payload parameters
         upload = request.data['upload_file']

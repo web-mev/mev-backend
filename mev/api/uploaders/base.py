@@ -37,6 +37,10 @@ class BaseUpload(object):
             else: # length of the owner_email field was non-zero
                 try:
                     owner = User.objects.get(email=owner_email)
+                    if owner != request.user:
+                        raise ValidationError({'owner_email': 'Could not find that '
+                            'owner or assign a file to anyone but yourself.'
+                        })
                 except User.DoesNotExist:
                     raise ValidationError({'owner_email': 'Could not find owner'
                         ' with email: {owner}'.format(
@@ -46,16 +50,34 @@ class BaseUpload(object):
             owner = request.user
         return owner
 
-    def handle_upload(self, request):
+    def handle_upload(self, request, serialized_data):
         self.owner = self.check_request_and_owner(request.data, request)
+
+        # check if it was requested that this uploaded resource be ownerless
+        try:
+            is_ownerless = request.data['is_ownerless']
+            if is_ownerless:
+                if request.user.is_staff:
+                    self.owner = None
+                else: # regular users can't request ownerless
+                    raise ValidationError({'is_ownerless': 'Non-admins cannot request'
+                        ' that a resource be without an owner'
+                    })
+        except KeyError:
+            is_ownerless = False
+
+        # check the public status from the request:
+        is_public = serialized_data.get('is_public', False)
+        if is_public and (self.owner is not None):
+            raise ValidationError({'is_public': 'Cannot request a resource'
+                ' be public if it has an owner.'
+            })
+        self.is_public = is_public
 
         # The resource type is NOT required, but may be specified.
         # If it's not explicitly set, we skip validation-- don't want
         # to guess at types.
-        self.resource_type = request.data.get('resource_type')
-
-        self.is_public = request.data.get('is_public', False)
-
+        self.resource_type = serialized_data.get('resource_type')
 
     def create_resource_from_upload(self):
 
@@ -63,8 +85,12 @@ class BaseUpload(object):
         # contained there.  Note that since we are creating a new Resource
         # we have NOT validated it.  Hence, we explicitly set resource_type 
         # to be None
+        if self.owner:
+            owner_email = self.owner.email
+        else:
+            owner_email = None
         d = {
-            'owner_email': self.owner.email,
+            'owner_email': owner_email,
             'path': self.filepath,
             'name': self.filename,
             'resource_type': None,
@@ -75,7 +101,6 @@ class BaseUpload(object):
         # values were checked prior to this, but we enforce this again
         if rs.is_valid(raise_exception=True):
             r = rs.save()
-
             # set the size here since the ResourceSerializer has size
             # as a read-only field.  Hence, passing it to the ResourceSerializer
             # constructor above would ignore it.

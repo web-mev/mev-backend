@@ -97,7 +97,9 @@ class Resource(models.Model):
     owner = models.ForeignKey(
         get_user_model(), 
         related_name = 'resources', 
-        on_delete = models.CASCADE
+        on_delete = models.CASCADE,
+        blank = True,
+        null = True
     )
 
     # Can attach a Resource to a Workspace, but 

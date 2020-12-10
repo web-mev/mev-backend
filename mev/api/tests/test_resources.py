@@ -535,11 +535,10 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertTrue(orig_datestring != date_str)
 
 
-    def test_user_can_make_resource_public(self):
+    def test_user_cant_make_resource_public(self):
         '''
-        Make a Resource public so that others may
-        see/use it.  Note that use by others creates a copy
-        so that the original data remains the same.
+        Regular users are not allowed to effect public/private
+        chanage on Resources
         '''
         private_resources = Resource.objects.filter(
             owner = self.regular_user_1,
@@ -557,6 +556,35 @@ class ResourceDetailTests(BaseAPITestCase):
             response = self.authenticated_regular_client.put(
                 url, payload, format='json'
             )
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            r = Resource.objects.get(pk=private_resource.pk)
+            self.assertFalse(r.is_public)
+
+        else:
+            raise ImproperlyConfigured('To properly run this test, you'
+            ' need to have at least one public Resource.')
+
+    def test_admin_user_can_make_resource_public(self):
+        '''
+        Admin users are allowed to effect public/private
+        chanage on Resources
+        '''
+        private_resources = Resource.objects.filter(
+            owner = self.regular_user_1,
+            is_active = True,
+            is_public = False
+        )
+        if len(private_resources) > 0:
+            private_resource = private_resources[0]
+
+            url = reverse(
+                'resource-detail', 
+                kwargs={'pk':private_resource.pk}
+            )
+            payload = {'is_public': True}
+            response = self.authenticated_admin_client.put(
+                url, payload, format='json'
+            )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             r = Resource.objects.get(pk=private_resource.pk)
             self.assertTrue(r.is_public)
@@ -565,11 +593,9 @@ class ResourceDetailTests(BaseAPITestCase):
             raise ImproperlyConfigured('To properly run this test, you'
             ' need to have at least one public Resource.')
 
-    def test_user_can_make_resource_private(self):
+    def test_user_cant_make_resource_private(self):
         '''
-        If a Resource was public, make it private.
-        This will NOT "recall" datasets that were derived
-        from this (e.g. if someone else used it while it was public)
+        If a Resource was public, regular users can't make it private
         '''
         active_and_public_resources = Resource.objects.filter(
             is_active = True,
@@ -588,11 +614,35 @@ class ResourceDetailTests(BaseAPITestCase):
         response = self.authenticated_regular_client.put(
             url, payload, format='json'
         )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        updated_resource = Resource.objects.get(pk=r.pk)
+        self.assertTrue(updated_resource.is_public)
+
+
+    def test_admin_user_can_make_resource_private(self):
+        '''
+        If a Resource was public, admin users can make it private
+        '''
+        active_and_public_resources = Resource.objects.filter(
+            is_active = True,
+            is_public = True,
+            owner = self.regular_user_1
+        )
+        if len(active_and_public_resources) == 0:
+            raise ImproperlyConfigured('To properly run this test, you'
+            ' need to have at least one public AND active Resource.')
+        r = active_and_public_resources[0]
+        url = reverse(
+            'resource-detail', 
+            kwargs={'pk':r.pk}
+        )
+        payload = {'is_public': False}
+        response = self.authenticated_admin_client.put(
+            url, payload, format='json'
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         updated_resource = Resource.objects.get(pk=r.pk)
         self.assertFalse(updated_resource.is_public)
-
-
 
     def test_cannot_make_changes_when_inactive(self):
         '''

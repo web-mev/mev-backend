@@ -20,16 +20,8 @@ class ResourceSerializer(serializers.ModelSerializer):
         format = '%B %d, %Y (%H:%M:%S)',
         read_only=True
     )
-    owner_email = serializers.EmailField(source='owner.email', required=False)
+    owner_email = serializers.EmailField(source='owner.email', required=False, allow_null=True)
     workspaces = WorkspaceSerializer(many=True, required=False, read_only=True)
-    #workspaces = serializers.PrimaryKeyRelatedField(
-    #    queryset=Workspace.objects.all(),
-    #    required=False
-    #)
-    #associated_workspaces = serializers.CharField(
-    #    source='workspace.workspace_name', 
-    #    default = '', 
-    #    read_only = True)
     path = serializers.CharField(write_only=True, required=False)
     size = serializers.IntegerField(read_only=True)
     readable_resource_type = serializers.SerializerMethodField()
@@ -112,12 +104,15 @@ class ResourceSerializer(serializers.ModelSerializer):
                 ' must be supplied with the payload.'
             })
 
-        # check that the owner does exist.  If not, return an error
-        try:
-            resource_owner = get_user_model().objects.get(email=owner_email)
-        except get_user_model().DoesNotExist as ex:
-            logger.info('User %s did not exist.' % owner_email)
-            raise exceptions.ParseError()
+        # check that the owner does exist, if given.  If not, return an error
+        if owner_email:
+            try:
+                resource_owner = get_user_model().objects.get(email=owner_email)
+            except get_user_model().DoesNotExist as ex:
+                logger.info('User %s did not exist.' % owner_email)
+                raise exceptions.ParseError()
+        else:
+            resource_owner = None
 
         # If the user is an admin, they can create a Resource for anyone.
         # The DRF permissions should catch problems before here, but this is
@@ -143,11 +138,11 @@ class ResourceSerializer(serializers.ModelSerializer):
         When a user updates a Resource, they can only do a few things--
         - change the name
         - change the resource type (which triggers a type validation)
-        - change public or private
 
         In addition to these, admins may also change:
         - status
         - path
+        - change public or private
         '''
 
         logger.info('Received validated data: %s' % validated_data)
@@ -187,12 +182,20 @@ class ResourceSerializer(serializers.ModelSerializer):
                 ' Use the API methods to add or remove from the respective Workspace(s).'}
             )
 
+        # only admins are allowed to change public/private status
+        is_public = validated_data.get('is_public', None)
+        if (is_public is not None) and (not requesting_user.is_staff):
+            logger.info('Regular user requesting change of public/private status')
+            raise exceptions.ParseError({'is_public':'Cannot change the public/private'
+                ' status of a resource.'}
+            )
+
         # the following are fields able to be edited by regular users and admins:
         instance.name = validated_data.get('name', instance.name)
-        instance.is_public = validated_data.get('is_public', instance.is_public)
 
         # fields that can only be edited by admins:
         if requesting_user.is_staff:
+            instance.is_public = validated_data.get('is_public', instance.is_public)
             instance.status = validated_data.get('status', instance.status)
             instance.path = validated_data.get('path', instance.path)
 
