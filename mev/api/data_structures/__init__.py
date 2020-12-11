@@ -17,6 +17,7 @@ from .attributes import IntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
+    StaticDataResourceAttribute, \
     convert_dtype
 from .list_attributes import StringListAttribute, \
     UnrestrictedStringListAttribute
@@ -39,7 +40,8 @@ other_attribute_types = [
     StringAttribute,
     UnrestrictedStringAttribute,
     BooleanAttribute, 
-    DataResourceAttribute, 
+    DataResourceAttribute,
+    StaticDataResourceAttribute, 
     OptionStringAttribute,
     StringListAttribute,
     UnrestrictedStringListAttribute
@@ -124,6 +126,7 @@ from .operation_input_spec import IntegerInputSpec, \
     FeatureInputSpec, \
     FeatureSetInputSpec, \
     DataResourceInputSpec, \
+    StaticDataResourceInputSpec, \
     StringListInputSpec, \
     UnrestrictedStringListInputSpec
 from .operation_output import OperationOutput
@@ -143,6 +146,7 @@ from .operation_output_spec import IntegerOutputSpec, \
     FeatureOutputSpec, \
     FeatureSetOutputSpec, \
     DataResourceOutputSpec, \
+    StaticDataResourceOutputSpec, \
     StringListOutputSpec, \
     UnrestrictedStringListOutputSpec
 from .operation import Operation

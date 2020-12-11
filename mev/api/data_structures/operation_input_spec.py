@@ -17,6 +17,7 @@ from api.data_structures.operation_input_and_output_spec import InputOutputSpec,
     OptionStringInputOutputSpec, \
     BooleanInputOutputSpec, \
     DataResourceInputOutputSpec, \
+    StaticDataResourceInputOutputSpec, \
     ObservationInputOutputSpec, \
     FeatureInputOutputSpec, \
     ObservationSetInputOutputSpec, \
@@ -139,7 +140,61 @@ class DataResourceInputSpec(DataResourceInputOutputSpec):
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPES_KEY] = self.resource_types
         return i
-        
+
+
+class StaticDataResourceInputSpec(StaticDataResourceInputOutputSpec):
+    '''
+    This InputSpec is used for displaying/capturing
+    inputs that are related to static files.
+    ```
+    {
+        "attribute_type": "StaticDataResource",
+        "many": <bool>,
+        "resource_types": <list of valid resource types>
+    }
+    ```
+    Note that the `many` key is a field of the underlying StatocDataResourceAttribute
+
+    We derive from DataResourceInputSpec so we can re-use some of the methods there
+    '''
+
+    RESOURCE_TYPES_KEY = 'resource_types'
+
+    def __init__(self, **kwargs):
+        StaticDataResourceInputOutputSpec.__init__(self, **kwargs)
+
+    def validate_keyword_args(self, kwargs_dict):
+ 
+        try:
+            self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPES_KEY)
+        except KeyError as ex:
+            raise ValidationError('The "{key}" key is required.'.format(
+                key = ex)
+            )
+
+        if not type(self.resource_types) == list:
+            raise ValidationError('The {key} key needs to be a list.'.format(
+                key=self.RESOURCE_TYPES_KEY
+                )
+            )
+
+        from resource_types import RESOURCE_MAPPING
+        for r in self.resource_types:
+            if not r in RESOURCE_MAPPING.keys():
+                raise ValidationError('The resource type {rt} is not valid.'
+                    ' Needs to be one of the following: {csv}.'.format(
+                        rt=r,
+                        csv=', '.join(RESOURCE_MAPPING.keys())
+                    )
+                )
+        return kwargs_dict
+
+    def to_dict(self):
+        i = StaticDataResourceInputOutputSpec.to_dict(self)
+        i[self.MANY_KEY] = self.many
+        i[self.RESOURCE_TYPES_KEY] = self.resource_types
+        return i
+
 
 class ObservationInputSpec(ObservationInputOutputSpec):
     pass
@@ -177,6 +232,7 @@ all_input_spec_types = [
     OptionStringInputSpec,
     BooleanInputSpec,
     DataResourceInputSpec,
+    StaticDataResourceInputSpec,
     ObservationInputSpec,
     FeatureInputSpec,
     ObservationSetInputSpec,

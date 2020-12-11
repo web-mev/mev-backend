@@ -19,7 +19,9 @@ from api.data_structures import create_attribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
-    DataResourceInputSpec
+    DataResourceInputSpec, \
+    StaticDataResourceAttribute, \
+    StaticDataResourceInputSpec
 from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
 from api.serializers.observation_set import ObservationSetSerializer
@@ -162,19 +164,33 @@ class DataResourceUserOperationInput(UserOperationInput):
 
     def __init__(self, user, workspace, key, submitted_value, input_spec):
         super().__init__(user, workspace, key, submitted_value, input_spec)
-
-        # The DataResourceAttribute has a key to indicate
-        # whether multiple values are permitted. Depending on that
-        # value, we expect a different 'submitted_value' (i.e. if many=True
-        # then we expect a list.)
         expect_many = self.input_spec[DataResourceAttribute.MANY_KEY]
+        submitted_vals = self._check_many_vs_input(expect_many)
+        for val in submitted_vals:
+            r = self._check_resource_uuid(val)
+            self._check_resource_workspace(r, workspace)
+            self._check_resource_types(r)
+
+        # if we are here, then we have passed all the checks-- assign the
+        # self.instance variable 
+        self.instance = DataResourceAttribute(self.submitted_value, many=expect_many)
+
+    def _check_many_vs_input(self, expect_many):
+        '''
+        The DataResourceAttribute has a key to indicate
+        whether multiple values are permitted. Depending on that
+        value, we expect a different 'submitted_value' (i.e. if many=True
+        then we expect a list.)
+
+        Returns a list of the submitted values (Which are UUIDs)
+        '''
         if expect_many:
             if not type(self.submitted_value) == list:
                 logger.info('Invalid payload for an input expecting'
                     ' potentially multiple resources.'
                 )
                 raise ValidationError({
-                    key: 'Given that the input specification'
+                    self.key: 'Given that the input specification'
                     ' permits multiple values, we expect a list'
                     ' of values.'
                 })
@@ -187,7 +203,7 @@ class DataResourceUserOperationInput(UserOperationInput):
                     ' only a single resource. Needs to be a string UUID.'
                 )
                 raise ValidationError({
-                    key: 'Given that the input specification'
+                    self.key: 'Given that the input specification'
                     ' permits only a single value, we expect a'
                     ' string (UUID).'
                 })
@@ -195,71 +211,103 @@ class DataResourceUserOperationInput(UserOperationInput):
                 # to handle both cases (single or multiple resources) 
                 # in the same manner, put the single value into a list
                 tmp_val = [self.submitted_value,]
+        return tmp_val
 
+    def _check_resource_uuid(self, val):
+        '''
+        The inputs were already determined to be valid UUIDs. This method
+        checks that they correspond to actual Resources.
+        '''
         # so we have one or more valid UUIDs-- do they correspond to both:
         # - a known Resource owned by the user AND in the workspace?
         # - the correct resource types given the input spec?
-        self.expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
-        for v in tmp_val:
-            try:
-                r = Resource.objects.get(pk=v)
-            except Resource.DoesNotExist as ex:
-                raise ValidationError({
-                    key: 'The UUID ({resource_uuid}) did not match'
-                    ' any known resource.'.format(
-                        resource_uuid = v
-                    )
-                })
-            except Exception as ex:
-                # will catch things like bad UUIDs and also other unexpected errors
-                raise ValidationError({key: ex})
-
-            # only need to check the workspace compatability if the 
-            # workspace arg is not None
-            if workspace:
-                resource_workspaces = r.workspaces.all()
-                if not (workspace in resource_workspaces):
-                    raise ValidationError({
-                        key: 'The UUID ({resource_uuid}) did not match'
-                        ' any known resource in your workspace.'.format(
-                            resource_uuid = v
-                        )
-                    })
-
-            if not r.resource_type in self.expected_resource_types:
-                logger.info('The resource type {rt} is not compatible'
-                    ' with the expected resource types of {all_types}'.format(
-                        rt=r.resource_type,
-                        all_types = ', '.join(self.expected_resource_types)
-                    )
-                )
-                raise ValidationError({
-                    key: 'The resource ({resource_uuid}, {rt}) did not match'
-                    ' the expected type(s) of {all_types}'.format(
-                        resource_uuid = v,
-                        rt = r.resource_type,
-                        all_types = ', '.join(self.expected_resource_types)
-                    )
-                })
+        try:
+            r = Resource.objects.get(pk=val)
             if not r.is_active:
                 logger.info('The requested Resource ({u}) was'
                 ' not active.'.format(
                     u=r.id
                 ))
                 raise ValidationError({
-                    key: 'The resource ({resource_uuid}) was not'
+                    self.key: 'The resource ({resource_uuid}) was not'
                     ' active and cannot be used.'.format(
-                        resource_uuid = v
+                        resource_uuid = val
+                    )
+                })
+            return r
+        except Resource.DoesNotExist as ex:
+            raise ValidationError({
+                self.key: 'The UUID ({resource_uuid}) did not match'
+                ' any known resource.'.format(
+                    resource_uuid = val
+                )
+            })
+        except Exception as ex:
+            # will catch things like bad UUIDs and also other unexpected errors
+            raise ValidationError({self.key: ex})
+
+    def _check_resource_workspace(self, resource, workspace):
+        '''
+        Need to ensure that the resource is associated with the workspace
+        if a workspace is provided (it could be that we are validating
+        inputs for an operation not associated with a workspace)
+        '''
+        # only need to check the workspace compatability if the 
+        # workspace arg is not None
+        if workspace:
+            resource_workspaces = resource.workspaces.all()
+            if not (workspace in resource_workspaces):
+                raise ValidationError({
+                    self.key: 'The UUID ({resource_uuid}) did not match'
+                    ' any known resource in your workspace.'.format(
+                        resource_uuid = str(resource.pk)
                     )
                 })
 
-        # if we are here, then we have passed all the checks-- assign the
-        # self.instance variable 
-        self.instance = DataResourceAttribute(self.submitted_value, many=expect_many)
+    def _check_resource_types(self, resource):
+    
+        expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
+
+        if not resource.resource_type in expected_resource_types:
+            logger.info('The resource type {rt} is not compatible'
+                ' with the expected resource types of {all_types}'.format(
+                    rt=resource.resource_type,
+                    all_types = ', '.join(expected_resource_types)
+                )
+            )
+            raise ValidationError({
+                self.key: 'The resource ({resource_uuid}, {rt}) did not match'
+                ' the expected type(s) of {all_types}'.format(
+                    resource_uuid = str(resource.pk),
+                    rt = resource.resource_type,
+                    all_types = ', '.join(expected_resource_types)
+                )
+            })
 
     def get_value(self):
         d = self.instance.to_dict()
         return d['value']
+
+
+class StaticDataResourceUserOperationInput(DataResourceUserOperationInput):
+    '''
+    This handles the validation of the user's input for an input
+    corresponding to a `StaticDataResource` instance.
+    '''
+    typename = StaticDataResourceAttribute.typename
+
+    def __init__(self, user, workspace, key, submitted_value, input_spec):
+        super().__init__(user, workspace, key, submitted_value, input_spec)
+        expect_many = self.input_spec[DataResourceAttribute.MANY_KEY]
+        submitted_vals = self._check_many_vs_input(expect_many)
+        for val in submitted_vals:
+            r = self._check_resource_uuid(val)
+            self._check_resource_workspace(r, workspace)
+            self._check_resource_types(r)
+
+        # if we are here, then we have passed all the checks-- assign the
+        # self.instance variable 
+        self.instance = StaticDataResourceAttribute(self.submitted_value, many=expect_many)
 
 
 class ElementUserOperationInput(UserOperationInput):

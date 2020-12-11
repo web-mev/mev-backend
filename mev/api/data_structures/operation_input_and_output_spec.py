@@ -15,7 +15,8 @@ from api.data_structures.attributes import IntegerAttribute, \
     UnrestrictedStringAttribute, \
     OptionStringAttribute, \
     BooleanAttribute, \
-    DataResourceAttribute
+    DataResourceAttribute, \
+    StaticDataResourceAttribute
 from api.data_structures.list_attributes import StringListAttribute, \
     UnrestrictedStringListAttribute
 
@@ -394,6 +395,33 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
 
     def to_dict(self):
         i = InputOutputSpec.to_dict(self, DataResourceAttribute)
+        return i
+
+
+class StaticDataResourceInputOutputSpec(InputOutputSpec, StaticDataResourceAttribute):
+    '''
+    This InputOutputSpec is used for displaying/capturing
+    inputs that are related to static files, such as those used as
+    database-like files for analyses.
+
+    Derives much of its functionality from the parent class
+    ```
+    {
+        "attribute_type": "StaticDataResource",
+        "many": <bool>,
+        "resource_types": <list of valid resource types>
+    }
+    ```
+    '''
+
+    def __init__(self, **kwargs):
+        InputOutputSpec.__init__(self, **kwargs)
+        kwargs = self.validate_keyword_args(kwargs)
+        kwargs = self.handle_common_kwargs(kwargs)
+        self.validate_many_key(kwargs.pop(self.MANY_KEY))
+
+    def to_dict(self):
+        i = InputOutputSpec.to_dict(self, StaticDataResourceAttribute)
         return i
 
 
