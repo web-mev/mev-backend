@@ -156,6 +156,9 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     try:
         metadata = resource_class_instance.extract_metadata(new_path)
     except Exception as ex:
+        logger.info('Encountered an exception when extracting metadata: {ex}'.format(
+            ex = ex
+        ))
         resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
         resource.resource_type = None
         return

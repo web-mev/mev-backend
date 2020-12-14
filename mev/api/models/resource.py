@@ -158,7 +158,7 @@ class Resource(models.Model):
     is_public = models.BooleanField(default=False)
 
     # A human-readable status (e.g. uploaded, processing, etc.)
-    status = models.CharField(max_length=255, 
+    status = models.CharField(max_length=2000, 
         default='', 
         null=True, 
         blank=True
