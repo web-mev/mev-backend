@@ -149,7 +149,17 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
         new_name = resource.name
 
     # since the resource was valid, we can also fill-in the metadata
-    metadata = resource_class_instance.extract_metadata(new_path)
+    # Note that the metadata could fail for type issues and we have to plan
+    # for failures there. For instance, a table can be compliant, but the 
+    # resulting metadata could violate a type constraint (e.g. if a string-based
+    # attribute does not match our regex)
+    try:
+        metadata = resource_class_instance.extract_metadata(new_path)
+    except Exception as ex:
+        resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
+        resource.resource_type = None
+        return
+
     add_metadata_to_resource(resource, metadata)
 
     # have to send the file to the final storage. If we are using local storage
@@ -169,7 +179,9 @@ def check_extension(resource, requested_resource_type):
     and this function sets the necessary members on the resource
     instance if there is a problem.
     '''
+        
     consistent_extension = extension_is_consistent_with_type(resource.name, requested_resource_type)
+
     if not consistent_extension:
         acceptable_extensions = ','.join(get_acceptable_extensions(requested_resource_type))
         resource.status = Resource.UNKNOWN_EXTENSION_ERROR.format(
@@ -227,14 +239,26 @@ def validate_resource(resource_instance, requested_resource_type):
     if requested_resource_type is not None:
 
         # check the file extension is consistent with the requested type:
-        type_is_consistent = check_extension(resource_instance, requested_resource_type)
+        try:
+            type_is_consistent = check_extension(resource_instance, requested_resource_type)
+        except Exception as ex:
+            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex=ex)
+            return
+
         if not type_is_consistent:
             logger.info('The requested type was not consistent with the file extension. Skipping validation.')
+            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex='Requested resource type'
+                ' was not consistent with the file extension'
+            )
             return
 
         # The resource type is the shorthand identifier.
         # This returns an actual resource class implementation
-        resource_class_instance = get_resource_type_instance(requested_resource_type)
+        try:
+            resource_class_instance = get_resource_type_instance(requested_resource_type)
+        except KeyError as ex:
+            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex=ex)
+            return
 
         if resource_class_instance.performs_validation():
 
@@ -287,8 +311,11 @@ def validate_and_store_resource(resource, requested_resource_type):
             )
         )
         resource.status = Resource.UNEXPECTED_STORAGE_ERROR
-    else:    
-        validate_resource(resource, requested_resource_type)
+    else:
+        try:
+            validate_resource(resource, requested_resource_type)
+        except Exception as ex:
+            resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
 
     # regardless of what happened above, set the 
     # status to be active (so changes can be made)

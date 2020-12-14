@@ -60,8 +60,10 @@ class TestValidateResource(BaseAPITestCase):
         '''
         all_resources = Resource.objects.all()
         r = all_resources[0]
-        with self.assertRaises(KeyError):
-            validate_resource(r.pk, 'ABC')
+        #with self.assertRaises(KeyError):
+        validate_resource(r.pk, 'ABC')
+        r = Resource.objects.get(pk=r.pk)
+        self.assertTrue('ABC' in r.status) # error  message could vary, but will report 'ABC'
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')

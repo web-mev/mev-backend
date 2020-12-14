@@ -3,7 +3,7 @@ import logging
 from celery.decorators import task
 import api.utilities.resource_utilities as resource_utilities
 from api.storage_backends import get_storage_backend
-
+from api.models import Resource
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,11 @@ def validate_resource(resource_pk, requested_resource_type):
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
 
-    resource_utilities.validate_resource(resource, requested_resource_type)
-        
+    try:
+        resource_utilities.validate_resource(resource, requested_resource_type)
+    except Exception as ex:
+        resource.status = Resource.UNEXPECTED_VALIDATION_ERROR
+
     # regardless of what happened above, set the 
     # status to be active (so changes can be made)
     # and save the instance
@@ -41,4 +44,7 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     to False so that the `Resource` is disabled for use.
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
-    resource_utilities.validate_and_store_resource(resource, requested_resource_type)
+    try:
+        resource_utilities.validate_and_store_resource(resource, requested_resource_type)
+    except Exception as ex:
+        resource.status = Resource.UNEXPECTED_VALIDATION_ERROR

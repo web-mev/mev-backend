@@ -13,6 +13,7 @@ from rest_framework.exceptions import ValidationError
 from resource_types import RESOURCE_MAPPING, \
     DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
     GeneralResource, \
+    AnnotationTable, \
     WILDCARD, \
     DataResource
 from api.models import Resource, \
@@ -444,6 +445,31 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertIsNone(getattr(metadata, DataResource.FEATURE_SET))
         self.assertIsNone(getattr(metadata, DataResource.OBSERVATION_SET))
         self.assertEqual(getattr(metadata, DataResource.RESOURCE), r)
-        
 
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_check_handles_metadata_error(self, mock_get_storage_backend, mock_move_resource_to_final_location):
+        '''
+        Some resources can be properly validated but yet fail when it comes to creating metadata.
+        An example of this is where an annotation table has a numeric value among other string values.
+        The table validates, as it's properly formatted, but the all-numeric value is not compliant
+        with our StringAttribute. Hence, an exception is raised when we are trying to attach
+        metadata to the resource. We want to ensure that error is communicated to the user.
+        '''
+        test_resources_dir = os.path.dirname(__file__)
+        test_resources_dir = os.path.join(test_resources_dir, 'resource_validation_test_files')
+        p = os.path.join(test_resources_dir, 'test_annotation_with_noncompliant_str.tsv')
 
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = p
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        resource_class_instance = AnnotationTable()
+        mock_save = mock.MagicMock()
+        mock_save.return_value = (p,r.name)
+        resource_class_instance.save_in_standardized_format = mock_save
+        handle_valid_resource(r, resource_class_instance, 'ANN')
+        self.assertTrue('123' in r.status)
+        self.assertIsNone(r.resource_type)

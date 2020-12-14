@@ -383,6 +383,24 @@ class TestAnnotationMatrix(unittest.TestCase):
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
+    def test_parses_compliant_table_with_uncompliant_attribute(self):
+        '''
+        In this test, we have the case where a user submits an annotation file
+        which has a column of strings. One of those strings, however, is entirely
+        numeric, which violates the underlying "StringAttribute" type (since it 
+        does not match the regex).
+
+        Check that we issue an appropriate error.
+        '''
+        t = AnnotationTable()
+        p = os.path.join(
+            TESTDIR, 'test_annotation_with_noncompliant_str.tsv')
+        is_valid, err = t.validate_type(p)
+        self.assertTrue(is_valid)
+        self.assertIsNone(err)
+        with self.assertRaises(Exception):
+            t.extract_metadata(p)
+
 class TestBed(unittest.TestCase):
 
     def test_bed_without_header_fails(self):

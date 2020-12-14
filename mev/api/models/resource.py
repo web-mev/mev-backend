@@ -85,6 +85,7 @@ class Resource(models.Model):
         ' Acceptable extensions are: {extensions_csv}')
     UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation.'
     UNEXPECTED_STORAGE_ERROR = 'An unexpected error occurred during upload and storage.'
+    ERROR_WITH_REASON = 'An error ocurred: {ex}'
 
     # Resource instances will be referenced by their UUID instead of a PK
     id = models.UUIDField(

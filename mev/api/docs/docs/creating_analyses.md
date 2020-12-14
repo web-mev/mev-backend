@@ -26,7 +26,7 @@ To construct a WebMEV-compatible analysis for local-Docker execution mode, we re
 - `entrypoint.txt`
     - This is a text file that provides a command template to be filled-in with the appropriate concrete arguments. The templating syntax is Jinja2 (https://jinja.palletsprojects.com)
 - `docker/Dockerfile`
-    - The `docker` folder contains (at minimum) a `Dockerfile` which provides the "recipe" for building the Docker image. Additional files to be included in the Docker build context (such as scripts) can be placed in this folder.
+    - The `docker` folder contains (at minimum) a `Dockerfile` which provides the "recipe" for building the Docker image. Additional files to be included in the Docker build context (such as scripts or static data) can be placed in this folder.
 
 **Outputs**
 While there are no restrictions on the nature or content of the analysis itself, we have to capture the analysis outputs in a manner that WebMEV can interpret those outputs and present them to end-users. Thus, we require that the process create an `outputs.json` file in the container's "workspace". This file is accessible to WebMEV via the shared volume provided with the `-v` argument to the `docker run` command. More details below in the concrete example.
@@ -271,6 +271,8 @@ Thus, to create a Cromwell-based job that is compatible with WebMEV we require:
 
 - `inputs.json`
     - This is the JSON-format file which dictates the inputs to the workflow. It is a template that will be appropriately filled at runtime. Thus, the "values" of the mapping do not matter, but the keys must map to input variables in `main.wdl`. Typically, this file is easily created by Broad's WOMTool. See below for an example.
+- `static_inputs.json`
+    - An *optional* file that gives values for variables like genome indexes and other relatively static inputs. Keys in this should be a subset of those in `inputs.json`. File paths contained here are used to copy files into a WebMEV-associated bucket.
 - `converters.json`
     - This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/`Observation`s)
     and format it to be used in `inputs.json`. As above, this is a mapping of the input name to a "dotted" class implementation.
@@ -384,4 +386,21 @@ Thus, regardless of whoever creates the original image, the repository should ha
 We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not *exactly* the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.
 
 Note that repositories based on many Docker containers may take a significant time to ingest, as each image must be built and pushed to Dockerhub.
+
+**Copying of static resources**
+
+If the `static_inputs.json` file is present, we expect that this file will be used for static items that are not dependent on user input. We could also put such items as `default` in the `operation_spec.json` file, but we instead choose to extract them out to this file.
+
+Upon ingestion, the files will be copied to an `Operation`-specific bucket/folder. For instance, given the following `static_inputs.json`:
+```
+{
+    "Workflow.genome_idx":"gs://some-bucket/grch38.idx"
+}
+```
+During ingestion, this `Operation` will be assigned a UUID. Then, we copy this index to a new location identified by that UUID. The updated/edited `static_inputs.json` file will be:
+```
+{
+    "Workflow.genome_idx":"gs://mev-bucket/<UUID>/grch38.idx"
+}
+```
 

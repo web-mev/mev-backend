@@ -208,7 +208,15 @@ def extension_is_consistent_with_type(filename, resource_type):
     extension, this function would return False.  foobar.tsv would
     return True
     '''
-    for ext in get_acceptable_extensions(resource_type):
+    try:
+        acceptable_extensions = get_acceptable_extensions(resource_type)
+    except KeyError as ex:
+        logger.info('Received an unacceptable resource type {t}'
+            ' when checking file extension.'.format(t=ex)
+        )
+        message = 'Resource type {t} is not among the accepted types.'.format(t=ex)
+        raise Exception(message)
+    for ext in acceptable_extensions:
         if ext == WILDCARD:
             return True
         n = len(ext)
