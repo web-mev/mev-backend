@@ -494,13 +494,18 @@ class TableResource(DataResource):
             is_valid, message = self.validate_type(resource_path)
             if not is_valid:
                 raise UnexpectedTypeValidationException(message)
-
-        # now we have a table loaded at self.table.  
+        else:
+            logger.info('Resource with path ({path}) was '
+                'previously parsed.'.format(
+                    path=resource_path
+                )
+            )        # now we have a table loaded at self.table.  
 
         # call the super method to initialize the self.metadata
         # dictionary
+        logger.info('Pre-populate/setup empty metadata.')
         super().setup_metadata()
-
+        logger.info('Done with setting up the metadata.')
         # now add the information to self.metadata:
         if parent_op_pk:
             self.metadata[DataResource.PARENT_OP] = parent_op_pk
@@ -721,6 +726,8 @@ class ElementTable(TableResource):
         The `element_class` arg is a class which implements the specific
         type we want (i.e. Observation or Feature)
         '''
+        logger.info('For element type {s},'
+            ' extract out metadata'.format(s=type(element_class)))
         # Go through the columns and find out the primitive types
         # for each column/covariate.
         # Note that we can't determine specific types (e.g. bounded integers)
@@ -842,6 +849,7 @@ class FeatureTable(ElementTable):
         Additional columns specify attributes of each Feature,
         which we incorporate
         '''
+        logger.info('Extract metadata from a FeatureTable')
         super().extract_metadata(resource_path, parent_op_pk)
 
         feature_list = super().prep_metadata(Feature)

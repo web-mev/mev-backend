@@ -273,6 +273,8 @@ class LocalDockerRunner(OperationRunner):
             executed_op.job_id = execution_uuid
             executed_op.save()
         except Exception as ex:
+            logger.info('Failed when running shell command: {c}'.format(c=cmd))
+            logger.info('Exception was: {ex}'.format(ex=ex))
             # if an exception is raised when issuing the Docker run
             # command, then the job has failed. This error is likely
             # not due to user error, but something with the issuing

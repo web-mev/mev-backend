@@ -135,6 +135,7 @@ def validate_operation_inputs(user, inputs, operation, workspace):
                 )
             )
         if supplied_input:
+            logger.info('Check supplied input: {d}'.format(d=supplied_input))
             final_inputs[key] = user_operation_input_class(user, workspace, key, supplied_input, spec)
         else:
             final_inputs[key] = None

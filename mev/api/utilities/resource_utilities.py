@@ -140,6 +140,8 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
             # sent to the final storage location. Once the file is in the 'final' 
             # storage location, the path member will be edited to reflect that
             resource.path = new_path
+        else:
+            logger.info('Standardization did not change the path...')
 
         if new_name != resource.name:
             # change the name of the resource
