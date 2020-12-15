@@ -1,4 +1,5 @@
 import logging
+import copy
 
 from rest_framework.exceptions import ValidationError
 
@@ -19,6 +20,8 @@ from api.data_structures.attributes import IntegerAttribute, \
     StaticDataResourceAttribute
 from api.data_structures.list_attributes import StringListAttribute, \
     UnrestrictedStringListAttribute
+from api.exceptions import AttributeValueError, \
+    InvalidAttributeKeywords
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +78,10 @@ class InputOutputSpec(object):
         # keys/params specific to the input/output specification
         # should be removed from the `kwargs_dict` at this point.
         params = list(kwargs_dict.keys())
-        self.check_keys(params)
+        try:
+            self.check_keys(params)
+        except InvalidAttributeKeywords as ex:
+            raise ValidationError(ex)
         return kwargs_dict
 
     def check_default(self, implementation_class, **kwargs):
@@ -83,7 +89,7 @@ class InputOutputSpec(object):
         Checks that the default value (if given) is sensible for the particular
         input spec type (e.g. if an "Integer" type gets a default of 3.2, then 
         that is an error).
-
+ 
         The `implementation_class` is the class that will actually validate 
         the default for that class. For instance, a `BoundedInteger` will use
         that class' constructor to check that the default is valid and satisfies
@@ -94,13 +100,13 @@ class InputOutputSpec(object):
 
             # now reset the value to None:
             self.value = None
-        except ValidationError as ex:
+        except AttributeValueError as ex:
             logger.error('Error when inspecting an operation input/output.'
             ' Called with: {kwargs}.\nError was: {ex}'.format(
                 kwargs=self.full_kwargs,
                 ex=ex
             ))
-            raise ex
+            raise ValidationError(ex)
 
     def to_dict(self, parent_class):
         d = parent_class.to_dict(self)
@@ -199,7 +205,10 @@ class BoundedIntegerInputOutputSpec(InputOutputSpec, BoundedIntegerAttribute):
         # are the correct type, etc.). 
         self.set_bounds(kwargs)
 
-        self.check_bound_types([int])
+        try:
+            self.check_bound_types([int])
+        except AttributeValueError as ex:
+            raise ValidationError(ex)
 
     def to_dict(self):
         return InputOutputSpec.to_dict(self, BoundedIntegerAttribute)
@@ -346,10 +355,17 @@ class OptionStringInputOutputSpec(InputOutputSpec, OptionStringAttribute):
         InputOutputSpec.__init__(self, **kwargs)
         kwargs = self.handle_common_kwargs(kwargs)
 
-        if self.default is not None:
-            self.check_default(OptionStringAttribute, **kwargs)
+        orig_kwargs = copy.deepcopy(kwargs)
         # this checks the options keyword formatting:
-        self._set_options(kwargs)        
+        # Do this before checking any default values:
+        try:
+            self._set_options(kwargs) # sets self.options
+        except InvalidAttributeKeywords as ex:
+            raise ValidationError(ex)    
+
+        if self.default is not None:
+            self.check_default(OptionStringAttribute, **orig_kwargs)
+
 
     def to_dict(self):
         return InputOutputSpec.to_dict(self, OptionStringAttribute)
@@ -391,7 +407,10 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
         InputOutputSpec.__init__(self, **kwargs)
         kwargs = self.validate_keyword_args(kwargs)
         kwargs = self.handle_common_kwargs(kwargs)
-        self.validate_many_key(kwargs.pop(self.MANY_KEY))
+        try:
+            self.validate_many_key(kwargs.pop(self.MANY_KEY))
+        except AttributeValueError as ex:
+            raise ValidationError(ex)
 
     def to_dict(self):
         i = InputOutputSpec.to_dict(self, DataResourceAttribute)
@@ -418,7 +437,10 @@ class StaticDataResourceInputOutputSpec(InputOutputSpec, StaticDataResourceAttri
         InputOutputSpec.__init__(self, **kwargs)
         kwargs = self.validate_keyword_args(kwargs)
         kwargs = self.handle_common_kwargs(kwargs)
-        self.validate_many_key(kwargs.pop(self.MANY_KEY))
+        try:
+            self.validate_many_key(kwargs.pop(self.MANY_KEY))
+        except AttributeValueError as ex:
+            raise ValidationError(ex)
 
     def to_dict(self):
         i = InputOutputSpec.to_dict(self, StaticDataResourceAttribute)

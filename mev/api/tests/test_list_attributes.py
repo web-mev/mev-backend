@@ -1,7 +1,6 @@
 import unittest
 
-from rest_framework.serializers import ValidationError
-
+from api.exceptions import AttributeValueError
 from api.data_structures import StringListAttribute, UnrestrictedStringListAttribute
 
 class TestListAttributes(unittest.TestCase):
@@ -28,12 +27,12 @@ class TestListAttributes(unittest.TestCase):
 
         # out of bounds values rejected
         v = ['abc', '??']
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             s = StringListAttribute(v)
 
         # test non-list items:
         v = 'abc'
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             StringListAttribute(v)
 
 

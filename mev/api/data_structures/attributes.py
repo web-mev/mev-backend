@@ -3,10 +3,11 @@ import uuid
 import logging
 
 from django.conf import settings
-from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
-import api.exceptions as api_exceptions
+from api.exceptions import StringIdentifierException, \
+    AttributeValueError, \
+    InvalidAttributeKeywords
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +50,11 @@ class BaseAttribute(object):
         else:
             # value is None...is that ok? If not, raise an exception
             if not allow_null:
-                raise ValidationError('Received a null/None value which is not allowed.')
+                raise AttributeValueError('Received a null/None value which is not allowed.')
 
         # if kwargs is not an empty dict, raise an exception
         if kwargs != {}:
-            raise ValidationError('This type of attribute does not '
+            raise AttributeValueError('This type of attribute does not '
             ' accept additional keyword arguments.'
             ' Received: {keys}'.format(keys=','.join(kwargs.keys())))
 
@@ -68,7 +69,7 @@ class BaseAttribute(object):
         '''
         s1 = set(keys)
         if not s1 == set(self.REQUIRED_PARAMS):
-            raise ValidationError('The parameters for this attribute'
+            raise InvalidAttributeKeywords('The parameters for this attribute'
                 ' ({given_keys}) do not match the required parameters:'
                 ' {required_keys}'.format(
                     required_keys = ', '.join(self.REQUIRED_PARAMS),
@@ -123,7 +124,7 @@ class BoundedBaseAttribute(BaseAttribute):
             self.max_value = kwargs_dict.pop(self.MAXIMUM_KEY)
         except KeyError as ex:
             missing_key = str(ex)
-            raise ValidationError('Need bounds to specify a BoundedInteger.'
+            raise AttributeValueError('Need bounds to specify a BoundedInteger.'
                 ' Was missing {key}'.format(key=missing_key))
 
     def check_bound_types(self, primitive_type_list):
@@ -142,7 +143,7 @@ class BoundedBaseAttribute(BaseAttribute):
         for k in d.keys():
             dtype = type(d[k])
             if not dtype in primitive_type_list:
-                raise ValidationError('The {bound} value {val}'
+                raise AttributeValueError('The {bound} value {val}'
                 ' specified does not match the expected type'
                 ' for this bounded attribute.'.format(
                     bound=k,
@@ -183,7 +184,7 @@ class IntegerAttribute(BaseAttribute):
             if set_value:
                 self.value = val
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'An integer attribute was expected, but the'
                 ' value "{val}" could not'
                 ' be cast as an integer'.format(val=val)
@@ -207,11 +208,11 @@ class PositiveIntegerAttribute(BaseAttribute):
                 if set_value:
                     self.value = val
             else:
-                raise ValidationError(
+                raise AttributeValueError(
                     'The value {val} was not a' 
                     ' positive integer.'.format(val=val))    
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A positive integer attribute was expected,'
                 ' but "{val}" is not.'.format(val=val))
 
@@ -234,11 +235,11 @@ class NonnegativeIntegerAttribute(BaseAttribute):
                 if set_value:
                     self.value = val
             else:
-                raise ValidationError(
+                raise AttributeValueError(
                     'The value {val} is not a non-' 
                     'negative integer.'.format(val=val))    
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A non-negative integer attribute was expected,'
                 ' but "{val}" is not.'.format(val=val))
 
@@ -268,7 +269,7 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
                 if set_value:
                     self.value = val
             else:
-                raise ValidationError(
+                raise AttributeValueError(
                     'The value {val} is not within the bounds' 
                     ' of [{min},{max}]'.format(
                         val=val,
@@ -276,7 +277,7 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
                         max=self.max_value)
                     )    
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A bounded integer attribute was expected,'
                 ' but "{val}" is not an integer.'.format(val=val))
 
@@ -301,7 +302,7 @@ class FloatAttribute(BaseAttribute):
             if set_value:
                 self.value = val
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A float attribute was expected, but'
                 ' received "{val}"'.format(val=val))
 
@@ -325,12 +326,12 @@ class PositiveFloatAttribute(BaseAttribute):
                 if set_value:
                     self.value = float(val)
             else:
-                raise ValidationError('Received a valid float, but'
+                raise AttributeValueError('Received a valid float, but'
                     ' it was not > 0.')
         elif val == settings.POSITIVE_INF_MARKER:
             self.value = val
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A positive float attribute was expected, but'
                 ' received "{val}"'.format(val=val))
 
@@ -354,12 +355,12 @@ class NonnegativeFloatAttribute(BaseAttribute):
                 if set_value:
                     self.value = float(val)
             else:
-                raise ValidationError('Received a valid float, but'
+                raise AttributeValueError('Received a valid float, but'
                     ' it was not >= 0.')
         elif val == settings.POSITIVE_INF_MARKER:
             self.value = val
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A float attribute was expected, but'
                 ' received "{val}"'.format(val=val))
 
@@ -388,7 +389,7 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
                 if set_value:
                     self.value = val
             else:
-                raise ValidationError(
+                raise AttributeValueError(
                     'The value {val} is not within the bounds' 
                     ' of [{min},{max}]'.format(
                         val=val,
@@ -396,7 +397,7 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
                         max=self.max_value)
                     ) 
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A bounded float attribute was expected,'
                 ' but "{val}" is not a float, or is not bounded.'.format(val=val))
 
@@ -419,8 +420,8 @@ class StringAttribute(BaseAttribute):
             val = api_utils.normalize_identifier(val)
             if set_value:
                 self.value = val
-        except api_exceptions.StringIdentifierException as ex:
-            raise ValidationError(str(ex))
+        except StringIdentifierException as ex:
+            raise AttributeValueError(str(ex))
 
 class UnrestrictedStringAttribute(BaseAttribute):
     '''
@@ -465,25 +466,25 @@ class OptionStringAttribute(BaseAttribute):
             if type(options) == list:
                 for opt in options:
                     if not type(opt) == str:
-                        raise ValidationError('The options need to be strings. Failed on validating: {x}'.format(
+                        raise InvalidAttributeKeywords('The options need to be strings. Failed on validating: {x}'.format(
                             x = opt)
                     )
                 self.options = options
             else:
-                raise ValidationError('Need to supply a list with the {opts} key.'.format(
+                raise InvalidAttributeKeywords('Need to supply a list with the {opts} key.'.format(
                     opts = self.OPTIONS_KEY)
                 )
         except KeyError as ex:
             missing_key = str(ex)
-            raise ValidationError('Need a list of options to specify an OptionStringAttribute.'
+            raise InvalidAttributeKeywords('Need a list of options to specify an OptionStringAttribute.'
                 ' Was missing {key}'.format(key=missing_key))
 
     def value_validator(self, val, set_value=True, allow_null=False):
         if (val is None) and (not allow_null):
-            raise ValidationError('Cannot set this to be null/None.')
+            raise AttributeValueError('Cannot set this to be null/None.')
         
         if not val in self.options:
-            raise ValidationError('The value "{val}" was not among the valid options: {opts}'.format(
+            raise AttributeValueError('The value "{val}" was not among the valid options: {opts}'.format(
                 val = val,
                 opts = ','.join(self.options)
             ))
@@ -540,7 +541,7 @@ class BooleanAttribute(BaseAttribute):
                     )
                 )
         else:
-            raise ValidationError(
+            raise AttributeValueError(
                 'A boolean attribute was expected,'
                 ' but "{val}" cannot be interpreted as such.'.format(val=val)) 
 
@@ -588,7 +589,7 @@ class DataResourceAttribute(BaseAttribute):
             all_vals = [val,]
         elif type(val) == list:
             if self.many == False:
-                raise ValidationError('The values ({val})'
+                raise AttributeValueError('The values ({val})'
                     ' are inconsistent with the many=False'
                     ' parameter.'.format(
                         val=val
@@ -596,7 +597,7 @@ class DataResourceAttribute(BaseAttribute):
                 )
             all_vals = val
         else:
-            raise ValidationError('Value needs to be either'
+            raise AttributeValueError('Value needs to be either'
                 ' a single UUID or a list of UUIDs'
             )
 
@@ -616,11 +617,11 @@ class DataResourceAttribute(BaseAttribute):
                 # as that creates a circular import dependency.
                 uuid.UUID(v)
             except ValueError as ex:
-                raise ValidationError('The passed value ({val}) was'
+                raise AttributeValueError('The passed value ({val}) was'
                     ' not a valid UUID.'.format(val=v)
                 )
             except Exception as ex:
-                raise ValidationError('Encountered an unknown exception'
+                raise AttributeValueError('Encountered an unknown exception'
                     ' when validating a DataResourceAttribute instance. Value was'
                     ' {value}'.format(
                         value = v

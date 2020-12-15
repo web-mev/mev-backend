@@ -30,8 +30,6 @@ def normalize_identifier(original_name):
             return new_name
     raise api_exceptions.StringIdentifierException(
         'The name "{original_name}" did not match the'
-        ' naming requirements.  Check that it only contains'
-        ' letters, numbers, dashes, underscores, or dot/periods.'
-        ' It should match the regex {regex}'.format(
-            original_name=original_name,
-            regex=regex_pattern))
+        ' naming requirements.  Check that it starts with a letter and'
+        ' only contains letters, numbers, dashes, underscores,'
+        ' or dot/periods.'.format(original_name=original_name))

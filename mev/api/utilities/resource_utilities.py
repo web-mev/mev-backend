@@ -4,8 +4,10 @@ import json
 import logging
 
 from django.utils.module_loading import import_string
+from rest_framework.exceptions import ValidationError
 
 from api.models import Resource, ResourceMetadata, ExecutedOperation
+from api.exceptions import AttributeValueError
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
     move_resource, \
@@ -155,6 +157,19 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     # attribute does not match our regex)
     try:
         metadata = resource_class_instance.extract_metadata(new_path)
+    except ValidationError as ex:
+        logger.info('Caught a ValidationError when extracting metadata from'
+            ' resource at path: {p}'.format(p=new_path)
+        )
+        err_list = []
+        for k,v in ex.get_full_details().items():
+            # v is a nested dict
+            msg = v['message']
+            err_str = '{k}:{s}'.format(k=k, s = str(msg))
+            err_list.append(err_str)
+        resource.status = Resource.ERROR_WITH_REASON.format(ex=','.join(err_list))
+        resource.resource_type = None
+        return
     except Exception as ex:
         logger.info('Encountered an exception when extracting metadata: {ex}'.format(
             ex = ex

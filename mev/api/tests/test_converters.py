@@ -1,9 +1,9 @@
 import unittest
 import unittest.mock as mock
 from django.core.exceptions import ImproperlyConfigured
-from rest_framework.exceptions import ValidationError
 
 from api.models import Resource
+from api.exceptions import AttributeValueError
 from api.data_structures import Observation, ObservationSet, Feature, FeatureSet
 from api.converters.basic_attributes import StringConverter, \
     IntegerConverter, \
@@ -29,7 +29,7 @@ class TestBasicAttributeConverter(BaseAPITestCase):
         v = s.convert('ab c')
         self.assertEqual(v, 'ab_c')
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             v = s.convert('ab?c')
 
         s = UnrestrictedStringConverter()
@@ -44,22 +44,22 @@ class TestBasicAttributeConverter(BaseAPITestCase):
         i = ic.convert(2)
         self.assertEqual(i,2)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             ic.convert('1')
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             ic.convert('1.2')
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             ic.convert('a')
 
         s = StringListConverter()
         v = s.convert(['ab','c d'])
         self.assertCountEqual(['ab','c_d'], v)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             v = s.convert(2)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             v = s.convert(['1','2'])
 
         s = UnrestrictedStringListConverter()
@@ -75,7 +75,7 @@ class TestBasicAttributeConverter(BaseAPITestCase):
         self.assertEqual(v, 'a_b,c_d')
 
         c = StringListToCsvConverter()
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(AttributeValueError):
             v = c.convert(['a?b','c d'])
 
         c = UnrestrictedStringListToCsvConverter()

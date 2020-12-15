@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework.exceptions import ValidationError
+from api.exceptions import AttributeValueError
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,9 @@ def create_attribute(attr_key, attribute_dict, allow_null=False):
     # only the "additional" keyword entries are left in `attr_dict`
     try:
         attribute_instance = attribute_type(attr_val, **attr_dict)
-    except ValidationError as ex:
+    except AttributeValueError as ex:
         raise ValidationError({
-            attr_key: ex.detail
+            attr_key: ex
         })
     return attribute_instance
 

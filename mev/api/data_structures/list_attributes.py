@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework.exceptions import ValidationError
+from api.exceptions import AttributeValueError
 
 from .attributes import StringAttribute, \
     UnrestrictedStringAttribute
@@ -15,18 +16,18 @@ class AttributeListMixin(object):
     def handle_list_of_attributes(self, values, **kwargs):
         self._value = []
         if type(values) != list:
-            raise ValidationError('To create a list-type attribute'
+            raise AttributeValueError('To create a list-type attribute'
                 ' you must supply a list.'
             )
         for v in values:
             try:
                 t = self.base_attribute_type(v, **kwargs)
                 self._value.append(t)
-            except ValidationError as ex:
+            except AttributeValueError as ex:
                 err_string = ('Encountered an issue validating one of the nested'
                     ' attributes. Problem was: {ex}'.format(ex=ex)
                 )
-                raise ValidationError(err_string)
+                raise AttributeValueError(err_string)
 
     @property
     def value(self):
