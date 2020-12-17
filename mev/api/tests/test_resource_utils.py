@@ -22,12 +22,14 @@ from api.models import Resource, \
     ExecutedOperation, \
     WorkspaceExecutedOperation, \
     Operation
+from api.serializers.resource_metadata import ResourceMetadataSerializer
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_view, \
     validate_resource, \
     handle_valid_resource, \
     handle_invalid_resource, \
-    check_extension
+    check_extension, \
+    add_metadata_to_resource
 from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
 from api.tests.base import BaseAPITestCase
@@ -473,3 +475,87 @@ class TestResourceUtilities(BaseAPITestCase):
         handle_valid_resource(r, resource_class_instance, 'ANN')
         self.assertTrue('123' in r.status)
         self.assertIsNone(r.resource_type)
+
+
+    def test_add_metadata(self):
+        '''
+        Test that we gracefully handle updates
+        when associating metadata with a resource.
+
+        Have a case where we update and we create a new ResourceMetadata
+        '''
+        # create a new Resource
+        r = Resource.objects.create(
+            name='foo.txt'
+        )
+        rm = ResourceMetadata.objects.create(
+            resource=r
+        )
+        rm_pk = rm.pk
+
+        mock_obs_set = {
+            'multiple': True,
+            'elements': [
+                {
+                    'id': 'sampleA'
+                },
+                {
+                    'id': 'sampleB'
+                }
+            ]
+        }
+        add_metadata_to_resource(
+            r, 
+            {DataResource.OBSERVATION_SET:mock_obs_set}
+        )
+
+        # query again, see that it was updated
+        rm2 = ResourceMetadata.objects.get(pk=rm_pk)
+        self.assertDictEqual(rm2.observation_set, mock_obs_set)
+
+        # OK, now get a Resource that does not already have metadata
+        # associated with it:        
+        r = Resource.objects.create(
+            name='bar.txt'
+        )
+        with self.assertRaises(ResourceMetadata.DoesNotExist):
+            ResourceMetadata.objects.get(resource=r)
+        add_metadata_to_resource(
+            r, 
+            {DataResource.OBSERVATION_SET:mock_obs_set}
+        )
+
+        # query again, see that it was updated
+        rm3 = ResourceMetadata.objects.get(pk=rm_pk)
+        self.assertDictEqual(rm3.observation_set, mock_obs_set)
+
+    @mock.patch('api.utilities.resource_utilities.ResourceMetadataSerializer')
+    def test_add_metadata_case2(self, mock_serializer_cls):
+        '''
+        Test that we gracefully handle updates and save failures
+        when associating metadata with a resource.
+
+        Inspired by a runtime failure where the FeatureSet was too
+        large for the database field
+        '''
+        # create a new Resource
+        r = Resource.objects.create(
+            name='foo.txt'
+        )
+        # ensure it has no associated metadata
+        with self.assertRaises(ResourceMetadata.DoesNotExist):
+            ResourceMetadata.objects.get(resource=r)
+
+        # create a mock object that will raise an exception
+        from django.db.utils import OperationalError
+        mock_serializer1 = mock.MagicMock()
+        mock_serializer2 = mock.MagicMock()
+        mock_serializer1.is_valid.return_value = True
+        mock_serializer1.save.side_effect = OperationalError
+        mock_serializer_cls.side_effect = [mock_serializer1, mock_serializer2]
+        add_metadata_to_resource(
+            r, 
+            {}
+        )
+        mock_serializer2.save.assert_called()
+

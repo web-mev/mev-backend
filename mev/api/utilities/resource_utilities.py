@@ -4,6 +4,7 @@ import json
 import logging
 
 from django.utils.module_loading import import_string
+from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource, ResourceMetadata, ExecutedOperation
@@ -85,14 +86,33 @@ def get_resource_paginator(resource_type):
     
 
 def add_metadata_to_resource(resource, metadata):
-    metadata[RESOURCE_KEY] = resource.pk
+    d = {}
+    d[RESOURCE_KEY] = resource.pk
+    metadata.update(d)
     try:
         rm = ResourceMetadata.objects.get(resource=resource)
         rms = ResourceMetadataSerializer(rm, data=metadata)
     except ResourceMetadata.DoesNotExist:
         rms = ResourceMetadataSerializer(data=metadata)
     if rms.is_valid(raise_exception=True):
-        rms.save()
+        try:
+            rms.save()
+        except OperationalError as ex:
+            logger.error('Failed when adding ResourceMetadata.'
+                ' Reason was: {ex}'.format(
+                    ex=ex
+                )
+            )
+            # if the save failed (e.g. perhaps b/c it was too large)
+            # then just fill in blank metadata.
+            rms = ResourceMetadataSerializer(data=d)
+            rms.save()
+        except Exception as ex:
+            logger.error('Caught an unexpected error when trying to save metadata'
+                ' for resource with pk={pk}'.format(pk=resource.pk)
+            )            
+            rms = ResourceMetadataSerializer(data=d)
+            rms.save()
 
 def move_resource_to_final_location(resource_instance):
     '''
