@@ -37,7 +37,7 @@ class BaseElementSerializer(serializers.Serializer):
                 attr = create_attribute(k, v)
             else:
                 attr = v
-            attr_dict[k] = attr   
+            attr_dict[k] = attr
         return attr_dict 
 
     def get_instance(self):
@@ -48,7 +48,8 @@ class BaseElementSerializer(serializers.Serializer):
         database.
         '''
         self.is_valid(raise_exception=True)
-        return self.create(self.validated_data)
+        el = self.create(self.validated_data)
+        return el
 
 
 class NullableBaseElementSerializer(BaseElementSerializer):

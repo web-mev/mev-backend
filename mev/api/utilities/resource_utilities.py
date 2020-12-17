@@ -96,7 +96,7 @@ def add_metadata_to_resource(resource, metadata):
         rms = ResourceMetadataSerializer(data=metadata)
     if rms.is_valid(raise_exception=True):
         try:
-            rms.save()
+            rm = rms.save()
         except OperationalError as ex:
             logger.error('Failed when adding ResourceMetadata.'
                 ' Reason was: {ex}'.format(

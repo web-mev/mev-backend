@@ -4,11 +4,11 @@ import os
 import uuid
 import numpy as np
 import pandas as pd
+import copy
 
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
-
 
 from api.models import Resource, ResourceMetadata
 
@@ -37,6 +37,10 @@ from resource_types.table_types import TableResource, \
     AnnotationTable, \
     FeatureTable, \
     BEDFile
+from resource_types import PARENT_OP_KEY, \
+    OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY, \
+    RESOURCE_KEY
 from api.tests.base import BaseAPITestCase
 from api.utilities.resource_utilities import add_metadata_to_resource
 
@@ -213,14 +217,14 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         self.expected_parent_operation = None
         metadata = {
             RESOURCE_KEY: self.new_resource_pk,
-            OBSERVATION_SET_KEY: self.expected_observation_set,
-            FEATURE_SET_KEY: self.expected_feature_set,
+            OBSERVATION_SET_KEY: copy.deepcopy(self.expected_observation_set),
+            FEATURE_SET_KEY: copy.deepcopy(self.expected_feature_set),
             PARENT_OP_KEY: self.expected_parent_operation
         }
         rms = ResourceMetadataSerializer(data=metadata)
         if rms.is_valid(raise_exception=True):
             rms.save()
-        
+
 
     def test_retrieve_full_metadata(self):
         '''
@@ -234,8 +238,12 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertEqual(response_json[OBSERVATION_SET_KEY], self.expected_observation_set)
-        self.assertEqual(response_json[FEATURE_SET_KEY], self.expected_feature_set)
+        obs_set = response_json[OBSERVATION_SET_KEY]
+        elements = obs_set['elements']
+        self.assertCountEqual(elements, self.expected_observation_set['elements'])
+        fs = response_json[FEATURE_SET_KEY]
+        elements = fs['elements']
+        self.assertCountEqual(elements, self.expected_feature_set['elements'])
         self.assertEqual(response_json[PARENT_OP_KEY], self.expected_parent_operation)
 
     def test_retrieve_observation_metadata(self):
@@ -253,7 +261,9 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         response_keys = response_json.keys()
         self.assertTrue(len(response_keys) == 1)
         self.assertTrue(list(response_keys)[0] == OBSERVATION_SET_KEY)
-        self.assertEqual(response_json[OBSERVATION_SET_KEY], self.expected_observation_set)
+        obs_set = response_json[OBSERVATION_SET_KEY]
+        elements = obs_set['elements']
+        self.assertCountEqual(elements, self.expected_observation_set['elements'])
 
     def test_retrieve_feature_metadata(self):
         '''
@@ -270,7 +280,9 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         response_keys = response_json.keys()
         self.assertTrue(len(response_keys) == 1)
         self.assertTrue(list(response_keys)[0] == FEATURE_SET_KEY)
-        self.assertEqual(response_json[FEATURE_SET_KEY], self.expected_feature_set)
+        fs = response_json[FEATURE_SET_KEY]
+        elements = fs['elements']
+        self.assertCountEqual(elements, self.expected_feature_set['elements'])
 
     def test_retrieve_parent_operation_metadata(self):
         '''
@@ -535,6 +547,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         metadata = t.extract_metadata(resource_path)
         r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
         add_metadata_to_resource(r, metadata)
+        rmm = ResourceMetadata.objects.get(resource=r)
 
         url = reverse(
             'resource-metadata-detail', 
@@ -554,3 +567,200 @@ class TestBedFileMetadata(unittest.TestCase):
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+
+
+class TestResourceMetadataSerializer(BaseAPITestCase):
+
+    def test_good_obs_set(self):
+        '''
+        Tests that good observation sets are accepted when creating
+        ResourceMetadata
+        '''
+        r = Resource.objects.all()
+        r = r[0]
+        # the bad obs set is missing the `elements` key
+        good_obs_set = {
+            'multiple': True,
+            'elements':[
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'bar'
+                }
+            ]
+        }
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: good_obs_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertTrue(rms.is_valid())
+
+    def test_bad_obs_set(self):
+        '''
+        Tests that bad observation sets are rejected when creating
+        ResourceMetadata
+        '''
+        r = Resource.objects.all()
+        r = r[0]
+        # the bad obs set is missing the `elements` key
+        bad_obs_set = {
+            'multiple': True
+        }
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: bad_obs_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+        bad_obs_set = {}
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: bad_obs_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+        bad_obs_set = {
+            'multiple': True,
+            'elements':[
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'foo' # a duplicated key
+                }
+            ]
+        }        
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: bad_obs_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+    def test_good_feature_set(self):
+        '''
+        Tests that good featire sets are accepted when creating
+        ResourceMetadata
+        '''
+        r = Resource.objects.all()
+        r = r[0]
+        # the bad obs set is missing the `elements` key
+        good_feature_set = {
+            'multiple': True,
+            'elements':[
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'bar'
+                }
+            ]
+        }
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: good_feature_set,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertTrue(rms.is_valid())
+
+    def test_bad_feature_set(self):
+        '''
+        Tests that bad feature sets are rejected when creating
+        ResourceMetadata
+        '''
+        r = Resource.objects.all()
+        r = r[0]
+        # the bad obs set is missing the `elements` key
+        bad_feature_set = {
+            'multiple': True
+        }
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: bad_feature_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+        bad_feature_set = {}
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: bad_feature_set,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+        bad_feature_set = {
+            'multiple': True,
+            'elements':[
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'foo' # a duplicated key
+                }
+            ]
+        }        
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: bad_feature_set,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+    def test_missing_keys_in_resource_metadata(self):
+        '''
+        Tests
+        '''
+        # can't have a null resource key-- NEEDS to be assoc.
+        # with a resource
+        d = {
+            RESOURCE_KEY: None,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertFalse(rms.is_valid())
+
+        r = Resource.objects.all()
+        r = r[0]
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertTrue(rms.is_valid())
+
+        # it's OK to only have the resource key.
+        # The others are set to null by default.
+        d = {
+            RESOURCE_KEY: r.pk,
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        self.assertTrue(rms.is_valid())
+        rm = rms.save()
+        self.assertIsNone(rm.observation_set)
+        self.assertIsNone(rm.feature_set)
+        self.assertIsNone(rm.parent_operation)

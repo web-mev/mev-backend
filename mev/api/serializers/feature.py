@@ -8,7 +8,8 @@ class CreateMixin(object):
         data.
         '''
         attr_dict = self._gather_attributes(validated_data)
-        return Feature(validated_data['id'], attr_dict)
+        f = Feature(validated_data['id'], attr_dict)
+        return f
 
 
 class FeatureSerializer(CreateMixin, BaseElementSerializer):

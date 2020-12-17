@@ -337,7 +337,7 @@ def dir_hash(directory, verbose=False):
     for root, dirs, files in os.walk(directory):
         for names in files:
             if verbose:
-                print('Hashing', names)
+                logger.info('Hashing: {n}'.format(n=names))
             filepath = os.path.join(root, names)
             try:
                 update_hash(running_hash=sha_hash,

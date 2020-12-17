@@ -8,23 +8,32 @@ class FeatureSetSerializer(ElementSetSerializer):
 
     elements = FeatureSerializer(required=False, many=True)
 
-    def create(self, validated_data):
+    def _build_set(self, data):
         '''
-        Returns an FeatureSet instance from the validated
-        data.
+        A helper method which attempts to build a FeatureSet
+        given the `data` arg. Assumes the `data` does have the 
+        proper keys
         '''
         feature_list = []
-        for feature_dict in validated_data['elements']:
+        for feature_dict in data['elements']:
             # the validated data has the Feature info as an OrderedDict
             # below, we use the FeatureSerializer to turn that into
             # proper Feature instance.
             feature_serializer = FeatureSerializer(data=feature_dict)
             feat = feature_serializer.get_instance()
             feature_list.append(feat)
-        return FeatureSet(
+        fl = FeatureSet(
             feature_list, 
-            validated_data['multiple']
+            data['multiple']
         )
+        return fl
+
+    def create(self, validated_data):
+        '''
+        Returns an FeatureSet instance from the validated
+        data.
+        '''
+        return self._build_set(validated_data)
 
 class NullableFeatureSetSerializer(FeatureSetSerializer):
     elements = NullableFeatureSerializer(required=False, many=True)

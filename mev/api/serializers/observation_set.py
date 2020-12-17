@@ -8,23 +8,28 @@ class ObservationSetSerializer(ElementSetSerializer):
 
     elements = ObservationSerializer(required=False, many=True)
         
-    def create(self, validated_data):
+    def _build_set(self, data):
         '''
-        Returns an ObservationSet instance from the validated
-        data.
+        A helper method which attempts to build an ObservationSet
+        given the `data` arg. Assumes the `data` does have the 
+        proper keys
         '''
         obs_list = []
-        for obs_dict in validated_data['elements']:
-            # the validated data has the Observation info as an OrderedDict
-            # below, we use the ObservationSerializer to turn that into
-            # proper Observation instance.
+        for obs_dict in data['elements']:
             obs_serializer = ObservationSerializer(data=obs_dict)
             obs = obs_serializer.get_instance()
             obs_list.append(obs)
         return ObservationSet(
             obs_list, 
-            validated_data['multiple']
+            data['multiple']
         )
+
+    def create(self, validated_data):
+        '''
+        Returns an ObservationSet instance from the validated
+        data.
+        '''
+        return self._build_set(validated_data)
 
 class NullableObservationSetSerializer(ObservationSetSerializer):
     elements = NullableObservationSerializer(required=False, many=True)

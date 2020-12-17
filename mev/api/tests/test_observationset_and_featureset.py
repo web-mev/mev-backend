@@ -317,6 +317,35 @@ class ElementSetSerializerTester(object):
         s = self.element_set_serializer_class(data=bad_data)
         testcase.assertFalse(s.is_valid())
 
+    def test_duplicate_id_in_payload(self, testcase):
+        '''
+        Tests where the element list has two entries with the same `id` field
+        '''
+        bad_data = {
+            'multiple': True,
+            'elements': [
+                {
+                    'id':'foo',
+                    'attributes': {
+                        'keyA': {
+                            'attribute_type': 'String',
+                            'value': 'abc'
+                        }
+                    }
+                },
+                {
+                    'id':'foo',
+                    'attributes': {
+                        'keyA': {
+                            'attribute_type': 'String',
+                            'value': 'abc'
+                        }
+                    }
+                }
+            ]
+        }
+        s = self.element_set_serializer_class(data=bad_data)
+        testcase.assertFalse(s.is_valid())
 
 
 class TestObservationSetSerializer(unittest.TestCase):

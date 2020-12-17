@@ -1,4 +1,5 @@
 import os
+import copy
 import random
 import uuid
 import unittest
@@ -511,7 +512,12 @@ class TestResourceUtilities(BaseAPITestCase):
 
         # query again, see that it was updated
         rm2 = ResourceMetadata.objects.get(pk=rm_pk)
-        self.assertDictEqual(rm2.observation_set, mock_obs_set)
+        expected_obs_set = copy.deepcopy(mock_obs_set)
+        elements = expected_obs_set['elements']
+        for el in elements:
+            el.update({'attributes': {}})
+        self.assertEqual(rm2.observation_set['multiple'], mock_obs_set['multiple'])
+        self.assertCountEqual(rm2.observation_set['elements'], elements)
 
         # OK, now get a Resource that does not already have metadata
         # associated with it:        
@@ -527,8 +533,13 @@ class TestResourceUtilities(BaseAPITestCase):
 
         # query again, see that it was updated
         rm3 = ResourceMetadata.objects.get(pk=rm_pk)
-        self.assertDictEqual(rm3.observation_set, mock_obs_set)
-
+        expected_obs_set = copy.deepcopy(mock_obs_set)
+        elements = expected_obs_set['elements']
+        for el in elements:
+            el.update({'attributes': {}})
+        self.assertEqual(rm3.observation_set['multiple'], mock_obs_set['multiple'])
+        self.assertCountEqual(rm3.observation_set['elements'], elements)
+        
     @mock.patch('api.utilities.resource_utilities.ResourceMetadataSerializer')
     def test_add_metadata_case2(self, mock_serializer_cls):
         '''
