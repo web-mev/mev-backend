@@ -11,7 +11,6 @@ class OperationOutputSerializer(serializers.Serializer):
         if type(instance) == OperationOutput:
             return instance.to_dict()
         else:
-            instance['spec'] = instance['spec'].to_dict()           
             return instance
 
     def create(self, validated_data):
@@ -19,7 +18,8 @@ class OperationOutputSerializer(serializers.Serializer):
         Returns an OperationOutput instance from the validated
         data.
         '''
-        return OperationOutput(validated_data['spec'])
+        spec = OutputSpecSerializer(data=validated_data['spec']).get_instance()
+        return OperationOutput(spec)
 
     def get_instance(self):
         '''

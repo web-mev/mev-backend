@@ -10,6 +10,8 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation_input import OperationInputSerializer
+from api.serializers.operation_input_dict import OperationInputDictSerializer
+from api.serializers.operation_output_dict import OperationOutputDictSerializer
 from api.serializers.operation import OperationSerializer
 from api.data_structures import Operation
 from api.models import Operation as OperationDbModel
@@ -217,15 +219,18 @@ class OperationIngestionTester(unittest.TestCase):
             }
         }
         op_input = OperationInputSerializer(data=op_input_dict).get_instance()
+        op_input_dict_obj = OperationInputDictSerializer(data={
+            'p_val': op_input
+        }).get_instance()
+        op_output_dict_obj = OperationOutputDictSerializer(data={}).get_instance()
         op_id = str(uuid.uuid4())
+
         operation_instance = Operation(
             op_id,
             'Some op name',
             'Some op description',
-            {
-                'p_val': op_input,
-            },
-            {},
+            op_input_dict_obj,
+            op_output_dict_obj,
             AVAILABLE_RUN_MODES[0],
             'http://github.com/some-repo/',
             'abcd',

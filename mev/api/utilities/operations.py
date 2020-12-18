@@ -70,13 +70,7 @@ def get_operation_instance_data(operation_db_model):
 
         # get an instance of the data structure corresponding to an Operation
         op_data_structure = op_serializer.get_instance()
-
-        # seems roundabout, but then feed that Operation back into the 
-        # serializer so we can get the serialized representation via the
-        # `data` property
-        from api.serializers.operation import OperationSerializer
-        s = OperationSerializer(op_data_structure)
-        return s.data
+        return op_data_structure.to_dict()
     else:
         logger.error('Integrity error: the queried Operation with'
             ' id={uuid} did not have a corresponding folder.'.format(

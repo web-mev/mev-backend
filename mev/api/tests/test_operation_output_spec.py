@@ -332,7 +332,8 @@ class OutputSpecSerializerTester(unittest.TestCase):
         '''
         i = OutputSpecSerializer(data=self.output_spec_dict)
         self.assertTrue(i.is_valid())
-        self.assertDictEqual(i.data, self.expected_spec_result)
+        ii = i.get_instance()
+        self.assertDictEqual(ii.to_dict(), self.expected_spec_result)
 
         # missing default is ok.
         output_spec_dict = {

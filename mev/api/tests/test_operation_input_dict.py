@@ -6,6 +6,7 @@ from resource_types import RESOURCE_MAPPING
 from api.serializers.operation_input_dict import OperationInputDictSerializer
 from api.serializers.operation_input import OperationInputSerializer
 from api.serializers.operation_output import OperationOutputSerializer
+from api.data_structures import OperationInputDict
 
 class OperationInputDictTester(unittest.TestCase):
     def setUp(self):
@@ -46,15 +47,27 @@ class OperationInputDictTester(unittest.TestCase):
         }
 
     def test_serialization(self):
-        o = OperationInputDictSerializer({
+        oid = OperationInputDict({
             'count_matrix': self.op_input1,
             'p_val': self.op_input2
         })
+        oid_serializer = OperationInputDictSerializer(oid)
         expected_data = self.operation_input_dict.copy()
-        self.assertDictEqual(o.data, expected_data)
+        self.assertDictEqual(oid_serializer.data, expected_data)
+
+        o = OperationInputDictSerializer(data={
+            'count_matrix': self.op_input1_dict,
+            'p_val': self.op_input2_dict
+        })
+        expected_data = self.operation_input_dict.copy()
+        i = o.get_instance()
+        self.assertDictEqual(i.to_dict(), expected_data)
 
     def test_deserialization(self):
         o = OperationInputDictSerializer(data=self.operation_input_dict)
         i = o.get_instance()
         self.assertEqual(i['count_matrix'], self.op_input1)
         self.assertEqual(i['p_val'], self.op_input2)
+
+        d = i.to_dict()
+        self.assertDictEqual(d, self.operation_input_dict)

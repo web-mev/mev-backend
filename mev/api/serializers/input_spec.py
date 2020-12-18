@@ -12,9 +12,8 @@ class InputSpecSerializer(InputOutputSpecSerializer):
     '''
 
     def to_internal_value(self, data):
-        data_copy = copy.deepcopy(data)
         try:
-            input_spec_type_str = data_copy.pop('attribute_type')
+            input_spec_type_str = data['attribute_type']
         except KeyError as ex:
             raise ValidationError('Need to supply an "attribute_type" key.')
 
@@ -25,9 +24,15 @@ class InputSpecSerializer(InputOutputSpecSerializer):
                 ' valid type. Choices are: {choices}'.format(
                     choices=', '.join(input_spec_mapping.keys())
                 ))
-        return input_spec_type(**data_copy)
+        # try to instantiate the underlying type as a way to validate.
+        # If that fails, it will raise a ValidationError
+        data_copy = copy.deepcopy(data)
+        data_copy.pop('attribute_type')
+        input_spec_type(**data_copy)
+        return data
 
     def create(self, validated_data):
-        input_spec_type_str = validated_data.pop('attribute_type')
+        data_copy = copy.deepcopy(validated_data)
+        input_spec_type_str = data_copy.pop('attribute_type')
         input_spec_type = input_spec_mapping[input_spec_type_str]
-        return input_spec_type(data=validated_data)
+        return input_spec_type(**data_copy)

@@ -194,7 +194,8 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
 
     # get an instance of the Operation (the data structure, NOT the database model)
     op = op_serializer.get_instance()
-    op_data = OperationSerializer(op).data
+    op_data = op.to_dict()
+    #op_data = OperationSerializer(op).data
     logging.info('After parsing operation spec, we have: {spec}'.format(spec=op_data))
 
     # check that the required files, etc. are there for the particular run mode:

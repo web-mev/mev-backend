@@ -9,8 +9,11 @@ from api.runners import AVAILABLE_RUN_MODES
 from resource_types import RESOURCE_MAPPING
 from api.serializers.operation import OperationSerializer
 from api.data_structures.operation import Operation
+from api.data_structures import OperationInputDict, OperationOutputDict
 from api.serializers.operation_input import OperationInputSerializer
 from api.serializers.operation_output import OperationOutputSerializer
+from api.serializers.operation_input_dict import OperationInputDictSerializer
+from api.serializers.operation_output_dict import OperationOutputDictSerializer
 
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
@@ -72,36 +75,34 @@ class OperationTester(unittest.TestCase):
         self.git_hash = 'abcd1234'
         self.repo_name = 'some-repo'
         self.workspace_operation = True
+        inputs_dict = {
+            'count_matrix': self.op_input1_dict,
+            'p_val': self.op_input2_dict
+        }
+        outputs_dict =  {
+            'norm_counts': self.op_output1_dict,
+            'dge_table': self.op_output2_dict
+        }
         self.operation_dict = {
             'id': self.op_id,
             'name': self.op_name,
             'description': self.description,
-            'inputs': {
-                'count_matrix': self.op_input1_dict,
-                'p_val': self.op_input2_dict
-            },
-            'outputs': {
-                'norm_counts': self.op_output1_dict,
-                'dge_table': self.op_output2_dict
-            },
+            'inputs': inputs_dict,
+            'outputs': outputs_dict,
             'mode': self.mode, 
             'repository_url': self.repository_url,
             'git_hash': self.git_hash,
             'repo_name': self.repo_name,
             'workspace_operation': self.workspace_operation
         }
+        op_input_dict = OperationInputDictSerializer(data=inputs_dict).get_instance()
+        op_output_dict = OperationOutputDictSerializer(data=outputs_dict).get_instance()
         self.operation_instance = Operation(
             self.op_id,
             self.op_name,
             self.description,
-            {
-                'count_matrix': op_input1,
-                'p_val': op_input2,
-            },
-            {
-                'norm_counts': op_output1,
-                'dge_table': op_output2,
-            },
+            op_input_dict,
+            op_output_dict,
             self.mode,
             self.repository_url,
             self.git_hash,
@@ -119,7 +120,7 @@ class OperationTester(unittest.TestCase):
         o = OperationSerializer(data=self.operation_dict)
         self.assertTrue(o.is_valid(raise_exception=True))
         new_instance = o.get_instance()
-        self.assertDictEqual(new_instance.inputs, self.operation_instance.inputs)
+        self.assertEqual(new_instance.inputs, self.operation_instance.inputs)
 
         # bad identifier (not a UUID):
         bad_dict = copy.deepcopy(self.operation_dict)

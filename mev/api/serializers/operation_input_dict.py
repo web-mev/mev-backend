@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from api.data_structures import OperationInput
+from api.data_structures import OperationInput, OperationInputDict
 from api.serializers.operation_input import OperationInputSerializer
 
 class OperationInputDictSerializer(serializers.BaseSerializer):
@@ -12,10 +12,7 @@ class OperationInputDictSerializer(serializers.BaseSerializer):
     '''
 
     def to_representation(self, instance):
-        output = {}
-        for key, op_input in instance.items():
-            output[key] = OperationInputSerializer(op_input).data
-        return output
+        return instance.to_dict()
 
     def to_internal_value(self, data):
         internal_val = {}
@@ -42,7 +39,7 @@ class OperationInputDictSerializer(serializers.BaseSerializer):
             elif type(item) == dict:
                 os = OperationInputSerializer(data=item)
                 d[k] = os.get_instance()
-        return d
+        return OperationInputDict(d)
 
     def get_instance(self):
         '''

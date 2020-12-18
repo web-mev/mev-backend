@@ -16,6 +16,7 @@ from api.data_structures import IntegerInputSpec, \
     OptionStringInputSpec, \
     BooleanInputSpec, \
     DataResourceInputSpec, \
+    StaticDataResourceInputSpec, \
     ObservationInputSpec, \
     ObservationSetInputSpec, \
     FeatureInputSpec, \
@@ -238,6 +239,36 @@ class TestInputSpec(unittest.TestCase):
         with self.assertRaises(ValidationError):
             ds = DataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
 
+    def test_staticdataresource_input_spec(self):
+        from resource_types import RESOURCE_MAPPING
+        all_resource_types = list(RESOURCE_MAPPING.keys())
+        random.shuffle(all_resource_types)
+        n = 2
+        valid_resource_types = [all_resource_types[i] for i in range(n)]
+
+        ds = StaticDataResourceInputSpec(many=True, resource_types=valid_resource_types)
+        ds = StaticDataResourceInputSpec(many=1, resource_types=valid_resource_types)
+        ds = StaticDataResourceInputSpec(many='true', resource_types=valid_resource_types)
+        
+        # missing `resource_types` key
+        with self.assertRaises(ValidationError):
+            ds = StaticDataResourceInputSpec(many=True)
+        # missing `many` key
+        with self.assertRaises(ValidationError):
+            ds = StaticDataResourceInputSpec(resource_types=valid_resource_types)
+
+        # `many` key cannot be cast as a boolean
+        with self.assertRaises(ValidationError):
+            ds = StaticDataResourceInputSpec(many='yes', resource_types=valid_resource_types)
+
+        # `resource_types` key has bad values
+        with self.assertRaises(ValidationError):
+            ds = StaticDataResourceInputSpec(many=True, resource_types=['abc',])
+
+        # `resource_types` key is not a list
+        with self.assertRaises(ValidationError):
+            ds = StaticDataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
+
     def test_stringlist_input_spec(self):
         s = StringListInputSpec()
         x = StringListInputSpec(default=['abc', 'def'])
@@ -263,6 +294,49 @@ class TestInputSpec(unittest.TestCase):
             s = UnrestrictedStringListInputSpec(default='???')
         with self.assertRaises(ValidationError):
             s = UnrestrictedStringListInputSpec(xyz='def')
+
+    def test_equality(self):
+        '''
+        Tests that the equality overload works as expected
+        '''
+        input_spec_dict1 = {
+            'attribute_type': 'BoundedInteger', 
+            'min': 0, 
+            'max': 5, 
+            'default':3
+        }
+        input_spec_dict2 = {
+            'attribute_type': 'BoundedInteger', 
+            'min': 0, 
+            'max': 5, 
+            'default':3
+        }
+        input_spec_dict3 = {
+            'attribute_type': 'BoundedInteger', 
+            'min': 0, 
+            'max': 5, 
+            'default':4 # different default
+        }
+        input_spec_dict4 = {
+            'attribute_type': 'BoundedInteger', 
+            'min': 0, 
+            'max': 3, # different max 
+            'default':3
+        }
+        input_spec_dict5 = {
+            'attribute_type': 'Integer', 
+            'default':3
+        }
+        i1 = InputSpecSerializer(data=input_spec_dict1).get_instance()
+        i2 = InputSpecSerializer(data=input_spec_dict2).get_instance()
+        i3 = InputSpecSerializer(data=input_spec_dict3).get_instance()
+        i4 = InputSpecSerializer(data=input_spec_dict4).get_instance()
+        i5 = InputSpecSerializer(data=input_spec_dict5).get_instance()
+        self.assertEqual(i1,i2)
+        self.assertNotEqual(i1,i3)
+        self.assertNotEqual(i1,i4)
+        self.assertNotEqual(i4,i5)
+        
 
 class InputSpecSerializerTester(unittest.TestCase):
 
@@ -319,7 +393,8 @@ class InputSpecSerializerTester(unittest.TestCase):
         '''
         i = InputSpecSerializer(data=self.input_spec_dict)
         self.assertTrue(i.is_valid())
-        self.assertDictEqual(i.data, self.expected_spec_result)
+        ii = i.get_instance()
+        self.assertDictEqual(ii.to_dict(), self.expected_spec_result)
 
         # missing default is ok.
         input_spec_dict = {
@@ -381,3 +456,4 @@ class InputSpecSerializerTester(unittest.TestCase):
             i = tt()
             x = InputSpecSerializer(i)
             self.assertEqual(x.data, spec_dict)
+

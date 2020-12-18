@@ -15,8 +15,8 @@ class Operation(object):
         "id": <UUID>,
         "name": <string>,
         "description": <string>,
-        "inputs": Object<OperationInput>,
-        "outputs": Object<OperationOutput>,
+        "inputs": <OperationInputDict>,
+        "outputs": <OperationOutputDict>,
         "mode": <string>,
         "repository_url": <string url>,
         "git_hash": <string>,
@@ -40,6 +40,20 @@ class Operation(object):
         self.git_hash = git_hash
         self.repo_name = repo_name
         self.workspace_operation = workspace_operation
+
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'description': self.description,
+            'repository_url': self.repository_url,
+            'repo_name': self.repo_name,
+            'mode': self.mode,
+            'git_hash': self.git_hash,
+            'inputs': self.inputs.to_dict(),
+            'outputs': self.outputs.to_dict(),
+            'workspace_operation': self.workspace_operation
+        }
 
     def __eq__(self, other):
         a = self.name == other.name

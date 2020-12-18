@@ -33,36 +33,20 @@ class OperationSerializer(serializers.Serializer):
         return mode
 
     def to_representation(self, instance):
-        input_dict_rep = {}
-        output_dict_rep = {}
-        for key, item in instance.inputs.items():
-            input_dict_rep[key] = OperationInputSerializer(item).data
-        output_dict_rep = {}
-        for key, item in instance.outputs.items():
-            output_dict_rep[key] = OperationOutputSerializer(item).data
-        return {
-            'id': str(instance.id),
-            'name': instance.name,
-            'description': instance.description,
-            'repository_url': instance.repository_url,
-            'repo_name': instance.repo_name,
-            'mode': instance.mode,
-            'git_hash': instance.git_hash,
-            'inputs': input_dict_rep,
-            'outputs': output_dict_rep,
-            'workspace_operation': instance.workspace_operation
-        }
+        return instance.to_dict()
 
     def create(self, validated_data):
         '''
         Returns an Operation instance from the validated
         data.
         '''
+        input_obj = OperationInputDictSerializer(data=validated_data['inputs']).get_instance()
+        output_obj = OperationOutputDictSerializer(data=validated_data['outputs']).get_instance()
         return Operation(validated_data['id'],
             validated_data['name'],
             validated_data['description'],
-            validated_data['inputs'],
-            validated_data['outputs'],
+            input_obj,
+            output_obj,
             validated_data['mode'],
             validated_data['repository_url'],
             validated_data['git_hash'],

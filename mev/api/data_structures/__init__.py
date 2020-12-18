@@ -111,6 +111,7 @@ from .feature import Feature
 from .observation_set import ObservationSet
 from .feature_set import FeatureSet
 from .operation_input import OperationInput
+from .operation_input_output_dict import OperationInputDict, OperationOutputDict
 from .operation_input_spec import IntegerInputSpec, \
     PositiveIntegerInputSpec, \
     NonnegativeIntegerInputSpec, \

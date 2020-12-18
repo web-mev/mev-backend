@@ -14,7 +14,6 @@ class OperationInputSerializer(serializers.Serializer):
         if type(instance) == OperationInput:
             return instance.to_dict()
         else:
-            instance['spec'] = instance['spec'].to_dict()           
             return instance
 
     def create(self, validated_data):
@@ -22,9 +21,10 @@ class OperationInputSerializer(serializers.Serializer):
         Returns an OperationInput instance from the validated
         data.
         '''
+        spec = InputSpecSerializer(data=validated_data['spec']).get_instance()
         return OperationInput(validated_data['description'], 
             validated_data['name'], 
-            validated_data['spec'], 
+            spec, 
             validated_data['required']
         )
 
