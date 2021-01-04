@@ -22,3 +22,11 @@ class InvalidAttributeKeywords(Exception):
     an Attribute subclass
     '''
     pass
+
+
+class InputMappingException(Exception):
+    '''
+    Raised if there is an exception to be raised when mapping a user's 
+    inputs to job inputs when an ExecutedOperation has been requested.
+    '''
+    pass

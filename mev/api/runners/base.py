@@ -148,7 +148,7 @@ class OperationRunner(object):
                 raise ex
             # instantiate the converter and convert the arg:
             c = converter_class()
-            arg_dict[k] = c.convert(v)
+            arg_dict.update(c.convert(k,v, op_dir))
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)

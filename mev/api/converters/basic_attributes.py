@@ -9,39 +9,39 @@ class BaseAttributeConverter(object):
     pass
 
 class StringConverter(BaseAttributeConverter):
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         s = StringAttribute(user_input)
-        return s.value
+        return {input_key: s.value}
 
 class UnrestrictedStringConverter(BaseAttributeConverter):
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         s = UnrestrictedStringAttribute(user_input)
-        return s.value
+        return {input_key: s.value}
         
 class IntegerConverter(BaseAttributeConverter):
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         i = IntegerAttribute(user_input)
-        return i.value
+        return {input_key: i.value}
 
 class StringListConverter(BaseAttributeConverter):
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         s = StringListAttribute(user_input)
-        return s.value
+        return {input_key: s.value}
 
 class StringListToCsvConverter(BaseAttributeConverter, CsvMixin):
     '''
     Converts a StringList to a csv string
     '''
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         s = StringListAttribute(user_input)
-        return self.to_string(s.value)
+        return {input_key: self.to_string(s.value)}
 
 class UnrestrictedStringListConverter(BaseAttributeConverter):
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         s = UnrestrictedStringListAttribute(user_input)
-        return s.value
+        return {input_key: s.value}
 
 class UnrestrictedStringListToCsvConverter(BaseAttributeConverter, CsvMixin):
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         s = UnrestrictedStringListAttribute(user_input)
-        return self.to_string(s.value)
+        return {input_key: self.to_string(s.value)}

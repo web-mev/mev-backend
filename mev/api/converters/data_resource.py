@@ -37,12 +37,12 @@ class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
     This converter takes that UUID, finds the Resource/file, brings it local, and returns
     the local path.
     '''
-    def convert(self, user_input):
+    def convert(self, input_key, user_input, op_dir):
         '''
         user_input is the dictionary-representation of a api.data_structures.UserOperationInput
         '''
         resource_uuid = user_input
-        return self.get_local_path_from_uuid(resource_uuid)
+        return {input_key: self.get_local_path_from_uuid(resource_uuid)}
 
 
 class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
@@ -61,7 +61,7 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
     a list of the local paths.
     '''
 
-    def convert(self, user_input):
+    def get_path_list(self, user_input):
         path_list = []
         if type(user_input) == list:
             for u in user_input:
@@ -74,17 +74,17 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
             ))
         return path_list
 
-class LocalDockerCsvResourceConverter(LocalDockerMultipleDataResourceConverter, CsvMixin):
+    def convert(self, input_key, user_input, op_dir):
+        path_list = self.get_path_list(user_input)
+        return {input_key: self.to_string(path_list)}
 
-    def convert(self, user_input):
-        path_list = LocalDockerMultipleDataResourceConverter.convert(self, user_input)
-        return CsvMixin.to_string(path_list)
+class LocalDockerCsvResourceConverter(LocalDockerMultipleDataResourceConverter, CsvMixin):
+    pass
+
 
 class LocalDockerSpaceDelimResourceConverter(LocalDockerMultipleDataResourceConverter, SpaceDelimMixin):
+    pass
 
-    def convert(self, user_input):
-        path_list = LocalDockerMultipleDataResourceConverter.convert(self, user_input)
-        return SpaceDelimMixin.to_string(path_list)
 
 class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
     '''
