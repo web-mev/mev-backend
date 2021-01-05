@@ -40,6 +40,40 @@ def read_operation_json(filepath):
             )
         )
 
+def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
+    '''
+    Some Operations have "static" resources that are user-independent. The 
+    repository can contain a file which provides paths to these OperationDataResources
+    and here we check that the data structure is formatted correctly and that
+    it has the proper keys
+    '''
+    # require strict equality-- don't want to have extra keys in the
+    # operation_resource_dict. Don't allow sloppy specs.
+    if not (operation_resource_dict.keys() == necessary_keys):
+        return False
+
+    for k in necessary_keys:
+        l = operation_resource_dict[k]
+        if not type(l) is list:
+            return False
+        namelist, pathlist = [],[]
+        for item in l:
+            if not type(item) is dict:
+                return False
+            if not (item.keys() == set(['name', 'path', 'resource_type'])):
+                return False
+            namelist.append(item['name'])
+            pathlist.append(item['path'])
+
+        # ensure the names and paths are unique for the "options"
+        # corresponding to this input
+        if len(set(namelist)) < len(namelist):
+            return False
+        if len(set(pathlist)) < len(pathlist):
+            return False 
+    return True
+
+
 def validate_operation(operation_dict):
     '''
     Takes a dictionary and validates it against the definition

@@ -8,5 +8,7 @@ class RemoteStorageBackend(BaseStorageBackend):
     be created as a child class.
     '''
 
+    is_local_storage = False
+
     def __init__(self):
         super().__init__()

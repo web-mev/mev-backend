@@ -11,7 +11,7 @@ from .base import BaseStorageBackend
 from .helpers import localize_remote_resource
 
 try:
-    USER_STORAGE_DIRNAME = os.environ['LOCAL_USER_STORAGE_DIRNAME']
+    STORAGE_DIRNAME = os.environ['LOCAL_STORAGE_DIRNAME']
 except KeyError as ex:
     raise ImproperlyConfigured('Need to supply the following environment'
         ' variable: {k}'.format(k=ex))
@@ -20,25 +20,27 @@ logger = logging.getLogger(__name__)
 
 class LocalStorage(BaseStorageBackend):
 
+    is_local_storage = True
+
     def store(self, resource_instance):
         '''
         Handles moving the file described by the `resource_instance`
         arg to its final location.
         '''
-        relative_path = BaseStorageBackend.construct_relative_path(resource_instance)
+        relative_path = self.construct_relative_path(resource_instance)
 
         # where all user files are kept locally:
-        base_storage_dir = os.path.join(settings.BASE_DIR, USER_STORAGE_DIRNAME)
+        base_storage_dir = os.path.join(settings.BASE_DIR, STORAGE_DIRNAME)
 
         # the final location of this file on our local storage:
         destination = os.path.join(base_storage_dir, relative_path)
 
-        user_storage_dir = os.path.dirname(destination)
-        if not os.path.exists(user_storage_dir):
+        storage_dir = os.path.dirname(destination)
+        if not os.path.exists(storage_dir):
 
             # this function can raise an exception which will get
             # pushed up to the caller
-            make_local_directory(user_storage_dir)
+            make_local_directory(storage_dir)
 
         # storage directory existed.  Move the file:
         source = resource_instance.path
@@ -65,6 +67,12 @@ class LocalStorage(BaseStorageBackend):
         # since file-size is not "critical", we log the errors and just
         # return 0 since it will still work.
         return 0
+
+    def resource_exists(self, path):
+        '''
+        Returns true/false for whether the file exists at the path
+        '''
+        return os.path.exists(path)
 
     def get_local_resource_path(self, resource_instance):
         '''

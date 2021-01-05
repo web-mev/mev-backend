@@ -16,7 +16,7 @@ class TestLocalStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.local.move_resource')
     @mock.patch('api.storage_backends.local.make_local_directory')
     @mock.patch('api.storage_backends.local.settings')
-    @mock.patch('api.storage_backends.local.USER_STORAGE_DIRNAME', DUMMY_DIRNAME)
+    @mock.patch('api.storage_backends.local.STORAGE_DIRNAME', DUMMY_DIRNAME)
     def test_resource_path_altered_correctly(self, \
         mock_settings, \
         mock_make_local_dir, \
@@ -54,7 +54,7 @@ class TestLocalStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.local.localize_remote_resource')
     @mock.patch('api.storage_backends.local.make_local_directory')
     @mock.patch('api.storage_backends.local.settings')
-    @mock.patch('api.storage_backends.local.USER_STORAGE_DIRNAME', DUMMY_DIRNAME)
+    @mock.patch('api.storage_backends.local.STORAGE_DIRNAME', DUMMY_DIRNAME)
     def test_call_to_localize_remote_resource(self, \
         mock_settings, \
         mock_make_local_dir, \

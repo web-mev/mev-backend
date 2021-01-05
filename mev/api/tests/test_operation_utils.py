@@ -12,7 +12,8 @@ from rest_framework.exceptions import ValidationError
 from api.utilities.operations import read_operation_json, \
     validate_operation_inputs, \
     collect_resource_uuids, \
-    validate_operation
+    validate_operation, \
+    resource_operations_file_is_valid
 from api.tests.base import BaseAPITestCase
 from api.models import Operation as OperationDbModel
 from api.models import Workspace
@@ -248,3 +249,182 @@ class OperationUtilsTester(BaseAPITestCase):
         self.assertCountEqual(result['link_list'].get_value(), l1)
         self.assertCountEqual(result['regular_string_list'].get_value(), l2)
         
+    def test_resource_operation_file_formatting(self):
+        '''
+        Test that we correctly parse resource operation specification files
+        and reject those that do not conform to the spec.
+        '''
+
+        good_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileB',
+                    'path':'/path/to/B.txt',
+                    'resource_type':'MTX'
+                }
+            ]
+        }
+        inputs = {
+            'inputA': '' # doesn't matter what the key points at. Only need the name
+        }
+        self.assertTrue(resource_operations_file_is_valid(good_op_resource_data, inputs.keys()))
+
+        # change the inputs to have two necessary keys
+        inputs = {
+            'inputA': '',
+            'inputB': ''
+        }
+        # should be false since we only have inputA in our "spec"
+        self.assertFalse(resource_operations_file_is_valid(good_op_resource_data, inputs.keys()))
+
+        bad_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileB',
+                    'path':'/path/to/B.txt',
+                    'resource_type':'MTX'
+                }
+            ],
+            # should point at a list, but here points at a dict, which
+            # could be a common formatting mistake
+            'inputB': {
+                'name':'fileC',
+                'path':'/path/to/C.txt',
+                'resource_type':'MTX'     
+            }
+        }
+
+        # inputs to two necessary keys
+        inputs = {
+            'inputA': '',
+            'inputB': ''
+        }
+        self.assertFalse(resource_operations_file_is_valid(bad_op_resource_data, inputs.keys()))
+
+        good_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileB',
+                    'path':'/path/to/B.txt',
+                    'resource_type':'MTX'
+                }
+            ],
+            'inputB': [
+                {
+                    'name':'fileC',
+                    'path':'/path/to/C.txt',
+                    'resource_type':'MTX'     
+                }
+            ]
+        }
+
+        # inputs to two necessary keys
+        inputs = {
+            'inputA': '',
+            'inputB': ''
+        }
+        self.assertTrue(resource_operations_file_is_valid(good_op_resource_data, inputs.keys()))
+
+        bad_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileB',
+                    'path':'/path/to/A.txt', # path is the same as above. Not allowed.
+                    'resource_type':'MTX'
+                }
+            ]
+        }
+
+        inputs = {
+            'inputA': '',
+        }
+        self.assertFalse(resource_operations_file_is_valid(bad_op_resource_data, inputs.keys()))
+
+        bad_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileA', # name matches above. Not allowed.
+                    'path':'/path/to/B.txt',
+                    'resource_type':'MTX'
+                }
+            ]
+        }
+
+        inputs = {
+            'inputA': '',
+        }
+        self.assertFalse(resource_operations_file_is_valid(bad_op_resource_data, inputs.keys()))
+
+        good_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileB',
+                    'path':'/path/to/B.txt',
+                    'resource_type':'MTX'
+                }
+            ],
+            'inputB': [
+                {
+                    # the name/path match above, but since it's part of
+                    # a different input, this is fine.
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'     
+                }
+            ]
+        }
+        inputs = {
+            'inputA': '',
+            'inputB': ''
+        }
+        self.assertTrue(resource_operations_file_is_valid(good_op_resource_data, inputs.keys()))
+
+        # one of the 'resources' is missing the resource_type key
+        bad_op_resource_data = {
+            'inputA': [
+                {
+                    'name':'fileA',
+                    'path':'/path/to/A.txt',
+                    'resource_type':'MTX'
+                },
+                {
+                    'name':'fileA', # name matches above. Not allowed.
+                    'path':'/path/to/B.txt'
+                }
+            ]
+        }
+
+        inputs = {
+            'inputA': '',
+        }
+        self.assertFalse(resource_operations_file_is_valid(bad_op_resource_data, inputs.keys()))

@@ -17,7 +17,7 @@ from api.data_structures.operation_input_and_output_spec import InputOutputSpec,
     OptionStringInputOutputSpec, \
     BooleanInputOutputSpec, \
     DataResourceInputOutputSpec, \
-    StaticDataResourceInputOutputSpec, \
+    OperationDataResourceInputOutputSpec, \
     ObservationInputOutputSpec, \
     FeatureInputOutputSpec, \
     ObservationSetInputOutputSpec, \
@@ -142,18 +142,19 @@ class DataResourceInputSpec(DataResourceInputOutputSpec):
         return i
 
 
-class StaticDataResourceInputSpec(StaticDataResourceInputOutputSpec):
+class OperationDataResourceInputSpec(OperationDataResourceInputOutputSpec):
     '''
     This InputSpec is used for displaying/capturing
-    inputs that are related to static files.
+    inputs that are user-independent and related to a specific
+    Operation instance.
     ```
     {
-        "attribute_type": "StaticDataResource",
+        "attribute_type": "OperationDataResource",
         "many": <bool>,
         "resource_types": <list of valid resource types>
     }
     ```
-    Note that the `many` key is a field of the underlying StatocDataResourceAttribute
+    Note that the `many` key is a field of the underlying OperationDataResourceAttribute
 
     We derive from DataResourceInputSpec so we can re-use some of the methods there
     '''
@@ -161,7 +162,7 @@ class StaticDataResourceInputSpec(StaticDataResourceInputOutputSpec):
     RESOURCE_TYPES_KEY = 'resource_types'
 
     def __init__(self, **kwargs):
-        StaticDataResourceInputOutputSpec.__init__(self, **kwargs)
+        OperationDataResourceInputOutputSpec.__init__(self, **kwargs)
 
     def validate_keyword_args(self, kwargs_dict):
  
@@ -190,7 +191,7 @@ class StaticDataResourceInputSpec(StaticDataResourceInputOutputSpec):
         return kwargs_dict
 
     def to_dict(self):
-        i = StaticDataResourceInputOutputSpec.to_dict(self)
+        i = OperationDataResourceInputOutputSpec.to_dict(self)
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPES_KEY] = self.resource_types
         return i
@@ -232,7 +233,7 @@ all_input_spec_types = [
     OptionStringInputSpec,
     BooleanInputSpec,
     DataResourceInputSpec,
-    StaticDataResourceInputSpec,
+    OperationDataResourceInputSpec,
     ObservationInputSpec,
     FeatureInputSpec,
     ObservationSetInputSpec,

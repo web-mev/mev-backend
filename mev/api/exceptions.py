@@ -30,3 +30,13 @@ class InputMappingException(Exception):
     inputs to job inputs when an ExecutedOperation has been requested.
     '''
     pass
+
+
+class OperationResourceFileException(Exception):
+    '''
+    This exception is raised if an Operation specifies user-indepdent
+    files that are associated with the Operation, but there is an issue
+    finding or reading the file. 
+    Raised during the ingestion of the operation
+    '''
+    pass

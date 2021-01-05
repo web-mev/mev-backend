@@ -637,14 +637,14 @@ class DataResourceAttribute(BaseAttribute):
         return d
 
 
-class StaticDataResourceAttribute(DataResourceAttribute):
+class OperationDataResourceAttribute(DataResourceAttribute):
     '''
     Used to specify a reference to one or more Resource
     instances which are user-independent, such as database-like 
     resources which are used for analyses.
     ```
     {
-        "attribute_type": "StaticDataResource",
+        "attribute_type": "OperationDataResource",
         "value": <one or more Resource UUIDs>,
         "many": <bool>,
     }
@@ -652,7 +652,7 @@ class StaticDataResourceAttribute(DataResourceAttribute):
     Note that "many" controls whether >1 are allowed. It's not an indicator
     for whether there are multiple Resources specified in the "value" key.
     '''
-    typename = 'StaticDataResource'
+    typename = 'OperationDataResource'
 
 
 def convert_dtype(dtype_str):

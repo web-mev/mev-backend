@@ -200,6 +200,17 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         else:
             return 0
 
+    def resource_exists(self, path):
+        '''
+        Returns true/false for whether the google-bucket based
+        blob exists. Note that the google library is such that
+        the blob will evaluate to None if it does not exist.
+        '''
+        blob = self.get_blob(path)
+        if blob:
+            return True
+        return False
+
     def get_local_resource_path(self, resource_instance):
         '''
         Returns the path to the file resource on the local machine.

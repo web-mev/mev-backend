@@ -20,8 +20,8 @@ from api.data_structures import create_attribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
     DataResourceInputSpec, \
-    StaticDataResourceAttribute, \
-    StaticDataResourceInputSpec
+    OperationDataResourceAttribute, \
+    OperationDataResourceInputSpec
 from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
 from api.serializers.observation_set import ObservationSetSerializer
@@ -289,12 +289,12 @@ class DataResourceUserOperationInput(UserOperationInput):
         return d['value']
 
 
-class StaticDataResourceUserOperationInput(DataResourceUserOperationInput):
+class OperationDataResourceUserOperationInput(DataResourceUserOperationInput):
     '''
     This handles the validation of the user's input for an input
-    corresponding to a `StaticDataResource` instance.
+    corresponding to a `OperationDataResource` instance.
     '''
-    typename = StaticDataResourceAttribute.typename
+    typename = OperationDataResourceAttribute.typename
 
     def __init__(self, user, workspace, key, submitted_value, input_spec):
         super().__init__(user, workspace, key, submitted_value, input_spec)
@@ -307,7 +307,7 @@ class StaticDataResourceUserOperationInput(DataResourceUserOperationInput):
 
         # if we are here, then we have passed all the checks-- assign the
         # self.instance variable 
-        self.instance = StaticDataResourceAttribute(self.submitted_value, many=expect_many)
+        self.instance = OperationDataResourceAttribute(self.submitted_value, many=expect_many)
 
 
 class ElementUserOperationInput(UserOperationInput):

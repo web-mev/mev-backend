@@ -15,6 +15,7 @@ from .basic_utils import make_local_directory, \
     copy_local_resource
 from api.data_structures.attributes import DataResourceAttribute
 from api.storage_backends import get_storage_backend
+from api.storage_backends.helpers import get_storage_implementation
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     extension_is_consistent_with_type, \
@@ -30,6 +31,29 @@ from resource_types import get_contents, \
     RESOURCE_MAPPING
 
 logger = logging.getLogger(__name__)
+
+
+def check_that_resource_exists(path):
+    '''
+    Given a path, return a boolean indicating whether
+    the resource exists.
+
+    Typically used by the ingestion process to check the
+    existence of operation-specific/user-independent resources.
+    '''
+
+    # note that this is NOT necessarily the storage backend we are using.
+    # Instead, this class exposes an interface through which we can check the 
+    # existence of a file on that storage system.
+    # For instance, we may wish to have a user-independent file that is 
+    # associated with an Operation. That file can be saved in the git repository
+    # with the rest of the operation files. Ultimately, however, we want to take
+    # that file and make an `OperationResource` instance, saving it to our actual
+    # storage backend. Thus, while WebMEV may be using a bucket-based storage backend
+    # we need to use the LocalStorage backend to verify the existence of the file
+    # in the repository. 
+    storage_backend = get_storage_implementation(path)
+    
 
 def get_resource_by_pk(resource_pk):
     try:

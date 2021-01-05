@@ -16,7 +16,7 @@ from api.data_structures import IntegerInputSpec, \
     OptionStringInputSpec, \
     BooleanInputSpec, \
     DataResourceInputSpec, \
-    StaticDataResourceInputSpec, \
+    OperationDataResourceInputSpec, \
     ObservationInputSpec, \
     ObservationSetInputSpec, \
     FeatureInputSpec, \
@@ -239,35 +239,35 @@ class TestInputSpec(unittest.TestCase):
         with self.assertRaises(ValidationError):
             ds = DataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
 
-    def test_staticdataresource_input_spec(self):
+    def test_operationdataresource_input_spec(self):
         from resource_types import RESOURCE_MAPPING
         all_resource_types = list(RESOURCE_MAPPING.keys())
         random.shuffle(all_resource_types)
         n = 2
         valid_resource_types = [all_resource_types[i] for i in range(n)]
 
-        ds = StaticDataResourceInputSpec(many=True, resource_types=valid_resource_types)
-        ds = StaticDataResourceInputSpec(many=1, resource_types=valid_resource_types)
-        ds = StaticDataResourceInputSpec(many='true', resource_types=valid_resource_types)
+        ds = OperationDataResourceInputSpec(many=True, resource_types=valid_resource_types)
+        ds = OperationDataResourceInputSpec(many=1, resource_types=valid_resource_types)
+        ds = OperationDataResourceInputSpec(many='true', resource_types=valid_resource_types)
         
         # missing `resource_types` key
         with self.assertRaises(ValidationError):
-            ds = StaticDataResourceInputSpec(many=True)
+            ds = OperationDataResourceInputSpec(many=True)
         # missing `many` key
         with self.assertRaises(ValidationError):
-            ds = StaticDataResourceInputSpec(resource_types=valid_resource_types)
+            ds = OperationDataResourceInputSpec(resource_types=valid_resource_types)
 
         # `many` key cannot be cast as a boolean
         with self.assertRaises(ValidationError):
-            ds = StaticDataResourceInputSpec(many='yes', resource_types=valid_resource_types)
+            ds = OperationDataResourceInputSpec(many='yes', resource_types=valid_resource_types)
 
         # `resource_types` key has bad values
         with self.assertRaises(ValidationError):
-            ds = StaticDataResourceInputSpec(many=True, resource_types=['abc',])
+            ds = OperationDataResourceInputSpec(many=True, resource_types=['abc',])
 
         # `resource_types` key is not a list
         with self.assertRaises(ValidationError):
-            ds = StaticDataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
+            ds = OperationDataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
 
     def test_stringlist_input_spec(self):
         s = StringListInputSpec()
@@ -336,7 +336,7 @@ class TestInputSpec(unittest.TestCase):
         self.assertNotEqual(i1,i3)
         self.assertNotEqual(i1,i4)
         self.assertNotEqual(i4,i5)
-        
+
 
 class InputSpecSerializerTester(unittest.TestCase):
 

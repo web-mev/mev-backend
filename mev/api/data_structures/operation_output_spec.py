@@ -17,7 +17,7 @@ from api.data_structures.operation_input_and_output_spec import InputOutputSpec,
     OptionStringInputOutputSpec, \
     BooleanInputOutputSpec, \
     DataResourceInputOutputSpec, \
-    StaticDataResourceInputOutputSpec, \
+    OperationDataResourceInputOutputSpec, \
     ObservationInputOutputSpec, \
     FeatureInputOutputSpec, \
     ObservationSetInputOutputSpec, \
@@ -143,7 +143,7 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
         return i
 
 
-class StaticDataResourceOutputSpec(StaticDataResourceInputOutputSpec):
+class OperationDataResourceOutputSpec(OperationDataResourceInputOutputSpec):
     '''
     This OutputSpec is used for describing outputs from an `Operation`
 
@@ -152,7 +152,7 @@ class StaticDataResourceOutputSpec(StaticDataResourceInputOutputSpec):
     different types will have to be distinct outputs.
     ```
     {
-        "attribute_type": "StaticDataResource",
+        "attribute_type": "OperationDataResource",
         "many": <bool>,
         "resource_type": <Type of the output>
     }
@@ -161,7 +161,7 @@ class StaticDataResourceOutputSpec(StaticDataResourceInputOutputSpec):
     RESOURCE_TYPE_KEY = 'resource_type'
 
     def __init__(self, **kwargs):
-        StaticDataResourceInputOutputSpec.__init__(self, **kwargs)
+        OperationDataResourceInputOutputSpec.__init__(self, **kwargs)
 
     def validate_keyword_args(self, kwargs_dict):
  
@@ -189,7 +189,7 @@ class StaticDataResourceOutputSpec(StaticDataResourceInputOutputSpec):
         return kwargs_dict
 
     def to_dict(self):
-        i = StaticDataResourceInputOutputSpec.to_dict(self)
+        i = OperationDataResourceInputOutputSpec.to_dict(self)
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPE_KEY] = self.resource_type
         return i
@@ -231,7 +231,7 @@ all_output_spec_types = [
     OptionStringOutputSpec,
     BooleanOutputSpec,
     DataResourceOutputSpec,
-    StaticDataResourceOutputSpec,
+    OperationDataResourceOutputSpec,
     ObservationOutputSpec,
     FeatureOutputSpec,
     ObservationSetOutputSpec,

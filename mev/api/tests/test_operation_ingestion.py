@@ -22,7 +22,8 @@ from api.utilities.ingest_operation import read_operation_json, \
     perform_operation_ingestion, \
     save_operation, \
     retrieve_repo_name, \
-    ingest_dir
+    ingest_dir, \
+    check_for_operation_resources
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -431,3 +432,22 @@ class OperationIngestionTester(unittest.TestCase):
         # cleanup from this test:
         shutil.rmtree(mock_ops_dir)
         shutil.rmtree(mock_staging_dir)
+
+    def test_check_for_operation_resources(self):
+        '''
+        Tests that we get the expected inputs from the operation spec file.
+        This should be a subset of the inputs that correspond to user-independent
+        OperationResource types.
+        '''
+        # should only get a single key back 
+        p = os.path.join(TESTDIR, 'valid_op_with_operation_resource.json')
+        op_data = json.load(open(p))
+        result = check_for_operation_resources(op_data)
+        self.assertTrue(result.keys() == set(['pathway_file']))
+        self.assertTrue(result.keys() != op_data['inputs'].keys())
+
+        # check that no keys are returned
+        p = os.path.join(TESTDIR, 'valid_operation.json')
+        op_data = json.load(open(p))
+        result = check_for_operation_resources(op_data)
+        self.assertTrue(len(result.keys()) == 0)

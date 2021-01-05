@@ -9,11 +9,18 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.models import Operation as OperationDbModel
+from api.models import OperationResource
+from api.data_structures import OperationDataResourceAttribute
 from api.serializers.operation import OperationSerializer
 from api.utilities.basic_utils import recursive_copy
 from api.utilities.operations import read_operation_json, \
-    validate_operation
+    validate_operation, \
+    resource_operations_file_is_valid
+from api.utilities.resource_utilities import get_resource_size, \
+    move_resource_to_final_location
+from api.storage_backends.helpers import get_storage_implementation
 from api.runners import get_runner
+from api.exceptions import OperationResourceFileException
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +129,126 @@ def check_required_files(op_data, staging_dir):
     runner = runner_class()
     runner.check_required_files(staging_dir)
 
+
+def check_for_operation_resources(op_data):
+    '''
+    This function looks through the operation spec to check if there are any inputs
+    that correspond to "static" operation resources (i.e. user-independent/operation-specific files)
+    
+    If yes, returns a dict which is a subset of the `inputs` object from the operation spec file.
+    Only the inputs that correspond to operation resources are included. If none of the inputs
+    are operation resources, then return an empty dict
+    '''
+    d = {}
+    for input_key, op_input in op_data['inputs'].items():
+        spec = op_input['spec']
+        if spec['attribute_type'] == OperationDataResourceAttribute.typename:
+            d[input_key] = op_input
+    return d
+
+def create_operation_resource(input_name, op_resource_dict, op_uuid, op_data, staging_dir):
+    '''
+    Takes the op_resource_dict (a dict with name, path) and creates a database
+    instance of an OperationResource
+    '''
+    name = op_resource_dict['name']
+    path = op_resource_dict['path']
+    resource_type = op_resource_dict['resource_type']
+
+    # check that the file actually exists. If the path has a prefix like "gs://"
+    # then we know infer that it is stored in a google bucket. If it doesn't match
+    # any specific "other" storage system (GCP bucket, AWS bucket, etc.) then we look
+    # locally, RELATIVE to the staging directory
+    storage_impl = get_storage_implementation(path)
+
+    # if the resource file specifies it as local, then we need to look for the file
+    # in the staging dir. If it was specified as a bucket URL, etc. then we don't need
+    # to edit the path, since it should already be properly formed.
+    if storage_impl.is_local_storage:
+        path = os.path.join(staging_dir, path)
+    exists = storage_impl.resource_exists(path)
+    if not exists:
+        raise OperationResourceFileException('Could not locate the operation resource'
+            ' at {p}'.format(p=path)
+        )
+
+    # create the database object
+    op_resource = OperationResource.objects.create(
+        name = name,
+        path = path, 
+        input_field = input_name,
+        resource_type = resource_type
+    )
+    final_path = move_resource_to_final_location(op_resource)
+    op_resource.path = final_path
+    file_size = get_resource_size(op_resource)
+    op_resource.size = file_size
+    op_resource.save()
+
+    # now that we have the final path, edit the location
+    d = {
+        'name': name,
+        'path': final_path,
+        'resource_type': resource_type
+    }
+    return d
+
+def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
+    '''
+    This function looks through the operation's inputs and handles any 
+    operation-specific resources. These are user-independent resources (such as 
+    genome indices) that are associated with an Operation, but are obviously 
+    distinct from a user's files.
+    '''
+
+    # look through the inputs and see if any correspond to OperationDataResource.
+    # If not, immediately return
+    relevant_inputs = check_for_operation_resources(op_data)
+    if not relevant_inputs:
+        return
+
+    # If here, one or more inputs were OperationDataResource. Need to check that they exist and 
+    # move them to the proper location(s).
+
+    # First check that the repo has the file giving the location of those OperationDataResources
+    resource_file = os.path.join(staging_dir, OperationResource.OPERATION_RESOURCE_FILENAME)
+    if not os.path.exists(resource_file):
+        raise OperationResourceFileException('During ingestion, we could not find the file specifying'
+            ' the operation resources at: {p}'.format(p=resource_file)
+        )
+
+    # read the file
+    try:
+        operation_resource_data = json.load(open(resource_file))
+    except json.decoder.JSONDecodeError as ex:
+        raise OperationResourceFileException('Could not use the JSON parser to load'
+            ' the file at {p}. Exception was {ex}'.format(
+                p=resource_file,
+                ex = ex
+        ))
+
+    # file existed and was valid JSON. Now check that we have info for each of the inputs and 
+    # that the JSON was in the format we expect:
+    valid_format = resource_operations_file_is_valid(operation_resource_data, relevant_inputs.keys())
+    if not valid_format:
+        raise OperationResourceFileException('The operation resource file at {p} was not formatted'
+            ' correctly.'.format(p=resource_file)
+        )
+    
+    # iterate through the operation resources, creating database objects and updating
+    # the spec to reflect the final resource locations.
+    updated_dict = {}
+    for k in relevant_inputs.keys():
+        operation_resource_list = operation_resource_data[k]
+        updated_list = []
+        for item in operation_resource_list:
+            updated_item = create_operation_resource(k, item, op_uuid, op_data, staging_dir)
+            updated_list.append(updated_item)
+        updated_dict[k] = updated_list
+    # write this updated dict to the same file we read from:
+    with open(resource_file, 'w') as fout:
+        fout.write(json.dumps(updated_dict))
+
 def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     '''
     This function calls out to the runner to have it prepare the necessary
@@ -200,6 +327,9 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
 
     # check that the required files, etc. are there for the particular run mode:
     check_required_files(op_data, staging_dir)
+
+    # handle any operation-specific resources/files:
+    handle_operation_specific_resources(op_data, staging_dir, op_uuid)
 
     # prepare any elements required for running the operation:
     prepare_operation(op_data, staging_dir, repo_name, git_hash)

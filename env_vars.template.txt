@@ -82,7 +82,7 @@ STORAGE_LOCATION=
 
 # If using local storage for all files (not recommended!), set the following:
 # This is relative to the django BASE_DIR
-LOCAL_USER_STORAGE_DIRNAME=user_resources
+LOCAL_STORAGE_DIRNAME=resource_storage
 
 # A bucket where MEV user's files will be stored (if using bucket storage). This
 # is independent of any bucket's used as a storage location for remote job runners, etc.
