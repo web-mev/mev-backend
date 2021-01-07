@@ -7,6 +7,7 @@ import uuid
 import shutil
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
 from api.serializers.operation_input import OperationInputSerializer
@@ -15,6 +16,7 @@ from api.serializers.operation_output_dict import OperationOutputDictSerializer
 from api.serializers.operation import OperationSerializer
 from api.data_structures import Operation
 from api.models import Operation as OperationDbModel
+from api.models import OperationResource
 from api.runners import AVAILABLE_RUN_MODES
 from api.utilities.ingest_operation import read_operation_json, \
     add_required_keys_to_operation, \
@@ -23,13 +25,16 @@ from api.utilities.ingest_operation import read_operation_json, \
     save_operation, \
     retrieve_repo_name, \
     ingest_dir, \
-    check_for_operation_resources
+    check_for_operation_resources, \
+    create_operation_resource
+
+from api.tests.base import BaseAPITestCase
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 
-class OperationIngestionTester(unittest.TestCase):
+class OperationIngestionTester(BaseAPITestCase):
 
     def setUp(self):
         self.filepath = os.path.join(TESTDIR, 'valid_operation.json')
@@ -451,3 +456,116 @@ class OperationIngestionTester(unittest.TestCase):
         op_data = json.load(open(p))
         result = check_for_operation_resources(op_data)
         self.assertTrue(len(result.keys()) == 0)
+
+    @mock.patch('api.utilities.ingest_operation.get_resource_size')
+    @mock.patch('api.utilities.ingest_operation.move_resource_to_final_location')
+    @mock.patch('api.utilities.ingest_operation.get_storage_implementation')
+    def test_creation_of_operation_resource(self, 
+        mock_get_storage_implementation,
+        mock_move_resource_to_final_location,
+        mock_get_resource_size):
+        '''
+        Tests the function that creates a new OperationResource.
+        Mocks out most methods since they involve shuffling files 
+        around, etc.-- merely tests that the expected calls are made
+
+        Here, we mock it being a local file.
+        '''
+        mock_storage_impl = mock.MagicMock()
+        mock_storage_impl.is_local_storage = True
+        mock_get_storage_implementation.return_value = mock_storage_impl
+
+        mock_final_path = '/some/final/path.tar'
+        mock_move_resource_to_final_location.return_value = mock_final_path
+        mock_get_resource_size.return_value = 100
+        name = 'GRCh38 index'
+        path = '/some/local/path.tar'
+        op_resource_dict = {
+            'name': name,
+            'path': path,
+            'resource_type': '*'
+        }
+        orig_op_resources = OperationResource.objects.all()
+        ops = OperationDbModel.objects.all()
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation to work with.')
+        else:
+            op_uuid = ops[0].pk
+        n0 = len(orig_op_resources)
+        mock_staging_dir = '/some/staging/dir'
+        result = create_operation_resource(
+            'foo_input', 
+            op_resource_dict, 
+            op_uuid, 
+            {}, 
+            mock_staging_dir
+        )
+        expected_dict = {
+            'name': name,
+            'path': mock_final_path,
+            'resource_type': '*'
+        }
+        self.assertDictEqual(result, expected_dict)
+        final_op_resources = OperationResource.objects.all()
+        n1 = len(final_op_resources)
+        self.assertEqual(n1-n0, 1)
+        mock_move_resource_to_final_location.assert_called()
+        mock_get_resource_size.assert_called()
+        expected_path = os.path.join(mock_staging_dir, path)
+        mock_storage_impl.resource_exists.assert_called_with(expected_path)
+
+    @mock.patch('api.utilities.ingest_operation.get_resource_size')
+    @mock.patch('api.utilities.ingest_operation.move_resource_to_final_location')
+    @mock.patch('api.utilities.ingest_operation.get_storage_implementation')
+    def test_creation_of_operation_resource_case2(self, 
+        mock_get_storage_implementation,
+        mock_move_resource_to_final_location,
+        mock_get_resource_size):
+        '''
+        Tests the function that creates a new OperationResource.
+        Mocks out most methods since they involve shuffling files 
+        around, etc.-- merely tests that the expected calls are made
+
+        Here, we mock it being a non-local file.
+        '''
+        mock_storage_impl = mock.MagicMock()
+        mock_storage_impl.is_local_storage = False
+        mock_get_storage_implementation.return_value = mock_storage_impl
+
+        mock_final_path = '/some/final/path.tar'
+        mock_move_resource_to_final_location.return_value = mock_final_path
+        mock_get_resource_size.return_value = 100
+        name = 'GRCh38 index'
+        path = '/some/local/path.tar'
+        op_resource_dict = {
+            'name': name,
+            'path': path,
+            'resource_type': '*'
+        }
+        orig_op_resources = OperationResource.objects.all()
+        ops = OperationDbModel.objects.all()
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation to work with.')
+        else:
+            op_uuid = ops[0].pk
+        n0 = len(orig_op_resources)
+        mock_staging_dir = '/some/staging/dir'
+        result = create_operation_resource(
+            'foo_input', 
+            op_resource_dict, 
+            op_uuid, 
+            {}, 
+            mock_staging_dir
+        )
+        expected_dict = {
+            'name': name,
+            'path': mock_final_path,
+            'resource_type': '*'
+        }
+        self.assertDictEqual(result, expected_dict)
+        final_op_resources = OperationResource.objects.all()
+        n1 = len(final_op_resources)
+        self.assertEqual(n1-n0, 1)
+        mock_move_resource_to_final_location.assert_called()
+        mock_get_resource_size.assert_called()
+        mock_storage_impl.resource_exists.assert_called_with(path)

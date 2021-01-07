@@ -173,8 +173,17 @@ def create_operation_resource(input_name, op_resource_dict, op_uuid, op_data, st
         )
 
     # create the database object
+    try:
+        op = OperationDbModel.objects.get(pk=op_uuid)
+    except OperationDbModel.DoesNotExist as ex:
+        logger.info('Failed to find an Operation with UUID={u}.'.format(
+            u = str(op_uuid)
+        ))
+        raise ex
+
     op_resource = OperationResource.objects.create(
         name = name,
+        operation = op,
         path = path, 
         input_field = input_name,
         resource_type = resource_type

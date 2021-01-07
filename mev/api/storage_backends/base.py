@@ -16,14 +16,14 @@ class BaseStorageBackend(object):
         relative paths.
         '''
 
-        if type(resource_instance) == Resource:
+        # create a final file location by concatenating the
+        # resource UUID and the file's "human readable" name
+        basename = '{uuid}.{name}'.format(
+            uuid=resource_instance.pk, 
+            name=resource_instance.name
+        )
 
-            # create a final file location by concatenating the
-            # resource UUID and the file's "human readable" name
-            basename = '{uuid}.{name}'.format(
-                uuid=resource_instance.pk, 
-                name=resource_instance.name
-            )
+        if type(resource_instance) == Resource:
 
             if resource_instance.owner:
                 # since we will organize files by user ID, get their unique ID
@@ -38,7 +38,7 @@ class BaseStorageBackend(object):
         elif type(resource_instance) == OperationResource:
             return os.path.join(
                 str(resource_instance.operation.id),
-                str(resource_instance.pk)
+                basename
             )
         else:
             logger.error('Unexpected type passed. Should be a Resource or child thereof.')

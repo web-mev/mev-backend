@@ -21,11 +21,21 @@ def get_storage_implementation(path):
         implementing_class_str = storage_backend_mapping[prefix]
     except KeyError as ex:
         logger.info('Could not find an implementation class for'
-            ' the file at: {p}. Assuming it is local.'.format(
+            ' the file at: {p}.'.format(
                 p=path
             ))
-        implementing_class_str = 'api.storage_backends.local.LocalStorage'
-
+        if (len(prefix) > 0) and (prefix[-1] == ':'):
+            raise Exception('The path {p} is prefixed by {prefix} and seems to indicate a'
+                ' scheme that has not been implemented.'.format(
+                    p = path,
+                    prefix = prefix
+                )
+            )
+        else:
+            logger.info('Since the prefix did not end with a colon, we are assuming it was not'
+                ' intended to be a scheme and it is instead a local file in local storage.'
+            )
+            implementing_class_str = 'api.storage_backends.local.LocalStorage'
     try:
         implementing_class = import_string(implementing_class_str)
     except Exception as ex:
