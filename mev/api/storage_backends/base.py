@@ -30,13 +30,17 @@ class BaseStorageBackend(object):
                 owner_uuid = str(resource_instance.owner.user_uuid)
 
                 # make the path relative to the storage "root"
-                return os.path.join(owner_uuid, basename)
+                return os.path.join(
+                    Resource.USER_RESOURCE_STORAGE_DIRNAME, 
+                    owner_uuid, 
+                    basename)
 
             else:
-                return basename
+                return os.path.join(Resource.OTHER_RESOURCE_STORAGE_DIRNAME,basename)
 
         elif type(resource_instance) == OperationResource:
             return os.path.join(
+                OperationResource.OPERATION_RESOURCE_DIRNAME,
                 str(resource_instance.operation.id),
                 basename
             )

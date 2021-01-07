@@ -88,6 +88,16 @@ class Resource(AbstractResource):
     UNEXPECTED_STORAGE_ERROR = 'An unexpected error occurred during upload and storage.'
     ERROR_WITH_REASON = 'An error ocurred: {ex}'
 
+    # the name of the directory (relative to the storage root) where we will store
+    # resources/files that are associated with MEV users
+    USER_RESOURCE_STORAGE_DIRNAME = 'user_resources'
+
+    # the name of the directory (relative to the storage root) where we will store
+    # resources/files that are NOT associated with MEV users (but not those that
+    # are operation resources). This covers the case where a Resource does not have
+    # an owner
+    OTHER_RESOURCE_STORAGE_DIRNAME = 'other_resources'
+
     # Resources are owned by someone.
     owner = models.ForeignKey(
         get_user_model(), 

@@ -29,10 +29,11 @@ class TestBaseStorage(BaseAPITestCase):
             )
 
         p = BaseStorageBackend.construct_relative_path(r)
-        expected_path = '{a}/{b}.{c}'.format(
+        expected_path = '{d}/{a}/{b}.{c}'.format(
             a = str(r.owner.pk),
             b = str(r.pk),
-            c = r.name
+            c = r.name,
+            d = Resource.USER_RESOURCE_STORAGE_DIRNAME
         )
         self.assertEqual(p, expected_path)
 
@@ -51,7 +52,8 @@ class TestBaseStorage(BaseAPITestCase):
             )
 
         p = BaseStorageBackend.construct_relative_path(r)
-        expected_path = '{b}.{c}'.format(
+        expected_path = '{a}/{b}.{c}'.format(
+            a = Resource.OTHER_RESOURCE_STORAGE_DIRNAME,
             b = str(r.pk),
             c = r.name
         )
@@ -71,9 +73,10 @@ class TestBaseStorage(BaseAPITestCase):
                 path = '/a/b/abc.txt'
             )
             p = BaseStorageBackend.construct_relative_path(op_r)
-            expected_path = '{a}/{b}.{c}'.format(
+            expected_path = '{d}/{a}/{b}.{c}'.format(
                 a = str(op.pk),
                 b = str(op_r.pk),
-                c = op_r.name
+                c = op_r.name,
+                d = OperationResource.OPERATION_RESOURCE_DIRNAME
             )
             self.assertEqual(p, expected_path)            

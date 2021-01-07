@@ -11,7 +11,7 @@ class RemoteBucketStorageBackend(RemoteStorageBackend):
     '''
     def __init__(self):
         try:
-            self.BUCKET_NAME = os.environ['USER_STORAGE_BUCKET_NAME']
+            self.BUCKET_NAME = os.environ['STORAGE_BUCKET_NAME']
         except KeyError as ex:
             raise ImproperlyConfigured('For bucket-based storage, you'
                 ' need to supply the following environment'

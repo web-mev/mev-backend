@@ -27,7 +27,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
             name = filename
         )
 
-        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_bucket = mock.MagicMock()
         mock_upload_blob = mock.MagicMock()
@@ -62,7 +62,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
             name = filename
         )
 
-        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_bucket = mock.MagicMock()
         mock_upload_blob = mock.MagicMock()
@@ -110,7 +110,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_exists.return_value = False
 
-        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()
@@ -149,7 +149,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_exists.side_effect = [True, False]
 
-        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()
@@ -187,7 +187,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_exists.side_effect = [True, True]
 
-        os.environ['USER_STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()

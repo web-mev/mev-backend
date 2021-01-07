@@ -18,6 +18,11 @@ class OperationResource(AbstractResource):
     # contains the paths to the operation resources
     OPERATION_RESOURCE_FILENAME = 'operation_resources.json'
 
+    # the name of the directory(relative to the MEV storage "root")
+    # where we will store the operation files. For instance,
+    # <storage root>/operations/<operation_uuid>/<resource UUID>.<name>
+    OPERATION_RESOURCE_DIRNAME = 'operation_resources'
+
     # which Operation does this Resource associate with...
     operation = models.ForeignKey(
         Operation,

@@ -87,7 +87,7 @@ LOCAL_STORAGE_DIRNAME=resource_storage
 # A bucket where MEV user's files will be stored (if using bucket storage). This
 # is independent of any bucket's used as a storage location for remote job runners, etc.
 # DO NOT inlude the prefix, e.g. "gs://" or "s3://"
-USER_STORAGE_BUCKET_NAME=
+STORAGE_BUCKET_NAME=
 
 ###################### END Storage-related parameters ######################################
 
