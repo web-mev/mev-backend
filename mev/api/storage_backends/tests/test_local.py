@@ -5,7 +5,7 @@ from api.tests.base import BaseAPITestCase
 from api.models import Resource
 from api.storage_backends.local import LocalStorage
 
-DUMMY_DIRNAME = 'userdir'
+DUMMY_DIRNAME = 'resource_storage'
 
 class TestLocalStorage(BaseAPITestCase):
 
@@ -40,7 +40,9 @@ class TestLocalStorage(BaseAPITestCase):
             name = filename
         )
         expected_destination = os.path.join(base_dir, \
-            DUMMY_DIRNAME, str(owner_uuid), expected_basename)
+            DUMMY_DIRNAME,\
+            Resource.USER_RESOURCE_STORAGE_DIRNAME, \
+            str(owner_uuid), expected_basename)
         mock_os_exists.return_value = True
 
         storage_backend = LocalStorage()
@@ -79,7 +81,9 @@ class TestLocalStorage(BaseAPITestCase):
             name = filename
         )
         expected_destination = os.path.join(base_dir, \
-            DUMMY_DIRNAME, str(owner_uuid), expected_basename)
+            DUMMY_DIRNAME,
+            Resource.USER_RESOURCE_STORAGE_DIRNAME, \
+            str(owner_uuid), expected_basename)
 
         # using False here makes it seem like the Resource is not local
         # and that the 

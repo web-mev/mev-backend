@@ -36,6 +36,10 @@ class OperationResource(AbstractResource):
         null = False  
     )
 
+    # override the default of setting a Resource to be inactive and private
+    is_active = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True)
+
     class Meta:
         # ensure that for every operation the input_field and name
         # are unique. Otherwise, one could apply a name which is not

@@ -41,7 +41,9 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         mock_upload_blob.assert_called()
         storage_backend.get_or_create_bucket.assert_called()
         expected_destination = os.path.join( GoogleBucketStorage.BUCKET_PREFIX, \
-            DUMMY_BUCKETNAME, str(owner_uuid), expected_basename)
+            DUMMY_BUCKETNAME, \
+            Resource.USER_RESOURCE_STORAGE_DIRNAME, \
+            str(owner_uuid), expected_basename)
         self.assertEqual(path, expected_destination)
 
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
@@ -83,7 +85,9 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         mock_interbucket_transfer.assert_called()
         storage_backend.get_or_create_bucket.assert_called()
         expected_destination = os.path.join( GoogleBucketStorage.BUCKET_PREFIX, \
-            DUMMY_BUCKETNAME, str(owner_uuid), expected_basename)
+            DUMMY_BUCKETNAME, \
+            Resource.USER_RESOURCE_STORAGE_DIRNAME, \
+            str(owner_uuid), expected_basename)
         self.assertEqual(path, expected_destination)
 
     @mock.patch('api.storage_backends.google_cloud.make_local_directory')

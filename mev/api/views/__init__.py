@@ -10,6 +10,7 @@ from .user_views import UserList, \
 from .social_views import GoogleOauth2View
 from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, ResourceDetail, ResourceContents
+from .operation_resource_views import OperationResourceList, OperationResourceFieldList
 from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAdd, WorkspaceResourceRemove
 from .workspace_metadata_views import WorkspaceMetadataView, \
     WorkspaceMetadataObservationsView, \

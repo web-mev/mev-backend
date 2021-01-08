@@ -56,6 +56,10 @@ urlpatterns = [
     path('workspaces/<uuid:workspace_pk>/resources/<uuid:resource_pk>/remove/', api.views.WorkspaceResourceRemove.as_view(), name='workspace-resource-remove'),
     path('workspaces/<uuid:workspace_pk>/resources/add/', api.views.WorkspaceResourceAdd.as_view(), name='workspace-resource-add'),
 
+    # Resources that are associated with specific Operations (OperationResources)
+    path('operation-resources/<uuid:operation_uuid>/', api.views.OperationResourceList.as_view(), name='operation-resource-list'),
+    path('operation-resources/<uuid:operation_uuid>/<str:input_field>/', api.views.OperationResourceFieldList.as_view(), name='operation-resource-field-list'),
+    
     ################# Views for Operations ############################
     path('operations/', api.views.OperationList.as_view(), name='operation-list'),
     path('operations/add/', api.views.OperationCreate.as_view(), name='operation-create'),
