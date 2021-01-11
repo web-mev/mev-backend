@@ -162,9 +162,15 @@ def validate_operation_inputs(user, inputs, operation, workspace):
                     t=attribute_typename
                 )
             )
+            raise Exception('Could not find an appropriate class for typename {t} for'
+                ' the input named {x}.'.format(
+                    x = key,
+                    t = attribute_typename
+                )
+            )
         if supplied_input:
             logger.info('Check supplied input: {d}'.format(d=supplied_input))
-            final_inputs[key] = user_operation_input_class(user, workspace, key, supplied_input, spec)
+            final_inputs[key] = user_operation_input_class(user, operation, workspace, key, supplied_input, spec)
         else:
             final_inputs[key] = None
     return final_inputs

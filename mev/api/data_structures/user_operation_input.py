@@ -26,7 +26,7 @@ from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
-from api.models import Resource
+from api.models import Resource, OperationResource
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class UserOperationInput(object):
     logic that will be implemented in the children classes. 
     '''
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
         '''
         The `submitted_value` is the python representation
         of the value provided by the user. For an input corresponding
@@ -67,6 +67,8 @@ class UserOperationInput(object):
         ```
         '''
         self.user = user
+        self.operation = operation
+        self.workspace = workspace
         self.key = key
         self.submitted_value = copy.deepcopy(submitted_value)
         self.input_spec = input_spec
@@ -118,14 +120,14 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         BooleanAttribute.typename
     ]
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
         logger.info('Check validity of value {val}'
             ' against input specification: {spec}'.format(
                 val=submitted_value,
                 spec=input_spec
             )
         )
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
         d = copy.deepcopy(self.input_spec)
 
@@ -162,18 +164,24 @@ class DataResourceUserOperationInput(UserOperationInput):
     '''
     typename = DataResourceAttribute.typename
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
         expect_many = self.input_spec[DataResourceAttribute.MANY_KEY]
         submitted_vals = self._check_many_vs_input(expect_many)
-        for val in submitted_vals:
-            r = self._check_resource_uuid(val)
-            self._check_resource_workspace(r, workspace)
-            self._check_resource_types(r)
+        self._check_submitted_values(submitted_vals)
 
         # if we are here, then we have passed all the checks-- assign the
         # self.instance variable 
-        self.instance = DataResourceAttribute(self.submitted_value, many=expect_many)
+        self._assign_instance(submitted_value, expect_many)
+
+    def _assign_instance(self, submitted_value, expect_many):
+        self.instance = DataResourceAttribute(submitted_value, many=expect_many)
+
+    def _check_submitted_values(self, submitted_vals):
+        for val in submitted_vals:
+            r = self._check_resource_uuid(val)
+            self._check_resource_workspace(r, self.workspace)
+            self._check_resource_types(r)
 
     def _check_many_vs_input(self, expect_many):
         '''
@@ -296,19 +304,44 @@ class OperationDataResourceUserOperationInput(DataResourceUserOperationInput):
     '''
     typename = OperationDataResourceAttribute.typename
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
-        expect_many = self.input_spec[DataResourceAttribute.MANY_KEY]
-        submitted_vals = self._check_many_vs_input(expect_many)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+
+    def _assign_instance(self, submitted_value, expect_many):
+        self.instance = OperationDataResourceAttribute(submitted_value, many=expect_many)
+
+    def _check_submitted_values(self, submitted_vals):
         for val in submitted_vals:
-            r = self._check_resource_uuid(val)
-            self._check_resource_workspace(r, workspace)
+            r = self._check_op_resource_uuid(val)
             self._check_resource_types(r)
 
-        # if we are here, then we have passed all the checks-- assign the
-        # self.instance variable 
-        self.instance = OperationDataResourceAttribute(self.submitted_value, many=expect_many)
+    def _check_op_resource_uuid(self, val):
+        '''
+        The inputs were already determined to be valid UUIDs. This method
+        checks that they correspond to actual OperationResources.
 
+        We check that the OperationResource was valid for the Operation
+        AND that it corresponds to the correct input field for that operation.
+        '''
+        try:
+            r = OperationResource.objects.get(
+                pk=val, 
+                operation=self.operation, 
+                input_field = self.key
+            )
+            return r
+        except OperationResource.DoesNotExist as ex:
+            raise ValidationError({
+                self.key: 'The UUID ({resource_uuid}) was not valid for'
+                    ' the input field "{x}" on Operation with UUID={op_uuid}'.format(
+                    resource_uuid = val,
+                    op_uuid = str(self.operation.id),
+                    x = self.key
+                )
+            })
+        except Exception as ex:
+            # will catch things like bad UUIDs and also other unexpected errors
+            raise ValidationError({self.key: ex})
 
 class ElementUserOperationInput(UserOperationInput):
     '''
@@ -318,8 +351,8 @@ class ElementUserOperationInput(UserOperationInput):
     '''
     typename = None
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
 
 class ObservationUserOperationInput(ElementUserOperationInput):
@@ -329,8 +362,8 @@ class ObservationUserOperationInput(ElementUserOperationInput):
     '''
     typename = 'Observation'
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
         # verify that the Observation is valid by using the serializer
         obs_s = ObservationSerializer(data=self.submitted_value)
@@ -350,8 +383,8 @@ class FeatureUserOperationInput(ElementUserOperationInput):
     '''
     typename = 'Feature'
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
         # verify that the Feature is valid by using the serializer
         fs = FeatureSerializer(data=self.submitted_value)
@@ -371,8 +404,8 @@ class ElementSetUserOperationInput(UserOperationInput):
     '''
     typename = None
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
 
 class ObservationSetUserOperationInput(ElementSetUserOperationInput):
@@ -382,8 +415,8 @@ class ObservationSetUserOperationInput(ElementSetUserOperationInput):
     '''
     typename = 'ObservationSet'
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
         # verify that the ObservationSet is valid by using the serializer
         obs_s = ObservationSetSerializer(data=self.submitted_value)
@@ -402,8 +435,8 @@ class FeatureSetUserOperationInput(ElementSetUserOperationInput):
     '''
     typename = 'FeatureSet'
 
-    def __init__(self, user, workspace, key, submitted_value, input_spec):
-        super().__init__(user, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
 
         # verify that the FeatureSet is valid by using the serializer
         fs = FeatureSetSerializer(data=self.submitted_value)
@@ -426,6 +459,8 @@ for t in AttributeBasedUserOperationInput.typenames:
 # add the other types
 user_operation_input_mapping[
     DataResourceUserOperationInput.typename] = DataResourceUserOperationInput
+user_operation_input_mapping[
+    OperationDataResourceUserOperationInput.typename] = OperationDataResourceUserOperationInput 
 user_operation_input_mapping[
     ObservationUserOperationInput.typename] = ObservationUserOperationInput
 user_operation_input_mapping[

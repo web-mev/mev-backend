@@ -16,6 +16,7 @@ from api.data_structures import IntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
+    OperationDataResourceAttribute, \
     OptionStringAttribute
 from api.exceptions import AttributeValueError, \
     InvalidAttributeKeywords
@@ -313,6 +314,38 @@ class TestAttributes(unittest.TestCase):
         # missing the "many" key
         with self.assertRaises(InvalidAttributeKeywords):
             DataResourceAttribute('abc')
+
+    def test_operationdataresource_attribute(self):
+        '''
+        Tests the OperationDataResourceAttribute, which is used when specifying user-independent
+        files for use in analysis `Operation`s.
+        '''
+
+        # works:
+        d = OperationDataResourceAttribute(str(uuid.uuid4()), many=True)
+        d = OperationDataResourceAttribute(str(uuid.uuid4()), many=False)
+
+        # should fail since multiple UUID passed, but many=False
+        with self.assertRaises(AttributeValueError):
+            OperationDataResourceAttribute(
+                [str(uuid.uuid4()), str(uuid.uuid4())], 
+                many=False
+            )
+
+        # should fail since one of the vals is NOT a UUID
+        with self.assertRaises(AttributeValueError):
+            OperationDataResourceAttribute(
+                [str(uuid.uuid4()), 'abc'], 
+                many=True
+            )
+
+        # the "value" is not a UUID. Should fail:
+        with self.assertRaises(AttributeValueError):
+            OperationDataResourceAttribute('abc', many=True)
+
+        # missing the "many" key
+        with self.assertRaises(InvalidAttributeKeywords):
+            OperationDataResourceAttribute('abc')
 
     def test_option_string_attribute(self):
 

@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.utilities.operations import read_operation_json
 from api.data_structures.user_operation_input import user_operation_input_mapping
-from api.models import Resource, Workspace
+from api.models import Resource, Workspace, Operation, OperationResource
 from api.tests.base import BaseAPITestCase
 
 from resource_types import RESOURCE_MAPPING
@@ -72,7 +72,7 @@ class UserOperationInputTester(BaseAPITestCase):
             spec_object = d['inputs'][key]['spec']
             spec_type = spec_object['attribute_type']
             user_operation_input_class = user_operation_input_mapping[spec_type]
-            user_operation_input_class(self.regular_user_1, None, key, val, spec_object)
+            user_operation_input_class(self.regular_user_1, None, None, key, val, spec_object)
 
     def test_bad_basic_user_inputs(self):
         '''
@@ -109,7 +109,8 @@ class UserOperationInputTester(BaseAPITestCase):
             user_operation_input_class = user_operation_input_mapping[spec_type]
             with self.assertRaises(ValidationError):
                 # can pass None for the workspace arg since we don't use it when checking the basic types
-                user_operation_input_class(self.regular_user_1, None, key, val, spec_object)
+                # Also pass None for the Operation argument. None of the basic attributes require that.
+                user_operation_input_class(self.regular_user_1, None, None, key, val, spec_object)
 
     def test_defaults_for_non_required_inputs(self):
         '''
@@ -128,7 +129,7 @@ class UserOperationInputTester(BaseAPITestCase):
             spec_type = spec_object['attribute_type']
             user_operation_input_class = user_operation_input_mapping[spec_type]
             # can pass None for the workspace arg since we don't use it when checking the basic types
-            user_operation_input_class(self.regular_user_1, None, key, None, spec_object)
+            user_operation_input_class(self.regular_user_1, None, None, key, None, spec_object)
 
     def test_resource_type_input(self):
         '''
@@ -178,7 +179,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': False,
             'resource_types': [rt, ]
         }
-        x = user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
+        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
             str(r.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r.id))
 
@@ -192,7 +193,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': list(typeset)
         }
         expected_vals = [str(r0.id), str(r1.id)]
-        x = user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
+        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
             expected_vals, 
             multiple_resource_input_spec)
         self.assertCountEqual(x.get_value(), expected_vals)
@@ -206,7 +207,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': [rt, ]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, user_workspace,
+            user_operation_input_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(uuid.uuid4()), single_resource_input_spec)
 
         # handle multiple files where one has an invalid UUID; uuid is fine, 
@@ -217,7 +218,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': []
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, user_workspace,'xyz', 
+            user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
                 [str(uuid.uuid4()), str(uuid.uuid4())], 
                 multiple_resource_input_spec)
 
@@ -229,7 +230,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': [rt, ]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, user_workspace, 'xyz', 
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 str(other_user_resource.id), single_resource_input_spec)
 
         # handle the case where the UUID identifies a file, but it is not the correct type
@@ -242,7 +243,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': other_resource_types
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, user_workspace, 'xyz', 
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 str(r.id), single_resource_input_spec)
 
         # handle the case where we have a list of UUIDs. They all identify
@@ -257,7 +258,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': other_resource_types
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, user_workspace, 'xyz', 
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
         # handle the case where we have a list of UUIDs. They all identify
@@ -272,8 +273,96 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': rts
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, user_workspace, 'xyz', 
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
+
+
+    def test_operationresource_type_input(self):
+        '''
+        Tests the various scenarios for handling an input corresponding to a 
+        OperationDataResource
+        '''
+        user_operation_input_class = user_operation_input_mapping['OperationDataResource']
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1) 
+        user_workspace = user_workspaces[0]
+
+        operations = Operation.objects.all()
+        if len(operations) < 2:
+            raise ImproperlyConfigured('Need at least two Operations to run this test.')
+        op1 = operations[0]
+        op2 = operations[1]
+
+        # create an OperationDataResource for both ops
+        r1 = OperationResource.objects.create(
+            operation = op1,
+            input_field = 'foo',
+            name = 'foo.txt',
+            resource_type = 'MTX'
+        )
+        r2 = OperationResource.objects.create(
+            operation = op1,
+            input_field = 'bar',
+            name = 'bar.txt',
+            resource_type = 'MTX'
+        )
+        r3 = OperationResource.objects.create(
+            operation = op2,
+            input_field = 'foo', # same input_field as above, but for a different op
+            name = 'baz.txt',
+            resource_type = 'MTX'
+        )
+
+        # handle a good case with a single file
+        single_resource_input_spec = {
+            'attribute_type': 'OperationDataResource',
+            'many': False,
+            'resource_types': [r1.resource_type, ]
+        }
+        x = user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
+            str(r1.id), single_resource_input_spec)
+        self.assertEqual(x.get_value(), str(r1.id))
+
+        # change the input field name. Note that r1 is associated with field 'foo', but
+        # we mock a user trying to use that operationResource with a field named 'xyz'.
+        # xyz is not a valid name for any input field.
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'xyz', 
+                str(r1.id), single_resource_input_spec)
+
+        # change the input field name. Note that r1 is associated with field 'foo', but
+        # we mock a user trying to use that operationResource with a field named 'bar'.
+        # Here, 'bar' happens to be a valid name of a different input field
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'bar', 
+                str(r1.id), single_resource_input_spec)
+
+        # assert that this is valid
+        x = user_operation_input_class(self.regular_user_1, op1, user_workspace, 'bar', 
+            str(r2.id), single_resource_input_spec)
+        self.assertEqual(x.get_value(), str(r2.id))
+
+        # op2 has a 'foo' input field- check that it works before trying to create a 
+        # failed example
+        x = user_operation_input_class(self.regular_user_1, op2, user_workspace, 'foo', 
+            str(r3.id), single_resource_input_spec)
+        self.assertEqual(x.get_value(), str(r3.id))
+        # now change the user input to be the UUID of r1. This resource has the same
+        # input field, but is assoc. with op1, not op2
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, op2, user_workspace, 'foo', 
+                str(r1.id), single_resource_input_spec)
+
+        # change the resource_type for the input spec so 
+        # it doesn't match the OperationResource. 
+        single_resource_input_spec = {
+            'attribute_type': 'OperationDataResource',
+            'many': False,
+            'resource_types': ['XYZ', ]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
+                str(r1.id), single_resource_input_spec)
 
     def test_observation_set_inputs(self):
         '''
@@ -310,7 +399,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        x=clazz(self.regular_user_1, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
+        x=clazz(self.regular_user_1, None, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
         val = x.get_value()
         self.assertEqual(val['multiple'], valid_obs_set['multiple'])
         self.assertCountEqual(val['elements'], valid_obs_set['elements'])
@@ -324,7 +413,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         # the >1 elements coupled with multiple=False makes this an invalid ObservationSet
         with self.assertRaises(ValidationError):
-            clazz(self.regular_user_1, None, 'xyz', invalid_obs_set, d['inputs']['obs_set_type'])
+            clazz(self.regular_user_1, None, None, 'xyz', invalid_obs_set, d['inputs']['obs_set_type'])
 
         valid_obs_set = {
             'multiple': True,
@@ -333,7 +422,7 @@ class UserOperationInputTester(BaseAPITestCase):
                 {'id': 'baz'} # missing the 'attributes' key, but that is OK
             ]
         }
-        clazz(self.regular_user_1, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
+        clazz(self.regular_user_1, None, None, 'xyz', valid_obs_set, d['inputs']['obs_set_type'])
 
         invalid_obs_set = {
             'multiple': True,
@@ -344,7 +433,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         # missing 'id' causes the nested Observation to be invalid
         with self.assertRaises(ValidationError):
-            clazz(self.regular_user_1, None, 'xyz', invalid_obs_set, d['inputs']['obs_set_type'])
+            clazz(self.regular_user_1, None, None, 'xyz', invalid_obs_set, d['inputs']['obs_set_type'])
 
     def test_feature_set_inputs(self):
         '''
@@ -377,7 +466,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        x = clazz(self.regular_user_1, None, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
+        x = clazz(self.regular_user_1, None, None, 'xyz', valid_feature_set, d['inputs']['feature_set_type'])
         val = x.get_value()
         self.assertEqual(val['multiple'], valid_feature_set['multiple'])
         self.assertCountEqual(val['elements'], valid_feature_set['elements'])
@@ -391,7 +480,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         # the >1 elements coupled with multiple=False makes this an invalid FeatureSet
         with self.assertRaises(ValidationError):
-            clazz(self.regular_user_1, None, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
+            clazz(self.regular_user_1, None, None, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
 
         valid_feature_set2 = {
             'multiple': True,
@@ -400,7 +489,7 @@ class UserOperationInputTester(BaseAPITestCase):
                 {'id': 'bar'} # missing the 'attributes' key, but that is OK
             ]
         }
-        x = clazz(self.regular_user_1, None, 'xyz', valid_feature_set2, d['inputs']['feature_set_type'])
+        x = clazz(self.regular_user_1, None, None, 'xyz', valid_feature_set2, d['inputs']['feature_set_type'])
         # note that we compare against the original valid_feature_set.
         # This is because our methods add the empty 'attributes' key.
         # Therefore, a strict comparison of valid_feature_set2 would not be possible
@@ -418,7 +507,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         # missing 'id' causes the nested Feature to be invalid
         with self.assertRaises(ValidationError):
-            clazz(self.regular_user_1, None, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
+            clazz(self.regular_user_1, None, None, 'xyz', invalid_feature_set, d['inputs']['feature_set_type'])
 
     def test_observation_inputs(self):
         '''
@@ -449,8 +538,8 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        x = clazz(self.regular_user_1, None, 'xyz', valid_obs_1, d['inputs']['obs_type'])
-        y = clazz(self.regular_user_1, None, 'xyz', valid_obs_2, d['inputs']['obs_type'])
+        x = clazz(self.regular_user_1, None, None, 'xyz', valid_obs_1, d['inputs']['obs_type'])
+        y = clazz(self.regular_user_1, None, None, 'xyz', valid_obs_2, d['inputs']['obs_type'])
         self.assertDictEqual(x.get_value(), valid_obs_1)
         self.assertDictEqual(
             y.get_value(), 
@@ -459,7 +548,7 @@ class UserOperationInputTester(BaseAPITestCase):
 
 
         with self.assertRaises(ValidationError):
-            clazz(self.regular_user_1, None, 'xyz', invalid_obs, d['inputs']['obs_type'])
+            clazz(self.regular_user_1, None, None, 'xyz', invalid_obs, d['inputs']['obs_type'])
 
     def test_feature_inputs(self):
         '''
@@ -490,12 +579,12 @@ class UserOperationInputTester(BaseAPITestCase):
         }
 
         # test that we are fine with a valid input:
-        x = clazz(self.regular_user_1, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
-        y = clazz(self.regular_user_1, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
+        x = clazz(self.regular_user_1, None, None, 'xyz', valid_feature_1, d['inputs']['feature_type'])
+        y = clazz(self.regular_user_1, None, None, 'xyz', valid_feature_2, d['inputs']['feature_type'])
         self.assertDictEqual(x.get_value(), valid_feature_1)
         self.assertDictEqual(
             y.get_value(), 
             {'id': 'foo', 'attributes':{} }
         )
         with self.assertRaises(ValidationError):
-            clazz(self.regular_user_1, None, 'xyz', invalid_feature, d['inputs']['feature_type'])
+            clazz(self.regular_user_1, None, None, 'xyz', invalid_feature, d['inputs']['feature_type'])

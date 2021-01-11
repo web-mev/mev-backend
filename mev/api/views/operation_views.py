@@ -410,6 +410,11 @@ class OperationRun(APIView):
                 inputs, matching_op, workspace)
         except ValidationError as ex:
             raise ValidationError({self.INPUTS: ex.detail})
+        except Exception as ex:
+            logger.error('Encountered some other exception when validating the user inputs.'
+                ' The exception was: {ex}'.format(ex=ex)
+            )
+            raise ex
 
         # now that the inputs are validated against the spec, create an
         # ExecutedOperation instance and return it
