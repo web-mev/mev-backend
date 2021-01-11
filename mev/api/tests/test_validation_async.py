@@ -22,6 +22,8 @@ from api.utilities.resource_utilities import handle_valid_resource
 from api.tests.base import BaseAPITestCase
 from resource_types import get_resource_type_instance
 
+from api.exceptions import NoResourceFoundException
+
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
@@ -46,7 +48,7 @@ class TestValidateResource(BaseAPITestCase):
         Very unlikely, as the only "entry" to this method
         occurs directly after creating a valid Resource
         '''
-        with self.assertRaises(Resource.DoesNotExist):
+        with self.assertRaises(NoResourceFoundException):
             junk_uuid = uuid.uuid4()
             validate_resource(junk_uuid, 'MTX')
 

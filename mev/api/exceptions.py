@@ -40,3 +40,9 @@ class OperationResourceFileException(Exception):
     Raised during the ingestion of the operation
     '''
     pass
+
+class NoResourceFoundException(Exception):
+    '''
+    Raised as a general exception when a Resource cannot be found.
+    '''
+    pass

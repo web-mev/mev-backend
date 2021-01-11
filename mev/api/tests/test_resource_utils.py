@@ -22,7 +22,8 @@ from api.models import Resource, \
     ResourceMetadata, \
     ExecutedOperation, \
     WorkspaceExecutedOperation, \
-    Operation
+    Operation, \
+    OperationResource
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_view, \
@@ -30,9 +31,11 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     handle_valid_resource, \
     handle_invalid_resource, \
     check_extension, \
-    add_metadata_to_resource
+    add_metadata_to_resource, \
+    get_resource_by_pk
 from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
+from api.exceptions import NoResourceFoundException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -47,6 +50,31 @@ class TestResourceUtilities(BaseAPITestCase):
     def setUp(self):
         self.establish_clients()
         
+
+    def test_get_resource_by_pk_works_for_all_resources(self):
+        '''
+        We use the api.utilities.resource_utilities.get_resource_by_pk
+        function to check for the existence of all children of the 
+        AbstractResource class. Test that it all works as expected.
+        '''
+        with self.assertRaises(NoResourceFoundException):
+            get_resource_by_pk(uuid.uuid4())
+
+        r = Resource.objects.all()
+        r = r[0]
+        r2 = get_resource_by_pk(r.pk)
+        self.assertEqual(r,r2)
+
+        ops = Operation.objects.all()
+        op = ops[0]
+        r3 = OperationResource.objects.create(
+            operation = op,
+            input_field = 'foo',
+            name = 'foo.txt',
+            resource_type = 'MTX'
+        )
+        r4 = get_resource_by_pk(r3.pk)
+        self.assertEqual(r3,r4)
 
     @mock.patch('resource_types.RESOURCE_MAPPING')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')

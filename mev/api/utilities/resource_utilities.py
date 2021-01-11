@@ -7,7 +7,7 @@ from django.utils.module_loading import import_string
 from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
 
-from api.models import Resource, ResourceMetadata, ExecutedOperation
+from api.models import Resource, ResourceMetadata, ExecutedOperation, OperationResource
 from api.exceptions import AttributeValueError
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
@@ -29,6 +29,7 @@ from resource_types import get_contents, \
     RESOURCE_KEY, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
+from api.exceptions import NoResourceFoundException
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +62,23 @@ def get_resource_by_pk(resource_pk):
         return resource
     except Resource.DoesNotExist as ex:
         logger.info('Received an unknown/invalid primary key'
-        ' when trying to retrieve a Resource instance.'
-        ' PK was {uuid}.'.format(uuid=str(resource_pk))
+            ' when trying to retrieve a Resource instance.'
+            ' Try looking for OperationResource with the UUID ({u}).'.format(
+                u = resource_pk
+            )
+        )
+    try:
+        resource = OperationResource.objects.get(pk=resource_pk)
+        return resource
+    except OperationResource.DoesNotExist as ex:
+        logger.info('Could not find an OperationResource with'
+            ' pk={u}'.format(u = resource_pk)
+        )
+
+    # If we are here, raise an exception since nothing was found    
+    raise NoResourceFoundException('Could not find any sublcasses of AbstractResource'
+        ' identified by the ID {u}'.format(u=resource_pk)
     )
-        raise ex
 
 def set_resource_to_inactive(resource_instance):
     '''
