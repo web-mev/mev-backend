@@ -12,7 +12,8 @@ from api.converters.basic_attributes import StringConverter, \
     UnrestrictedStringConverter, \
     UnrestrictedStringListConverter, \
     StringListToCsvConverter, \
-    UnrestrictedStringListToCsvConverter
+    UnrestrictedStringListToCsvConverter, \
+    BooleanAsIntegerConverter
 from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
@@ -283,3 +284,32 @@ class TestMapConverters(BaseAPITestCase):
         r = c.convert('mykey', 'foo', '/tmp')
         self.assertDictEqual(r, {"keyA":"A", "keyB":"B"})
         os.remove(tmp_path)
+
+class TestBooleanConverters(BaseAPITestCase):
+
+    def test_basic_conversion(self):
+        c = BooleanAsIntegerConverter()
+        x = c.convert('foo', 1, '/tmp')
+        self.assertDictEqual(x, {"foo": 1})
+
+        x = c.convert('foo', True, '/tmp')
+        self.assertDictEqual(x, {"foo": 1})
+
+        x = c.convert('foo', 'true', '/tmp')
+        self.assertDictEqual(x, {"foo": 1})
+
+        with self.assertRaises(AttributeValueError):
+            x = c.convert('foo', '1', '/tmp')
+
+        # check the false'y vals:
+        x = c.convert('foo', 0, '/tmp')
+        self.assertDictEqual(x, {"foo": 0})
+
+        x = c.convert('foo', False, '/tmp')
+        self.assertDictEqual(x, {"foo": 0})
+
+        x = c.convert('foo', 'false', '/tmp')
+        self.assertDictEqual(x, {"foo": 0})
+
+        with self.assertRaises(AttributeValueError):
+            x = c.convert('foo', '0', '/tmp')

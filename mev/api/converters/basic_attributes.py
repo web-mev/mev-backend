@@ -2,7 +2,8 @@ from api.data_structures import StringAttribute, \
     UnrestrictedStringAttribute, \
     IntegerAttribute, \
     StringListAttribute, \
-    UnrestrictedStringListAttribute
+    UnrestrictedStringListAttribute, \
+    BooleanAttribute
 from api.converters.mixins import CsvMixin
 
 class BaseAttributeConverter(object):
@@ -45,3 +46,9 @@ class UnrestrictedStringListToCsvConverter(BaseAttributeConverter, CsvMixin):
     def convert(self, input_key, user_input, op_dir):
         s = UnrestrictedStringListAttribute(user_input)
         return {input_key: self.to_string(s.value)}
+
+
+class BooleanAsIntegerConverter(BaseAttributeConverter):
+    def convert(self, input_key, user_input, op_dir):
+        b = BooleanAttribute(user_input)
+        return {input_key: b.value}
