@@ -744,6 +744,12 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
 
         r = Resource.objects.all()
         r = r[0]
+
+        # delete any existing metadata on this resource (in case it's there
+        # from a prior test)
+        rr = ResourceMetadata.objects.filter(resource=r)
+        if len(rr) == 1:
+             rr.delete()
         d = {
             RESOURCE_KEY: r.pk,
             OBSERVATION_SET_KEY: None,
@@ -752,12 +758,21 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         }
         rms = ResourceMetadataSerializer(data=d)
         self.assertTrue(rms.is_valid())
+        rm = rms.save()
+        self.assertIsNone(rm.observation_set)
+        self.assertIsNone(rm.feature_set)
+        self.assertIsNone(rm.parent_operation)
 
         # it's OK to only have the resource key.
         # The others are set to null by default.
         d = {
             RESOURCE_KEY: r.pk,
         }
+        # delete any existing metadata on this resource (in case it's there
+        # from a prior test)
+        rr = ResourceMetadata.objects.filter(resource=r)
+        if len(rr) == 1:
+             rr.delete()
         rms = ResourceMetadataSerializer(data=d)
         self.assertTrue(rms.is_valid())
         rm = rms.save()

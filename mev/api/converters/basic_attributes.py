@@ -51,4 +51,4 @@ class UnrestrictedStringListToCsvConverter(BaseAttributeConverter, CsvMixin):
 class BooleanAsIntegerConverter(BaseAttributeConverter):
     def convert(self, input_key, user_input, op_dir):
         b = BooleanAttribute(user_input)
-        return {input_key: b.value}
+        return {input_key: int(b.value)}
