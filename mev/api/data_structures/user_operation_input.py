@@ -145,11 +145,13 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         elif (self.submitted_value is None) and default:
             self.submitted_value = default
 
+        logger.info('In here, self.submitted_value={x}'.format(x=self.submitted_value))
         d['value'] = self.submitted_value
 
         # the following function will raise a ValidationError
         # if the submitted value is not sensible for the specific
         # input type.
+        logger.info('d was: {d}'.format(d=d))
         self.instance = create_attribute(key, d)
 
     def get_value(self):

@@ -1,0 +1,20 @@
+{
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "some_boolean": {
+            "description": "Some description", 
+            "name": "Bool:", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "Boolean",
+                "default": false
+            }
+        }
+    }, 
+    "outputs": {}, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/some-repo/", 
+    "git_hash": "abcd1234",
+    "workspace_operation": false
+}

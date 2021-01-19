@@ -428,3 +428,26 @@ class OperationUtilsTester(BaseAPITestCase):
             'inputA': '',
         }
         self.assertFalse(resource_operations_file_is_valid(bad_op_resource_data, inputs.keys()))
+
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_optional_boolean_value_filled_by_default(self, mock_get_operation_instance_data):
+        '''
+        Test that a missing optional boolean parameter gets the default value
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'valid_op_with_default_bool.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+
+        # one input was optional, one required. An empty payload
+        # qualifies as a problem since it's missing the required key
+        sample_inputs = {}
+
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
+            sample_inputs, self.db_op, self.workspace)
+        self.assertEqual(final_inputs['some_boolean'].submitted_value, False)
+        expected_default = d['inputs']['some_boolean']['spec']['default']
+        self.assertEqual(
+            final_inputs['some_boolean'].submitted_value, expected_default)

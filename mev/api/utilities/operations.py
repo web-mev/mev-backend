@@ -147,6 +147,7 @@ def validate_operation_inputs(user, inputs, operation, workspace):
         else: # key not there, but NOT required
             logger.info('key was not there, but also NOT required.')
             if 'default' in spec: # is there a default to use?
+                logger.info('There was a default value in the operation spec. Since no value was given, use that.')
                 supplied_input = spec['default']
             else:
                 supplied_input = None
@@ -168,7 +169,7 @@ def validate_operation_inputs(user, inputs, operation, workspace):
                     t = attribute_typename
                 )
             )
-        if supplied_input:
+        if supplied_input is not None:
             logger.info('Check supplied input: {d}'.format(d=supplied_input))
             final_inputs[key] = user_operation_input_class(user, operation, workspace, key, supplied_input, spec)
         else:
