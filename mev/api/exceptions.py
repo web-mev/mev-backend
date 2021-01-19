@@ -46,3 +46,13 @@ class NoResourceFoundException(Exception):
     Raised as a general exception when a Resource cannot be found.
     '''
     pass
+
+class NonIterableContentsException(Exception):
+    '''
+    Raised when resource contents are requested, but the data does
+    not support iteration. Typical case would be for a JSON-based data
+    structure. If the JSON is basically an array, we can iterate. Otherwise
+    the concept of pagination is not generalizable (e.g. if the JSON
+    is a dict)
+    '''
+    pass

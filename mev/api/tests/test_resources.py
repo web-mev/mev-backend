@@ -861,7 +861,13 @@ class ResourceContentTests(BaseAPITestCase):
             url, format='json'
         )
         j = response.json()
-        self.assertDictEqual(results, file_contents)
+        self.assertDictEqual(j, file_contents)
+
+        url = base_url + '?page=2'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertTrue(response.status_code == status.HTTP_404_NOT_FOUND)
 
 
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')

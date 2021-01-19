@@ -9,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from .base import DataResource
+from api.exceptions import NonIterableContentsException
 
 JSON = 'json'
 
@@ -31,8 +32,9 @@ class JsonArrayPage(Page):
 
 class JsonObjectPage(Page):
     def __getitem__(self, index):
-        self.object_list = list(self.object_list)
-        return self.object_list[index]
+        keys = list(self.object_list.keys())
+        #self.object_list = list(self.object_list)
+        return self.object_list[keys[index]]
 
 class JsonResourcePaginator(Paginator):
     '''
@@ -62,13 +64,15 @@ class JsonResourcePaginator(Paginator):
         if type(self.object_list) == list:
             return JsonArrayPage(self.object_list[bottom:top], number, self)
         else:
-            return JsonObjectPage(self.object_list, number, self)
+            raise NonIterableContentsException()
 
 class JsonResourcePageNumberPagination(PageNumberPagination):
     django_paginator_class = JsonResourcePaginator
     page_size_query_param = settings.PAGE_SIZE_PARAM
 
     def get_paginated_response(self, data):
+        print(data)
+        print('?'*100)
         return Response(OrderedDict([
             ('count', self.page.paginator.count),
             ('next', self.get_next_link()),

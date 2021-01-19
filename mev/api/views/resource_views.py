@@ -19,7 +19,7 @@ from api.utilities.resource_utilities import get_resource_view, \
     resource_supports_pagination
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
-
+from api.exceptions import NonIterableContentsException
 from resource_types import ParseException
 
 
@@ -208,7 +208,17 @@ class ResourceContents(APIView):
             else:
                 if (settings.PAGE_PARAM in request.query_params) and (resource_supports_pagination(r.resource_type)):
                     paginator = get_resource_paginator(r.resource_type)
-                    results = paginator.paginate_queryset(contents, request)
+                    try:
+                        results = paginator.paginate_queryset(contents, request)
+                    except NonIterableContentsException as ex:
+                        # certain resources (e.g. JSON) can support pagination in
+                        # certain contexts, such as is the JSON is essentially an 
+                        # array. If the paginator raises this error, just return the
+                        # entire contents we parsed before.
+                        logging.info('Contents of resource ({pk}) were not iterable.'
+                            ' Returning all contents.'
+                        )
+                        return Response(contents)
                     return paginator.get_paginated_response(results)
                 else:
                     return Response(contents)

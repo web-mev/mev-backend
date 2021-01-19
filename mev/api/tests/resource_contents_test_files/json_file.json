@@ -1,1 +1,43 @@
-{"a":{"foo": "a", "bar":1}, "b":{"foo": "b", "bar":2}, "c":{"foo": "c", "bar":3}}
+{
+    "children": [
+        {
+            "children": [
+                {
+                    "name": "YEW1_Control"
+                },
+                {
+                    "name": "YEW4_Treated"
+                }
+            ],
+            "name": "8"
+        },
+        {
+            "children": [
+                {
+                    "children": [
+                        {
+                            "name": "YEW2_Control"
+                        },
+                        {
+                            "name": "YEW6_Treated"
+                        }
+                    ],
+                    "name": "6"
+                },
+                {
+                    "children": [
+                        {
+                            "name": "YEW3_Control"
+                        },
+                        {
+                            "name": "YEW5_Treated"
+                        }
+                    ],
+                    "name": "7"
+                }
+            ],
+            "name": "9"
+        }
+    ],
+    "name": "10"
+}
