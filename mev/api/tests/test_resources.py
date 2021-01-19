@@ -979,6 +979,76 @@ class ResourceContentTests(BaseAPITestCase):
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_contents_pagination_for_json(self, mock_get_storage_backend, mock_check_request_validity):
+        f = os.path.join(self.TESTDIR, 'json_array_file.json')
+        N = 60 # the number of records in our demo file
+
+        # just a double-check to ensure the test data is large enough
+        # for the pagination to be general
+        self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
+        self.resource.path = f
+        self.resource.resource_type = 'JSON'
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=1'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == settings.REST_FRAMEWORK['PAGE_SIZE'])
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=last'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        leftover_size = N % settings.REST_FRAMEWORK['PAGE_SIZE']
+        self.assertTrue(len(results) == leftover_size)
+
+        # test the page_size param:
+        page_size = 10
+        suffix = '?page_size=%d&page=2' % page_size
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == page_size)
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['idx'] == 10)
+        self.assertTrue(final_record['idx'] == 19)
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_resource_contents_pagination(self, mock_get_storage_backend, mock_check_request_validity):
         f = os.path.join(self.TESTDIR, 'demo_table_for_pagination.tsv')
         N = 155 # the number of records in our demo file
