@@ -64,17 +64,30 @@ class LocalDockerRunner(OperationRunner):
             return True
 
     def load_outputs_file(self, job_id):
+        '''
+        Loads and returns the contents of the expected
+        outputs json file. If it does not exist or if there
+        was a parsing error, it will raise an exception to be 
+        caught in the calling function
+        '''
         execution_dir = os.path.join(
             settings.OPERATION_EXECUTION_DIR, job_id)
 
-        # the outputs json file:
-        outputs_dict = json.load(open(
-            os.path.join(execution_dir, self.OUTPUTS_JSON)
-        ))
-        logger.info('After parsing the outputs file, we have: {j}'.format(
-            j = json.dumps(outputs_dict)
-        ))
-        return outputs_dict
+        try:
+            outputs_dict = json.load(open(
+                os.path.join(execution_dir, self.OUTPUTS_JSON)
+            ))
+            logger.info('After parsing the outputs file, we have: {j}'.format(
+                j = json.dumps(outputs_dict)
+            ))
+            return outputs_dict
+        except FileNotFoundError as ex:
+            logger.info('The outputs file for job {id} was not'
+                ' found.'.format(id=job_id)
+            )
+            raise Exception('The outputs file was not found. An administrator'
+                ' should check the analysis operation.'
+            )
 
     def finalize(self, executed_op):
         '''
@@ -93,17 +106,26 @@ class LocalDockerRunner(OperationRunner):
             log_msg = get_logs(job_id)
             executed_op.error_messages = [log_msg,]
         else:
-            executed_op.job_failed = False
-            executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
         
-            # the outputs json file:
-            outputs_dict = self.load_outputs_file(job_id)
+            # read the outputs json file and convert to mev-compatible outputs:
+            try:
+                outputs_dict = self.load_outputs_file(job_id)
 
-            # instantiate the output converter class:
-            converter = LocalDockerOutputConverter()
-            converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
+                # instantiate the output converter class:
+                converter = LocalDockerOutputConverter()
+                converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
 
-            executed_op.outputs = converted_outputs
+                executed_op.outputs = converted_outputs
+
+                executed_op.job_failed = False
+                executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
+
+            except Exception as ex:
+                # if the outputs file was not found or if some other exception was
+                # raised, mark the job failed.
+                executed_op.job_failed = True
+                executed_op.status = str(ex)
+                alert_admins()
 
         # finally, we cleanup the docker container
         remove_container(job_id)
