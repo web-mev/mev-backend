@@ -21,7 +21,7 @@ def build_docker_image(image, tag, dockerfile, context_dir):
         the same as the git repository
     '''
 
-    DOCKER_BUILD_CMD = 'docker build -t {username}/{image}:{tag} -f {dockerfile} {context_dir}'
+    DOCKER_BUILD_CMD = 'docker build --no-cache -t {username}/{image}:{tag} -f {dockerfile} {context_dir}'
     
     if len(tag) == 0:
         tag = 'latest'
