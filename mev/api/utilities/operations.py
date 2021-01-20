@@ -87,6 +87,14 @@ def validate_operation(operation_dict):
     logger.info('Operation specification was valid.')
     return op_serializer
 
+def get_operation_data_list(uuid_list):
+    '''
+    Return a list of Operation instances (in serialized json format)
+    given a list of UUIDs. Does not check the existence of those UUIDs
+    for addressing Operation instances. That should be done prior.
+    '''
+    pass
+
 def get_operation_instance_data(operation_db_model):
     '''
     Using an Operation (database model) instance, return the

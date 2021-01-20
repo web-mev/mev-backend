@@ -7,3 +7,4 @@ from .resource_metadata import ResourceMetadata
 from .executed_operation import ExecutedOperation
 from .workspace_executed_operation import WorkspaceExecutedOperation
 from .operation_resource import OperationResource
+from .operation_category import OperationCategory

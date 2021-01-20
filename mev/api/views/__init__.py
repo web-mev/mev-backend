@@ -32,6 +32,9 @@ from .operation_views import OperationList, \
     ExecutedOperationCheck, \
     ExecutedOperationList, \
     WorkspaceExecutedOperationList
+from .operation_category_views import OperationCategoryList, \
+    OperationCategoryDetail, \
+    OperationCategoryAdd
 
 def sentry_debug(request):
     '''
