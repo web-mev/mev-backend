@@ -46,8 +46,6 @@ sed -i 's:directory=/www:directory=/workspace/mev:g' /etc/supervisor/conf.d/cele
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread && supervisorctl update
 
-# Start the application server:
-cd /workspace
 
 # copy the static files so they are exposed to the static volume shared by 
 # the api and nginx containers
@@ -55,7 +53,9 @@ cp -r /workspace/mev/static /www/
 
 # Run the command, but only if in production:
 if [ $ENVIRONMENT = 'dev' ]; then
-    echo "Ignoring startup command.  Login to container to start gunicorn."
+    echo "Ignoring startup command.  In dev mode, you must manually start gunicorn."
+    # For convenience, move into the mev application folder where we can make edits
+    cd /workspace/mev
 else
     $@
 fi
