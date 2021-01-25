@@ -195,7 +195,7 @@ class WorkspaceExecutedOperationList(APIView):
         # analyses:
         if (user.is_staff) or (user == workspace.owner):
             executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace)
-            response_payload = ExecutedOperationSerializer(executed_ops, many=True).data
+            response_payload = WorkspaceExecutedOperationSerializer(executed_ops, many=True).data
             return Response(response_payload, 
                 status=status.HTTP_200_OK
             )
