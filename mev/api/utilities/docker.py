@@ -28,7 +28,7 @@ def build_docker_image(image, tag, dockerfile, context_dir):
     
     build_cmd = DOCKER_BUILD_CMD.format(
         username = settings.DOCKERHUB_USERNAME,
-        image = image,
+        image = image.lower(),
         tag = tag,
         dockerfile = dockerfile,
         context_dir = context_dir

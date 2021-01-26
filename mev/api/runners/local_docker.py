@@ -287,7 +287,7 @@ class LocalDockerRunner(OperationRunner):
             job_dir = execution_dir,
             cmd = entrypoint_cmd,
             username = settings.DOCKERHUB_USERNAME,
-            image = op_data['repo_name'],
+            image = op_data['repo_name'].lower(),
             tag = op_data['git_hash']
         )
         try:
