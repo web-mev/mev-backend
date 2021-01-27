@@ -58,7 +58,7 @@ def push_image_to_dockerhub(image, tag):
     DOCKER_PUSH_CMD = 'docker push {img_str}'
     image_str = IMAGE_STR.format(
         username = settings.DOCKERHUB_USERNAME,
-        image = image,
+        image = image.lower(),
         tag = tag
     )
     push_cmd = DOCKER_PUSH_CMD.format(
