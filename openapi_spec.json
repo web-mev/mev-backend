@@ -816,13 +816,15 @@
                           "RNASEQ_COUNT_MTX",
                           "ANN",
                           "BED",
-                          "JSON"
+                          "JSON",
+                          "*"
                         ],
                         "nullable": true
                       },
                       "owner_email": {
                         "type": "string",
-                        "format": "email"
+                        "format": "email",
+                        "nullable": true
                       },
                       "is_active": {
                         "type": "boolean"
@@ -833,7 +835,7 @@
                       "status": {
                         "type": "string",
                         "nullable": true,
-                        "maxLength": 255
+                        "maxLength": 2000
                       },
                       "workspaces": {
                         "type": "array",
@@ -912,13 +914,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -929,7 +933,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -957,13 +961,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -974,7 +980,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1002,13 +1008,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1019,7 +1027,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1061,13 +1069,15 @@
                         "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED",
-                        "JSON"
+                        "JSON",
+                        "*"
                       ],
                       "nullable": true
                     },
                     "owner_email": {
                       "type": "string",
-                      "format": "email"
+                      "format": "email",
+                      "nullable": true
                     },
                     "is_active": {
                       "type": "boolean"
@@ -1078,7 +1088,7 @@
                     "status": {
                       "type": "string",
                       "nullable": true,
-                      "maxLength": 255
+                      "maxLength": 2000
                     },
                     "workspaces": {
                       "type": "array",
@@ -1178,13 +1188,15 @@
                         "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED",
-                        "JSON"
+                        "JSON",
+                        "*"
                       ],
                       "nullable": true
                     },
                     "owner_email": {
                       "type": "string",
-                      "format": "email"
+                      "format": "email",
+                      "nullable": true
                     },
                     "is_active": {
                       "type": "boolean"
@@ -1195,7 +1207,7 @@
                     "status": {
                       "type": "string",
                       "nullable": true,
-                      "maxLength": 255
+                      "maxLength": 2000
                     },
                     "workspaces": {
                       "type": "array",
@@ -1283,13 +1295,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1300,7 +1314,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1328,13 +1342,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1345,7 +1361,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1373,13 +1389,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1390,7 +1408,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1432,13 +1450,15 @@
                         "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED",
-                        "JSON"
+                        "JSON",
+                        "*"
                       ],
                       "nullable": true
                     },
                     "owner_email": {
                       "type": "string",
-                      "format": "email"
+                      "format": "email",
+                      "nullable": true
                     },
                     "is_active": {
                       "type": "boolean"
@@ -1449,7 +1469,7 @@
                     "status": {
                       "type": "string",
                       "nullable": true,
-                      "maxLength": 255
+                      "maxLength": 2000
                     },
                     "workspaces": {
                       "type": "array",
@@ -1537,13 +1557,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1554,7 +1576,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1582,13 +1604,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1599,7 +1623,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1627,13 +1651,15 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ],
                     "nullable": true
                   },
                   "owner_email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "nullable": true
                   },
                   "is_active": {
                     "type": "boolean"
@@ -1644,7 +1670,7 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "maxLength": 255
+                    "maxLength": 2000
                   },
                   "path": {
                     "type": "string",
@@ -1686,13 +1712,15 @@
                         "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED",
-                        "JSON"
+                        "JSON",
+                        "*"
                       ],
                       "nullable": true
                     },
                     "owner_email": {
                       "type": "string",
-                      "format": "email"
+                      "format": "email",
+                      "nullable": true
                     },
                     "is_active": {
                       "type": "boolean"
@@ -1703,7 +1731,7 @@
                     "status": {
                       "type": "string",
                       "nullable": true,
-                      "maxLength": 255
+                      "maxLength": 2000
                     },
                     "workspaces": {
                       "type": "array",
@@ -1836,10 +1864,60 @@
                       "nullable": true
                     },
                     "observation_set": {
+                      "properties": {
+                        "multiple": {
+                          "type": "boolean"
+                        },
+                        "elements": {
+                          "type": "array",
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 50
+                              },
+                              "attributes": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "multiple"
+                      ],
                       "type": "object",
                       "nullable": true
                     },
                     "feature_set": {
+                      "properties": {
+                        "multiple": {
+                          "type": "boolean"
+                        },
+                        "elements": {
+                          "type": "array",
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 50
+                              },
+                              "attributes": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "multiple"
+                      ],
                       "type": "object",
                       "nullable": true
                     }
@@ -2065,13 +2143,15 @@
                           "RNASEQ_COUNT_MTX",
                           "ANN",
                           "BED",
-                          "JSON"
+                          "JSON",
+                          "*"
                         ],
                         "nullable": true
                       },
                       "owner_email": {
                         "type": "string",
-                        "format": "email"
+                        "format": "email",
+                        "nullable": true
                       },
                       "is_active": {
                         "type": "boolean"
@@ -2082,7 +2162,7 @@
                       "status": {
                         "type": "string",
                         "nullable": true,
-                        "maxLength": 255
+                        "maxLength": 2000
                       },
                       "workspaces": {
                         "type": "array",
@@ -2137,6 +2217,96 @@
         }
       }
     },
+    "/api/workspaces/{workspace_pk}/metadata/": {
+      "get": {
+        "operationId": "listWorkspaceMetadatas",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspace_pk}/metadata/observations/": {
+      "get": {
+        "operationId": "listWorkspaceMetadataObservations",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspace_pk}/metadata/features/": {
+      "get": {
+        "operationId": "listWorkspaceMetadataFeatures",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/workspaces/{workspace_pk}/resources/{resource_pk}/remove/": {
       "get": {
         "operationId": "listWorkspaceResourceRemoves",
@@ -2168,6 +2338,165 @@
                 "schema": {
                   "type": "array",
                   "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operation-resources/{operation_uuid}/": {
+      "get": {
+        "operationId": "RetrieveOperationResource",
+        "description": "Lists available OperationResource instances for\na particular Operation. Includes the OperationResources\nfor all fields",
+        "parameters": [
+          {
+            "name": "operation_uuid",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "readOnly": true
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "input_field": {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "resource_type": {
+                      "enum": [
+                        "FQ",
+                        "FA",
+                        "ALN",
+                        "FT",
+                        "MTX",
+                        "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
+                        "ANN",
+                        "BED",
+                        "JSON",
+                        "*"
+                      ],
+                      "nullable": true
+                    },
+                    "size": {
+                      "type": "integer",
+                      "readOnly": true
+                    },
+                    "readable_resource_type": {
+                      "type": "string",
+                      "readOnly": true
+                    }
+                  },
+                  "required": [
+                    "input_field",
+                    "operation"
+                  ]
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operation-resources/{operation_uuid}/{input_field}/": {
+      "get": {
+        "operationId": "RetrieveOperationResource",
+        "description": "Lists available OperationResource instances for\na particular input field of Operation.",
+        "parameters": [
+          {
+            "name": "operation_uuid",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "input_field",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "readOnly": true
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "input_field": {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "resource_type": {
+                      "enum": [
+                        "FQ",
+                        "FA",
+                        "ALN",
+                        "FT",
+                        "MTX",
+                        "I_MTX",
+                        "EXP_MTX",
+                        "RNASEQ_COUNT_MTX",
+                        "ANN",
+                        "BED",
+                        "JSON",
+                        "*"
+                      ],
+                      "nullable": true
+                    },
+                    "size": {
+                      "type": "integer",
+                      "readOnly": true
+                    },
+                    "readable_resource_type": {
+                      "type": "string",
+                      "readOnly": true
+                    }
+                  },
+                  "required": [
+                    "input_field",
+                    "operation"
+                  ]
                 }
               }
             },
@@ -2221,6 +2550,9 @@
                       },
                       "repo_name": {
                         "type": "string"
+                      },
+                      "workspace_operation": {
+                        "type": "boolean"
                       }
                     },
                     "required": [
@@ -2232,7 +2564,8 @@
                       "mode",
                       "inputs",
                       "outputs",
-                      "repo_name"
+                      "repo_name",
+                      "workspace_operation"
                     ]
                   }
                 }
@@ -2296,6 +2629,9 @@
                     },
                     "repo_name": {
                       "type": "string"
+                    },
+                    "workspace_operation": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -2307,8 +2643,29 @@
                     "mode",
                     "inputs",
                     "outputs",
-                    "repo_name"
+                    "repo_name",
+                    "workspace_operation"
                   ]
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/executed-operations/": {
+      "get": {
+        "operationId": "listExecutedOperations",
+        "description": "Lists all the ExecutedOperations, both workspace and \nnon-workspace associated.\n\nAdmins can list all, while other users can only see ExecutedOperations\nthat they own",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
                 }
               }
             },
@@ -2319,7 +2676,7 @@
     },
     "/api/executed-operations/workspace/{workspace_pk}/": {
       "get": {
-        "operationId": "RetrieveExecutedOperationList",
+        "operationId": "RetrieveWorkspaceExecutedOperationList",
         "description": "Lists available ExecutedOperation instances for a given Workspace.\n\nAdmins can list all available executedOperations in a Workspace.\n\nNon-admin users can only view ExecutedOperations on Workspaces they own.",
         "parameters": [
           {
@@ -2344,6 +2701,36 @@
         }
       }
     },
+    "/api/executed-operations/workspace/{workspace_pk}/tree/": {
+      "get": {
+        "operationId": "listWorkspaceTrees",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/executed-operations/{exec_op_uuid}/": {
       "get": {
         "operationId": "RetrieveExecutedOperationCheck",
@@ -2351,6 +2738,53 @@
         "parameters": [
           {
             "name": "exec_op_uuid",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operation-categories/": {
+      "get": {
+        "operationId": "listOperationCategorys",
+        "description": "Returns a mapping of operation categories to the corresponding `Operation`s.\nPrimarily used for populating a user-interface and grouping `Operation`s by\ntheir type.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operation-categories/{category}/": {
+      "get": {
+        "operationId": "RetrieveOperationCategoryDetail",
+        "description": "Returns a list of the `Operation`s associated with the category\npassed as part of the url",
+        "parameters": [
+          {
+            "name": "category",
             "in": "path",
             "required": true,
             "description": "",
@@ -3176,7 +3610,8 @@
                       "RNASEQ_COUNT_MTX",
                       "ANN",
                       "BED",
-                      "JSON"
+                      "JSON",
+                      "*"
                     ]
                   },
                   "upload_file": {
@@ -3184,6 +3619,9 @@
                     "format": "binary"
                   },
                   "is_public": {
+                    "type": "boolean"
+                  },
+                  "is_ownerless": {
                     "type": "boolean"
                   }
                 },
@@ -3216,7 +3654,8 @@
                         "RNASEQ_COUNT_MTX",
                         "ANN",
                         "BED",
-                        "JSON"
+                        "JSON",
+                        "*"
                       ]
                     },
                     "upload_file": {
@@ -3225,10 +3664,95 @@
                     },
                     "is_public": {
                       "type": "boolean"
+                    },
+                    "is_ownerless": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "upload_file"
+                  ]
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/resources/dropbox-upload/": {
+      "post": {
+        "operationId": "CreateDropboxUpload",
+        "description": "Endpoint for uploading resources from Dropbox\n\nDepending on the storage backend, the files will be uploaded locally\nor in the remote storage. Either way, the same endpoint is used.",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "download_link": {
+                    "type": "string"
+                  },
+                  "filename": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "download_link",
+                  "filename"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "download_link": {
+                    "type": "string"
+                  },
+                  "filename": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "download_link",
+                  "filename"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "download_link": {
+                    "type": "string"
+                  },
+                  "filename": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "download_link",
+                  "filename"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "download_link": {
+                      "type": "string"
+                    },
+                    "filename": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "download_link",
+                    "filename"
                   ]
                 }
               }
@@ -3286,6 +3810,23 @@
       "post": {
         "operationId": "CreateOperationRun",
         "description": "Starts the execution of an Operation",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/operation-categories-add/": {
+      "post": {
+        "operationId": "CreateOperationCategoryAdd",
+        "description": "",
         "parameters": [],
         "responses": {
           "200": {

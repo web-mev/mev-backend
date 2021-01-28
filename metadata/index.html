@@ -73,6 +73,18 @@
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../operation_resources/">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
                 <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
@@ -83,16 +95,6 @@
                 </li>
                 <li class="toctree-l2 current"><a class="reference internal current" href="./">Workspace metadata</a>
     <ul class="current">
-    </ul>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
-    <ul>
-                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
-                </li>
-                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
-                </li>
-                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
-                </li>
     </ul>
                 </li>
     </ul>
@@ -236,7 +238,7 @@
 }</code></pre>
 
 
-<p>This information regarding user-defined groupings can be cached client-side. However, the ultimate "source" of the metadata is provided by the <code>Workspace</code>, which maintains the <code>ObservationSet</code>s, <code>FeatureSet</code>s, and possibly other metadata.</p>
+<p>This information regarding user-defined groupings can be cached client-side; the API will not keep the additional information about groupings that the user has defined. However, the ultimate "source" of the metadata is provided by the <code>Workspace</code>, which maintains the <code>ObservationSet</code>s, <code>FeatureSet</code>s, and possibly other metadata.  The creation and visualization of custom <code>ObservationSet</code>s is merely a convenience provided by the front-end (if available). After all, in direct requests to the API for analyses that require <code>OperationSet</code>s, the requester can create those at will.</p>
 <h3 id="using-the-metadata-for-analyses"><a class="toclink" href="#using-the-metadata-for-analyses">Using the metadata for analyses</a></h3>
 <p>After the user has created their own <code>ObservationSet</code> instances, they can use them for analyses such as a differential expression analysis. For instance, the inputs to such an analysis would be an expression matrix (perhaps the result of merging the "S" and "P" samples/<code>Observation</code>s) and two <code>ObservationSet</code> instances. The payload to start such an analysis (sent to <code>/api/operations/run/</code>) would look something like:</p>
 <pre class="codehilite"><code>{
@@ -406,7 +408,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../resources/" class="btn btn-neutral float-right" title="General info">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../auth/" class="btn btn-neutral float-right" title="Authentication">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
         <a href="../workspaces/" class="btn btn-neutral" title="Workspaces"><span class="icon icon-circle-arrow-left"></span> Previous</a>
@@ -440,7 +442,7 @@
         <span><a href="../workspaces/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../resources/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../auth/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

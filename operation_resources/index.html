@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Observations and Features - MEV REST API</title>
+  <title>Operation-associated resources - MEV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Observations and Features";
-    var mkdocs_page_input_path = "elements.md";
+    var mkdocs_page_name = "Operation-associated resources";
+    var mkdocs_page_input_path = "operation_resources.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -73,23 +73,23 @@
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
-                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
-    <ul>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">Resources</a>
+    <ul class="current">
                 <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
                 </li>
                 <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
                 </li>
                 <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="../operation_resources/">Operation-associated resources</a>
+                <li class="toctree-l3 current"><a class="reference internal current" href="./">Operation-associated resources</a>
+    <ul class="current">
+    </ul>
                 </li>
     </ul>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
                 </li>
-                <li class="toctree-l2 current"><a class="reference internal current" href="./">Observations and Features</a>
-    <ul class="current">
-    </ul>
+                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
                 </li>
@@ -137,6 +137,10 @@
     
       
         
+          <li>Resources &raquo;</li>
+        
+      
+        
           <li>Data Structures &raquo;</li>
         
       
@@ -145,10 +149,10 @@
         
       
     
-    <li>Observations and Features</li>
+    <li>Operation-associated resources</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/elements.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/operation_resources.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -159,63 +163,52 @@
           <div role="main">
             <div class="section">
               
-                <p><a id="observations"></a></p>
-<h3 id="elements-observations-and-features"><a class="toclink" href="#elements-observations-and-features">Elements, Observations, and Features</a></h3>
-<p>We adopt the convention from statistical learning of referring to <code>Observation</code>s and <code>Feature</code>s of data.  Both of these data structures derive from the <code>BaseElement</code> class, which captures their common structure and behavior.  Specialization for each can be overridden in the child classes.  </p>
-<p>In the context of a biological experimental, <code>Observation</code>s are synonymous with samples.  Further, each <code>Observation</code> can have <code>Feature</code>s associated with it (e.g. gene expressions for 30,000 genes).  One can think of <code>Observation</code>s and <code>Feature</code>s as comprising the columns and rows of a two-dimensional matrix. Note that in our convention, due to the typical format of expression matrices, we take each column to represent an <code>Observation</code> and each row to represent a <code>Feature</code>. </p>
-<p>We use <code>Observation</code>s and <code>Feature</code>s to hold metadata (as key-value pairs) about data that we manipulating in WebMEV. For instance, given a typical gene expression matrix we have information about only the <em>names</em> of the <code>Observation</code>s/samples and <code>Feature</code>s/genes. We can then specify <a href="../attributes/">attributes</a> to annotate the <code>Observation</code>s and <code>Feature</code>s, allowing users to define experimental groups, or specify other information useful for visualization or filtering.</p>
-<p>These data structures have similar (if not exactly the same) behavior but we separate them for future compatability in case specialization of each class is needed.</p>
-<div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.element.<strong>BaseElement</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>A <code>BaseElement</code> is a base class from which we can derive both <code>Observation</code>
-and <code>Features</code>.  For the purposes of clarity, we keep those entities separate.
-Yet, their behavior and structure are very much the same.  This also allows
-us to add custom behavior to each at a later time if we require.</p>
-<p>An <code>Element</code> is structured as:</p>
+                <h3 id="operation-resources"><a class="toclink" href="#operation-resources">Operation resources</a></h3>
+<p>For certain <code>Operation</code>s, we require data such as gene lists, gene-alias lookups, genome indices, and similar files which are not provided or owned by WebMEV users. Instead, these special <code>Resource</code>s are associated with the <code>Operation</code> they are used with. Suggestively, we call these <code>OperationResource</code> instances. Depending on the run-mode of the <code>Operation</code>, these <code>OperationResource</code>s are handled in different ways.</p>
+<p>Regardless of the run-mode of the <code>Operation</code> (i.e. local, remote), we can handle these operation-specific resources in two ways. One method relies on the image container to hold the file. The other method requires WebMEV to "register" the <code>OperationResource</code> just as it does with user-associated <code>Resource</code>s .</p>
+<p>The first method to distribute these user-independent files is to simply build them directly into the container. For small files, this solution is straightforward and does not require any special handling by WebMEV itself. For reproducing analyses, the versioned container image can always be pulled and run, ensuring the same files are used. Note that this assumes the files are "static" within that container and not dynamically queried/generated when the container is executed for an analysis operation. For instance, if the gene annotations, etc. are queried from BioMart on-the-fly <em>during</em> an analysis execution, then we can't necessarily guarantee 100% fidelity as the underlying data may change. On the other hand, if the files are created upon building/pushing the image, then those files can be safely distributed with the image and will remain unchanged within that image. </p>
+<p>Instead of building the files directly into the container image, one may also choose to create the files up front and then have WebMEV "register" them when the <code>Operation</code> is ingested. We do this by including an addition file (<code>operation_resources.json</code>) with the repository. This file gives the "name" of the file, its resource type (e.g. integer matrix, BED file, etc.), and the path to the file. For example, if we have an alignment process that depends on a pre-computed index, our <code>operation_spec.json</code> definition file would have an <code>OperationResource</code> input as follows:</p>
 <pre class="codehilite"><code>{
-    &quot;id&quot;: &lt;string identifier&gt;,
-    &quot;attributes&quot;: {
-        &quot;keyA&quot;: &lt;Attribute&gt;,
-        &quot;keyB&quot;: &lt;Attribute&gt;
+    &quot;name&quot;: &quot;BWA alignment&quot;,
+    ...
+    &quot;inputs&quot;: {
+        ...
+        &quot;genome_index&quot;: {
+            &quot;description&quot;: &quot;The genome to align to.&quot;, 
+            &quot;name&quot;: &quot;Genome choice:&quot;, 
+            &quot;required&quot;: true, 
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;OperationResource&quot;,
+                &quot;resource_type&quot;: &quot;*&quot; 
+            }
+        }
+        ...
     }
-}</code></pre></div>
-</div>
-<div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.observation.<strong>Observation</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>An <code>Observation</code> is the generalization of a "sample" in the typical context
-of biological studies.  One may think of samples and observations as
-interchangeable concepts.  We call it an observation so that we are not
-limited by this convention, however.</p>
-<p><code>Observation</code> instances act as metadata and can be used to filter and subset
-the data to which it is associated/attached.</p>
-<p>An <code>Observation</code> is structured as:</p>
+    ...
+}</code></pre>
+
+
+<p>(the <code>resource_type</code> wildcard means "any" file type, which is fine for our purposes here). Then, in the same repository, we would have an <code>operation_resources.json</code> that looks like:</p>
 <pre class="codehilite"><code>{
-    &quot;id&quot;: &lt;string identifier&gt;,
-    &quot;attributes&quot;: {
-        &quot;keyA&quot;: &lt;Attribute&gt;,
-        &quot;keyB&quot;: &lt;Attribute&gt;
-    }
-}</code></pre></div>
-</div>
-<div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.feature.<strong>Feature</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>A <code>Feature</code> can also be referred to as a covariate or variable.
-These are measurements one can make about an <code>Observation</code>.  For example,
-in the genomics context, a sample can have 30,000+ genes which we call
-"features" here.  In the statistical learning context, these are feature vectors.</p>
-<p><code>Feature</code> instances act as metadata and can be used to filter and subset
-the data to which it is associated/attached.  For example, we can imagine
-filtering by genes/features which have a particular value, such as those genes
-where the attribute "oncogene" is set to "true"</p>
-<p>A <code>Feature</code> is structured as:</p>
-<pre class="codehilite"><code>{
-    &quot;id&quot;: &lt;string identifier&gt;,
-    &quot;attributes&quot;: {
-        &quot;keyA&quot;: &lt;Attribute&gt;,
-        &quot;keyB&quot;: &lt;Attribute&gt;
-    }
-}</code></pre></div>
-</div>
+    &quot;genome_index&quot;: [
+        {
+            &quot;name&quot;: &quot;Human&quot;,
+            &quot;resource_type&quot;: &quot;*&quot;,
+            &quot;path&quot;: &quot;gs://my-bucket/human_index.tar&quot;
+        },
+        {
+            &quot;name&quot;: &quot;Mouse&quot;,
+            &quot;resource_type&quot;: &quot;*&quot;,
+            &quot;path&quot;: &quot;gs://my-bucket/mouse_index.tar&quot;
+        }
+    ]
+}</code></pre>
+
+
+<p>Upon ingestion of this <code>Operation</code>, WebMEV will check for the presence of those files and, if present, will create database objects for these files. When the user wishes to run this <code>Operation</code>, those resources will be presented as the available options for that <code>genome_index</code> input. In accordance with our goal of reproducible research, the ingestion process copies the files to an operation-specific directory. Thus, given the <code>Operation</code>'s UUID, we will copy the file(s) to a storage location identified by that UUID. This way, we can prevent that original path from being overwritten or deleted over time.</p>
+<p>Note that the path provided may either be "local" (e.g. <code>"path": "some_file.tsv"</code>) or remote (e.g. <code>"path": "gs://my-bucket/human_index.tar</code>). In the former case (where the path is relative or does not specify a "special" prefix like "gs://") WebMEV expects the file to be among the cloned repository files. Otherwise, we confirm the existence of the file using the appropriate libraries capable of interfacing with the remote storage systems. If the files are not found, then the ingestion of the <code>Operation</code> fails. </p>
+<p>The "repository-tracked" files are limited to relatively small files, however. Larger files, such as genome indexes which can be many GB, must be done using the remote storage option, which does require a bit more care to ensure everything is in-sync prior to ingestion. After ingestion, everything is properly versioned by reference to the <code>Operation</code>s UUID. </p>
+<p>As a final note, in the spirit of reproducible analyses, we advise that all scripts, etc. used to create the resource files are included in the repository or are otherwise adequately described. This is not something that can be enforced by WebMEV, but we aim to adhere with this guideline.</p>
               
             </div>
           </div>
@@ -223,10 +216,10 @@ where the attribute "oncogene" is set to "true"</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../observation_and_feature_sets/" class="btn btn-neutral float-right" title="ObservationSet and FeatureSets">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../attributes/" class="btn btn-neutral float-right" title="Attributes">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../attributes/" class="btn btn-neutral" title="Attributes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../resource_metadata/" class="btn btn-neutral" title="Resource metadata"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -254,10 +247,10 @@ where the attribute "oncogene" is set to "true"</p>
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../attributes/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../resource_metadata/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../observation_and_feature_sets/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../attributes/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

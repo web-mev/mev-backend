@@ -73,6 +73,18 @@
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../operation_resources/">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
                 <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
@@ -82,16 +94,6 @@
                 <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
-    <ul>
-                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
-                </li>
-                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
-                </li>
-                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
-                </li>
-    </ul>
                 </li>
     </ul>
                     </li>
@@ -190,7 +192,7 @@ and format it for the commandline invocation (e.g. as a comma-delimited list of 
 </ul>
 </li>
 <li><code>docker/Dockerfile</code><ul>
-<li>The <code>docker</code> folder contains (at minimum) a <code>Dockerfile</code> which provides the "recipe" for building the Docker image. Additional files to be included in the Docker build context (such as scripts) can be placed in this folder.</li>
+<li>The <code>docker</code> folder contains (at minimum) a <code>Dockerfile</code> which provides the "recipe" for building the Docker image. Additional files to be included in the Docker build context (such as scripts or static data) can be placed in this folder.</li>
 </ul>
 </li>
 </ul>
@@ -401,6 +403,10 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))</code><
 <li>This is the JSON-format file which dictates the inputs to the workflow. It is a template that will be appropriately filled at runtime. Thus, the "values" of the mapping do not matter, but the keys must map to input variables in <code>main.wdl</code>. Typically, this file is easily created by Broad's WOMTool. See below for an example.</li>
 </ul>
 </li>
+<li><code>static_inputs.json</code><ul>
+<li>An <em>optional</em> file that gives values for variables like genome indexes and other relatively static inputs. Keys in this should be a subset of those in <code>inputs.json</code>. File paths contained here are used to copy files into a WebMEV-associated bucket.</li>
+</ul>
+</li>
 <li><code>converters.json</code><ul>
 <li>This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/<code>Observation</code>s)
 and format it to be used in <code>inputs.json</code>. As above, this is a mapping of the input name to a "dotted" class implementation.</li>
@@ -501,6 +507,18 @@ and format it to be used in <code>inputs.json</code>. As above, this is a mappin
 <p>Thus, regardless of whoever creates the original image, the repository should have all the files necessary to build a fresh image which we "claim as our own" by assigning our username/tag and pushing it to the WebMEV Dockerhub account. </p>
 <p>We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not <em>exactly</em> the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.</p>
 <p>Note that repositories based on many Docker containers may take a significant time to ingest, as each image must be built and pushed to Dockerhub.</p>
+<p><strong>Copying of static resources</strong></p>
+<p>If the <code>static_inputs.json</code> file is present, we expect that this file will be used for static items that are not dependent on user input. We could also put such items as <code>default</code> in the <code>operation_spec.json</code> file, but we instead choose to extract them out to this file.</p>
+<p>Upon ingestion, the files will be copied to an <code>Operation</code>-specific bucket/folder. For instance, given the following <code>static_inputs.json</code>:</p>
+<pre class="codehilite"><code>{
+    &quot;Workflow.genome_idx&quot;:&quot;gs://some-bucket/grch38.idx&quot;
+}</code></pre>
+
+
+<p>During ingestion, this <code>Operation</code> will be assigned a UUID. Then, we copy this index to a new location identified by that UUID. The updated/edited <code>static_inputs.json</code> file will be:</p>
+<pre class="codehilite"><code>{
+    &quot;Workflow.genome_idx&quot;:&quot;gs://mev-bucket/&lt;UUID&gt;/grch38.idx&quot;
+}</code></pre>
               
             </div>
           </div>

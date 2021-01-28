@@ -73,16 +73,6 @@
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
-                <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
-                </li>
                 <li class="toctree-l2 current"><a class="reference internal current" href="#">Resources</a>
     <ul class="current">
                 <li class="toctree-l3 current"><a class="reference internal current" href="./">General info</a>
@@ -93,7 +83,19 @@
                 </li>
                 <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
                 </li>
+                <li class="toctree-l3"><a class="reference internal" href="../operation_resources/">Operation-associated resources</a>
+                </li>
     </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
                     </li>
@@ -162,11 +164,12 @@
             <div class="section">
               
                 <h3 id="resources"><a class="toclink" href="#resources">Resources</a></h3>
+<p><code>Resource</code>s represent data in some file-based format. They come in two types-- those owned by specific users (<code>Resource</code>) and those that are user-independent and associated with analysis operations (<code>OperationResource</code>). Examples of the latter include files for reference genomes, aligner indexes, or other analysis-specific files that a user does not need to maintain or directly interact with.</p>
 <p>Much of the information regarding <code>Resource</code> instances is provided in the auto-generated docstring below, but here we highlight some key elements of the <code>Resource</code> model.  Namely, the kinds of operations users and admins can take to create, delete, or otherwise manipulated <code>Resource</code>s via the API.</p>
 <p><strong>Resource creation</strong></p>
 <ul>
 <li>
-<p>Regular MEV users can only create <code>Resource</code> instances by uploading files, either via a direct method (upload from local machine) or by using one our cloud-based uploaders. They can't do this via the API.</p>
+<p>Regular MEV users can only create <code>Resource</code> instances by uploading files, either via a direct method (upload from local machine) or by using one our cloud-based uploaders (e.g. Dropbox). They can't do this via the API.</p>
 </li>
 <li>
 <p>Admins can "override" and create <code>Resource</code> instances manually via the API.</p>
@@ -178,7 +181,7 @@
 <p>Upon creation of the <code>Resource</code>, it is immediately set to "inactive" (<code>is_active = False</code>) while we validate the particular type.</p>
 </li>
 <li>
-<p><code>Resource</code> instances have a single owner, which is the owner who uploaded the file, or directly specified by the admin in the API request.</p>
+<p><code>Resource</code> instances have a single owner, which is the owner who uploaded the file, or directly specified by the admin in the API request. <code>OperationResource</code>s do not have owners, but instead maintain a foreign-key relationship with their associated <code>Operation</code>.</p>
 </li>
 </ul>
 <p><strong>Resource "type"</strong></p>
@@ -192,7 +195,12 @@
 <li>
 <p>If the validation of the <code>resource_type</code> fails, we revert back to the previous successfully validated type.  If the type was previously <code>None</code> (as with a new upload), we simply revert back to <code>None</code> and inform the user the validation failed.</p>
 </li>
+<li>
+<p>Succesfully validated files can sometimes be changed to a convenient internal representation. For instance, we accept expression matrices in multiple formats (e.g. CSV, TSV, XLSX). However, to avoid each analysis <code>Operation</code> from having to parse many potential file formats, we internally convert it to a consistent format, such as TSV. Thus, all the downstream tools expect that the validated resource passed as an input is saved in a TSV/tab-delimited format.</p>
+</li>
 </ul>
+<p><strong>Resources and metadata</strong></p>
+<p>Depending on the type of <code>Resource</code>, we are able to infer and extract metadata from the file based on the format. For example, given a validated <code>Resource</code> that represents an RNA-seq count matrix, we assume that the column headers represent samples (<code>Observation</code>s) and the rows represent genes (<code>Feature</code>s). These metadata allow us to create subsets of the <code>Observation</code>s and <code>Feature</code>s for creating experimental contrasts and other typical analysis tasks. More on <code>Observation</code>s and <code>Feature</code>s is <a href="../elements/">described elsewhere.</a></p>
 <p><strong>Resources and Workspaces</strong></p>
 <ul>
 <li>
@@ -203,13 +211,13 @@
 </li>
 <li>
 <p>Users can remove a <code>Resource</code> from a <code>Workspace</code>, but <em>only if it has NOT been used for any portions of the analysis</em>.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps.
-Note that removing a <code>Resource</code> from a <code>Workspace</code> does not delete a file- it only modifies the <code>workspaces</code> attribute on the <code>Resource</code> database instance.</p>
+Note that removing a <code>Resource</code> from a <code>Workspace</code> does not delete a file- it only modifies the <code>workspaces</code> field on the <code>Resource</code> database instance.</p>
 </li>
 </ul>
 <p><strong>Deletion of Resources</strong></p>
 <ul>
 <li>
-<p><code>Resource</code>s can only be deleted from the "home" screen (i.e. not in the Workspace view)</p>
+<p><code>Resource</code>s can only be deleted from the file manager on the "home" screen (i.e. not in the Workspace view) in the UI.</p>
 </li>
 <li>
 <p>If a <code>Resource</code> is associated/attached to one or more <code>Workspace</code>s, then you cannot delete the <code>Resource</code>. </p>
@@ -230,6 +238,11 @@ Technically, we only need the first case. If a <code>Resource</code> has been us
 <p>Users cannot change the <code>path</code> member.  The actual storage of the files should not matter to the users so they are unable to change the <code>path</code> member.</p>
 </li>
 </ul>
+<div class="autodoc">
+<div class="autodoc-signature"><em>class </em><code>api.models.abstract_resource.<strong>AbstractResource</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">*args</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-docstring"><p>This is the base class which holds common fields for both the user-owned
+<code>Resource</code> model and the user-independent <code>OperationResource</code> model.</p></div>
+</div>
 <div class="autodoc">
 <div class="autodoc-signature"><em>class </em><code>api.models.resource.<strong>Resource</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">*args</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
 <div class="autodoc-docstring"><p>A <code>Resource</code> is an abstraction of data.  It represents some
@@ -253,53 +266,19 @@ we can check the type of the <code>Resource</code>.</p>
 <p><code>Resource</code>s are not active (<code>is_active</code> flag in the database) until their "type"
 has been verified.  API users will submit the intended type with
 the request and the backend will check that.  Violations are
-reported and the <code>Resource</code> remains inactive (<code>is_active=False</code>).</p>
-<p>Some additional notes:</p>
-<ul>
-<li>
-<p><code>Resource</code>s are owned by users and <em>can</em> be added to a <code>Workspace</code>.
-However, that is not required-- <code>Resource</code>s can be "unattached".</p>
-</li>
-<li>
-<p>Regular users (non-admins) can't create new <code>Resource</code> directly via the API.
-The only way they can create a <code>Resource</code> is indirectly by adding a new upload.</p>
-</li>
-<li>
-<p>When a <code>Resource</code> is added to a <code>Workspace</code>, a new copy of the database
-record is made.  This maintains the state of the original <code>Resource</code>.</p>
-</li>
-<li>
-<p><code>Resource</code>s can be made "public" so that others can view and import
-them.  Once another user chooses to import the file, a copy is made and
-that new user has their own copy.  If a <code>Resource</code> is later made "private"
-then any files that have been "used" by others <em>cannot</em> be recalled.</p>
-</li>
-<li>
-<p><code>Resource</code>s can be removed from a <code>Workspace</code>, but only if they have not
-been used for any analyses/operations.</p>
-</li>
-<li>
-<p><code>Resource</code>s cannot be transferred from one <code>Workspace</code> to another, but
-they can be copied.</p>
-</li>
-<li>
-<p>A change in the type of the <code>Resource</code> can be requested.  Until the
-validation of that change is complete, the <code>Resource</code> is made private and
-inactive.</p>
-</li>
-<li>
-<p>Admins can make essentially any change to <code>Resources</code>, including creation.
-However, they must be careful to maintain the integrity of the database
-and the files they point to.</p>
-</li>
-<li>
-<p>In a request to create a <code>Resource</code> via the API, the <code>resource_type</code>
-field can be blank/null.  The type can be inferred from the path of the
-resource.  We can do this because only admins are allowed to create via the API
-and they should only generate such requests if the resource type can be
-inferred (i.e. admins know not to give bad requests to the API...)</p>
-</li>
-</ul></div>
+reported and the <code>Resource</code> remains inactive (<code>is_active=False</code>).</p></div>
+</div>
+<div class="autodoc">
+<div class="autodoc-signature"><em>class </em><code>api.models.operation_resource.<strong>OperationResource</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">*args</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-docstring"><p>An <code>OperationResource</code> is a specialization of a <code>Resource</code>
+which is not owned by anyone specific, but is rather associated
+with a single <code>Operation</code>. Used for things like genome indexes, etc.
+where the user is not responsible for supplying or maintaining the
+resource.</p>
+<p>Note that it maintains a reference to the <code>Operation</code> input field
+it corresponds to. This front-end components to easily map the <code>OperationResource</code>
+to the proper input field for user selection.</p>
+<p>The <code>is_active</code> and <code>is_public</code> fields default to <code>True</code>.</p></div>
 </div>
               
             </div>
@@ -311,7 +290,7 @@ inferred (i.e. admins know not to give bad requests to the API...)</p>
         <a href="../resource_types/" class="btn btn-neutral float-right" title="Resource types">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../metadata/" class="btn btn-neutral" title="Workspace metadata"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../api/" class="btn btn-neutral" title="Intro and core concepts"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -339,7 +318,7 @@ inferred (i.e. admins know not to give bad requests to the API...)</p>
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../metadata/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../api/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../resource_types/" style="color: #fcfcfc">Next &raquo;</a></span>

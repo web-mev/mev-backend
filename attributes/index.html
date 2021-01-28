@@ -73,6 +73,18 @@
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../operation_resources/">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
                 <li class="toctree-l2 current"><a class="reference internal current" href="./">Attributes</a>
     <ul class="current">
     </ul>
@@ -84,16 +96,6 @@
                 <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
                 </li>
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
-    <ul>
-                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
-                </li>
-                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
-                </li>
-                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
-                </li>
-    </ul>
                 </li>
     </ul>
                     </li>
@@ -158,8 +160,8 @@
             <div class="section">
               
                 <h3 id="attributes"><a class="toclink" href="#attributes">Attributes</a></h3>
-<p><code>Attribute</code>s serve as "parameters" and are a way of providing validation and type-checking for values that are passed around within WebMEV.  The different types represent different simple entities within WebMEV. For example, we have simple wrappers around primitives like integers and other types that represent abstract "data resources".  which enforce constraints on the underlying primitive type (e.g. for a probability, we can use a <code>BoundedFloatAttribute</code> set with bounds of [0,1]).</p>
-<p><code>Attribute</code>s are used to provide metadata (e.g. a phenotype of a sample given as a <code>StringAttribute</code>) or as parameters to analyses (e.g. a <code>BoundedFloatAttribute</code> for filtering p-values less than a particular value)</p>
+<p><code>Attribute</code>s serve as "parameters" and are a way of providing validation and type-checking for values that are passed around within WebMEV.  The different types represent different simple entities within WebMEV. For example, we have simple wrappers around primitives like integers which enforce constraints on the underlying primitive type (e.g. for a probability, we can use a <code>BoundedFloatAttribute</code> set with bounds of [0,1]). Other types can represent and validate files ("data resources")</p>
+<p><code>Attribute</code>s are used to provide metadata (e.g. a phenotype of a sample given as a <code>StringAttribute</code>) or are used as parameters to analyses (e.g. a <code>BoundedFloatAttribute</code> for filtering p-values less than a particular value)</p>
 <div class="autodoc">
 <div class="autodoc-signature"><em>class </em><code>api.data_structures.attributes.<strong>BaseAttribute</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">value</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
 <div class="autodoc-docstring"><p>Base object which defines some common methods and members
@@ -289,7 +291,22 @@ instances.</p>
 for whether there are multiple Resources specified in the "value" key.</p></div>
 </div>
 <div class="autodoc">
-<div class="autodoc-signature"><code>api.data_structures.attributes.<strong>create_attribute</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">attr_key</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">allow_null=False</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-signature"><em>class </em><code>api.data_structures.attributes.<strong>OperationDataResourceAttribute</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">value</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-docstring"><p>Used to specify a reference to one or more Resource
+instances which are user-independent, such as database-like
+resources which are used for analyses.</p>
+<pre class="codehilite"><code>{
+    &quot;attribute_type&quot;: &quot;OperationDataResource&quot;,
+    &quot;value&quot;: &lt;one or more Resource UUIDs&gt;,
+    &quot;many&quot;: &lt;bool&gt;,
+}</code></pre>
+
+
+<p>Note that "many" controls whether &gt;1 are allowed. It's not an indicator
+for whether there are multiple Resources specified in the "value" key.</p></div>
+</div>
+<div class="autodoc">
+<div class="autodoc-signature"><code>api.data_structures.<strong>create_attribute</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">attr_key</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">allow_null=False</em><span class="autodoc-punctuation">)</span></div>
 <div class="autodoc-docstring"><p>Utility function used by the serializers to create/return
 BaseAttribute-derived instances.</p>
 <p>Accepts an <code>attribute_dict</code> which is a Python dictionary object
@@ -313,7 +330,7 @@ be formatted as,</p>
         <a href="../elements/" class="btn btn-neutral float-right" title="Observations and Features">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../api/" class="btn btn-neutral" title="Intro and core concepts"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../operation_resources/" class="btn btn-neutral" title="Operation-associated resources"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -341,7 +358,7 @@ be formatted as,</p>
           <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../api/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../operation_resources/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../elements/" style="color: #fcfcfc">Next &raquo;</a></span>
