@@ -16,7 +16,18 @@ from api.tests import test_settings
 
 
 def mocked_get_operation_instance_data(op):
-    return {'id': str(op.id), 'name': op.name}
+    return {
+        'id': str(op.id), 
+        'name': op.name,
+        'description': 'description',
+        'repository_url': 'http://github.com',
+        'git_hash': 'abc123',
+        'mode': 'local_docker',
+        'inputs': {},
+        'outputs': {},
+        'repo_name': 'repo-name',
+        'workspace_operation': op.workspace_operation
+    }
 
 def add_objects():
     op1 = Operation.objects.create(
@@ -57,7 +68,7 @@ class OperationCategoryListTests(BaseAPITestCase):
         self.establish_clients()
         add_objects()
 
-    @mock.patch('api.views.operation_category_views.get_operation_instance_data')
+    @mock.patch('api.serializers.operation_category.get_operation_instance_data')
     def test_listing(self, mock_get_operation_instance_data):
         mock_get_operation_instance_data.side_effect = mocked_get_operation_instance_data
         url = reverse('operation-category-list')
@@ -68,6 +79,8 @@ class OperationCategoryListTests(BaseAPITestCase):
             'category_foo': ['DESeq2','Limma/Voom'],
             'category_bar': ['Normalize']
         }
+        expected_keys = ['category_foo','category_bar']
+        self.assertCountEqual(expected_keys, [x['name'] for x in j])
         for obj in j:
             category_name = obj['name']
             op_list = obj['children']
@@ -140,7 +153,6 @@ class OperationCategoryAddTests(BaseAPITestCase):
         }
         response = self.authenticated_admin_client.post(url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        print(response.json())
         final_objects = OperationCategory.objects.all()
         n1 = len(final_objects)
         self.assertEqual(0, n1-n0)
@@ -159,7 +171,6 @@ class OperationCategoryAddTests(BaseAPITestCase):
         }
         response = self.authenticated_admin_client.post(url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        print(response.json())
         final_objects = OperationCategory.objects.all()
         n1 = len(final_objects)
         self.assertEqual(0, n1-n0)
