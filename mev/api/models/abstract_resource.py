@@ -6,9 +6,8 @@ from resource_types import DATABASE_RESOURCE_TYPES
 
 class AbstractResource(models.Model):
     '''
-    there can be different "styles" of Resources and they have some
-    common behavior. We encode that here and specialize in the children
-    classes  
+    This is the base class which holds common fields for both the user-owned
+    `Resource` model and the user-independent `OperationResource` model. 
     '''
 
     # Resource instances will be referenced by their UUID instead of a PK

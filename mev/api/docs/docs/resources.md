@@ -1,10 +1,12 @@
 ### Resources
 
+`Resource`s represent data in some file-based format. They come in two types-- those owned by specific users (`Resource`) and those that are user-independent and associated with analysis operations (`OperationResource`). Examples of the latter include files for reference genomes, aligner indexes, or other analysis-specific files that a user does not need to maintain or directly interact with.
+
 Much of the information regarding `Resource` instances is provided in the auto-generated docstring below, but here we highlight some key elements of the `Resource` model.  Namely, the kinds of operations users and admins can take to create, delete, or otherwise manipulated `Resource`s via the API.
 
 **Resource creation**
 
-- Regular MEV users can only create `Resource` instances by uploading files, either via a direct method (upload from local machine) or by using one our cloud-based uploaders. They can't do this via the API.
+- Regular MEV users can only create `Resource` instances by uploading files, either via a direct method (upload from local machine) or by using one our cloud-based uploaders (e.g. Dropbox). They can't do this via the API.
 
 - Admins can "override" and create `Resource` instances manually via the API.
 
@@ -12,7 +14,7 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 
 - Upon creation of the `Resource`, it is immediately set to "inactive" (`is_active = False`) while we validate the particular type.
 
-- `Resource` instances have a single owner, which is the owner who uploaded the file, or directly specified by the admin in the API request.
+- `Resource` instances have a single owner, which is the owner who uploaded the file, or directly specified by the admin in the API request. `OperationResource`s do not have owners, but instead maintain a foreign-key relationship with their associated `Operation`.
 
 **Resource "type"**
 
@@ -22,6 +24,13 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 
 - If the validation of the `resource_type` fails, we revert back to the previous successfully validated type.  If the type was previously `None` (as with a new upload), we simply revert back to `None` and inform the user the validation failed.
 
+- Succesfully validated files can sometimes be changed to a convenient internal representation. For instance, we accept expression matrices in multiple formats (e.g. CSV, TSV, XLSX). However, to avoid each analysis `Operation` from having to parse many potential file formats, we internally convert it to a consistent format, such as TSV. Thus, all the downstream tools expect that the validated resource passed as an input is saved in a TSV/tab-delimited format.
+
+**Resources and metadata**
+
+Depending on the type of `Resource`, we are able to infer and extract metadata from the file based on the format. For example, given a validated `Resource` that represents an RNA-seq count matrix, we assume that the column headers represent samples (`Observation`s) and the rows represent genes (`Feature`s). These metadata allow us to create subsets of the `Observation`s and `Feature`s for creating experimental contrasts and other typical analysis tasks. More on `Observation`s and `Feature`s is [described elsewhere.](elements.md)
+
+
 **Resources and Workspaces**
 
 - `Resource` instances are initially "unattached" meaning they are associated with their owner, but have *not* been associated with any user workspaces.
@@ -29,12 +38,12 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 - When a user chooses to "add" a `Resource` to a `Workspace`, we append the `Workspace` to the set of `Workspace` instances associated with that `Resource`. That is, each `Resource` tracks which `Workspace`s it is associated with. This is accomplished via a many-to-many mapping in the database.
 
 - Users can remove a `Resource` from a `Workspace`, but *only if it has NOT been used for any portions of the analysis*.  We want to retain the completeness of the analysis, so deleting files that are part of the analysis "tree" would create gaps.
-Note that removing a `Resource` from a `Workspace` does not delete a file- it only modifies the `workspaces` attribute on the `Resource` database instance.
+Note that removing a `Resource` from a `Workspace` does not delete a file- it only modifies the `workspaces` field on the `Resource` database instance.
 
 
 **Deletion of Resources**
 
-- `Resource`s can only be deleted from the "home" screen (i.e. not in the Workspace view)
+- `Resource`s can only be deleted from the file manager on the "home" screen (i.e. not in the Workspace view) in the UI.
 
 - If a `Resource` is associated/attached to one or more `Workspace`s, then you cannot delete the `Resource`. 
 
@@ -50,7 +59,11 @@ Technically, we only need the first case. If a `Resource` has been used in an `O
 - Users cannot change the `path` member.  The actual storage of the files should not matter to the users so they are unable to change the `path` member.
 
 
-
+::: api.models.abstract_resource.AbstractResource
+    :docstring:
 
 ::: api.models.resource.Resource
+    :docstring:
+
+::: api.models.operation_resource.OperationResource
     :docstring:

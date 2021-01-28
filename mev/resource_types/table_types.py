@@ -673,11 +673,13 @@ class IntegerMatrix(Matrix):
             
         return (True, None)
 
+
 class RnaSeqCountMatrix(IntegerMatrix):
     '''
     A very-explicit class (mainly for making things user-friendly)
     where we provide specialized behavior/messages specific to count matrices
-    generated from RNA-seq data
+    generated from RNA-seq data. The same as an integer matrix, but named to be
+    suggestive for WebMEV users.
     '''
     DESCRIPTION = 'A table of integer-based counts corresponding to'\
         ' the number of sequencing reads associated with a particular' \
@@ -687,9 +689,10 @@ class RnaSeqCountMatrix(IntegerMatrix):
 class ElementTable(TableResource):
     '''
     An ElementTable captures common behavior of tables which
-    annotate Observations (AnnotationTable) or Features (FeatureTable)
+    annotate `Observation`s (AnnotationTable) or `Feature`s (FeatureTable)
 
-    It's effectively an abstract class-- 
+    It's effectively an abstract class. See the derived classes which implement
+    the specific behavior for `Observation`s or `Feature`s.
     '''
 
     ACCEPTABLE_EXTENSIONS = [

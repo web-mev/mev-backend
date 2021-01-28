@@ -24,15 +24,16 @@ nav:
  - API: 
    - Intro and core concepts: 'api.md'
    - Data Structures:
+      - Resources: 
+         - General info: 'resources.md'
+         - Resource types: 'resource_types.md'
+         - Resource metadata: 'resource_metadata.md'
+         - Operation-associated resources: 'operation_resources.md'
       - Attributes: 'attributes.md'
       - Observations and Features: 'elements.md'
       - ObservationSet and FeatureSets: 'observation_and_feature_sets.md'
       - Workspaces: 'workspaces.md'
       - Workspace metadata: 'metadata.md'
-      - Resources: 
-         - General info: 'resources.md'
-         - Resource types: 'resource_types.md'
-         - Resource metadata: 'resource_metadata.md'
  - Authentication: 'auth.md'
  - Operation concepts: 'operations.md'
  - Creating new analyses/operations: 'creating_analyses.md'

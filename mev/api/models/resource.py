@@ -34,43 +34,7 @@ class Resource(AbstractResource):
     `Resource`s are not active (`is_active` flag in the database) until their "type"
     has been verified.  API users will submit the intended type with
     the request and the backend will check that.  Violations are 
-    reported and the `Resource` remains inactive (`is_active=False`).
-
-    Some additional notes:
-
-    - `Resource`s are owned by users and *can* be added to a `Workspace`.  
-    However, that is not required-- `Resource`s can be "unattached".  
-
-    - Regular users (non-admins) can't create new `Resource` directly via the API.
-    The only way they can create a `Resource` is indirectly by adding a new upload.
-
-    - When a `Resource` is added to a `Workspace`, a new copy of the database
-    record is made.  This maintains the state of the original `Resource`.   
-
-    - `Resource`s can be made "public" so that others can view and import 
-    them.  Once another user chooses to import the file, a copy is made and
-    that new user has their own copy.  If a `Resource` is later made "private"
-    then any files that have been "used" by others *cannot* be recalled.
-
-    - `Resource`s can be removed from a `Workspace`, but only if they have not 
-    been used for any analyses/operations. 
-
-    - `Resource`s cannot be transferred from one `Workspace` to another, but
-    they can be copied.
-
-    - A change in the type of the `Resource` can be requested.  Until the 
-    validation of that change is complete, the `Resource` is made private and
-    inactive.
-
-    - Admins can make essentially any change to `Resources`, including creation.
-    However, they must be careful to maintain the integrity of the database
-    and the files they point to.
-    
-    - In a request to create a `Resource` via the API, the `resource_type`
-    field can be blank/null.  The type can be inferred from the path of the
-    resource.  We can do this because only admins are allowed to create via the API
-    and they should only generate such requests if the resource type can be 
-    inferred (i.e. admins know not to give bad requests to the API...) 
+    reported and the `Resource` remains inactive (`is_active=False`). 
     '''
 
     # Some status messages to be displayed.

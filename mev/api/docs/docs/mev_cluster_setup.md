@@ -32,33 +32,37 @@ Other requirements include `git` and your favorite text editor.
 
 The WebMEV application is architected as a collection of Docker images which is orchestrated/managed by `docker-compose`.  As mentioned previously, you will need to have Docker and docker-compose installed.
 
-The application includes three containers with the following responsibilities.
+As mentioned before, WebMEV consists of three containers with the following responsibilities.
+
 - `nginx`: Handles communication to the outside world. Serves static files directly and forwards other requests to the application server (gunicorn), which is packaged in the `api` container.
+
 - `db`: The database container. Currently using postgres as we require saving of JSON-format data structures
+
 - `api`: The main application container. This container wraps several components, including the web application (written in Django), redis for cache and job queueing, and gunicorn as the application server.
 
 ![](docker_arch.svg)
 
-First, we clone the repository locally:
+**Step 1:** Clone the repository:
 ```
 git clone https://github.com/web-mev/mev-backend.git
 ```
 
-**Setting the required environment variables**
-Regardless of whether you are running in development or production, mode, you will need to supply various environment variables to properly configure WebMEV. In the root of the repository is a file named `env_vars.template.txt`.  Edit that with usernames, passwords, etc. as necessary.
+**Step 2:** Set the required environment variables
+
+Regardless of whether you are running in development or production mode, you will need to supply various environment variables to properly configure WebMEV. In the root of the repository is a file named `env_vars.template.txt`.  Edit that with usernames, passwords, etc. as necessary. Each variable is commented to guide you through setup.
 
 For more detailed information on configuration, see [Configuration](setup_configuration.md)
 
-**To start the application in local *development* mode:**
+###To start the application in local *development* mode:
 
-In development mode, the application server (gunicorn) does not start automatically as the container starts.  Rather, all the containers are started but the application container (named `api`) remains idle.  This allows us to mount a local directory where we can dynamically edit the code and immediately see changes without having to rebuild the entire cluster.  
+In development mode, the application server (gunicorn) does not start automatically as the API container starts.  Rather, all the containers are started but the application container (named `api`) remains idle.  This allows us to mount a local directory where we can dynamically edit the code and immediately see changes without having to rebuild the entire cluster.  
 
 **Note that the Django `DEBUG` argument is set to `True` in this dev mode, so be mindful of this if the server is exposed to the public/internet.**
 
 Development mode requires you to have a file containing your environment variables that is named `env_vars.dev.txt`. Thus, copy the file and edit with your passwords and other info:
 ```
 cp env_vars.template.txt env_vars.dev.txt
-# edit env_vars.dev.txt as necessary
+# Now edit env_vars.dev.txt as necessary
 ```
 
 Now we can start the docker-compose cluster. Run:
@@ -83,19 +87,23 @@ This will run some database migrations and other preliminaries, but will **not**
 cd /workspace/mev
 gunicorn mev.wsgi:application --bind 0.0.0.0:8000
 ```
-(note the `cd` at the top since the `startup.sh` script ends up moving you into the `/www` directory).  The `bind` argument should have the port set to 8000 as this is how the NGINX container communicates over the internal docker-compose network.
+(note that the `startup_for_local_dev.sh` should place you in the proper directory, but we include the `cd` either way).  The `bind` argument should have the port set to 8000 as this is how the NGINX container communicates over the internal docker-compose network.
 
 Following all that, **the application should be running on port 8081** (e.g. http://127.0.0.1:8081/api/)
 
 
 If you are interested, note that additional gunicorn configuration parameters can be specified (see https://docs.gunicorn.org/en/latest/configure.html). 
 
-By stopping the gunicorn server (Ctrl+C), you can make local edits (i.e. on your host machine) to your code (which is, again, available within the container via the volume mount) and immediately restart the server to see the changes.  The unit test suite can also be run in this manner with
+By stopping the gunicorn server (Ctrl+C), you can make local edits (i.e. on your host machine) to your code (which is, again, available within the container via the volume mount) and immediately restart the server to see the changes.  
+
+**Running unit tests**
+
+The unit test suite can also be run in this manner with
 ```
 python3 /workspace/mev/manage.py test
 ```
 
-**To start the application in *production* mode:**
+###To start the application in *production* mode:
 
 In production mode, the application server *will* be started following the usual startup steps contained in `mev/startup.sh`.
 
@@ -104,11 +112,16 @@ In the root of the repository (where the `docker-compose.prod.yml` file resides)
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-This should start everything up.  On occasion, if you are very quick to navigate to the site, NGINX will issue a 502 bad gateway error.  However, a refresh or two should eventually reach the site as expected.  
+This should start everything up.  Given that there are typically some Docker containers that need to be built and pushed to Dockerhub, you should expect the application to spend several minutes on startup. During that time, NGINX will issue a 502 bad gateway error.  To check progress, you can issue the following command from the host machine:
+
+```
+docker-compose -f docker-compose.prod.yml logs api
+```
 
 In production mode, Django debugging is turned off, so any errors will be reported as generic 500 server errors without any corresponding debug details.
 
- ### Stopping the application
+
+### Stopping the application
 
 To shut down the application (in verbose mode), run
 ```

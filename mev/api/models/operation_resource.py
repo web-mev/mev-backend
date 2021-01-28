@@ -8,10 +8,14 @@ class OperationResource(AbstractResource):
     An `OperationResource` is a specialization of a `Resource`
     which is not owned by anyone specific, but is rather associated 
     with a single `Operation`. Used for things like genome indexes, etc.
-    where the user is not responsible.
+    where the user is not responsible for supplying or maintaining the
+    resource.
 
     Note that it maintains a reference to the `Operation` input field
-    it should correspond to.
+    it corresponds to. This front-end components to easily map the `OperationResource`
+    to the proper input field for user selection.
+
+    The `is_active` and `is_public` fields default to `True`.
     '''
 
     # the name of the file (in the operation repository) which 

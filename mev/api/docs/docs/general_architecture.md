@@ -3,8 +3,11 @@
 The WebMEV application is architected as a collection of Docker images which is orchestrated/managed by `docker-compose`.
 
 The application includes three containers with the following responsibilities.
+
 - `nginx`: Handles communication to the outside world. Serves static files directly and forwards other requests to the application server (gunicorn), which is packaged in the `api` container.
+
 - `db`: The database container. Currently using postgres as we require saving of JSON-format data structures
+
 - `api`: The main application container. This container wraps several components, including the web application (written in Django), redis for cache and job queueing, and gunicorn as the application server.
 
 ![](docker_arch.svg)

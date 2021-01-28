@@ -87,7 +87,7 @@ In the course of performing an analysis, the user might wish to create meaningfu
     ]
 }
 ```
-This information regarding user-defined groupings can be cached client-side. However, the ultimate "source" of the metadata is provided by the `Workspace`, which maintains the `ObservationSet`s, `FeatureSet`s, and possibly other metadata.
+This information regarding user-defined groupings can be cached client-side; the API will not keep the additional information about groupings that the user has defined. However, the ultimate "source" of the metadata is provided by the `Workspace`, which maintains the `ObservationSet`s, `FeatureSet`s, and possibly other metadata.  The creation and visualization of custom `ObservationSet`s is merely a convenience provided by the front-end (if available). After all, in direct requests to the API for analyses that require `OperationSet`s, the requester can create those at will.
 
 [//]: <> (We could use a heatmap to visualize how users have created various selections:)
 

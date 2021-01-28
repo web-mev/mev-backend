@@ -11,7 +11,7 @@ Note that client-side manipulations of the data, such as filtering out samples a
 
 As new `DataResource`s are created, the metadata tracks which `ExecutedOperation` created them, addressed by the UUID assigned to each `ExecutedOperation`.  By tracing the foreign-key relation, we can determine the exact `Operation` that was run so that the steps of the analysis are transparent and reproducible.
 
-`Operation`s can be lightweight jobs such as a basic filter or a simple R script, or involve complex, multi-step pipelines orchestrated using the CNAP-style workflows involving WDL and Cromwell.  Depending on the computational resources needed, the `Operation` can be run locally or remotely.  As jobs complete, their outputs will populate in the user's workspace and further analysis can be performed.
+`Operation`s can be lightweight jobs such as a basic filter or a simple R script, or involve complex, multi-step pipelines involving WDL and Cromwell.  Depending on the computational resources needed, the `Operation` can be run locally or remotely.  As jobs complete, their outputs will populate in the user's workspace and further analysis can be performed.
 
 All jobs, whether local or remote, will be placed in a queue and executed ascynchronously. Progress/status of remote jobs can be monitored by querying the Cromwell server.
 
@@ -20,11 +20,17 @@ Also note that ALL `Operation`s (even basic table filtering) are executed in Doc
 `Operation`s should maintain the following data:
 
 - unique identifier (UUID)
+
 - name
+
 - description of the analysis
+
 - Inputs to the analysis.  These are the acceptable types and potentially some parameters.  For instance, a DESeq2 analysis should take an `IntegerMatrix`, two `ObservationSet` instances (defining the contrast groups), and a string "name" for the contrast. See below for a concrete example.
+
 - Outputs of the analysis.  This would be similar to the inputs in that it describes the "types" of outputs.  Again, using the DESEq2 example, the outputs could be a "feature table" (`FT`, `FeatureTable`) giving the table of differentially expressed genes (e.g. fold-change, p-values) and a normalized expression matrix of type "expression matrix" (`EXP_MTX`).
+
 - github repo/Docker info (commit hashes) so that the backend analysis code may be traced
+
 - whether the `Operation` is a "local" one or requires use of the Cromwell engine. The front-end users don't need to know that, but internally MEV needs to know how to run the analysis.
 
 Note that some of these will be specified by whoever creates the analysis. However, some information (like the UUID identifier, git hash, etc.) will be populated when the analysis is "ingested". It should not be the job of the analysis developer to maintain those pieces of information and we can create them on the fly during ingestion.
@@ -38,13 +44,20 @@ Therefore, an `Operation` has the following structure:
     "inputs": Object<OperationInput>,
     "outputs": Object<OperationOutput>,
     "mode": <string>,
-    "repository": <string url>,
-    "git_hash": <string>
+    "repository_url": <string url>,
+    "repo_name": <string>.
+    "git_hash": <string>,
+    "workspace_operation": <bool>
 }
 ```
 where:
+
 - `mode`: identifies *how* the analysis is run. Will be one of an enum of strings (e.g. `local_docker`, `cromwell`)
-- `repository`: identifies the github repo used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. 
+
+- `workspace_operation`: This bool tells us whether the operation is run within the context of a user's workspace. Some operations, such as file uploads, can be run outside of a workspace and hence don't require some of the additional fields that a workspace-associated operation would use.
+
+- `repository_url`, `repo_name`: identifies the github repo (and name) used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. 
+
 - `git_hash`: This is the commit hash which uniquely identifies the code state. This way the analysis code can be exactly traced back.
 
 Both `inputs` and `outputs` address nested objects. That is, they are mappings of string identifiers to `OperationInput` or `OperationOutput` instances:
@@ -81,12 +94,14 @@ As an example of an `OperationInputs`, consider a p-value for thresholding:
     }
 }
 ```
-The `spec` key addresses a child class of `InputSpec` whose behavior is specific to each "type" (above, a `BoundedFloat`). There are only a limited number of those so defining a set of options for each is straightforward.
+The `spec` key addresses a child class of `InputSpec` whose behavior is specific to each "type" (above, a `BoundedFloat`). The `spec` allows us to validate a user's input for compliance with the expected type; for instance, when an analysis is requested, the `spec` ensures that we get sensible inputs for that field.
 
 
-`ExecutedOperation`s should maintain the following data:
+####`ExecutedOperation`s
 
-- The `Workspace` (which also gives access to the user/owner)
+Once a user makes a request with the proper, validated inputs, we create an `ExecutedOperation` which tracks the execution of the job. An `ExecutedOperation` tracks the following:
+
+- The `Workspace`, assuming the underlying `Operation` has `workspace_operation=True`. This gives access to the user who initiated the execution.
 - a foreign-key to the `Operation` "type"
 - unique identifier (UUID) for the execution
 - a job identifier. We need the Cromwell job UUID to track the progress as we query the Cromwell server. For Docker-based jobs, we can set the tag on the container and then query its status (e.g. if it's still "up", then the job is still going)
