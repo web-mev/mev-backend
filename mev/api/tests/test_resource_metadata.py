@@ -333,7 +333,10 @@ class TestMatrixMetadata(unittest.TestCase):
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
-        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        # Commented out when removed the feature metadata, as it was causing database
+        # issues due to the size of the json object.
+        #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
     def test_metadata_correct_case2(self):
@@ -363,7 +366,10 @@ class TestMatrixMetadata(unittest.TestCase):
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
-        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        # Commented out when removed the feature metadata, as it was causing database
+        # issues due to the size of the json object.
+        #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
 
@@ -399,7 +405,10 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
-        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        # Commented out when removed the feature metadata, as it was causing database
+        # issues due to the size of the json object.
+        #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
     def test_metadata_correct_case2(self):
@@ -428,7 +437,10 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
-        self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        # Commented out when removed the feature metadata, as it was causing database
+        # issues due to the size of the json object.
+        #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
 class TestAnnotationTableMetadata(unittest.TestCase):
@@ -490,7 +502,11 @@ class TestFeatureTableMetadata(BaseAPITestCase):
                 feature_list.append(f)
         expected_feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
         metadata = t.extract_metadata(resource_path)
-        self.assertEqual(metadata[FEATURE_SET_KEY], expected_feature_set)
+        # Commented out when we removed the automatic creation of Feature metadata
+        # for FeatureTable resource types. For large files, it was causing issues
+        # with exceptionally large JSON failing to store in db table.
+        #self.assertEqual(metadata[FEATURE_SET_KEY], expected_feature_set)
+        self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 

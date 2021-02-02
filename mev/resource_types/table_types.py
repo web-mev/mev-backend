@@ -615,9 +615,11 @@ class Matrix(TableResource):
 
         super().extract_metadata(resource_path, parent_op_pk)
 
+        # Note: removed the addition of FeatureSets to the metadata as it was causing
+        # issues with large json objects being inserted into the database.
         # the FeatureSet comes from the rows:
-        f_set = FeatureSet([Feature(x) for x in self.table.index])
-        self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
+        # f_set = FeatureSet([Feature(x) for x in self.table.index])
+        # self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
 
         # the ObservationSet comes from the cols:
         o_set = ObservationSet([Observation(x) for x in self.table.columns])
@@ -855,9 +857,11 @@ class FeatureTable(ElementTable):
         logger.info('Extract metadata from a FeatureTable')
         super().extract_metadata(resource_path, parent_op_pk)
 
-        feature_list = super().prep_metadata(Feature)
-        f_set = FeatureSet(feature_list)
-        self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
+        # Note: removed the addition of FeatureSets to the metadata as it was causing
+        # issues with large json objects being inserted into the database.
+        # feature_list = super().prep_metadata(Feature)
+        # f_set = FeatureSet(feature_list)
+        # self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
         return self.metadata
 
 
