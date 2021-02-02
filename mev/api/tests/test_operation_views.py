@@ -128,8 +128,8 @@ class ExecutedOperationListTests(BaseAPITestCase):
     def test_list_of_exec_ops(self):
         '''
         In our setup, we only have one ExecutedOperation associated
-        with a Workspace. Test that our query to the workspace-assoc.
-        executed ops returns only a single record
+        with a Workspace. Test that we get one workspace-assoc. executed op
+        and one that is NOT associated with a workspace
         ''' 
         url = reverse('executed-operation-list')
         all_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_1)
@@ -144,6 +144,11 @@ class ExecutedOperationListTests(BaseAPITestCase):
             op_uuids, 
             [str(self.exec_op_uuid), str(self.workspace_exec_op_uuid)]
         )
+        for x in j:
+            if x['id'] == str(self.workspace_exec_op_uuid):
+                self.assertEqual(x['workspace'], str(self.workspace.pk))
+            elif x['id'] == str(self.exec_op_uuid):
+                self.assertFalse('workspace' in x.keys())
 
     def test_other_user_request(self):
         '''

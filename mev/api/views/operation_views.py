@@ -151,13 +151,24 @@ class ExecutedOperationList(APIView):
         user = request.user
         if user.is_staff:
             all_executed_operations = ExecutedOperation.objects.all()
+            all_workspace_executed_operations = WorkspaceExecutedOperation.objects.all()
         else:
             all_executed_operations = ExecutedOperation.objects.filter(owner=user)
+            all_workspace_executed_operations = WorkspaceExecutedOperation.objects.filter(owner=user)
+
+        # want to show the Workspace for the workspace-associated operations. Querying ExecutedOperation
+        # gets both, and we want to separate them out
+        s1 = set([x.pk for x in all_executed_operations])
+        s2 = set([x.pk for x in all_workspace_executed_operations])
+        s3 = s1.difference(s2) # the set of UUIDs for the operations executed *outside* of workspaces
+
+        # have to now segregate them out. Can't just iterate through all_executed_operations
+        # since those are all of type ExecutedOperation (and hence don't have the workspace attr)
         response_payload = []
+        for op in all_workspace_executed_operations:
+            response_payload.append(WorkspaceExecutedOperationSerializer(op).data)
         for op in all_executed_operations:
-            if type(op) == WorkspaceExecutedOperation:
-                response_payload.append(WorkspaceExecutedOperationSerializer(op).data)
-            else:
+            if op.pk in s3:
                 response_payload.append(ExecutedOperationSerializer(op).data)
         return Response(response_payload, 
             status=status.HTTP_200_OK
