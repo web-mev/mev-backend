@@ -157,14 +157,14 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         storage_backend = GoogleBucketStorage()
         mock_get_blob = mock.MagicMock()
         mock_blob = mock.MagicMock()
+        mock_blob.download_to_filename.side_effect = [None,]
         mock_get_blob.return_value = mock_blob
         storage_backend.get_blob = mock_get_blob
 
         expected_final_location = os.path.join(cache_dir, relative_path)
 
         location = storage_backend.get_local_resource_path(r)
-
-        mock_blob.download_to_filename.assert_called()
+        self.assertEqual(1,mock_blob.download_to_filename.call_count)
         mock_make_local_directory.assert_not_called()
         self.assertEqual(location, expected_final_location)
 
@@ -204,4 +204,44 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
         mock_blob.download_to_filename.assert_not_called()
         mock_make_local_directory.assert_not_called()
+        self.assertEqual(location, expected_final_location)
+
+    @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    def test_local_resource_pull_retry(self, \
+        mock_storage, \
+        mock_settings, \
+        mock_exists, \
+        mock_make_local_directory):
+        '''
+        To validate files, we need them locally.  This tests that the 
+        `get_local_resource_path` performs the proper calls if the resource
+        is not in our local cache.  Also checks that the local user cache
+        directory is created (via mock)
+        '''
+        resources = Resource.objects.filter(owner=self.regular_user_1)
+        r = resources[0]
+        relative_path = BaseStorageBackend.construct_relative_path(r)
+
+        cache_dir = '/some/cache/dir'
+        mock_settings.RESOURCE_CACHE_DIR = cache_dir
+
+        mock_exists.return_value = False
+
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        storage_backend = GoogleBucketStorage()
+        mock_get_blob = mock.MagicMock()
+        mock_blob = mock.MagicMock()
+        mock_blob.download_to_filename.side_effect = [Exception('Something bad'), None]
+        mock_get_blob.return_value = mock_blob
+        storage_backend.get_blob = mock_get_blob
+
+        expected_final_location = os.path.join(cache_dir, relative_path)
+
+        location = storage_backend.get_local_resource_path(r)
+
+        self.assertEqual(2,mock_blob.download_to_filename.call_count)
+        mock_make_local_directory.assert_called_with(os.path.dirname(location))
         self.assertEqual(location, expected_final_location)

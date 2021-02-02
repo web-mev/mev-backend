@@ -2,6 +2,7 @@ import os
 import requests
 import warnings
 import logging
+import backoff
 
 import google
 from google.cloud import storage
@@ -87,6 +88,10 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             blob=blob
         ))
 
+    @backoff.on_exception(backoff.expo,
+                      Exception,
+                      max_time=600,
+                      max_tries = 5)
     def download_blob(self, blob, local_path):
         logger.info('Start download from {blob} to {local_path}'.format(
             local_path=local_path, 
