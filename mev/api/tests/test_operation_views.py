@@ -1208,3 +1208,43 @@ class OperationRunTests(BaseAPITestCase):
             job_name,
             payload[OperationRun.INPUTS]
         )
+
+        # now add a job name that has a space- see that the "edited" string gets sent to the async method
+        mock_submit_async_job.delay.reset_mock()
+        job_name = 'foo bar'
+        edited_job_name = 'foo_bar'
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id),
+            OperationRun.JOB_NAME: job_name
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            edited_job_name,
+            payload[OperationRun.INPUTS]
+        )
+
+        # now a bad job name
+        job_name = '1foo?'
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id),
+            OperationRun.JOB_NAME: job_name
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('job_name' in response_json.keys())

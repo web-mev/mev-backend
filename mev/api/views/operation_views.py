@@ -21,9 +21,11 @@ from api.utilities.operations import read_operation_json, \
     validate_operation, \
     validate_operation_inputs, \
     get_operation_instance_data
+from api.utilities import normalize_identifier
 from api.async_tasks.operation_tasks import ingest_new_operation as async_ingest_new_operation    
 from api.async_tasks.operation_tasks import submit_async_job, finalize_executed_op
 from api.runners import get_runner
+from api.exceptions import StringIdentifierException
 
 logger = logging.getLogger(__name__)
 
@@ -449,6 +451,12 @@ class OperationRun(APIView):
             # it will simply be the UUID of the job
             try:
                 job_name = payload[self.JOB_NAME]
+                # ensure they are giving us something reasonable. This function also removes
+                # things like spaces that can cause problems downstream.
+                try:
+                    job_name = normalize_identifier(job_name)
+                except StringIdentifierException as ex:
+                    raise ValidationError({'job_name': ex})
                 if job_name is None:
                     job_name = str(executed_op_uuid)
             except KeyError as ex:
