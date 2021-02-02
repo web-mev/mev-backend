@@ -261,6 +261,15 @@ def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
     resource_uuids = []
     for k,v in exec_op_input_or_output.items():
         # k is the 'key' of the output, v is the actual value assigned
+
+        # Sometimes an operation can declare an output type of DataResource
+        # that is given None as a value. For instance, in a clustering operation,
+        # we may only cluster on one of the dimensions. This results in one of the
+        # output JSON files being unused and hence set to None. If the value is None,
+        # we just move onto the next item.
+        if v is None:
+            continue
+
         if not k in op_input_or_output:
             logger.error('The key "{k}" was NOT in the operation inputs/outputs.'
                 ' Expected keys: {keys}'.format(

@@ -213,6 +213,15 @@ class OperationUtilsTester(BaseAPITestCase):
         result = collect_resource_uuids(d['outputs'], mock_outputs)
         self.assertEqual(result, ['abc', 'xyz'])
 
+        # test if one of the DataResource outputs was not used (which is fine)
+        # and the output value was assigned to None
+        mock_outputs = {
+            'norm_counts': None,
+            'dge_table': 'xyz'
+        }
+        result = collect_resource_uuids(d['outputs'], mock_outputs)
+        self.assertEqual(result, ['xyz'])
+
         # test if there is some discrepancy in the expected and actual inputs
         # or outputs
         mock_outputs = {
