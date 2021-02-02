@@ -43,10 +43,13 @@ class BaseOutputConverter(object):
                 # driver to send the file to its final location.
 
                 # the "name"  of the file as the user will see it.
-                name = '{id}.{n}'.format(
-                    id = str(executed_op.pk),
-                    n = os.path.basename(p)
-                )
+                if len(executed_op.job_name) > 0:
+                    name = '{job_name}.{n}'.format(
+                        job_name = str(executed_op.job_name),
+                        n = os.path.basename(p)
+                    )
+                else:
+                    name = os.path.basename(p)
                 resource = self.create_resource(executed_op.owner, workspace, p, name)
                 validate_and_store_resource(resource, resource_type)
 

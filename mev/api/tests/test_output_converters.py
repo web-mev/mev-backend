@@ -45,13 +45,15 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         c = LocalDockerOutputConverter()
         job_id = str(uuid.uuid4())
         op = Operation.objects.all()[0]
+        job_name = 'foo'
         executed_op = WorkspaceExecutedOperation.objects.create(
             id=job_id,
             workspace=workspace,
             owner=self.regular_user_1,
             inputs = {},
             operation = op,
-            mode = ''
+            mode = '',
+            job_name = job_name
         )
         output_spec = {
             'attribute_type': 'DataResource',
@@ -72,7 +74,7 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         w1 = len(updated_workspace_resources)
         self.assertEqual(w1-w0, 1)
 
-        expected_name = '{id}.path.txt'.format(id=job_id)
+        expected_name = '{n}.path.txt'.format(n=job_name)
         r = Resource.objects.filter(name=expected_name )
         self.assertTrue(len(r) == 1)
 
@@ -133,7 +135,8 @@ class ExecutedOperationOutputConverterTester(BaseAPITestCase):
         n1 = len(updated_all_user_resources)
         self.assertEqual(n1-n0, 1)
 
-        expected_name = '{id}.path.txt'.format(id=job_id)
+        # since there was no job name, there is no prefix
+        expected_name = 'path.txt'
         r = Resource.objects.filter(name=expected_name )
         self.assertTrue(len(r) == 1)
 
