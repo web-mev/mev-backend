@@ -1,5 +1,5 @@
 {
-  "filenames": "api.converters.basic_attributes.UnrestrictedStringListToCsvConverter",
+  "filenames": "api.converters.basic_attributes.NormalizingListToCsvConverter",
   "dropbox_links": "api.converters.basic_attributes.UnrestrictedStringListToCsvConverter"
 }
 

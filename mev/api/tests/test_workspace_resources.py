@@ -207,7 +207,6 @@ class WorkspaceResourceAddTests(BaseAPITestCase):
         updated_resource = Resource.objects.get(pk=self.workspace_resource.pk)
         final_workspaces = [x.pk for x in updated_resource.workspaces.all()]
         self.assertEqual(len(final_workspaces)-n0,1)
-        print(final_workspaces)
         self.assertTrue(other_workspace.pk in final_workspaces)
 
 

@@ -59,7 +59,6 @@ class OperationInputTester(unittest.TestCase):
         '''
         os = OperationInputSerializer(data=self.valid_operation_input)
         self.assertTrue(os.is_valid())
-        print(os.data)
         self.assertDictEqual(os.data, self.expected_result)
 
         # missing `description`

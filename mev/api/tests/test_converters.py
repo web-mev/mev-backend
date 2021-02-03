@@ -13,7 +13,9 @@ from api.converters.basic_attributes import StringConverter, \
     UnrestrictedStringListConverter, \
     StringListToCsvConverter, \
     UnrestrictedStringListToCsvConverter, \
-    BooleanAsIntegerConverter
+    BooleanAsIntegerConverter, \
+    NormalizingListToCsvConverter, \
+    NormalizingStringConverter
 from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
@@ -95,6 +97,23 @@ class TestBasicAttributeConverter(BaseAPITestCase):
         v = c.convert('foo', ['a?b','c d'], '')
         self.assertDictEqual(v, {'foo':'a?b,c d'})
         
+        c = NormalizingListToCsvConverter()
+        v = c.convert('foo', ['a b', 'c  d'], '')
+        self.assertDictEqual(v, {'foo':'a_b,c__d'})
+
+        c = NormalizingListToCsvConverter()
+        with self.assertRaises(AttributeValueError):
+            v = c.convert('foo', ['a b', 'c ? d'], '')
+
+        c = NormalizingStringConverter()
+        v = c.convert('foo', 'a b.tsv', '')
+        self.assertDictEqual(v, {'foo':'a_b.tsv'})
+
+        c = NormalizingStringConverter()
+        with self.assertRaises(AttributeValueError):
+            v = c.convert('foo', 'c ? d', '')
+
+
 class TestElementSetConverter(BaseAPITestCase):
 
     def test_observation_set_csv_converter(self):

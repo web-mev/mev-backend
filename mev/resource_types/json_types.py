@@ -71,8 +71,6 @@ class JsonResourcePageNumberPagination(PageNumberPagination):
     page_size_query_param = settings.PAGE_SIZE_PARAM
 
     def get_paginated_response(self, data):
-        print(data)
-        print('?'*100)
         return Response(OrderedDict([
             ('count', self.page.paginator.count),
             ('next', self.get_next_link()),

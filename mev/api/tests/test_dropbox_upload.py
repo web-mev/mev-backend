@@ -75,8 +75,7 @@ class RemoteDropboxUploadTests(BaseAPITestCase):
             str(op_id)
         )
         src_dir = os.path.join
-        #shutil.copytree()
-        #print(op_id)
+
 
 
 class GCPRemoteDropboxUploadTests(BaseAPITestCase):

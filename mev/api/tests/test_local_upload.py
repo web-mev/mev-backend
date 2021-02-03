@@ -8,10 +8,12 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource
+from api.utilities import normalize_identifier
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
+TESTDIR = os.path.dirname(__file__)
 
 class ServerLocalResourceUploadTests(BaseAPITestCase):
 
@@ -373,6 +375,31 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         r = Resource.objects.get(pk=j['id'])
         self.assertTrue(r.is_public)
         self.assertIsNone(r.owner)
+
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_uploaded_filename_is_normalized(self, mock_api_tasks):
+        '''
+        Test that we properly normalize file names that are 'out of bounds'
+        (e.g. we edit the filename to be easy to handle)
+        '''
+        # first check that the payload is correct by initiating a correct
+        # request 
+        orig_name = 'test name with spaces.tsv'
+        edited_name = normalize_identifier(orig_name)
+        payload = {
+            'owner_email': self.regular_user_1.email,
+            'resource_type': 'MTX',
+            'upload_file': open(os.path.join(TESTDIR, orig_name), 'rb')
+        }
+        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
+        self.assertTrue(r.owner == self.regular_user_1)
+        self.assertTrue(r.name == edited_name)
+        # the full 'temporary filename is {uuid}.{basename}. The uuid is random,
+        # so we can't compare the full basename
+        s = '.'.join(os.path.basename(r.path).split('.')[1:])
+        self.assertEqual(s, edited_name)
+
+        # ok, now edit 
 
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):

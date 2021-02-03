@@ -11,7 +11,7 @@ from django.conf import settings
 
 
 from api.models import Resource, Workspace
-from resource_types import DATABASE_RESOURCE_TYPES
+from resource_types import DATABASE_RESOURCE_TYPES, HUMAN_READABLE_TO_DB_STRINGS
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -877,6 +877,7 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'demo_file1.tsv')
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = f
@@ -943,6 +944,7 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Integer table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1063,6 +1065,7 @@ class ResourceContentTests(BaseAPITestCase):
         # for the pagination to be general
         self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1175,6 +1178,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1293,6 +1297,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1409,6 +1414,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1519,6 +1525,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1572,6 +1579,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()

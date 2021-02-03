@@ -2,6 +2,8 @@ import logging
 from rest_framework.exceptions import APIException
 
 from .base import LocalUpload
+from api.utilities import normalize_identifier
+from api.exceptions import StringIdentifierException
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +19,8 @@ class ServerLocalUpload(LocalUpload):
         # get the remainder of the payload parameters
         upload = request.data['upload_file']
 
-        # grab the file name from the upload request
-        self.filename = upload.name
+        # grab the file name from the upload request and normalize it
+        self.filename = normalize_identifier(upload.name)
         tmp_path = LocalUpload.create_local_path(self.filename)
 
         self.size = upload.size
