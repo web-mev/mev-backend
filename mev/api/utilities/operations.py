@@ -330,8 +330,10 @@ def create_workspace_dag(workspace_executed_ops):
             input_type = op_spec['attribute_type']
             if input_type == DataResourceAttribute.typename:
                 r = get_resource_by_pk(v)
-                resource_node = DagNode(str(v), DagNode.DATARESOURCE_NODE, node_name = r.name)
-                graph.add_node(resource_node)
+                resource_node = graph.get_or_create_node(
+                    str(v), 
+                    DagNode.DATARESOURCE_NODE, 
+                    node_name = r.name)
                 op_node.add_parent(resource_node)
 
         # show the outputs if the operation has completed
@@ -344,8 +346,10 @@ def create_workspace_dag(workspace_executed_ops):
                 if output_type == DataResourceAttribute.typename:
                     if v is not None:
                         r = get_resource_by_pk(v)
-                        resource_node = DagNode(str(v), DagNode.DATARESOURCE_NODE, node_name = r.name)
-                        graph.add_node(resource_node)
+                        resource_node = graph.get_or_create_node(
+                            str(v), 
+                            DagNode.DATARESOURCE_NODE, 
+                            node_name = r.name)
                         resource_node.add_parent(op_node)
     return graph.serialize()
 

@@ -1351,6 +1351,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
         N = 3 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1677,6 +1678,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
         N = 3 # the number of rows in the table
         self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()

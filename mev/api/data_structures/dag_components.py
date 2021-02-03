@@ -8,6 +8,15 @@ class SimpleDag(object):
             self.nodes.add(node)
         else:
             raise Exception('Can only add nodes to this DAG.')
+    
+    def get_or_create_node(self, node_id, node_type, node_name = ''):
+        for node in self.nodes:
+            if node.node_id == node_id:
+                return node
+        # was not among existing nodes. Create a new one
+        new_node = DagNode(node_id, node_type, node_name)
+        self.add_node(new_node)
+        return new_node
 
     def serialize(self):
         return [x.serialize() for x in self.nodes]
