@@ -17,10 +17,10 @@ class BaseStorageBackend(object):
         '''
 
         # create a final file location by concatenating the
-        # resource UUID and the file's "human readable" name
-        basename = '{uuid}.{name}'.format(
+        # resource UUID and the file's basename
+        basename = '{uuid}.{base}'.format(
             uuid=resource_instance.pk, 
-            name=resource_instance.name
+            base=os.path.basename(resource_instance.path)
         )
 
         if type(resource_instance) == Resource:

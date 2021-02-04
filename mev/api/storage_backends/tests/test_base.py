@@ -32,7 +32,7 @@ class TestBaseStorage(BaseAPITestCase):
         expected_path = '{d}/{a}/{b}.{c}'.format(
             a = str(r.owner.pk),
             b = str(r.pk),
-            c = r.name,
+            c = os.path.basename(r.path),
             d = Resource.USER_RESOURCE_STORAGE_DIRNAME
         )
         self.assertEqual(p, expected_path)
