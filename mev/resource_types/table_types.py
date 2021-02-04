@@ -575,7 +575,35 @@ class Matrix(TableResource):
     DESCRIPTION = 'A table of where all the entries are numbers'\
         ' except the first column (which names the rows) and the' \
         ' first line (which gives the column names). The cell at the' \
-        ' first row and column may be left blank.'
+        ' first row and column may be left blank. Acceptable file extensions' \
+        ' include: {s}.'.format(s = ', '.join(ACCEPTABLE_EXTENSIONS))
+
+    EXAMPLE = [
+        {
+            "rowname":"gene1",
+            "values": {
+                "sampleA": 1.1,
+                "sampleB": 2.2,
+                "sampleC": 3.3,
+            }
+        },
+        {
+            "rowname":"gene2",
+            "values": {
+                "sampleA": 11.1,
+                "sampleB": 22.2,
+                "sampleC": 33.3,
+            }
+        },
+        {
+            "rowname":"gene3",
+            "values": {
+                "sampleA": 111.1,
+                "sampleB": 222.2,
+                "sampleC": 333.3,
+            }
+        }
+    ]
 
     # looking for integers OR floats.  Both are acceptable  
     TARGET_PATTERN = '(float|int)\d{0,2}'
@@ -635,10 +663,38 @@ class IntegerMatrix(Matrix):
     # looking for only integers. 
     TARGET_PATTERN = 'int\d{0,2}'
 
-    DESCRIPTION = 'A table of where all the entries are integers'\
+    DESCRIPTION = 'A table where all the entries are integers'\
         ' except the first column (which names the rows) and the' \
         ' first line (which gives the column names). The cell at the' \
-        ' first row and column may be left blank.'
+        ' first row and column may be left blank. Acceptable extensions' \
+        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_EXTENSIONS))
+
+    EXAMPLE = [
+        {
+            "rowname":"gene1",
+            "values": {
+                "sampleA": 1,
+                "sampleB": 2,
+                "sampleC": 3,
+            }
+        },
+        {
+            "rowname":"gene2",
+            "values": {
+                "sampleA": 11,
+                "sampleB": 22,
+                "sampleC": 33,
+            }
+        },
+        {
+            "rowname":"gene3",
+            "values": {
+                "sampleA": 111,
+                "sampleB": 222,
+                "sampleC": 333,
+            }
+        }
+    ]
 
     def validate_type(self, resource_path):
 
@@ -685,8 +741,10 @@ class RnaSeqCountMatrix(IntegerMatrix):
     '''
     DESCRIPTION = 'A table of integer-based counts corresponding to'\
         ' the number of sequencing reads associated with a particular' \
-        ' gene or transcript.'
+        ' gene or transcript. Acceptable file extensions' \
+        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_EXTENSIONS))
 
+    EXAMPLE = IntegerMatrix.EXAMPLE
 
 class ElementTable(TableResource):
     '''
@@ -776,7 +834,32 @@ class AnnotationTable(ElementTable):
     DESCRIPTION = 'This type of file is used to add metadata to your samples.' \
         ' The first column has the sample name and the remaining columns contain' \
         ' metadata about each sample (for instance, experimental group,'\
-        ' treatment, or similar.'
+        ' treatment, or similar. Acceptable file extensions' \
+        ' include: {s}.'.format(s = ', '.join(ElementTable.ACCEPTABLE_EXTENSIONS))
+
+    EXAMPLE = [
+        {
+            "rowname":"SampleA",
+            "values": {
+                "cell_type": 'CD4',
+                "treatment": 'Y'
+            }
+        },
+        {
+            "rowname":"SampleB",
+            "values": {
+                "cell_type": 'CD8',
+                "treatment": 'Y'
+            }
+        },
+        {
+            "rowname":"SampleC",
+            "values": {
+                "cell_type": 'Monocyte',
+                "treatment": 'N'
+            }
+        }
+    ]
 
     def validate_type(self, resource_path):
 
@@ -844,7 +927,35 @@ class FeatureTable(ElementTable):
         ' to give additional information about each gene, such as alternative symbols,' \
         ' oncogene status, or similar.  Each row contains information about a single gene.' \
         ' Note, however, that this concept is completely general and not restricted' \
-        ' to information about genes or transcripts.'
+        ' to information about genes or transcripts. Acceptable file extensions' \
+        ' include: {s}'.format(s = ', '.join(ElementTable.ACCEPTABLE_EXTENSIONS))
+
+    EXAMPLE = [
+        {
+            "rowname":"gene1",
+            "values": {
+                "logFoldChange": 1.1,
+                "pvalue": 0.03,
+                "FDR": 0.2,
+            }
+        },
+        {
+            "rowname":"gene2",
+            "values": {
+                "logFoldChange": 2.2,
+                "pvalue": 0.01,
+                "FDR": 0.03,
+            }
+        },
+        {
+            "rowname":"gene3",
+            "values": {
+                "logFoldChange": 3.3,
+                "pvalue": 0.000003,
+                "FDR": 0.001,
+            }
+        }
+    ]
 
     def extract_metadata(self, resource_path, parent_op_pk=None):
         '''
@@ -879,10 +990,13 @@ class BEDFile(TableResource):
     By default, BED files do NOT contain headers and we enforce that here.
     '''
 
-    DESCRIPTION = 'A three-column BED-format file'
-
     ACCEPTABLE_EXTENSIONS = [BED,]
-    
+
+    DESCRIPTION = 'A three-column BED-format file. https://ensembl.org/info/website/upload/bed.html'\
+        ' BED files do NOT have column headers.' \
+        ' Acceptable file extensions include: {s}'.format(s=', '.join(ACCEPTABLE_EXTENSIONS))
+
+
     def validate_type(self, resource_path):
         reader = TableResource.get_reader(resource_path)
 

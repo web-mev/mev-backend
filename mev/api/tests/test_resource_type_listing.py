@@ -1,10 +1,18 @@
 import unittest
 import unittest.mock as mock
 
+from django.urls import reverse
+from rest_framework import status
+
 from resource_types import DATABASE_RESOURCE_TYPES, RESOURCE_MAPPING
+from api.tests.base import BaseAPITestCase
 
 
-class TestResourceTypeList(unittest.TestCase):
+class TestResourceTypeList(BaseAPITestCase):
+
+    def setUp(self):
+        self.url = reverse('resource-type-list')
+        self.establish_clients()
 
     def test_description_attribute_filled(self):
         '''
@@ -18,3 +26,7 @@ class TestResourceTypeList(unittest.TestCase):
             # if the DESCRIPTION attribute was forgotten,
             # the following will raise an exception:
             description =  resource_type_class.DESCRIPTION
+
+    def test_response_payload(self):
+        response = self.authenticated_regular_client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

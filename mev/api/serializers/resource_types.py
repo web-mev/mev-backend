@@ -12,3 +12,4 @@ class ResourceTypeSerializer(serializers.Serializer):
     resource_type_key = serializers.CharField(max_length=50)
     resource_type_title = serializers.CharField(max_length=250)
     resource_type_description = serializers.CharField(max_length=2000)
+    example = serializers.JSONField()

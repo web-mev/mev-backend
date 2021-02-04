@@ -32,10 +32,15 @@ class ResourceTypeList(APIView):
         for key, title in DATABASE_RESOURCE_TYPES:
             resource_type_class = RESOURCE_MAPPING[key]
             description =  resource_type_class.DESCRIPTION
+            try:
+                example = resource_type_class.EXAMPLE
+            except AttributeError as ex:
+                example = None
             all_types.append({
                 'resource_type_key': key,
                 'resource_type_title': title,
-                'resource_type_description': description
+                'resource_type_description': description,
+                'example': example
             })
         rs = self.get_serializer(all_types, many=True)
         return Response(rs.data)
