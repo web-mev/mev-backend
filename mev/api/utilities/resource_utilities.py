@@ -321,6 +321,11 @@ def validate_resource(resource_instance, requested_resource_type):
     '''
     if requested_resource_type is not None:
 
+        logger.info('Validate resource {x} against requested type of: {t}'.format(
+            x = str(resource_instance.id),
+            t = requested_resource_type
+        ))
+
         # check the file extension is consistent with the requested type:
         try:
             type_is_consistent = check_extension(resource_instance, requested_resource_type)

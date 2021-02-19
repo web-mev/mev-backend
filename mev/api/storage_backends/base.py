@@ -17,11 +17,19 @@ class BaseStorageBackend(object):
         '''
 
         # create a final file location by concatenating the
-        # resource UUID and the file's basename
-        basename = '{uuid}.{base}'.format(
-            uuid=resource_instance.pk, 
-            base=os.path.basename(resource_instance.path)
-        )
+        # resource UUID and the file's basename, but ONLY if the 
+        # basename does not already start with the resource UUID.
+        # Without this, we get a proliferation of <UUID> prefixes
+        # in the path.
+        current_basename = os.path.basename(resource_instance.path)
+        resource_uuid = str(resource_instance.pk)
+        if current_basename.startswith(resource_uuid):
+            basename = current_basename
+        else:
+            basename = '{uuid}.{base}'.format(
+                uuid=resource_instance.pk, 
+                base=os.path.basename(resource_instance.path)
+            )
 
         if type(resource_instance) == Resource:
 
