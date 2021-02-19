@@ -278,7 +278,8 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
     # via the status message and set the appropriate flags
     if not resource_instance.resource_type:
         status_msg = Resource.FAILED.format(
-            requested_resource_type=requested_resource_type
+            requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[
+                requested_resource_type]
         )
         status_msg = status_msg + ' ' + message
         resource_instance.status = status_msg

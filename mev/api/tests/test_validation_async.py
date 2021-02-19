@@ -99,7 +99,7 @@ class TestValidateResource(BaseAPITestCase):
         self.assertTrue(current_resource.is_active)
         self.assertIsNone(current_resource.resource_type)
         expected_status = Resource.FAILED.format(
-            requested_resource_type = 'MTX'
+            requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE['MTX']
         )
         expected_status = expected_status + ' ' + failure_msg
         self.assertEqual(current_resource.status, expected_status)
