@@ -22,7 +22,7 @@ class AbstractResource(models.Model):
     # this field to be blank.  We later fill that in once we have
     # all the necessary resource information.
     path = models.CharField(
-        max_length = 255,
+        max_length = 4096,
         default = ''  
     )
 
