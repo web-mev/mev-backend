@@ -260,9 +260,9 @@ class TestResourceUtilities(BaseAPITestCase):
         handle_invalid_resource(resource, other_type)
 
         self.assertTrue(resource.resource_type == original_type)
-        self.assertTrue(resource.status == Resource.REVERTED.format(
+        self.assertTrue(resource.status.startswith(Resource.REVERTED.format(
             requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
-            original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[original_type]
+            original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[original_type])
         ))
 
     @mock.patch.dict('api.utilities.resource_utilities.DB_RESOURCE_STRING_TO_HUMAN_READABLE', \

@@ -271,15 +271,17 @@ def check_extension(resource, requested_resource_type):
     return True
 
 
-def handle_invalid_resource(resource_instance, requested_resource_type):
+def handle_invalid_resource(resource_instance, requested_resource_type, message = ''):
 
     # If resource_type has not been set (i.e. it is None), then this   
     # Resource has NEVER been verified.  We report a failure
     # via the status message and set the appropriate flags
     if not resource_instance.resource_type:
-        resource_instance.status = Resource.FAILED.format(
+        status_msg = Resource.FAILED.format(
             requested_resource_type=requested_resource_type
         )
+        status_msg = status_msg + ' ' + message
+        resource_instance.status = status_msg
         # add empty metadata so that other methods which may try to access
         # that metadata do not break.
         add_metadata_to_resource(resource_instance, {})
@@ -303,10 +305,12 @@ def handle_invalid_resource(resource_instance, requested_resource_type):
             resource_instance.resource_type]
 
         # ...and compose the status message
-        resource_instance.status = Resource.REVERTED.format(
+        status_msg = Resource.REVERTED.format(
             requested_resource_type= hr_requested_resource_type,
             original_resource_type = hr_original_resource_type
         )
+        status_msg = status_msg + ' ' + message        
+        resource_instance.status = status_msg
     
 def validate_resource(resource_instance, requested_resource_type):
     '''
@@ -366,7 +370,10 @@ def validate_resource(resource_instance, requested_resource_type):
         if is_valid:
             handle_valid_resource(resource_instance, resource_class_instance, requested_resource_type)
         else:
-            handle_invalid_resource(resource_instance, requested_resource_type)
+            if message and len(message) > 0:
+                handle_invalid_resource(resource_instance, requested_resource_type, message)
+            else:
+                handle_invalid_resource(resource_instance, requested_resource_type)
 
     else: # requested_resource_type was None
         resource_instance.resource_type = None

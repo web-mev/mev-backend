@@ -42,7 +42,7 @@ class Resource(AbstractResource):
     VALIDATING = 'Validating...'
     PROCESSING = 'Processing...'
     READY = ''
-    FAILED = 'Failed validation for resource type {requested_resource_type}'
+    FAILED = 'Failed validation for resource type {requested_resource_type}.'
     REVERTED = ('Failed validation for type "{requested_resource_type}".'
         ' Reverting back to the valid type of "{original_resource_type}".')
     UNKNOWN_EXTENSION_ERROR = ('File extension for file "{filename}" is not consistent'

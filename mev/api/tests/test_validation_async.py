@@ -88,7 +88,8 @@ class TestValidateResource(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         mock_resource_instance = mock.MagicMock()
-        mock_resource_instance.validate_type.return_value = (False, 'some string')
+        failure_msg = 'Failed for this reason.'
+        mock_resource_instance.validate_type.return_value = (False, failure_msg)
         mock_get_resource_type_instance.return_value = mock_resource_instance
 
         validate_resource(unset_resource.pk, 'MTX')
@@ -100,6 +101,7 @@ class TestValidateResource(BaseAPITestCase):
         expected_status = Resource.FAILED.format(
             requested_resource_type = 'MTX'
         )
+        expected_status = expected_status + ' ' + failure_msg
         self.assertEqual(current_resource.status, expected_status)
 
     @mock.patch('api.utilities.resource_utilities.check_extension')
@@ -135,7 +137,8 @@ class TestValidateResource(BaseAPITestCase):
             other_type = random.choice(list(RESOURCE_MAPPING.keys()))
 
         mock_resource_instance = mock.MagicMock()
-        mock_resource_instance.validate_type.return_value = (False, 'some string')
+        failure_msg = 'Failed for this reason.'
+        mock_resource_instance.validate_type.return_value = (False, failure_msg)
         mock_get_resource_type_instance.return_value = mock_resource_instance
         mock_check_extension.return_value = True
         validate_resource(resource.pk, other_type)
@@ -148,6 +151,7 @@ class TestValidateResource(BaseAPITestCase):
             requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
             original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[current_type]
         )
+        expected_status = expected_status + ' ' + failure_msg
         self.assertEqual(current_resource.status, expected_status)
 
     @mock.patch('api.utilities.resource_utilities.check_extension')
