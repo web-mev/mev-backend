@@ -1,6 +1,7 @@
 import json
 import logging
 from collections import OrderedDict
+import numpy as np
 
 from django.core.paginator import Paginator, Page
 from django.conf import settings
@@ -155,12 +156,69 @@ class JsonResource(DataResource):
             j = json.load(open(resource_path))
             if filtering_query_params:
                 j = self.filter_based_on_query_params(j, filtering_query_params)
+            if settings.SORT_PARAM in query_params:
+                j = self.sort_json(j, query_params[settings.SORT_PARAM])
             return j
         except ParseException as ex:
             raise ex
         except Exception as ex:
             logger.info('Failed to load JSON resource. Error was {ex}'.format(ex=ex))
             raise ex
+
+    def sort_json(self, j, sort_string):
+        '''
+        Return the results sorted by a particular field.
+        Only permit simple sorts. No nested sorts on multiple
+        fields
+        '''
+        if len(sort_string.split(',')) > 1:
+            raise ParseException('Based on the query string ({v})'
+                ' it appeared that a sort on multiple fields was requested.'
+                ' For JSON-based arrays, only sorts on single fields are'
+                ' permitted.'.format(v=sort_string)
+            )
+
+        try:
+            sort_order, field = sort_string.split(settings.QUERY_PARAM_DELIMITER)
+        except ValueError:
+            raise ParseException('The sorting request was not properly formatted. '
+                'Please use "<ordering keyword>:<column name>"')
+                        
+        if not sort_order in settings.SORTING_OPTIONS:
+            raise ParseException('The sort order "{s}" is not an available option. Choose from: {opts}'.format(
+                s = sort_order,
+                opts = ','.join(settings.SORTING_OPTIONS)
+            ))
+
+        # extract the values for the field of interest. If that field doesn't exist
+        # on the item, then assign it to np.nan
+        current_vals = []
+        num_nans = 0 # track which indexes are NaN
+        for i,item in enumerate(j):
+            try:
+                current_vals.append(item[field])
+            except KeyError:
+                current_vals.append(np.nan)
+                num_nans += 1
+
+        # now use argsort to get the ordering. There is no way to 
+        # specify asc/descending as it always makes it ascending.
+        # Note that the np.nan get sent to the end.
+        ordering = np.argsort(current_vals)
+        
+        if sort_order ==  settings.DESCENDING:
+            if num_nans > 0:
+                nan_idx = ordering[-num_nans:]
+                # We strip off the indexes corresponding to the NaNs
+                # so that we can reverse the list and not put those NaNs at the front            
+                ordering = ordering[:-num_nans][::-1]
+                ordering.extend(nan_idx) # then add them back onto the tail
+            else:
+                ordering = ordering[::-1]
+        return [j[k] for k in ordering]
+
+
+
 
     def filter_based_on_query_params(self, j, query_params):
         # we can only really filter if the json data structure is list-like:

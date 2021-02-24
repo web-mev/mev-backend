@@ -985,6 +985,98 @@ class ResourceContentTests(BaseAPITestCase):
         ]
         self.assertEqual(expected_return, j) 
 
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_contents_sort_for_json(self, mock_get_storage_backend, mock_check_request_validity):
+        '''
+        For certain types of json data structures, we can perform filtering. 
+        For instance, if we have an array of simple items where our filter key is at the "top level",
+        we can perform a filter based on that.
+        '''
+        f = os.path.join(self.TESTDIR, 'json_array_file_test_filter.json')
+        self.resource.path = f
+        self.resource.resource_type = 'JSON'
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 13)
+
+        # sort without a filter:
+        url = base_url + '?page=1&page_size=20&sort_vals=[asc]:pval'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 13)
+        self.assertTrue(results[-1]['name'] == 'MM')
+        self.assertFalse('pval' in results[-1])
+        # remove the last item since it doesn't have pval field
+        returned_pvals = [x['pval'] for x in results[:-1]]
+        self.assertEqual(sorted(returned_pvals), returned_pvals)
+
+        # sort AND filter:
+        filter_val = 0.06
+        url = base_url + '?page=1&page_size=10&pval=[lt]:{v}&sort_vals=[asc]:pval'.format(v=filter_val)
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 9)
+        returned_pvals = [x['pval'] for x in results]
+        self.assertEqual(sorted(returned_pvals), returned_pvals)
+
+        # check descending sort
+        filter_val = 0.06
+        url = base_url + '?page=1&page_size=10&pval=[lt]:{v}&sort_vals=[desc]:pval'.format(v=filter_val)
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        # note the -1 to sort descending
+        returned_pvals = [-1*x['pval'] for x in results]
+        self.assertEqual(sorted(returned_pvals), returned_pvals)
+
+        # try sorting on multiple fields and check that it fails.
+        url = base_url + '?page=1&page_size=20&sort_vals=[asc]:pval,[asc]:name'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('error' in response.json())
+
+        # try sorting on a nonexistent field
+        url = base_url + '?page=1&page_size=20&sort_vals=[asc]:xxx'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 13)
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
@@ -1013,7 +1105,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
         results = response.json()
-        self.assertTrue(len(results) == 12)
+        self.assertTrue(len(results) == 13)
 
         # add the query params onto the end of the url:
         url = base_url + '?page=1&page_size=10'
@@ -1035,7 +1127,7 @@ class ResourceContentTests(BaseAPITestCase):
             status.HTTP_200_OK)
         j = response.json()
         results = j['results']
-        self.assertTrue(len(results) == 2)
+        self.assertTrue(len(results) == 3)
 
         #add the query params onto the end of the url:
         filter_val = 0.06
