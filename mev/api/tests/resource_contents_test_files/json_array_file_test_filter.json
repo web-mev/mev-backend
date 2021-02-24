@@ -1,0 +1,51 @@
+[
+    {
+        "name": "AA",
+        "pval": 0.1
+    },
+    {
+        "name": "BB",
+        "pval": 0.001
+    },
+    {
+        "name": "CC",
+        "pval": 0.01
+    },
+    {
+        "name": "DD",
+        "pval": 0.05,
+        "other": "X"
+    },
+    {
+        "name": "EE",
+        "pval": 0.2
+    },
+    {
+        "name": "FF",
+        "pval": 0.9
+    },
+    {
+        "name": "GG",
+        "pval": 0.02
+    },
+    {
+        "name": "HH",
+        "pval": 0.021
+    },
+    {
+        "name": "II",
+        "pval": 0.021
+    },
+    {
+        "name": "JJ",
+        "pval": 0.002
+    },
+    {
+        "name": "KK",
+        "pval": 0.00002
+    },
+    {
+        "name": "LL",
+        "pval": 0.0002
+    }
+]

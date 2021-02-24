@@ -20,6 +20,7 @@ GREATER_THAN = '[gt]'
 GREATER_THAN_OR_EQUAL = '[gte]'
 ABS_VAL_GREATER_THAN = '[absgt]'
 ABS_VAL_LESS_THAN = '[abslt]'
+EQUAL_TO = '[eq]'
 
 def abs_val_gt(x,y):
     return np.abs(x) > y
@@ -33,6 +34,9 @@ OPERATOR_MAPPING = {
     GREATER_THAN: operator.gt,
     GREATER_THAN_OR_EQUAL: operator.ge,
     ABS_VAL_GREATER_THAN: abs_val_gt,
-    ABS_VAL_LESS_THAN: abs_val_lt
+    ABS_VAL_LESS_THAN: abs_val_lt,
+    EQUAL_TO: operator.eq,
+    '=': operator.eq, # add for convenience
+    '==': operator.eq # add for convenience
 }
 

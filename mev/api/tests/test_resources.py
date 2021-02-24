@@ -985,6 +985,140 @@ class ResourceContentTests(BaseAPITestCase):
         ]
         self.assertEqual(expected_return, j) 
 
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_contents_filter_for_json(self, mock_get_storage_backend, mock_check_request_validity):
+        '''
+        For certain types of json data structures, we can perform filtering. 
+        For instance, if we have an array of simple items where our filter key is at the "top level",
+        we can perform a filter based on that.
+        '''
+        f = os.path.join(self.TESTDIR, 'json_array_file_test_filter.json')
+        self.resource.path = f
+        self.resource.resource_type = 'JSON'
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 12)
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=1&page_size=10'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 10)
+
+        # add the query params onto the end of the url:
+        url = base_url + '?page=2&page_size=10'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 2)
+
+        #add the query params onto the end of the url:
+        filter_val = 0.06
+        url = base_url + '?page=1&page_size=10&pval=[lt]:{v}'.format(v=filter_val)
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 9)
+        for x in results:
+            self.assertTrue(x['pval'] < filter_val)
+
+        # query multiple fields
+        filter_val = 0.06
+        url = base_url + '?page=1&page_size=10&pval=[lt]:{v}&name=BB'.format(v=filter_val)
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 1)
+
+        # query a field that only exists on one of the items.
+        url = base_url + '?page=1&page_size=10&other=X'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 1)
+
+        # query a field that only exists on one of the items, but query doesn't match
+        url = base_url + '?page=1&page_size=10&other=Y'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 0)
+
+        # attempt to query on a field that doesn't exist on any item:
+        url = base_url + '?page=1&page_size=10&xxx=[lt]:0.1'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 0)
+
+        # provide a bad query string and check that it returns 400
+        # (missing the brackets on the query param)
+        url = base_url + '?page=1&page_size=10&pval=lt:0.1'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        j = response.json()
+        self.assertTrue('error' in j)
+
+
+        # provide a bad query string and check that it returns 400
+        # (the value to compare to can't be cast as a float)
+        url = base_url + '?page=1&page_size=10&pval=[lt]:a'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        j = response.json()
+        self.assertTrue('error' in j)
+
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_resource_contents_pagination_for_json(self, mock_get_storage_backend, mock_check_request_validity):

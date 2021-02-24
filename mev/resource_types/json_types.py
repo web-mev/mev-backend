@@ -8,7 +8,7 @@ from django.conf import settings
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from .base import DataResource
+from .base import DataResource, ParseException
 from api.exceptions import NonIterableContentsException
 
 JSON = 'json'
@@ -79,6 +79,11 @@ class JsonResourcePageNumberPagination(PageNumberPagination):
         ]))
 
 
+def create_closure(op, filter_val):
+    def f(x):
+        return op(x, filter_val)
+    return f
+
 class JsonResource(DataResource):
 
     ACCEPTABLE_EXTENSIONS = [JSON]
@@ -133,12 +138,96 @@ class JsonResource(DataResource):
 
     def get_contents(self, resource_path, query_params={}):
 
+        # since the pagination query params are among the general query parameters, we DON'T
+        # want to pass them to the filtering.
+        filtering_query_params = {}
+        ignored_params = [settings.PAGE_SIZE_PARAM, settings.PAGE_PARAM, settings.SORT_PARAM]
+        for k,v in query_params.items():
+            if (not k in ignored_params):
+                filtering_query_params[k] = v
+
+        logger.info('Get contents of JSON resource and filter'
+            ' against query params: {q}'.format(q=filtering_query_params))
         try:
             logger.info('Using python-native JSON loader to read resource: {p}'.format(
                 p = resource_path
             ))
             j = json.load(open(resource_path))
+            if filtering_query_params:
+                j = self.filter_based_on_query_params(j, filtering_query_params)
             return j
+        except ParseException as ex:
+            raise ex
         except Exception as ex:
             logger.info('Failed to load JSON resource. Error was {ex}'.format(ex=ex))
             raise ex
+
+    def filter_based_on_query_params(self, j, query_params):
+        # we can only really filter if the json data structure is list-like:
+        if not type(j) is list:
+            return j
+
+        filter_ops = {}
+        for k,v in query_params.items():
+            # v is either a value (in the case of strict equality)
+            # or a delimited string which will dictate the comparison.
+            # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
+            # v would be "[lte]:0.01". The "[lte]" string is set in our general settings file.
+            split_v = v.split(settings.QUERY_PARAM_DELIMITER)
+            if len(split_v) == 1: # strict equality filter
+                # the query could be asking for a strict equality of a number or string
+                # Try to cast as a number. If it fails, we assume it's a string filter
+                try:
+                    val = float(v)
+                except ValueError as ex:
+                    val = v
+                
+                filter_ops[k] = create_closure(settings.OPERATOR_MAPPING['=='], val)
+
+            elif len(split_v) == 2:
+                # these types of filters only apply to numeric types. So a failure to cast
+                # will be an error
+                try:
+                    val = float(split_v[1])
+                except ValueError as ex:
+                    raise ParseException('Could not interpret the query'
+                        ' parameter value {v} as a number.'.format(v=split_v[1]))
+
+                # the supplied value was ok. Check the operator supplied
+                try:
+                    op = settings.OPERATOR_MAPPING[split_v[0]]
+                except KeyError as ex:
+                    raise ParseException('The operator string ("{s}") was not understood. Choose'
+                        ' from among: {vals}'.format(
+                            s = split_v[0],
+                            vals = ','.join(settings.OPERATOR_MAPPING.keys())
+                        )
+                    )
+                filter_ops[k] = create_closure(op, val)
+
+            else:
+                raise ParseException('The query param string ({v}) for filtering on'
+                    ' the "{p}" field was not formatted properly.'.format(
+                        v = v,
+                        p = k
+                    )
+                )
+        # now go through the list and keep those that pass the filter
+        filtered_list = []
+        for item in j:
+            tests = []
+            for k, op in filter_ops.items():
+                try:
+                    try:
+                        tests.append(op(item[k]))
+                    except Exception as ex:
+                        logger.info('Error with comparison for'
+                            ' filtering a JSON resource contents.'
+                        )
+                        raise ex
+                except KeyError as ex:
+                    # the key was not in the item. We don't consider this as an error
+                    tests.append(False)
+            if all(tests):
+                filtered_list.append(item)
+        return filtered_list
