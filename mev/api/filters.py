@@ -7,6 +7,9 @@ ASCENDING = '[asc]'
 DESCENDING = '[desc]'
 SORTING_OPTIONS = [ASCENDING, DESCENDING]
 
+# A special filter option for specifying a filter on the row names
+ROWNAME_FILTER = '__rowname__'
+
 # for query filter params:
 # When providing query filters, we will have something like:
 # <url>/?paramA=<comparison>:<val>, 
@@ -21,12 +24,20 @@ GREATER_THAN_OR_EQUAL = '[gte]'
 ABS_VAL_GREATER_THAN = '[absgt]'
 ABS_VAL_LESS_THAN = '[abslt]'
 EQUAL_TO = '[eq]'
+CASE_INSENSITIVE_EQUALS = '[case-ins-eq]'
+STARTSWITH = '[startswith]'
 
 def abs_val_gt(x,y):
     return np.abs(x) > y
 
 def abs_val_lt(x,y):
     return np.abs(x) < y
+
+def case_insensitive_string_compare(x,y):
+    return x.lower() == y.lower()
+
+def case_insensitive_startswith(x,y):
+    return x.lower().startswith(y.lower())
 
 OPERATOR_MAPPING = {
     LESS_THAN: operator.lt,
@@ -37,6 +48,8 @@ OPERATOR_MAPPING = {
     ABS_VAL_LESS_THAN: abs_val_lt,
     EQUAL_TO: operator.eq,
     '=': operator.eq, # add for convenience
-    '==': operator.eq # add for convenience
+    '==': operator.eq, # add for convenience
+    CASE_INSENSITIVE_EQUALS: case_insensitive_string_compare,
+    STARTSWITH: case_insensitive_startswith
 }
 

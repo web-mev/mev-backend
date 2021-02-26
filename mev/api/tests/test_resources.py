@@ -1397,6 +1397,132 @@ class ResourceContentTests(BaseAPITestCase):
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_contents_rowname_filter(self, mock_get_storage_backend, mock_check_request_validity):
+        '''
+        We allow filtering of tables by the rownames (commonly gene name). Test that
+        the implementation works as expected
+        '''
+        f = os.path.join(self.TESTDIR, 'demo_table_for_pagination.tsv')
+        N = 155 # the number of records in our demo file
+
+        self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == N)
+        first_record = results[0]
+        final_record = results[-1]
+        self.assertTrue(first_record['rowname'] == 'g0')
+        self.assertTrue(final_record['rowname'] == 'g154')
+
+        # the "genes" are named like g0, g1, ...
+        # try some row name filters:
+        # the "startswith" G1 filter should match g1, g10-g19, g100-g154
+        suffix = '?__rowname__=[startswith]:G1'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 66)
+
+        # doesn't match anything
+        suffix = '?__rowname__=[startswith]:X'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 0)
+
+        # the G1 case-insensitive filter should match only g1
+        suffix = '?__rowname__=[case-ins-eq]:G1'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 1)
+
+        # the G1 case-sensitive filter doesn't match anything
+        suffix = '?__rowname__=[eq]:G1'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 0)
+
+        # the G1 case-sensitive filter doesn't match anything
+        suffix = '?__rowname__=[eq]:g1'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 1)
+        self.assertTrue(j[0]['rowname'] == 'g1')
+
+        # add on some pagination queries
+        # the "startswith" G1 filter should 66 entries in total
+        pg_size = 10
+        suffix = '?page=1&page_size={n}&__rowname__=[startswith]:G1'.format(n=pg_size)
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 10)
+        idx = [1, *list(range(10,19))]
+        expected_rows = ['g%d' % x for x in idx]
+        self.assertCountEqual(expected_rows, [x['rowname'] for x in results]) 
+
+        # get page 2 on the size 66 query. Should be g19, g100, ..., g108
+        pg_size = 10
+        suffix = '?page=2&page_size={n}&__rowname__=[startswith]:G1'.format(n=pg_size)
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 10)
+        idx = [19, *list(range(100,109))]
+        expected_rows = ['g%d' % x for x in idx]
+        self.assertCountEqual(expected_rows, [x['rowname'] for x in results]) 
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_resource_contents_table_filter(self, mock_get_storage_backend, mock_check_request_validity):
         '''
         For testing if table-based resources are filtered correctly

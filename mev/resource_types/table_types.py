@@ -358,12 +358,12 @@ class TableResource(DataResource):
         # used to map the pandas native type to a MEV-type so we can do type casting consistently
         type_dict = self.get_type_dict()
         for k,v in query_params.items():
+            split_v = v.split(settings.QUERY_PARAM_DELIMITER)
             if (not k in ignored_params) and (k in table_cols):
                 # v is either a value (in the case of strict equality)
                 # or a delimited string which will dictate the comparison.
                 # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
                 # v would be "[lte]:0.01". The "[lte]" string is set in our general settings file.
-                split_v = v.split(settings.QUERY_PARAM_DELIMITER)
                 column_type = type_dict[k] # gets a type name (as a string, e.g. "Float")
                 if len(split_v) == 1:
                     # strict equality
@@ -395,6 +395,30 @@ class TableResource(DataResource):
                     )
             elif k in ignored_params:
                 pass
+            elif k == settings.ROWNAME_FILTER:
+                if len(split_v) != 2:
+                    raise ParseException('The query for filtering on the rows'
+                        ' was not properly formatted. It should be [<op>]:<value>')
+                # we don't allow indexes that are all numbers, so don't worry about casting
+                # the filter value from a string
+                val = split_v[1]
+                try:
+                    op = settings.OPERATOR_MAPPING[split_v[0]]
+                except KeyError as ex:
+                    raise ParseException('The operator string ("{s}") was not understood. Choose'
+                        ' from among: {vals}'.format(
+                            s = split_v[0],
+                            vals = ','.join(settings.OPERATOR_MAPPING.keys())
+                        )
+                    )
+                try:
+                    rowname_filter = self.table.index.to_series().apply(lambda x: op(x, val))
+                    filters.append(rowname_filter)
+                except Exception as ex:
+                    raise ParseException('Error encountered with filter on rows.'
+                        ' Admin has been notified.'
+                    )
+                    alert_admins()
             else:
                 raise ParseException('The column "{c}" is not available for filtering.'.format(c=k))
         if len(filters) > 1:
