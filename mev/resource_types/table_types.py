@@ -173,6 +173,10 @@ class TableResource(DataResource):
     # the "standardized" format we will save all table-based files as:
     STANDARD_FORMAT = TSV
 
+    # Create a list of query params that are "reserved" and we ignore when
+    # attempting to filter on the actual table content (e.g. the column/rows)
+    IGNORED_QUERY_PARAMS = [settings.PAGE_SIZE_PARAM, settings.PAGE_PARAM, settings.SORT_PARAM]
+
     def __init__(self):
         self.table = None
 
@@ -343,14 +347,11 @@ class TableResource(DataResource):
         '''
         table_cols = self.table.columns
 
-        # since the pagination query params are among these, we DON'T
-        # want to filter on them.
-        ignored_params = [settings.PAGE_SIZE_PARAM, settings.PAGE_PARAM, settings.SORT_PARAM]
-
         # guard against some edge case where the table we are filtering happens to have 
         # columns that conflict with the pagination parameters. We simply inform the admins
         # and ignore that conflict by not using that filter
-        if any([x in ignored_params for x in table_cols]):
+
+        if any([x in self.IGNORED_QUERY_PARAMS for x in table_cols]):
             logger.warning('One of the column names conflicted with the pagination query params.')
             alert_admins()
         filters = []
@@ -359,7 +360,7 @@ class TableResource(DataResource):
         type_dict = self.get_type_dict()
         for k,v in query_params.items():
             split_v = v.split(settings.QUERY_PARAM_DELIMITER)
-            if (not k in ignored_params) and (k in table_cols):
+            if (not k in self.IGNORED_QUERY_PARAMS) and (k in table_cols):
                 # v is either a value (in the case of strict equality)
                 # or a delimited string which will dictate the comparison.
                 # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
@@ -393,8 +394,8 @@ class TableResource(DataResource):
                             col = k
                         )
                     )
-            elif k in ignored_params:
-                pass
+            elif k in self.IGNORED_QUERY_PARAMS:
+                 pass
             elif k == settings.ROWNAME_FILTER:
                 if len(split_v) != 2:
                     raise ParseException('The query for filtering on the rows'
@@ -455,6 +456,26 @@ class TableResource(DataResource):
         })
         self.table = self.table.mask(pd.isnull, None)
 
+    def _resource_specific_modifications(self):
+        '''
+        This is a hook where derived classes can implement
+        special filtering/behavior/etc. (if necessary)
+        when the resource contents are requested.  
+
+        Called by the `get_contents` method.
+        '''
+        pass
+
+    def contents_converter(self, row):
+        '''
+        A method that takes the resource contents to 
+        something that can be serialized.
+
+        Input arg is a row of a pandas dataframe
+        '''
+
+        return {'rowname': row.name, 'values': row.to_dict()}
+
     def get_contents(self, resource_path, query_params={}):
         '''
         Returns a dataframe of the table contents
@@ -463,19 +484,17 @@ class TableResource(DataResource):
         the rows of the table
         '''
 
-        # use this function to convert the dataframe rows to our desired format
-        def row_converter(row):
-            return {'rowname': row.name, 'values': row.to_dict()}
-
         try:
             self.read_resource(resource_path)
             # if there were any filtering params requested, apply those
             self.filter_against_query_params(query_params)
+            self._resource_specific_modifications()
             self.perform_sorting(query_params)
             self.replace_special_values()
-
-            return self.table.apply(row_converter, axis=1).tolist()
-
+            if self.table.shape[0] > 0:
+                return self.table.apply(self.contents_converter, axis=1).tolist()
+            else:
+                return {}
         # for these first two exceptions, we already have logged
         # any problems when we called the `read_resource` method
         except ParserNotFoundException as ex:
@@ -632,6 +651,21 @@ class Matrix(TableResource):
     # looking for integers OR floats.  Both are acceptable  
     TARGET_PATTERN = '(float|int)\d{0,2}'
 
+    # Define some additional filtering/sorting params that
+    # are specific to this type and its children.
+    # A special filter for allowing filtering of numeric tables based on
+    # the row means
+    ROWMEAN_KEYWORD = '__rowmean__'
+    INCLUDE_ROWMEANS = '__incl_rowmeans__'
+    EXTRA_MATRIX_QUERY_PARAMS = [
+        ROWMEAN_KEYWORD,
+        INCLUDE_ROWMEANS
+    ]
+
+    # Copy the ignored params from the parent (don't want to modify that)
+    IGNORED_QUERY_PARAMS = [x for x in TableResource.IGNORED_QUERY_PARAMS]
+    IGNORED_QUERY_PARAMS.extend(EXTRA_MATRIX_QUERY_PARAMS)
+
     def check_column_types(self, target_pattern):
         '''
         Checks each column against a specific numpy/pandas dtype.
@@ -677,6 +711,110 @@ class Matrix(TableResource):
         o_set = ObservationSet([Observation(x) for x in self.table.columns])
         self.metadata[DataResource.OBSERVATION_SET] = ObservationSetSerializer(o_set).data
         return self.metadata
+
+    def _resource_specific_modifications(self):
+        self.additional_exported_cols = []
+        if not self.extra_query_params:
+            return
+
+        filters = []
+        if self.ROWMEAN_KEYWORD in self.extra_query_params:
+            self.additional_exported_cols.append(self.ROWMEAN_KEYWORD)
+            self.table[self.ROWMEAN_KEYWORD] = self.table.mean(axis=1)
+            filter_string = self.extra_query_params[self.ROWMEAN_KEYWORD]
+            split_str = filter_string.split(settings.QUERY_PARAM_DELIMITER)
+            if len(split_str) == 1:
+                # strict equality
+                try:
+                    val = float(split_str[0])
+                except ValueError as ex:
+                    raise ParseException('Could not parse the request'
+                        ' for filtering on the row means. The value'
+                        ' could not be interpreted as a number.'
+                    )
+
+                filters.append(self.table[self.ROWMEAN_KEYWORD] == val)
+
+            elif len(split_str) == 2:
+                try:
+                    val = float(split_str[1])
+                except ValueError as ex:
+                    raise ParseException('Could not parse the request'
+                        ' for filtering on the row means. The value'
+                        ' could not be interpreted as a number.'
+                    )
+                try:
+                    op = settings.OPERATOR_MAPPING[split_str[0]]
+                except KeyError as ex:
+                    raise ParseException('The operator string ("{s}") was not understood. Choose'
+                        ' from among: {vals}'.format(
+                            s = split_str[0],
+                            vals = ','.join(settings.OPERATOR_MAPPING.keys())
+                        )
+                    )
+                filters.append(self.table[self.ROWMEAN_KEYWORD].apply(lambda x: op(x, val)))
+            else:
+                raise ParseException('The query param string ({v}) for filtering on'
+                    ' the mean values was not formatted properly.'.format(
+                        v = filter_string
+                    )
+                )
+
+        if self.INCLUDE_ROWMEANS in self.extra_query_params:
+            # if the rowmean filter was also applied, we can skip-- 
+            # This query param is requesting the row means, which is inferred by the rowmean filter
+            if not self.ROWMEAN_KEYWORD in self.extra_query_params:
+                # if here, no filtering was requested on the row means. Simply calculate.
+                # Note that we use the rowmean_keyword as the column name and in the 
+                # export columns list so that the final converter knows to send this column
+                # in the response.
+                self.additional_exported_cols.append(self.ROWMEAN_KEYWORD)
+                self.table[self.ROWMEAN_KEYWORD] = self.table.mean(axis=1)
+
+        # apply filters (if any)
+        if len(filters) > 1:
+            combined_filter = reduce(lambda x,y: x & y, filters)
+            self.table = self.table.loc[combined_filter]
+        elif len(filters) == 1:
+            self.table = self.table.loc[filters[0]]            
+
+    def contents_converter(self, row):
+        '''
+        A method that takes the resource contents to 
+        something that can be serialized.
+
+        Input arg is a row of a pandas dataframe
+        '''
+        # we don't want to conflate the "standard" matrix columns (e.g. the expressions)
+        # with those that we added on due to request parameters (e.g like the row means)
+        # Thus, get those standard columns 
+        standard_cols = [x for x in self.table.columns if not x in self.additional_exported_cols]
+        values = row[standard_cols].to_dict()
+        d = {'rowname': row.name, 'values': values}
+
+        for p in self.additional_exported_cols:
+            d[p] = row[p]
+        return d
+
+    def get_contents(self, resource_path, query_params={}):
+        '''
+        This method allows us to add on additional content that is
+        allowable for matrix types, as they are all numeric.
+        Examples include providing the row means, etc.
+        '''
+        # pull out any matrix-specific query params so they don't interfere
+        # with the general query params passed to the parent.
+        # If the request doesn't contain any of these params, then 
+        # the self.current_query_params dict is empty and no further
+        # modifications to the returned content are made.
+        self.extra_query_params = {}
+        for p in self.EXTRA_MATRIX_QUERY_PARAMS:
+            if p in query_params:
+                self.extra_query_params[p] = query_params[p]
+
+        # additional filtering/behavior specific to a Matrix (if requested)
+        # is handled in the _resource_specific_modifications method
+        return super().get_contents(resource_path, query_params)
 
 
 class IntegerMatrix(Matrix):

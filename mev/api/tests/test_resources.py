@@ -1868,6 +1868,403 @@ class ResourceContentTests(BaseAPITestCase):
             expected_ordering
         )
 
+        # add on pagination params to check that things work as expected
+        page_size = 10
+        suffix = '?page=1&page_size={n}&{s}={a}:padj,{a}:log2FoldChange'.format(
+            s = settings.SORT_PARAM,
+            a = settings.ASCENDING,
+            n = page_size
+        )
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 10)
+        gene_ordering = [x['rowname'] for x in results]
+        # the first few are unambiguous, as the padj are different
+        # the later ones have the same padj, but different log2FoldChange
+        # We include some +/-inf values also.
+        expected_ordering = [
+            'UNCX', 
+            'AC011841.4', 
+            'KRT18P27', 
+            'ECHS1', 
+            'MMGT1',
+            'AMBP',
+            'PWWP2AP1',
+            'HTR7P1',
+            'AC000123.4',
+            'MAP1A'
+        ]
+        # only compare the first few. After that, the sorting is arbitrary as there
+        # are na's, etc.
+        self.assertEqual(
+            gene_ordering, 
+            expected_ordering
+        )
+
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_matrix_specific_content_requests(self, mock_get_storage_backend, mock_check_request_validity):
+        '''
+        For testing if table-based resources are sorted correctly when used
+        with filters.
+        '''
+        f = os.path.join(self.TESTDIR, 'rowmeans_test_file.tsv')
+        self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 12)
+        self.assertFalse(any(['__rowmean__' in x for x in results]))
+        
+        # add on a rowmeans query without any 'value'. This should be valid.
+        suffix = '?__incl_rowmeans__'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(all(['__rowmean__' in x for x in results]))
+
+        # in addition to the rowmeans query, request a sort
+        suffix = '?__incl_rowmeans__&sort_vals=[desc]:__rowmean__'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(all(['__rowmean__' in x for x in results]))
+        expected_gene_ordering = ['g%d' % x for x in range(12,0,-1)]
+        returned_order = [x['rowname'] for x in results]
+        self.assertEqual(expected_gene_ordering, returned_order)
+
+        # add on a rowmeans query with explicit true value.
+        suffix = '?__incl_rowmeans__=true'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(all(['__rowmean__' in x for x in results]))
+
+        # mis-spell the parameter-- should be '__incl_rowmeans__' (with the underscores)
+        # This should fail
+        suffix = '?incl_rowmeans'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        # add on a rowmeans query to limit the results
+        suffix = '?__rowmean__=[lt]:20'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        expected_genes = ['g1', 'g2']
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # add on a rowmeans query to limit the results
+        suffix = '?__rowmean__=[eq]:20'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 0)
+
+        # attempt a rowmeans query to filter, but leave off the value
+        suffix = '?__rowmean__=[lt]'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        # attempt a rowmeans query to filter, but give a non-float value
+        suffix = '?__rowmean__=[lt]:a'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        suffix = '?__rowmean__=[gt]:20'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        expected_genes = ['g%d' % i for i in range(3,13)]
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # check that it works with pagination
+        # would normally return 11 records with pagination
+        suffix = '?page=1&page_size=10&__rowmean__=[gt]:10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()['results']
+        self.assertTrue(len(results) == 10)
+        expected_genes = ['g%d' % i for i in range(2,12)]
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # check that it works with pagination
+        # would normally return 11 records with pagination
+        suffix = '?page=2&page_size=10&__rowmean__=[gt]:10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()['results']
+        self.assertTrue(len(results) == 1)
+        expected_gene = 'g12'
+        returned_gene = results[0]['rowname']
+        self.assertEqual(expected_gene, returned_gene)
+
+        # check a malformed request-- there is no '&' delimiter
+        # the paginator ignores it and just returns everything
+        suffix = '?page=1&page_size=10__rowmean__=[gt]:10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()['results']
+        self.assertTrue(len(results) == 12)
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_matrix_specific_content_requests_with_na_and_infty(self, mock_get_storage_backend, mock_check_request_validity):
+        '''
+        For testing if table-based resources are sorted correctly when used
+        with filters.
+        '''
+        f = os.path.join(self.TESTDIR, 'rowmeans_test_file_with_na.tsv')
+        self.resource.path = f
+        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 12)
+        self.assertFalse(any(['__rowmean__' in x for x in results]))
+        
+        # add on a rowmeans query without any 'value'. This should be valid.
+        suffix = '?__incl_rowmeans__'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(all(['__rowmean__' in x for x in results]))
+
+        # in addition to the rowmeans query, request a sort
+        suffix = '?__incl_rowmeans__&sort_vals=[desc]:__rowmean__'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(all(['__rowmean__' in x for x in results]))
+        expected_gene_ordering = ['g%d' % x for x in [1, *range(12,1,-1)]]
+        returned_order = [x['rowname'] for x in results]
+        self.assertEqual(expected_gene_ordering, returned_order)
+
+        # add on a rowmeans query with explicit true value.
+        suffix = '?__incl_rowmeans__=true'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(all(['__rowmean__' in x for x in results]))
+
+        # mis-spell the parameter-- should be '__incl_rowmeans__' (with the underscores)
+        # This should fail
+        suffix = '?incl_rowmeans'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        # add on a rowmeans query to limit the results
+        suffix = '?__rowmean__=[lt]:20'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        expected_genes = ['g2'] # in this test, 'g1' has an infinity
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # add on a rowmeans query to limit the results
+        suffix = '?__rowmean__=[eq]:20'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        self.assertTrue(len(results) == 0)
+
+        # attempt a rowmeans query to filter, but leave off the value
+        suffix = '?__rowmean__=[lt]'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        # attempt a rowmeans query to filter, but give a non-float value
+        suffix = '?__rowmean__=[lt]:a'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        results = response.json()
+        self.assertTrue('error' in results)
+
+        suffix = '?__rowmean__=[gt]:20'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        expected_genes = ['g%d' % i for i in [1, *range(3,13)]]
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # check that it works with pagination
+        # would normally return 11 records with pagination
+        suffix = '?page=1&page_size=10&__rowmean__=[gt]:10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()['results']
+        self.assertTrue(len(results) == 10)
+        expected_genes = ['g%d' % i for i in range(1,11)]
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # check that it works with pagination
+        # would normally return 11 records with pagination
+        suffix = '?page=2&page_size=10&__rowmean__=[gt]:10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()['results']
+        self.assertTrue(len(results) == 2)
+        expected_genes = ['g11','g12']
+        returned_genes = [x['rowname'] for x in results]
+        self.assertEqual(expected_genes, returned_genes)
+
+        # check a malformed request-- there is no '&' delimiter
+        # the paginator ignores it and just returns everything
+        suffix = '?page=1&page_size=10__rowmean__=[gt]:10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()['results']
+        self.assertTrue(len(results) == 12)
+
+
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_resource_contents_sort_and_filter(self, mock_get_storage_backend, mock_check_request_validity):
