@@ -1454,6 +1454,18 @@ class ResourceContentTests(BaseAPITestCase):
         j = response.json()
         self.assertTrue(len(j) == 0)
 
+        # doesn't match anything
+        suffix = '?__rowname__=[eq]:X&__rowmean__=[gte]:0&page=1&page_size=10'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j['results']) == 0)
+        self.assertTrue(j['count'] == 0)
+
         # the G1 case-insensitive filter should match only g1
         suffix = '?__rowname__=[case-ins-eq]:G1'
         url = base_url + suffix
@@ -1962,6 +1974,16 @@ class ResourceContentTests(BaseAPITestCase):
         expected_gene_ordering = ['g%d' % x for x in range(12,0,-1)]
         returned_order = [x['rowname'] for x in results]
         self.assertEqual(expected_gene_ordering, returned_order)
+
+        # need to request the rowmean if a sort is requested. Otherwise the request
+        # is a bit ambiguous
+        suffix = '?sort_vals=[desc]:__rowmean__'
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
 
         # add on a rowmeans query with explicit true value.
         suffix = '?__incl_rowmeans__=true'

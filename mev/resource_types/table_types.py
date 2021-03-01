@@ -359,7 +359,6 @@ class TableResource(DataResource):
         # used to map the pandas native type to a MEV-type so we can do type casting consistently
         type_dict = self.get_type_dict()
         for k,v in query_params.items():
-            print(v)
             split_v = v.split(settings.QUERY_PARAM_DELIMITER)
             if (not k in self.IGNORED_QUERY_PARAMS) and (k in table_cols):
                 # v is either a value (in the case of strict equality)
@@ -518,7 +517,7 @@ class TableResource(DataResource):
                         x.update(y)
                 return content
             else:
-                return {}
+                return []
         # for these first two exceptions, we already have logged
         # any problems when we called the `read_resource` method
         except ParserNotFoundException as ex:
