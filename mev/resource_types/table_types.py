@@ -485,12 +485,18 @@ class TableResource(DataResource):
         '''
 
         try:
+            logger.info('Read resource at {p}'.format(p=resource_path))
             self.read_resource(resource_path)
+            logger.info('Done reading. Now filter')
             # if there were any filtering params requested, apply those
             self.filter_against_query_params(query_params)
+            logger.info('Done filtering')
             self._resource_specific_modifications()
+            logger.info('Done with resource specific mods. Do any sorting')
             self.perform_sorting(query_params)
+            logger.info('Done sorting.')
             self.replace_special_values()
+            logger.info('done replacing special vals')
             if self.table.shape[0] > 0:
                 return self.table.apply(self.contents_converter, axis=1).tolist()
             else:

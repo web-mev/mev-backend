@@ -190,6 +190,7 @@ class ResourceContents(APIView):
             # requester can access, resource is active.  Go get contents
             try:
                 contents = get_resource_view(r, request.query_params)
+                logger.info('Done getting contents.')
             except ParseException as ex:
                 return Response(
                     {'error': 'There was a problem when parsing the request: {ex}'.format(ex=ex)},
