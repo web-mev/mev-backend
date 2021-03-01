@@ -359,6 +359,7 @@ class TableResource(DataResource):
         # used to map the pandas native type to a MEV-type so we can do type casting consistently
         type_dict = self.get_type_dict()
         for k,v in query_params.items():
+            print(v)
             split_v = v.split(settings.QUERY_PARAM_DELIMITER)
             if (not k in self.IGNORED_QUERY_PARAMS) and (k in table_cols):
                 # v is either a value (in the case of strict equality)
@@ -466,7 +467,7 @@ class TableResource(DataResource):
         '''
         pass
 
-    def contents_converter(self, row):
+    def main_contents_converter(self, row):
         '''
         A method that takes the resource contents to 
         something that can be serialized.
@@ -475,6 +476,20 @@ class TableResource(DataResource):
         '''
 
         return {'rowname': row.name, 'values': row.to_dict()}
+
+    def extra_contents_converter(self, row):
+        '''
+        A method that takes the resource contents to 
+        something that can be serialized.
+
+        Input arg is a row of a pandas dataframe
+
+        Note that this is different since we don't create a 'values' key
+        as in the other contents converter method
+        '''
+        d = row.to_dict()
+        d['rowname'] = row.name
+        return d
 
     def get_contents(self, resource_path, query_params={}):
         '''
@@ -487,18 +502,21 @@ class TableResource(DataResource):
         try:
             logger.info('Read resource at {p}'.format(p=resource_path))
             self.read_resource(resource_path)
-            logger.info('Done reading. Now filter')
+            self.additional_exported_cols = []
+
             # if there were any filtering params requested, apply those
             self.filter_against_query_params(query_params)
-            logger.info('Done filtering')
             self._resource_specific_modifications()
-            logger.info('Done with resource specific mods. Do any sorting')
             self.perform_sorting(query_params)
-            logger.info('Done sorting.')
             self.replace_special_values()
-            logger.info('done replacing special vals')
             if self.table.shape[0] > 0:
-                return self.table.apply(self.contents_converter, axis=1).tolist()
+                standard_cols = [x for x in self.table.columns if not x in self.additional_exported_cols]
+                content = self.table[standard_cols].apply(self.main_contents_converter, axis=1).tolist()
+                if self.additional_exported_cols:
+                    additional_content = self.table[self.additional_exported_cols].apply(self.extra_contents_converter, axis=1).tolist()
+                    for x,y in zip(content, additional_content):
+                        x.update(y)
+                return content
             else:
                 return {}
         # for these first two exceptions, we already have logged
@@ -719,7 +737,6 @@ class Matrix(TableResource):
         return self.metadata
 
     def _resource_specific_modifications(self):
-        self.additional_exported_cols = []
         if not self.extra_query_params:
             return
 
@@ -783,24 +800,6 @@ class Matrix(TableResource):
             self.table = self.table.loc[combined_filter]
         elif len(filters) == 1:
             self.table = self.table.loc[filters[0]]            
-
-    def contents_converter(self, row):
-        '''
-        A method that takes the resource contents to 
-        something that can be serialized.
-
-        Input arg is a row of a pandas dataframe
-        '''
-        # we don't want to conflate the "standard" matrix columns (e.g. the expressions)
-        # with those that we added on due to request parameters (e.g like the row means)
-        # Thus, get those standard columns 
-        standard_cols = [x for x in self.table.columns if not x in self.additional_exported_cols]
-        values = row[standard_cols].to_dict()
-        d = {'rowname': row.name, 'values': values}
-
-        for p in self.additional_exported_cols:
-            d[p] = row[p]
-        return d
 
     def get_contents(self, resource_path, query_params={}):
         '''
