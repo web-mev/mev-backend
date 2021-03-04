@@ -1533,6 +1533,116 @@ class ResourceContentTests(BaseAPITestCase):
         expected_rows = ['g%d' % x for x in idx]
         self.assertCountEqual(expected_rows, [x['rowname'] for x in results]) 
 
+        # check the "in" query. We use this for selecting a subset of a matrix for genes of interest
+        # such as when getting the data for a specific FeatureSet
+        selected_genes = ['g8', 'g68', 'g102']
+        suffix = '?__rowname__=[in]:{s}'.format(s=','.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 3)
+        returned_genes = [x['rowname'] for x in j]
+        self.assertCountEqual(returned_genes, selected_genes)
+
+        # check that duplicate gene requests are 'ignored'
+        selected_genes = ['g8', 'g68', 'g102', 'g8'] # g8 shows up twice
+        suffix = '?__rowname__=[in]:{s}'.format(s=','.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 3)
+        returned_genes = [x['rowname'] for x in j]
+        self.assertCountEqual(returned_genes, list(set(selected_genes)))
+
+        # check the "in" query. We use this for selecting a subset of a matrix for genes of interest
+        # such as when getting the data for a specific FeatureSet
+        selected_genes = ['g8', 'g68', 'gXYZ'] # last one not there, so ignored
+        suffix = '?__rowname__=[in]:{s}'.format(s=','.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 2)
+        returned_genes = [x['rowname'] for x in j]
+        self.assertCountEqual(returned_genes, selected_genes[:2])
+
+        # check the "in" query. We use this for selecting a subset of a matrix for genes of interest
+        # such as when getting the data for a specific FeatureSet
+        selected_genes = ['g%d' % x for x in range(10,50)]
+        suffix = '?__rowname__=[in]:{s}&page=1&page_size=10'.format(s=','.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        results = j['results']
+        self.assertTrue(len(results) == 10)
+        returned_genes = [x['rowname'] for x in results]
+        expected_genes = selected_genes[:10]
+        self.assertCountEqual(returned_genes, expected_genes)
+
+        selected_genes = ['gABC', 'gXYZ'] # last one not there
+        suffix = '?__rowname__=[in]:{s}'.format(s=','.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 0)
+
+        # mess up the formatting by not using a comma. In fact, the semicolon
+        # causes the url params to get split so that it tries to filter on a 
+        # column named "g68" which does not exist.
+        selected_genes = ['g8', 'g68']
+        suffix = '?__rowname__=[in]:{s}'.format(s=';'.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+        
+        # space-delimited doesn't work- should return nothing.
+        selected_genes = ['g8', 'g68']
+        suffix = '?__rowname__=[in]:{s}'.format(s=' '.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 0)
+
+        # a comma with a space is ok
+        selected_genes = ['g8', 'g68']
+        suffix = '?__rowname__=[in]:{s}'.format(s=', '.join(selected_genes))
+        url = base_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 2)
+        returned_genes = [x['rowname'] for x in j]
+        self.assertCountEqual(returned_genes, selected_genes[:2])
+
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_resource_contents_table_filter(self, mock_get_storage_backend, mock_check_request_validity):

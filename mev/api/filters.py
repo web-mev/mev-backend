@@ -26,6 +26,7 @@ ABS_VAL_LESS_THAN = '[abslt]'
 EQUAL_TO = '[eq]'
 CASE_INSENSITIVE_EQUALS = '[case-ins-eq]'
 STARTSWITH = '[startswith]'
+IS_IN = '[in]'
 
 def abs_val_gt(x,y):
     return np.abs(x) > y
@@ -39,6 +40,11 @@ def case_insensitive_string_compare(x,y):
 def case_insensitive_startswith(x,y):
     return x.lower().startswith(y.lower())
 
+def list_contains(x,y):
+    # y is a comma-delimited string of identifiers to find
+    y_list = [a.strip() for a in y.split(',')]
+    return x in y_list
+
 OPERATOR_MAPPING = {
     LESS_THAN: operator.lt,
     LESS_THAN_OR_EQUAL: operator.le,
@@ -50,6 +56,7 @@ OPERATOR_MAPPING = {
     '=': operator.eq, # add for convenience
     '==': operator.eq, # add for convenience
     CASE_INSENSITIVE_EQUALS: case_insensitive_string_compare,
-    STARTSWITH: case_insensitive_startswith
+    STARTSWITH: case_insensitive_startswith,
+    IS_IN: list_contains
 }
 
