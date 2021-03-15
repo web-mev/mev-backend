@@ -91,7 +91,7 @@ class ElementSetTester(object):
         element_set2 = self.element_set_class(element_list2)  
         diff_set = element_set1.set_difference(element_set2)
         testcase.assertEqual(len(diff_set), 1)
-        testcase.assertEqual(diff_set, set([testcase.el1]))
+        testcase.assertEqual(diff_set.elements, set([testcase.el1]))
 
     def test_set_intersection(self, testcase):
         element_list1 = [testcase.el1, testcase.el2]
@@ -100,7 +100,7 @@ class ElementSetTester(object):
         element_set2 = self.element_set_class(element_list2)  
         int_set = element_set1.set_intersection(element_set2)
         testcase.assertEqual(len(int_set), 1)
-        testcase.assertEqual(int_set, set([testcase.el2]))
+        testcase.assertEqual(int_set.elements, set([testcase.el2]))
 
     def test_element_set_merge(self, testcase):
         element_list1 = [testcase.el1, testcase.el2]

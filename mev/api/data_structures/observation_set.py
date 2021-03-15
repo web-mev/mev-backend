@@ -1,4 +1,5 @@
 from .element_set import BaseElementSet
+from .observation import Observation
 
 class ObservationSet(BaseElementSet):
     '''
@@ -32,3 +33,20 @@ class ObservationSet(BaseElementSet):
     '''
     element_typename = 'observation'
         
+    def set_intersection(self, other):
+        intersection_list = super()._set_intersection(other)
+        l = []
+        for item in intersection_list:
+            l.append(Observation(item['id'], item['attributes']))
+        return ObservationSet(l)
+        
+    def set_union(self, other):
+        union_list = super()._set_union(other)
+        l = []
+        for item in union_list:
+            l.append(Observation(item['id'], item['attributes']))
+        return ObservationSet(l)
+
+    def set_difference(self, other):
+        diff_set = super()._set_difference(other)
+        return ObservationSet(diff_set)

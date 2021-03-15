@@ -1,4 +1,5 @@
 from .element_set import BaseElementSet
+from .feature import Feature
 
 class FeatureSet(BaseElementSet):
     '''
@@ -32,3 +33,20 @@ class FeatureSet(BaseElementSet):
     '''
     element_typename = 'feature'
         
+    def set_intersection(self, other):
+        intersection_list = super()._set_intersection(other)
+        l = []
+        for item in intersection_list:
+            l.append(Feature(item['id'], item['attributes']))
+        return FeatureSet(l)
+
+    def set_union(self, other):
+        union_list = super()._set_union(other)
+        l = []
+        for item in union_list:
+            l.append(Feature(item['id'], item['attributes']))
+        return FeatureSet(l)
+
+    def set_difference(self, other):
+        diff_set = super()._set_difference(other)
+        return FeatureSet(diff_set)
