@@ -16,7 +16,8 @@ from .workspace_metadata_views import WorkspaceMetadataView, \
     WorkspaceMetadataObservationsView, \
     WorkspaceMetadataFeaturesView
 from .metadata_operations_views import MetadataIntersectView, \
-    MetadataUnionView
+    MetadataUnionView, \
+    MetadataSetDifferenceView
 from .workspace_tree_views import WorkspaceTreeView
 from .resource_upload_views import ServerLocalResourceUpload, \
     ServerLocalResourceUploadProgress, \

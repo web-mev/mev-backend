@@ -135,6 +135,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
 
         self.intersect_url = reverse('metadata-intersect')
         self.union_url = reverse('metadata-union')
+        self.difference_url = reverse('metadata-difference')
 
 
     def test_set_intersection(self):
@@ -285,11 +286,15 @@ class TestMetadataSetOperations(BaseAPITestCase):
             'set_type': 'observation'
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        j = response.json()
-        elements = j['elements']
-        self.assertTrue(len(elements) == 0)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+        # test an empty set input
+        payload = {
+            'sets': [],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_set_union(self):
 
@@ -427,7 +432,102 @@ class TestMetadataSetOperations(BaseAPITestCase):
             'set_type': 'observation'
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_set_difference(self):
+
+        # perform a difference where there are no common elements.
+        payload = {
+            'sets': [
+                self.set1,
+                self.set2
+            ],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        elements = j['elements']
+        self.assertTrue(len(elements) == 2)
+        expected = ['foo','bar']
+        returned = [x['id'] for x in elements]
+        self.assertCountEqual(expected, returned)
+
+        # set 1 has foo, bar and set3 has foo and baz. shoudl return bar
+        payload = {
+            'sets': [
+                self.set1,
+                self.set3
+            ],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        elements = j['elements']
+        self.assertTrue(len(elements) == 1)
+        expected = ['bar']
+        returned = [x['id'] for x in elements]
+        self.assertCountEqual(expected, returned)
+
+        # set 1 has foo, bar and set3 has foo and baz. shoudl return baz
+        # since order matters here!
+        payload = {
+            'sets': [
+                self.set3,
+                self.set1
+            ],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        elements = j['elements']
+        self.assertTrue(len(elements) == 1)
+        expected = ['baz']
+        returned = [x['id'] for x in elements]
+        self.assertCountEqual(expected, returned)
+
+        # set 4 and 6 both have only 'foo'. Technically the keyA attribute has
+        # a different value, but for the set difference we ignore that
+        payload = {
+            'sets': [
+                self.set4,
+                self.set6
+            ],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         j = response.json()
         elements = j['elements']
         self.assertTrue(len(elements) == 0)
+
+        # the set diff endpoint will only take pairs. don't want to handle 
+        # more than two sets since it's not clear to most users how that would work
+        payload = {
+            'sets': [
+                self.set1,
+                self.set4,
+                self.set6
+            ],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        payload = {
+            'sets': [
+                self.set1
+            ],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        payload = {
+            'sets': [],
+            'set_type': 'observation'
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

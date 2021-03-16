@@ -38,6 +38,10 @@ class MetadataMixin(object):
         all_args_present = all([x in request.data.keys() for x in required_keys])
         if all_args_present:
             sets = request.data[self.SETS]
+            if len(sets) < 2:
+                raise ValidationError('Cannot perform set operations with fewer than'
+                    ' two sets.'
+                )
             if type(sets) is list:
                 element_set_list = []
                 serializer = self.get_serializer(request.data[self.SET_TYPE])
@@ -66,9 +70,23 @@ class MetadataIntersectView(APIView, MetadataMixin):
         serializer = self.get_serializer(request.data[self.SET_TYPE])
         return Response(serializer(r).data)
 
+
 class MetadataUnionView(APIView, MetadataMixin):
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
         r = reduce(lambda x,y: x.set_union(y), element_set_list)
+        serializer = self.get_serializer(request.data[self.SET_TYPE])
+        return Response(serializer(r).data)
+
+
+class MetadataSetDifferenceView(APIView, MetadataMixin):
+    def post(self, request, *args, **kwargs):
+        element_set_list = self.prep(request)
+        if len(element_set_list) > 2:
+            raise ValidationError('Cannot perform a set difference on'
+                ' more than two sets.'
+            )
+        x,y = element_set_list
+        r = x.set_difference(y)
         serializer = self.get_serializer(request.data[self.SET_TYPE])
         return Response(serializer(r).data)

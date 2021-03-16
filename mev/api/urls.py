@@ -61,6 +61,7 @@ urlpatterns = [
     # endpoints for workspace-agnostic metadata utilities
     path('metadata/intersect/', api.views.MetadataIntersectView.as_view(), name='metadata-intersect'),
     path('metadata/union/', api.views.MetadataUnionView.as_view(), name='metadata-union'),
+    path('metadata/set-difference/', api.views.MetadataSetDifferenceView.as_view(), name='metadata-difference'),
 
     # Resources that are associated with specific Operations (OperationResources)
     path('operation-resources/<uuid:operation_uuid>/', api.views.OperationResourceList.as_view(), name='operation-resource-list'),
