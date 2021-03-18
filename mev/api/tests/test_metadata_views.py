@@ -531,3 +531,45 @@ class TestMetadataSetOperations(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # test the case 
+        payload = {
+        "sets": [
+            {
+                "multiple": True,
+                "elements": [
+                    {
+                    "id": "D20_175135"
+                    },
+                    {
+                    "id": "D20_1989"
+                    }
+                ]
+            },
+            {
+                "multiple": True,
+                "elements": [
+                    {
+                        "id": "D20_1989",
+                        "attributes": {
+                            "cell_type": "CD4",
+                            "sequencing_run": "MIT_2"
+                        }
+                    }
+                ]
+            }
+        ],
+        "set_type": "observation"
+        }
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        payload['ignore_attributes'] = True
+        response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        elements = j['elements']
+        self.assertTrue(len(elements) == 1)
+        expected = ['D20_175135']
+        returned = [x['id'] for x in elements]
+        self.assertCountEqual(expected, returned)
