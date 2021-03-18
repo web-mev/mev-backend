@@ -89,6 +89,13 @@ LOCAL_STORAGE_DIRNAME=resource_storage
 # DO NOT inlude the prefix, e.g. "gs://" or "s3://"
 STORAGE_BUCKET_NAME=
 
+# The maximum size (in bytes) to allow "direct" downloads from the API.
+# If the file exceeds this, we ask the user to download in another way. 
+# Most files are small and this will be fine. However, we don't want users
+# trying to download BAM or other large files. They can do that with other methods,
+# like via Dropbox.
+MAX_DOWNLOAD_SIZE_BYTES=5.12e8
+
 ###################### END Storage-related parameters ######################################
 
 ############################ Email-related parameters ######################################

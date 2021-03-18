@@ -47,6 +47,23 @@ class NoResourceFoundException(Exception):
     '''
     pass
 
+class InactiveResourceException(Exception):
+    '''
+    Raised when a resource exists, but is inactive. Often used as a "marker"
+    to indicate that we cannot perform any modifications to the underlying resource.
+    '''
+    pass
+
+
+class OwnershipException(Exception):
+    '''
+    Raised if there is a conflict between the "owner" of a database resource
+    and the requester. Used, for example, to reject requests for a resource/file
+    if the requester is NOT the owner.
+    '''
+    pass
+
+
 class NonIterableContentsException(Exception):
     '''
     Raised when resource contents are requested, but the data does

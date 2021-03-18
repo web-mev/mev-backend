@@ -44,6 +44,7 @@ urlpatterns = [
         name='resource-upload-progress'
     ),
     path('resources/dropbox-upload/', api.views.DropboxUpload.as_view(), name='dropbox-upload'),
+    path('resources/download/<uuid:pk>/', api.views.ResourceDownload.as_view(), name='download-resource'),
 
     # For querying the available types of Resources:
     path('resource-types/', api.views.ResourceTypeList.as_view(), name='resource-type-list'),

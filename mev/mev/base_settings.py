@@ -361,6 +361,14 @@ if not os.path.exists(RESOURCE_CACHE_DIR):
 # parameter is used.
 RESOURCE_CACHE_EXPIRATION_DAYS = 2
 
+
+# The maximum size (in bytes) to allow "direct" downloads from the API.
+# If the file exceeds this, we ask the user to download in another way. 
+# Most files are small and this will be fine. However, we don't want users
+# trying to download BAM or other large files. They can do that with other methods,
+# like via Dropbox.
+MAX_DOWNLOAD_SIZE_BYTES = float(get_env('MAX_DOWNLOAD_SIZE_BYTES'))
+
 ###############################################################################
 # END Parameters for configuring resource storage
 ###############################################################################
@@ -536,4 +544,3 @@ from api.filters import *
 # END settings/imports for filtering
 ###############################################################################
 
-# Ensure that the cloud environment is "ready" (e.g. that )

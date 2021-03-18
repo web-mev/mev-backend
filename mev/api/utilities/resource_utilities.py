@@ -29,10 +29,31 @@ from resource_types import get_contents, \
     RESOURCE_KEY, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
-from api.exceptions import NoResourceFoundException
+from api.exceptions import NoResourceFoundException, \
+    InactiveResourceException, \
+    OwnershipException
 
 logger = logging.getLogger(__name__)
 
+def check_resource_request_validity(user, resource_pk):
+    '''
+    Used by several api endpoints that need access to a user's resource.
+    This function validates that the resource is such that
+    the user is able to access/modify it.
+
+    Returns a resource instance or a specific flag which indicates
+    the type of issue to the caller.
+    '''
+
+    resource = get_resource_by_pk(resource_pk)
+
+    if user.is_staff or (resource.owner == user):
+        if not resource.is_active:
+            raise InactiveResourceException()
+        # requester can access, resource is active.  Go get preview
+        return resource
+    else:
+        raise OwnershipException()
 
 def check_that_resource_exists(path):
     '''

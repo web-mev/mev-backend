@@ -80,3 +80,9 @@ class LocalStorage(BaseStorageBackend):
         Trivial for this implementation of local storage
         '''
         return resource_instance.path
+
+    def get_download_url(self, resource_instance):
+        '''
+        Returns a url that will allow download of this resource.
+        '''
+        return self.get_local_resource_path(resource_instance)

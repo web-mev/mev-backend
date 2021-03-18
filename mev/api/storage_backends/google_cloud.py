@@ -3,6 +3,7 @@ import requests
 import warnings
 import logging
 import backoff
+import datetime
 
 import google
 from google.cloud import storage
@@ -259,5 +260,22 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         else:
             logger.info('Resource was already located in the local cache.')
         return local_cache_location 
+
+    def get_download_url(self, resource_instance):
+        '''
+        Generate a signed URL for the object in google bucket storage.
+        '''
+        blob = self.get_blob(resource_instance.path)
+        try:
+            return blob.generate_signed_url(
+                version = 'v4',
+                expiration = datetime.timedelta(days=1),
+                method='GET'
+            )
+        except Exception as ex:
+            logger.error('Failed at generating the signed url for resource ({u})'.format(
+                u = str(resource_instance.pk)
+            ))  
+            return None          
 
         

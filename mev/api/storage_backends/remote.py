@@ -12,3 +12,6 @@ class RemoteStorageBackend(BaseStorageBackend):
 
     def __init__(self):
         super().__init__()
+
+    def get_download_url(self, resource_instance):
+        raise NotImplementedError('Override this method in a child class.')
