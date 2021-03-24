@@ -88,22 +88,19 @@ class LocalDockerSpaceDelimResourceConverter(LocalDockerMultipleDataResourceConv
 
 class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
     '''
-    This converter takes a DataResource instance (for a single file) and returns the path to 
-    the file in our cloud storage
+    This converter takes a DataResource instance (for a single file,
+    which is simply a UUID) and returns the path to 
+    the file in cloud storage.
 
-    For example, given the following DataResource:
-    {
-        'attribute_type': 'DataResource', 
-        'value': <UUID>
-    }
-
-    This converter takes that UUID, finds the Resource/file and returns
-    the remote/cloud-based path.
+    Note that if Cromwell is enabled, we do not allow local storage, so we do not 
+    need to handle cases where we might have to push a local file into cloud-based 
+    storage.
     '''
-    # TODO: note that if we are using the LocalStorage backend, we need to push files
-    # to some kind of cloud-based storage first so that Cromwell can find them. 
-    pass
 
+    def convert(self, input_key, user_input, op_dir):
+        resource_uuid = user_input
+        r = self.get_resource(resource_uuid)
+        return {input_key: r.path}
 
 class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
     '''
@@ -122,4 +119,29 @@ class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
     This converter takes the list UUIDs, finds each Resource/file and returns
     a list of the remote paths.
     '''
+
+    def get_path_list(self, user_input):
+        path_list = []
+        if type(user_input) == list:
+            for u in user_input:
+                r = self.get_resource(u)
+                path_list.append(r.path)
+        elif type(user_input) == str:
+            r = self.get_resource(user_input)
+            path_list.append(r.path)
+        else:
+            logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
+                v = value
+            ))
+        return path_list
+
+    def convert(self, input_key, user_input, op_dir):
+        path_list = self.get_path_list(user_input)
+        return {input_key: self.to_string(path_list)}
+
+class CromwellCsvResourceConverter(CromwellMultipleDataResourceConverter, CsvMixin):
+    pass
+
+
+class CromwellSpaceDelimResourceConverter(CromwellMultipleDataResourceConverter, SpaceDelimMixin):
     pass

@@ -19,7 +19,10 @@ from api.converters.basic_attributes import StringConverter, \
 from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
-    LocalDockerSingleDataResourceConverter
+    LocalDockerSingleDataResourceConverter, \
+    CromwellSingleDataResourceConverter, \
+    CromwellCsvResourceConverter, \
+    CromwellSpaceDelimResourceConverter
 from api.converters.mappers import SimpleFileBasedMapConverter
 from api.converters.element_set import ObservationSetCsvConverter, FeatureSetCsvConverter
 from api.tests.base import BaseAPITestCase
@@ -167,6 +170,44 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert('foo', user_input, '')
         self.assertDictEqual(x, {'foo': p})
 
+    @mock.patch('api.converters.data_resource.get_resource_by_pk')
+    def test_single_cromwell_converter(self, mock_get_resource_by_pk):
+        '''
+        Tests that the converter can take a single Resource instance
+        and return the path to a bucket-based file
+        '''
+        # the validators will check the validity of the user inputs prior to 
+        # calling the converter. Thus, we can use basically any Resource to test
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        mock_get_resource_by_pk.return_value = r
+        expected = r.path
+
+        user_input = str(r.pk)
+        c = CromwellSingleDataResourceConverter()
+        x = c.convert('foo', user_input, '')
+        self.assertDictEqual(x, {'foo': expected})
+
+    @mock.patch('api.converters.data_resource.get_resource_by_pk')
+    def test_csv_cromwell_converter_case1(self, mock_get_resource_by_pk):
+        '''
+        Tests that the converter can take a list of Resource instances
+        and return a properly formatted comma-delim list 
+        '''
+
+        all_resources = Resource.objects.all()
+        if len(all_resources) < 3:
+            raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
+   
+        uuid_list = [str(all_resources[i].pk) for i in range(1,4)]
+        mock_get_resource_by_pk.side_effect = [all_resources[i] for i in range(1,4)]
+        expected = ','.join([str(all_resources[i].path) for i in range(1,4)])
+
+        c = CromwellCsvResourceConverter()
+        x = c.convert('foo', uuid_list, '')
+        self.assertDictEqual(x, {'foo':expected})
+
+
     @mock.patch('api.converters.data_resource.get_storage_backend')
     def test_csv_local_converter_case1(self, mock_get_storage_backend):
         '''
@@ -193,7 +234,21 @@ class TestDataResourceConverter(BaseAPITestCase):
         csv = ','.join(p)
         self.assertDictEqual(x, {'foo':csv})
 
+    @mock.patch('api.converters.data_resource.get_resource_by_pk')
+    def test_csv_cromwell_converter_case2(self, mock_get_resource_by_pk):
+        '''
+        Tests that the converter can take a list of Resource instances
+        and return a properly formatted comma-delim list 
+        '''
 
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        mock_get_resource_by_pk.return_value = r
+        expected = r.path
+
+        c = CromwellCsvResourceConverter()
+        x = c.convert('foo', str(r.pk), '')
+        self.assertDictEqual(x, {'foo':expected})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
     def test_csv_local_converter_case2(self, mock_get_storage_backend):
@@ -214,6 +269,25 @@ class TestDataResourceConverter(BaseAPITestCase):
         c = LocalDockerCsvResourceConverter()
         x = c.convert('foo', user_input, '')
         self.assertDictEqual(x, {'foo': p})
+
+    @mock.patch('api.converters.data_resource.get_resource_by_pk')
+    def test_space_delim_cromwell_converter_case1(self, mock_get_resource_by_pk):
+        '''
+        Tests that the converter can take a list of Resource instances
+        and return a properly formatted space-delimited list 
+        '''
+
+        all_resources = Resource.objects.all()
+        if len(all_resources) < 3:
+            raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
+   
+        uuid_list = [str(all_resources[i].pk) for i in range(1,4)]
+        mock_get_resource_by_pk.side_effect = [all_resources[i] for i in range(1,4)]
+        expected = ' '.join([str(all_resources[i].path) for i in range(1,4)])
+
+        c = CromwellSpaceDelimResourceConverter()
+        x = c.convert('foo', uuid_list, '')
+        self.assertDictEqual(x, {'foo':expected})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
     def test_space_delim_local_converter_case1(self, mock_get_storage_backend):
@@ -238,6 +312,23 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert('foo', user_input, '')
         delim_string = ' '.join(p)
         self.assertDictEqual(x, {'foo': delim_string})
+
+    @mock.patch('api.converters.data_resource.get_resource_by_pk')
+    def test_space_delim_cromwell_converter_case2(self, mock_get_resource_by_pk):
+        '''
+        Tests that the converter can take a list of Resource instances
+        and return a properly formatted space-delim list. Here, the "list"
+        only has a single item
+        '''
+
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        mock_get_resource_by_pk.return_value = r
+        expected = r.path
+
+        c = CromwellCsvResourceConverter()
+        x = c.convert('foo', str(r.pk), '')
+        self.assertDictEqual(x, {'foo':expected})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
     def test_space_delim_local_converter_case2(self, mock_get_storage_backend):
