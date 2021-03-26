@@ -55,7 +55,6 @@ urlpatterns = [
     path('workspaces/<uuid:workspace_pk>/resources/add/', api.views.WorkspaceResourceAdd.as_view(), name='workspace-resource-add'),
 
     # endpoints for working with metadata
-    path('workspaces/<uuid:workspace_pk>/metadata/', api.views.WorkspaceMetadataView.as_view(), name='workspace-metadata'),
     path('workspaces/<uuid:workspace_pk>/metadata/observations/', api.views.WorkspaceMetadataObservationsView.as_view(), name='workspace-observations-metadata'),
     path('workspaces/<uuid:workspace_pk>/metadata/features/', api.views.WorkspaceMetadataFeaturesView.as_view(), name='workspace-features-metadata'),
 

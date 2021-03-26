@@ -13,8 +13,7 @@ from .resource_views import ResourceList, ResourceDetail, ResourceContents
 from .resource_download import ResourceDownload
 from .operation_resource_views import OperationResourceList, OperationResourceFieldList
 from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAdd, WorkspaceResourceRemove
-from .workspace_metadata_views import WorkspaceMetadataView, \
-    WorkspaceMetadataObservationsView, \
+from .workspace_metadata_views import WorkspaceMetadataObservationsView, \
     WorkspaceMetadataFeaturesView
 from .metadata_operations_views import MetadataIntersectView, \
     MetadataUnionView, \

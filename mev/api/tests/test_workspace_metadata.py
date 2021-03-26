@@ -93,6 +93,10 @@ class TestWorkspaceMetadata(BaseAPITestCase):
             owner = self.regular_user_1
         )
 
+        self.empty_workspace = Workspace.objects.create(
+            owner = self.regular_user_1
+        )
+
         # create a few Observations to use with the different Resources
         obs1 = Observation('sampleA', {
             'phenotype': StringAttribute('WT')
@@ -187,15 +191,24 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         Tests that we get a reasonable response when we query for metadata
         of a workspace that does not have any resources
         '''
-
+        empty_workspace = Workspace.objects.get(pk=self.empty_workspace.pk)
+        self.assertTrue(len(empty_workspace.resources.all()) == 0)
         url = reverse(
-            'workspace-metadata', 
-            kwargs={'workspace_pk':self.workspace.pk}
+            'workspace-observations-metadata', 
+            kwargs={'workspace_pk':self.empty_workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertIsNone(response_json[OBSERVATION_SET_KEY])
-        self.assertIsNone(response_json[FEATURE_SET_KEY])
+        self.assertEqual(response_json['results'], [])
+
+        # test for feature sets
+        url = reverse(
+            'workspace-features-metadata', 
+            kwargs={'workspace_pk':self.empty_workspace.pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        self.assertEqual(response_json['results'], [])
 
     def test_metadata_return_case1(self):
         '''
@@ -210,56 +223,26 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         self.new_resource2.save()
 
         url = reverse(
-            'workspace-metadata', 
-            kwargs={'workspace_pk':self.workspace.pk}
-        )
-        response = self.authenticated_regular_client.get(url)
-        response_json = response.json()
-        self.assertTrue(OBSERVATION_SET_KEY in response_json)
-        self.assertTrue(FEATURE_SET_KEY in response_json)
-        obs_set = response_json[OBSERVATION_SET_KEY]
-        expected_obs = set(['sampleA','sampleB','sampleC'])
-        returned_obs = set()
-        for el in obs_set['elements']:
-            returned_obs.add(el['id'])
-        self.assertEqual(expected_obs, returned_obs)
-
-        f_set = response_json[FEATURE_SET_KEY]
-        expected_features = set(['featureA','featureB','featureC', 'featureD'])
-        returned_features = set()
-        for el in f_set['elements']:
-            returned_features.add(el['id'])
-        self.assertEqual(expected_features, returned_features)
-
-        # check the url where it should return only the observations
-        url = reverse(
             'workspace-observations-metadata', 
             kwargs={'workspace_pk':self.workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertTrue(OBSERVATION_SET_KEY in response_json)
-        self.assertFalse(FEATURE_SET_KEY in response_json)
-        obs_set = response_json[OBSERVATION_SET_KEY]
         expected_obs = set(['sampleA','sampleB','sampleC'])
         returned_obs = set()
-        for el in obs_set['elements']:
+        for el in response_json['results']:
             returned_obs.add(el['id'])
         self.assertEqual(expected_obs, returned_obs)
 
-        # check the url where it should return only the features
         url = reverse(
             'workspace-features-metadata', 
             kwargs={'workspace_pk':self.workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertFalse(OBSERVATION_SET_KEY in response_json)
-        self.assertTrue(FEATURE_SET_KEY in response_json)
-        f_set = response_json[FEATURE_SET_KEY]
         expected_features = set(['featureA','featureB','featureC', 'featureD'])
         returned_features = set()
-        for el in f_set['elements']:
+        for el in response_json['results']:
             returned_features.add(el['id'])
         self.assertEqual(expected_features, returned_features)
 
@@ -268,63 +251,74 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         Here, only one resource is added to the workspace
         '''
 
-        # add both resources to the workspace
         self.new_resource1.workspaces.add(self.workspace)
         self.new_resource1.save()
 
-        url = reverse(
-            'workspace-metadata', 
-            kwargs={'workspace_pk':self.workspace.pk}
-        )
-        response = self.authenticated_regular_client.get(url)
-        response_json = response.json()
-        self.assertTrue(OBSERVATION_SET_KEY in response_json)
-        self.assertTrue(FEATURE_SET_KEY in response_json)
-        obs_set = response_json[OBSERVATION_SET_KEY]
-        expected_obs = set(['sampleA','sampleB'])
-        returned_obs = set()
-        for el in obs_set['elements']:
-            returned_obs.add(el['id'])
-        self.assertEqual(expected_obs, returned_obs)
-
-        f_set = response_json[FEATURE_SET_KEY]
-        expected_features = set(['featureA','featureB'])
-        returned_features = set()
-        for el in f_set['elements']:
-            returned_features.add(el['id'])
-        self.assertEqual(expected_features, returned_features)
-
-        # check the url where it should return only the observations
         url = reverse(
             'workspace-observations-metadata', 
             kwargs={'workspace_pk':self.workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertTrue(OBSERVATION_SET_KEY in response_json)
-        self.assertFalse(FEATURE_SET_KEY in response_json)
-        obs_set = response_json[OBSERVATION_SET_KEY]
         expected_obs = set(['sampleA','sampleB'])
         returned_obs = set()
-        for el in obs_set['elements']:
+        for el in response_json['results']:
             returned_obs.add(el['id'])
         self.assertEqual(expected_obs, returned_obs)
 
-        # check the url where it should return only the features
         url = reverse(
             'workspace-features-metadata', 
             kwargs={'workspace_pk':self.workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertFalse(OBSERVATION_SET_KEY in response_json)
-        self.assertTrue(FEATURE_SET_KEY in response_json)
-        f_set = response_json[FEATURE_SET_KEY]
         expected_features = set(['featureA','featureB'])
         returned_features = set()
-        for el in f_set['elements']:
+        for el in response_json['results']:
             returned_features.add(el['id'])
         self.assertEqual(expected_features, returned_features)
+
+    def test_metadata_pagination(self):
+        '''
+        Test that we can properly paginate the response. Needed for cases where
+        we have single-cell datasets, etc and the list of observation could be 
+        very large
+        '''
+
+        # add both resources to the workspace
+        self.new_resource1.workspaces.add(self.workspace)
+        self.new_resource2.workspaces.add(self.workspace)
+        self.new_resource1.save()
+        self.new_resource2.save()
+
+        baseurl = reverse(
+            'workspace-observations-metadata', 
+            kwargs={'workspace_pk':self.workspace.pk}
+        )
+        url = baseurl + '?page=1&page_size=2'
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        self.assertTrue(len(response_json['results']) == 2)
+        expected_obs = ['sampleA','sampleB']
+        returned_obs = []
+        for el in response_json['results']:
+            returned_obs.append(el['id'])
+        self.assertEqual(expected_obs, returned_obs)
+
+        baseurl = reverse(
+            'workspace-features-metadata', 
+            kwargs={'workspace_pk':self.workspace.pk}
+        )
+        url = baseurl + '?page=1&page_size=2'
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        self.assertTrue(len(response_json['results']) == 2)
+        expected = ['featureA','featureB']
+        returned = []
+        for el in response_json['results']:
+            returned.append(el['id'])
+        self.assertEqual(expected, returned)
+
 
     def test_with_empty_metadata(self):
         metadata = {
@@ -342,15 +336,12 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         self.new_resource3.save()
 
         url = reverse(
-            'workspace-metadata', 
+            'workspace-observations-metadata', 
             kwargs={'workspace_pk':self.workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        self.assertTrue(OBSERVATION_SET_KEY in response_json)
-        self.assertTrue(FEATURE_SET_KEY in response_json)
-        self.assertEqual(response_json[OBSERVATION_SET_KEY]['elements'], [])
-        self.assertEqual(response_json[FEATURE_SET_KEY]['elements'], [])
+        self.assertEqual(response_json['results'], [])
 
     def test_with_real_files(self):
         '''
@@ -388,7 +379,7 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         r1 = all_resources[1]
         add_metadata_to_resource(r1, metadata1)
         url = reverse(
-            'workspace-metadata', 
+            'workspace-observations-metadata', 
             kwargs={'workspace_pk':workspace.pk}
         )
         response = self.authenticated_regular_client.get(url)
