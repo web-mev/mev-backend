@@ -100,13 +100,15 @@ class LocalDockerRunner(OperationRunner):
         executed_op.execution_stop_datetime = finish_datetime
 
         if exit_code != 0:
+            logger.info('Received a non-zero exit code from container'
+                ' executing job: {op_id}'.format(op_id = executed_op.job_id))
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
             # collect the errors that are  reported in the logs
             log_msg = get_logs(job_id)
             executed_op.error_messages = [log_msg,]
         else:
-        
+            logger.info('Container exit code was zero. Fetch outputs.')
             # read the outputs json file and convert to mev-compatible outputs:
             try:
                 outputs_dict = self.load_outputs_file(job_id)

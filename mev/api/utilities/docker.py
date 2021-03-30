@@ -127,6 +127,10 @@ def check_container_exit_code(container_id):
     cmd = DOCKER_INSPECT_CMD.format(container_id=container_id, field=field)
     logger.info('Inspect Docker container with: {cmd}'.format(cmd=cmd))
     stdout, stderr = run_shell_command(cmd)
+    logger.info('Results of inspect:\n\nSTDOUT: {stdout}\n\nSTDERR: {stderr}'.format(
+        stdout = stdout,
+        stderr = stderr
+    ))
     try:
         exit_code = int(stdout)
         return exit_code
