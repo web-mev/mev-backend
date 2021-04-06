@@ -24,7 +24,10 @@ from api.converters.data_resource import LocalDataResourceConverter, \
     CromwellCsvResourceConverter, \
     CromwellSpaceDelimResourceConverter
 from api.converters.mappers import SimpleFileBasedMapConverter
-from api.converters.element_set import ObservationSetCsvConverter, FeatureSetCsvConverter
+from api.converters.element_set import ObservationSetCsvConverter, \
+    FeatureSetCsvConverter, \
+    ObservationSetListConverter, \
+    FeatureSetListConverter
 from api.tests.base import BaseAPITestCase
 
 class TestBasicAttributeConverter(BaseAPITestCase):
@@ -145,6 +148,46 @@ class TestElementSetConverter(BaseAPITestCase):
             ({'xyz': 'foo,bar'} == converted_input)
             |
             ({'xyz':'bar,foo'} == converted_input)
+        )
+
+    def test_observation_set_list_converter(self):
+        '''
+        Tests that we get properly formatted JSON-compatible
+        arrays (of strings in this case). Used when we need to
+        supply a WDL job with a list of relevant samples as an
+        array of strings, for instance.
+        '''
+        obs1 = Observation('foo')
+        obs2 = Observation('bar')
+        obs_set = ObservationSet([obs1, obs2])
+        d = obs_set.to_dict()
+        c = ObservationSetListConverter()  
+        # order doesn't matter, so need to check both orders: 
+        converted_input = c.convert('xyz', d, '') 
+        self.assertTrue(
+            ({'xyz': ['foo','bar']} == converted_input)
+            |
+            ({'xyz':['bar','foo']} == converted_input)
+        )
+
+    def test_feature_set_list_converter(self):
+        '''
+        Tests that we get properly formatted JSON-compatible
+        arrays (of strings in this case). Used when we need to
+        supply a WDL job with a list of relevant samples as an
+        array of strings, for instance.
+        '''
+        obs1 = Feature('foo')
+        obs2 = Feature('bar')
+        obs_set = FeatureSet([obs1, obs2])
+        d = obs_set.to_dict()
+        c = FeatureSetListConverter()  
+        # order doesn't matter, so need to check both orders: 
+        converted_input = c.convert('xyz', d, '') 
+        self.assertTrue(
+            ({'xyz': ['foo','bar']} == converted_input)
+            |
+            ({'xyz':['bar','foo']} == converted_input)
         )
 
 class TestDataResourceConverter(BaseAPITestCase):
