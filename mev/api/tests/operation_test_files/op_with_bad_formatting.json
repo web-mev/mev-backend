@@ -1,0 +1,60 @@
+{
+    "name": "MAST Single-cell differential expression", 
+    "description": "Run a MAST differential expression analysis on your single-cell data. Depending on your needs, you may choose to compare one group/cluster of cells versus the rest, in essence running a biomarker analysis. Alternatively, you may choose to run an explicit comparison of two groups/clusters.", 
+    "inputs": {
+        "SctkMastDge.raw_counts": {
+            "description": "The input raw count matrix. Must be an integer-based table.", 
+            "name": "Count matrix:", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_types": ["I_MTX", "RNASEQ_COUNT_MTX"], 
+                "many": false
+            }
+        }, 
+        "SctkMastDge.expSamples": {
+            "description": "The group of cells which is considered the \"experimental\" group. In a biomarker-style analysis, this group will be compared to the remaining cells which will act as a \"control\" group.", 
+            "name": "Experimental or group of interest:", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "ObservationSet"
+        },
+        "SctkMastDge.baseSamples": {
+            "description": "The group of cells which is considered the \"control\" group. In a biomarker-style analysis, this is left blank. This field is only used if you wish to explicitly compare two groups of interest.", 
+            "name": "Base or control group:", 
+            "required": false, 
+            "spec": {
+                "attribute_type": "ObservationSet"
+            }
+        },
+        "SctkMastDge.expGroupName": {
+            "description": "A name for your experimental group of cells.", 
+            "name": "Experimental group name:", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "String",
+                "default": "Experimental"
+            }
+        },
+        "SctkMastDge.baseGroupName": {
+            "description": "A name for your control group. In a biomarker-style analysis, your \"control\" group is the collection of all other cells in your dataset.", 
+            "name": "Control group name", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "String"
+            }
+        }
+        }
+    }, 
+    "outputs": {
+        "SctkMastDge.mast_output": {
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "FT",
+                "many": false
+            }
+        }
+    }, 
+    "mode": "cromwell",
+    "workspace_operation": true
+}

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from api.data_structures import OperationInput
 from api.serializers.input_spec import InputSpecSerializer
@@ -37,3 +38,15 @@ class OperationInputSerializer(serializers.Serializer):
         '''
         self.is_valid(raise_exception=True)
         return self.create(self.validated_data)
+
+    def is_valid(self, raise_exception=False):
+        if hasattr(self, 'initial_data'):
+            payload_keys = set(self.initial_data.keys()) # all the payload keys
+            serializer_fields = set(self.fields.keys()) # all the serializer fields
+            extra_fields = payload_keys.difference(serializer_fields)
+            #filter(lambda key: key not in serializer_fields , payload_keys) 
+            if len(extra_fields) > 0:
+                raise ValidationError('Extra fields ({s}) in payload'.format(
+                    s=','.join(extra_fields))
+                )
+        return super().is_valid(raise_exception)
