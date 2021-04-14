@@ -182,7 +182,13 @@ class RemoteCromwellRunner(OperationRunner):
 
         # check that we can reach the Cromwell server
         url = self.CROMWELL_URL + self.VERSION_ENDPOINT
-        response = get_with_retry(url)
+        try:
+            response = get_with_retry(url)
+        except Exception as ex:
+            logger.info('An exception was raised when checking if the remote Cromwell runner was ready.'
+                ' The exception reads: {ex}'.format(ex=ex)
+            )
+            raise ImproperlyConfigured('Failed to check the remote Cromwell runner. See logs.')
         if response.status_code != 200:
             logger.info('The Cromwell server located at: {url}'
                 ' was not ready.'.format(

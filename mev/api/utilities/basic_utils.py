@@ -23,7 +23,13 @@ def alert_admins():
 
 
 def is_fatal_code(e):
-    return 400 <= e.response.status_code < 500
+    if e.response:
+        return 400 <= e.response.status_code < 500
+    else:
+        # if e.response is None, then the most likely situation is
+        # that the url was wrong or unresponsive.
+        # Return True to indicate a fatal problem.
+        return True
 
 # a function that wraps requests.get for multiple tries
 @backoff.on_exception(backoff.expo,

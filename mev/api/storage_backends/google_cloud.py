@@ -7,6 +7,7 @@ import datetime
 
 import google
 from google.cloud import storage
+from google.oauth2 import service_account
 
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
@@ -24,8 +25,9 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
 
     def __init__(self):
         super().__init__()
-        self.storage_client = storage.Client()
-            
+        creds = service_account.Credentials.from_service_account_file(settings.STORAGE_CREDENTIALS)
+        self.storage_client = storage.Client(credentials=creds)     
+
     def get_bucket_region(self, bucket_name):
         '''
         Return the location/region of a bucket
@@ -41,7 +43,13 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
     def get_bucket(self, bucket_name):
         logger.info('Requesting bucket: {bucket_name}'.format(
             bucket_name=bucket_name))
-        return self.storage_client.get_bucket(bucket_name)
+        try:
+            return self.storage_client.get_bucket(bucket_name)
+        except Exception as ex:
+            logger.info('Failed to retrieve bucket ({bucket_name}). Check'
+                ' that this bucket exists.'.format(bucket_name=bucket_name)
+            )
+            raise ex
 
     def get_or_create_bucket(self):
         # can't import above as we get a 

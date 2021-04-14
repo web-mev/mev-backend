@@ -65,7 +65,13 @@ def startup_check():
     if not settings.STORAGE_LOCATION == settings.LOCAL:
         logger.info('Since storage is not local, have to check regions.')
         gbs = GoogleBucketStorage()
-        bucket_location = gbs.get_bucket_region(gbs.BUCKET_NAME)
+        try:
+            bucket_location = gbs.get_bucket_region(gbs.BUCKET_NAME)
+        except Exception as ex:
+            logger.info('Could not locate the expected storage bucket ({name}).'
+                ' Make sure this bucket already exists.'.format(name=gbs.BUCKET_NAME)
+            )
+            raise ex
         bucket_location = bucket_location.lower()
         if bucket_location != region:
             raise ImproperlyConfigured('The storage bucket ({b})'
