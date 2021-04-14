@@ -1,0 +1,13 @@
+project = "<PROJECT_ID>"
+
+credentials_file = "<NAME>.json"
+
+api_machine_config = {
+    machine_type     = "<GCP machine type string, e.g. e2-standard-2>" 
+    disk_size_gb     = <Size of the disk in GB. Numeric>
+}
+
+cromwell_machine_config = {
+    machine_type     = "<GCP machine type string, e.g. e2-standard-2>" 
+    disk_size_gb     = <Size of the disk in GB. Numeric>
+}

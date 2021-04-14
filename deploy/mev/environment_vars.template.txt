@@ -1,92 +1,153 @@
 # This file is used to set various secrets and configuration parameters
-# Pass a completed version of this template to the Docker container upon
-# startup with the --env-file arg.
+# Pass a completed version of this template to the provisioning or 
+# restart script
+
+# dev or production status. Should be "dev" or "production"
+ENVIRONMENT=
+
+PROJECT_NAME=mev
+
+# Temporary until backend's environment variables are changed. Currently required,
+# but will be removed once the application is 'un-dockerized'
+COMPOSE_PROJECT_NAME=mev
+
+
+
 
 
 ###################### Database-related parameters ######################################
 
-DB_NAME=
-DB_USER=
-DB_PASSWD=
-PGPASSWORD=
-POSTGRES_PASSWORD=
+
+# The name of the postgres database
+MEV_DB_NAME=
+
+# Postgres database/pass
+MEV_DB_USER=
+MEV_DB_PASSWORD=
+
+# Currently using localhost until we change to a managed DB.
+# Default postgres port is 5432
+DB_HOST=localhost
+DB_PORT=5432
+
+# The following can be removed once django's environment variables are edited.
+# Did not want to change the current django app until this is integrated
+DB_NAME=$MEV_DB_NAME
+DB_USER=$MEV_DB_USER
+DB_PASSWD=$MEV_DB_PASSWORD
 
 # Should we populate the database with dummy data (the same data we test with)?
 # Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
-POPULATE_DB=
+POPULATE_DB=no
+
 
 ###################### END Database-related parameters ###################################
 
+
+
+
+
 ######################### Django-related parameters ######################################
+
 
 # The secret key is used to encrypt data when making tokens, etc.
 # Accordingly, make this appropriately long:
 DJANGO_SECRET_KEY=
 
 # A comma-delimited list of the hosts.  Add hosts as necessary
-DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
+# e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
+DJANGO_ALLOWED_HOSTS=
 
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
-# at a different domain.
-DJANGO_CORS_ORIGINS=http://127.0.0.1
+# at a different domain. Include ports
+DJANGO_CORS_ORIGINS=
+
 
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email
 DJANGO_SUPERUSER_PASSWORD=
 DJANGO_SUPERUSER_EMAIL=
+
+# Don't change this:
+# We use a different user model which relies on the email instead of a 
+# username. However, still need to define this environment variable
+# for Django's createsuperuser command to work
 DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
+
 
 ####################### END Django-related parameters ###################################
 
 
+
+
+
+####################### Redis-related parameters ###################################
+
+
+# Where is redis listening?
+# We assume that it is listening on the dfault port of 6379
+REDIS_HOST=localhost
+
+
+####################### END Redis-related parameters ###################################
+
+
+
+
+
 ###################### Start cloud env related parameters ###############################
+
 
 # Here we setup some parameters relating to the cloud environment, including the location
 # of remote job runner services, etc.
 
 # The cloud platform determines which classes are used to hook up to 
 # storage buckets, etc.
-# Choose from: GOOGLE
 CLOUD_PLATFORM=
 
 # Will you be using one of the remote job runners?
 # Case-sensitive "yes" (without quotes) will enable. Otherwise we will
 # not enable remote job runs
-ENABLE_REMOTE_JOB_RUNNERS=
+ENABLE_REMOTE_JOB_RUNNERS=yes
 
 # Which remote job runners will be used?
-# Doesn't matter if the USE_REMOTE_JOB_RUNNERS is "false"
+# Doesn't matter if the ENABLE_REMOTE_JOB_RUNNERS is "false"
 # This is a comma-delimited list of strings which have to match
-# the recognized keys in the Django settings file(s).
+# the recognized keys (see AVAILABLE_REMOTE_JOB_RUNNERS in the
+# Django settings file(s)).
 REMOTE_JOB_RUNNERS=
 
 
 ###################### END cloud env related parameters #################################
 
 
+
+
+
 ###################### Storage-related parameters ######################################
+
 
 # the storage backend dictates where the "absolute" source of the files is. Of course,
 # to perform many operations we need to move files back and forth between local and
 # cloud storage. However, only one location serves as the "ground truth", and this is
-# the path that is reflected in the Resource database instances.
-# Can be local, or the name of one of the cloud providers (which then allows us 
-# to link up the appropriate storage class) 
+# the path that is saved in the database (in the Resource table).
 # Note that if you are requesting to use remote job runners (ENABLE_REMOTE_JOB_RUNNERS)
 # then you are REQUIRED to use bucket storage. You can only use local storage if all
 # your runners are local.
 # Options include "local" and "remote"
 STORAGE_LOCATION=
 
-# If using local storage for all files (not recommended!), set the following:
-# This is relative to the django BASE_DIR
-LOCAL_STORAGE_DIRNAME=resource_storage
+# If using local storage for all files (not recommended since sequencing files
+# could consume large amount of disk space), set the following:
+# This directory is relative to the django BASE_DIR
+LOCAL_STORAGE_DIRNAME=user_resources
 
 # A bucket where MEV user's files will be stored (if using bucket storage). This
-# is independent of any bucket's used as a storage location for remote job runners, etc.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
+# is independent of any buckets used as a storage location for remote job runners, etc.
+# DO NOT inlude the prefix, e.g. "gs://" or "s3://".
+# THIS BUCKET MUST ALREADY EXIST. 
 STORAGE_BUCKET_NAME=
 
 # The maximum size (in bytes) to allow "direct" downloads from the API.
@@ -96,6 +157,9 @@ STORAGE_BUCKET_NAME=
 # like via Dropbox.
 MAX_DOWNLOAD_SIZE_BYTES=5.12e8
 
+# For signing download URLs we need a credentials file
+STORAGE_CREDENTIALS=
+
 ###################### END Storage-related parameters ######################################
 
 ############################ Email-related parameters ######################################
@@ -103,7 +167,7 @@ MAX_DOWNLOAD_SIZE_BYTES=5.12e8
 # How to send email-- by default, we print emails to the console for dev
 # If you would like to set another email backend (e.g. gmail), set this accordingly.
 # See the docs and/or base_settings.py in the relevant section regarding email.
-EMAIL_BACKEND_CHOICE=GMAIL
+EMAIL_BACKEND_CHOICE=
 
 # When email is sent, this will give the "from" field.  e.g. "some name <some@email.com>" (without the quotes)
 FROM_EMAIL=
@@ -115,16 +179,20 @@ GMAIL_REFRESH_TOKEN=
 GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
 
+
 ########################## END Email-related parameters #####################################
+
+
 
 
 ############################ Social auth-related parameters ######################################
 
 # a comma-delimited list giving the social auth providers to use.  Check the available
 # implementations in mev/api/base_settings.py
-SOCIAL_BACKENDS=GOOGLE
+SOCIAL_BACKENDS=
 
 ########################## END Social-auth-related parameters #####################################
+
 
 ############################ Sentry parameters ######################################
 
@@ -135,7 +203,6 @@ SOCIAL_BACKENDS=GOOGLE
 SENTRY_URL=
 
 ########################## END Sentry parameters #####################################
-
 
 ############################ Domain parameters ######################################
 
@@ -154,12 +221,17 @@ SITE_NAME=
 
 ########################## END Domain parameters #####################################
 
-########################## Dockerhub parameters #########################################
+
+
+############################ Dockerhub related parameters ######################################
+
+# To push to the Dockerhub repository, we need to authenticate with `docker login`...
+# These credentials are used for that.
 
 DOCKERHUB_USERNAME=
 DOCKERHUB_PASSWORD=
 
-########################## END Dockerhub parameters #####################################
+############################ END Dockerhub related parameters ######################################
 
 
 ########################## Cromwell parameters #########################################
@@ -174,6 +246,7 @@ CROMWELL_BUCKET=
 
 # The address (including http/s protocol and any port) of the Cromwell server
 # Only needed if using the remote Cromwell job engine.
-CROMWELL_SERVER_URL= 
+# Should be the INTERNAL IP address in the same vpc network
+CROMWELL_SERVER_URL=
 
 ########################## END Cromwell parameters #########################################
