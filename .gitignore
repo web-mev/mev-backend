@@ -4,3 +4,8 @@ __pycache__
 api/docs/site
 *.sqlite3
 .idea/
+
+.terraform/
+.terraform.tfstate*
+terraform.tfstate*
+terraform.tfvars
