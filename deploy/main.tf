@@ -107,7 +107,7 @@ resource "google_compute_instance" "cromwell" {
                                 "environment" = var.environment
                             }
 
-  metadata_startup_script = file("bootstrap.sh")
+  metadata_startup_script = templatefile("bootstrap.tpl")
 
   boot_disk {
     initialize_params {
