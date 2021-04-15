@@ -3,3 +3,4 @@ __pycache__
 */migrations
 api/docs/site
 *.sqlite3
+.idea/
