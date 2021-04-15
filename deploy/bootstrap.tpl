@@ -15,4 +15,4 @@ PROJECT_ROOT=/srv/mev-backend
 /usr/bin/apt-get -qq -y install puppet-agent
 
 /usr/bin/git clone https://github.com/web-mev/mev-backend.git $PROJECT_ROOT
-cd $PROJECT_ROOT && /usr/bin/git checkout ${var.git_branch}
+cd $PROJECT_ROOT && /usr/bin/git checkout ${branch}
