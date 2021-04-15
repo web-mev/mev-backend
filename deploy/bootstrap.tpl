@@ -16,3 +16,5 @@ PROJECT_ROOT=/srv/mev-backend
 
 /usr/bin/git clone https://github.com/web-mev/mev-backend.git $PROJECT_ROOT
 cd $PROJECT_ROOT && /usr/bin/git checkout ${branch}
+
+/opt/puppetlabs/bin/puppet apply $PROJECT_ROOT/deploy/puppet/manifests/cromwell.pp
