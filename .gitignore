@@ -3,6 +3,7 @@ __pycache__
 */migrations
 api/docs/site
 *.sqlite3
+.vagrant/
 .idea/
 
 .terraform/
