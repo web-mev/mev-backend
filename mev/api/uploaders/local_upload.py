@@ -1,8 +1,7 @@
 import logging
-from rest_framework.exceptions import APIException
-
+from rest_framework.exceptions import APIException, ValidationError
 from .base import LocalUpload
-from api.utilities import normalize_identifier
+from api.utilities import normalize_filename
 from api.exceptions import StringIdentifierException
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,10 @@ class ServerLocalUpload(LocalUpload):
         upload = request.data['upload_file']
 
         # grab the file name from the upload request and normalize it
-        self.filename = normalize_identifier(upload.name)
+        try:
+            self.filename = normalize_filename(upload.name)
+        except StringIdentifierException as ex:
+            raise ValidationError(ex)
         tmp_path = LocalUpload.create_local_path(self.filename)
 
         self.size = upload.size

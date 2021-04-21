@@ -1,7 +1,7 @@
 import unittest
 
 from api.exceptions import StringIdentifierException
-from api.utilities import normalize_identifier
+from api.utilities import normalize_identifier, normalize_filename
 
 class TestUtilities(unittest.TestCase):
 
@@ -40,3 +40,15 @@ class TestUtilities(unittest.TestCase):
 
         with self.assertRaises(StringIdentifierException):
             o = normalize_identifier('A name?')
+
+    def test_filename_normalized(self):
+        '''
+        File names permit leading numbers. Test that the filename normalizer
+        function respects this.
+        '''
+        # check that the more restrictive function raises an exception
+        with self.assertRaises(StringIdentifierException):
+            o = normalize_identifier('5k.tsv')
+
+        o = normalize_filename('5k.tsv')
+        self.assertEqual(o, '5k.tsv')
