@@ -19,7 +19,11 @@ class GoogleCloudStartupTest(unittest.TestCase):
     @mock.patch('api.cloud_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.GoogleBucketStorage.get_bucket')
     @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
     def test_google_cloud_case1(self, \
+        mock_storage_settings, \
+        mock_storage_service_account, \
         mock_storage, \
         mock_get_bucket, \
         mock_settings, \
@@ -50,7 +54,12 @@ class GoogleCloudStartupTest(unittest.TestCase):
     @mock.patch('api.cloud_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.GoogleBucketStorage.get_bucket')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    def test_google_cloud_case2(self, mock_storage,
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_google_cloud_case2(self, 
+        mock_storage_settings,
+        mock_storage_service_account,
+        mock_storage,
         mock_get_bucket, 
         mock_settings, 
         mock_get_instance_region, 
@@ -83,7 +92,17 @@ class GoogleCloudStartupTest(unittest.TestCase):
     @mock.patch('api.cloud_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.GoogleBucketStorage.get_bucket')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    def test_google_cloud_case3(self, mock_storage, mock_get_bucket, mock_settings, mock_get_instance_region, mock_get_with_retry, mock_get_runner):
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_google_cloud_case3(self, 
+        mock_storage_settings,
+        mock_storage_service_account,
+        mock_storage, 
+        mock_get_bucket, 
+        mock_settings, 
+        mock_get_instance_region, 
+        mock_get_with_retry, 
+        mock_get_runner):
         '''
         Simulate the case where bucket-storage is used but we do NOT enable
         remote job runners

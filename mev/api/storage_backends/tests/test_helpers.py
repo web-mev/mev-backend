@@ -9,7 +9,9 @@ from api.tests.base import BaseAPITestCase
 class TestStorageHelpers(BaseAPITestCase):
 
     @mock.patch('api.storage_backends.google_cloud.storage')
-    def test_get_storage_impl(self, mock_storage):
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_get_storage_impl(self, mock_settings, mock_service_account, mock_storage):
         '''
         Tests that we get back the proper storage backend given a file path.
         Note that this is more general than the choice provided for the storage
