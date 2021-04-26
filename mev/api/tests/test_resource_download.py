@@ -90,7 +90,7 @@ class ResourceDownloadTests(BaseAPITestCase):
         content_type = headers['content-type']
         content_disp = headers['content-disposition']
         self.assertEqual(content_type, ('Content-Type', 'text/tab-separated-values'))
-        self.assertEqual(content_disp, ('Content-Disposition', 'attachment; filename=demo_file2.tsv'))
+        self.assertEqual(content_disp, ('Content-Disposition', 'attachment; filename="demo_file2.tsv"'))
 
     @mock.patch('api.views.resource_download.get_storage_backend')
     def test_remote_resource(self, mock_get_storage_backend):
