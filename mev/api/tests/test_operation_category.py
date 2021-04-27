@@ -49,6 +49,13 @@ def add_objects():
         workspace_operation = True
     )
 
+    op4 = Operation.objects.create(
+        active=False,
+        name = 'Normalize Old',
+        successful_ingestion = True,
+        workspace_operation = True
+    )
+
     o1 = OperationCategory.objects.create(
         operation = op1,
         category = 'category_foo'
@@ -59,6 +66,10 @@ def add_objects():
     )
     o3 = OperationCategory.objects.create(
         operation = op3,
+        category = 'category_bar'
+    )
+    o3 = OperationCategory.objects.create(
+        operation = op4,
         category = 'category_bar'
     )
 
@@ -86,6 +97,13 @@ class OperationCategoryListTests(BaseAPITestCase):
             op_list = obj['children']
             names = set([x['name'] for x in op_list])
             self.assertCountEqual(names, expected_mapping[category_name])
+        # ensure that we did actually filter something out.
+        # Above, we see that category_bar has only a single entry since one
+        # of them was inactive and hence filtered out. This confirms that the
+        # database HAD said object, but it was removed by the serializer due to the 
+        # state of the "active" field
+        ops = OperationCategory.objects.filter(category = 'category_bar')
+        self.assertTrue(len(ops) == 2)
 
 
 class OperationCategoryDetailTests(BaseAPITestCase):

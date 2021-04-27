@@ -32,8 +32,9 @@ class OperationCategoryListSerializer(serializers.Serializer):
         for item in items:
             op_pk = item.operation.pk
             op = Operation.objects.get(pk=op_pk)
-            op_data = get_operation_instance_data(op)
-            if op_data:
-                child_list.append(op_data)
+            if op.active:
+                op_data = get_operation_instance_data(op)
+                if op_data:
+                    child_list.append(op_data)
         d = {'name': category, 'children': child_list}
         return d
