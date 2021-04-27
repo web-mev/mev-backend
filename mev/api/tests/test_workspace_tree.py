@@ -2,6 +2,7 @@ import unittest.mock as mock
 import uuid
 import os
 import json
+import datetime
 
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
@@ -71,7 +72,8 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         self.establish_clients()
 
     @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
-    def test_tree_response(self, mock_create_workspace_dag):
+    @mock.patch('api.views.workspace_tree_views.datetime')
+    def test_tree_response(self, mock_datetime, mock_create_workspace_dag):
         workspaces = Workspace.objects.filter(owner=self.regular_user_1)
         if len(workspaces) == 0:
             raise ImproperlyConfigured('Need at least one workspace to run this')
@@ -86,6 +88,9 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         ]
         mock_create_workspace_dag.return_value = expected_content
 
+        now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = now
+
         # check the number of initial resources for this owner:
         orig_resources = [x.id for x in Resource.objects.filter(owner=self.regular_user_1)]
         response = self.authenticated_regular_client.get(url)
@@ -99,6 +104,17 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         new_resource = Resource.objects.get(pk=diff_set[0])
         self.assertTrue(new_resource.is_active)
         path = new_resource.path
+        expected_name = 'workspace_export.{w_id}.{t}.json'.format(
+            w_id = str(workspace.pk),
+            t = now.strftime('%m-%d-%Y-%H-%M-%S')
+        )
+        expected_basename = '{resource_id}.{b}'.format(
+            resource_id = str(new_resource.pk),
+            b = expected_name
+        )
+        self.assertEqual(os.path.basename(path), expected_basename)
+        self.assertEqual(new_resource.name, expected_name)
+       
         contents = json.load(open(path, 'r'))
         self.assertCountEqual(contents, expected_content)
         self.assertTrue(os.path.exists(path))
