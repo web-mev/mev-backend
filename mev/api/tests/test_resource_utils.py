@@ -32,7 +32,8 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     handle_invalid_resource, \
     check_extension, \
     add_metadata_to_resource, \
-    get_resource_by_pk
+    get_resource_by_pk, \
+    write_resource
 from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
 from api.exceptions import NoResourceFoundException
@@ -597,4 +598,62 @@ class TestResourceUtilities(BaseAPITestCase):
             {}
         )
         mock_serializer2.save.assert_called()
+
+    @mock.patch('api.utilities.resource_utilities.make_local_directory')
+    @mock.patch('api.utilities.resource_utilities.os')
+    def test_resource_write_dir_fails(self, mock_os, mock_make_local_directory):
+        '''
+        Tests the case where we fail to create a directory
+        to write into. Check that this is handled appropriately.
+        '''
+        mock_os.path.dirname.return_value = '/some/dir'
+        mock_os.path.exists.return_value = False
+        mock_make_local_directory.side_effect = Exception('something bad happened!')
+        with self.assertRaises(Exception):
+            write_resource('some content', '')
+
+    @mock.patch('api.utilities.resource_utilities.make_local_directory')
+    def test_resource_write_works_case1(self, mock_make_local_directory):
+        '''
+        Tests that we do, in fact, write correctly.
+        Here, we use the /tmp folder, which exists
+        '''
+        self.assertTrue(os.path.exists('/tmp'))
+        destination = '/tmp/some_file.txt'
+        content = 'some content'
+        write_resource(content, destination)
+        self.assertTrue(os.path.exists(destination))
+        read_content = open(destination).read()
+        self.assertEqual(read_content, content)
+        mock_make_local_directory.assert_not_called()
+        # cleanup
+        os.remove(destination)
+
+    def test_resource_write_works_case2(self):
+        '''
+        Tests that we do, in fact, write correctly.
+        Here, we write in a folder which doesn't already exist
+        '''
+        self.assertFalse(os.path.exists('/tmp/foo'))
+        destination = '/tmp/foo/some_file.txt'
+        content = 'some content'
+        write_resource(content, destination)
+        self.assertTrue(os.path.exists(destination))
+        read_content = open(destination).read()
+        self.assertEqual(read_content, content)
+        # cleanup
+        os.remove(destination)
+        os.removedirs('/tmp/foo')
+
+    def test_resource_write_only_writes_string(self):
+        '''
+        Tests that this function only handles strings.
+        Below, we try to have it write a dict and that 
+        should not work
+        '''
+        destination = '/tmp/some_file.txt'
+        content = {'some_key': 'some_val'}
+        with self.assertRaises(AssertionError):
+            write_resource(content, destination)
+
 

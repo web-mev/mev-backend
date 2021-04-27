@@ -443,3 +443,22 @@ def resource_supports_pagination(resource_type_str):
         t = resource_type_str
     ))
     return _resource_supports_pagination(resource_type_str)
+
+def write_resource(content, destination):
+    '''
+    Writing local files is not particularly common in MEV, but
+    this is a central function which does all the "prep work"
+    like checking that the local directory exists, etc.
+
+    Note that this is a total rewrite, NOT an append (see the open mode below)
+    '''
+    storage_dir = os.path.dirname(destination)
+    if not os.path.exists(storage_dir):
+
+        # this function can raise an exception which will get
+        # pushed up to the caller
+        make_local_directory(storage_dir)
+
+    assert(type(content) == str)
+    with open(destination, 'w') as fout:
+        fout.write(content)
