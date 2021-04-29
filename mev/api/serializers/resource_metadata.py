@@ -15,10 +15,14 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
     observation_set = NullableObservationSetSerializer(required=False, allow_null=True)
     feature_set = NullableFeatureSetSerializer(required=False, allow_null=True)
 
-    def create(self, validated_data):
+    def prep_validated_data(self, validated_data):
+        '''
+        This method is used by the create and update methods
+        to create the proper serialized elements
+        '''
 
         # the database object is saving json. Hence, we need to turn the 
-        # observationSet into a dict to create the ResourceMetadata below.
+        # observationSet into a dict to create/update the ResourceMetadata below.
         try:
             obs_set_data = validated_data['observation_set']
         except KeyError as ex:
@@ -30,7 +34,7 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
         else:
             obs_set_dict = None
 
-        # same thing for the FeatureSet
+        # same thing for the FeatureSet- need a dict
         try:
             feature_set_data = validated_data['feature_set']
         except KeyError as ex:
@@ -48,6 +52,11 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
             parent_op = None
         if parent_op is not None:
             parent_op = ExecutedOperation.objects.get(pk=parent_op)
+
+        return obs_set_dict, feature_set_dict, parent_op
+
+    def create(self, validated_data):
+        obs_set_dict, feature_set_dict, parent_op = self.prep_validated_data(validated_data)
         rm = ResourceMetadata.objects.create(
             observation_set = obs_set_dict,
             feature_set = feature_set_dict,
@@ -55,6 +64,13 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
             resource = validated_data['resource']
         )
         return rm
+
+    def update(self, instance, validated_data):
+        obs_set_dict, feature_set_dict, parent_op = self.prep_validated_data(validated_data)
+        instance.observation_set = obs_set_dict
+        instance.feature_set = feature_set_dict
+        instance.parent_operation = parent_op
+        return instance
 
     def validate_parent_operation(self, value):
         if value is not None:

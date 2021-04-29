@@ -40,8 +40,9 @@ from api.exceptions import NoResourceFoundException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
-TESTDIR = os.path.dirname(__file__)
-TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
+BASE_TESTDIR = os.path.dirname(__file__)
+TESTDIR = os.path.join(BASE_TESTDIR, 'operation_test_files')
+VAL_TESTDIR = os.path.join(BASE_TESTDIR, 'resource_validation_test_files')
 
 class TestResourceUtilities(BaseAPITestCase):
     '''
@@ -656,4 +657,47 @@ class TestResourceUtilities(BaseAPITestCase):
         with self.assertRaises(AssertionError):
             write_resource(content, destination)
 
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    def test_metadata_when_type_changed(self, mock_move_resource_to_final_location):
+        '''
+        Checks that the update of resource metadata is updated. Related to a bug where
+        a file was initially set to a general type (and thus the metadata was effectively empty).
+        After trying to validate it as an annotation type, it was raising json serializer errors.
+        '''
+        resource_path = os.path.join(VAL_TESTDIR, 'test_annotation_valid.tsv')
+        mock_move_resource_to_final_location.return_value = resource_path
+        r = Resource.objects.create(
+            name = 'test_annotation_valid.tsv',
+            owner = self.regular_user_1,
+            is_active=True,
+            path = resource_path,
+            resource_type = '*'
+        )
+        validate_resource(r, '*')
+        rm = ResourceMetadata.objects.get(resource=r)
+        self.assertTrue(rm.observation_set is None)
+        validate_resource(r, 'ANN')
+        rm = ResourceMetadata.objects.get(resource=r)
+        self.assertFalse(rm.observation_set is None)
 
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    def test_metadata_when_type_changed_case2(self, mock_move_resource_to_final_location):
+        resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
+        mock_move_resource_to_final_location.return_value = resource_path
+        r = Resource.objects.create(
+            name = 'test_annotation_valid.tsv',
+            owner = self.regular_user_1,
+            is_active=True,
+            path = resource_path,
+            resource_type = '*'
+        )
+        validate_resource(r, '*')
+        rm = ResourceMetadata.objects.get(resource=r)
+        self.assertTrue(rm.observation_set is None)
+        r.save()
+        validate_resource(r, 'MTX')
+        rm = ResourceMetadata.objects.get(resource=r)
+        obs_set = rm.observation_set
+        samples = [x['id'] for x in obs_set['elements']]
+        expected = ['SW1_Control','SW2_Control','SW3_Control','SW4_Treated','SW5_Treated','SW6_Treated']
+        self.assertCountEqual(samples, expected)
