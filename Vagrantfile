@@ -26,6 +26,6 @@ Vagrant.configure("2") do |config|
     /usr/bin/apt-get -qq update
     /usr/bin/apt-get -qq -y install puppet-agent
 
-    #/opt/puppetlabs/bin/puppet apply /vagrant/deploy/puppet/manifests/site.pp
+    /opt/puppetlabs/bin/puppet apply /vagrant/deploy/puppet/manifests/site.pp
   SHELL
 end
