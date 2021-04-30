@@ -1200,6 +1200,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue('error' in j)
 
 
+        print('x'*300)
         # provide a bad query string and check that it returns 400
         # (the value to compare to can't be cast as a float)
         url = base_url + '?page=1&page_size=10&pval=[lt]:a'
@@ -1210,6 +1211,60 @@ class ResourceContentTests(BaseAPITestCase):
             status.HTTP_400_BAD_REQUEST)
         j = response.json()
         self.assertTrue('error' in j)
+
+
+    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_resource_contents_filter_for_json_with_na(self, mock_get_storage_backend, mock_check_request_validity):
+        '''
+        For certain types of json data structures, we can perform filtering. 
+        For instance, if we have an array of simple items where our filter key is at the "top level",
+        we can perform a filter based on that.
+
+        Here, we test a numeric comparison for a field which can contain non-numerics. This can happen, 
+        for instance, if a p-value field is assigned a "NA" value.
+        '''
+        f = os.path.join(self.TESTDIR, 'json_array_file_with_na.json')
+        self.resource.path = f
+        self.resource.resource_type = 'JSON'
+        self.resource.save()
+        mock_check_request_validity.return_value = self.resource
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        print(results)
+        self.assertTrue(len(results) == 7)
+
+        # add the query params onto the end of the url:
+        url = base_url + '?pval=[lte]:0.005'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 1)
+
+        # add the query params onto the end of the url:
+        url = base_url + '?name=[startswith]:aaa'
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        j = response.json()
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        self.assertTrue(len(j) == 3)
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')

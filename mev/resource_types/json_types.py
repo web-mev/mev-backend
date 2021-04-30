@@ -243,21 +243,27 @@ class JsonResource(DataResource):
                 filter_ops[k] = create_closure(settings.OPERATOR_MAPPING['=='], val)
 
             elif len(split_v) == 2:
-                # these types of filters only apply to numeric types. So a failure to cast
-                # will be an error
-                try:
-                    val = float(split_v[1])
-                except ValueError as ex:
-                    raise ParseException('Could not interpret the query'
-                        ' parameter value {v} as a number.'.format(v=split_v[1]))
+                # something like "[lte]:0.01" or "[startswith]:aaa"
+                # Can be numeric comparisons or string. 
+                val = split_v[1] # e.g. "0.01" (still a string!) or "aaa" if doing a string comparison
+
+                # If we were given a strictly numeric-style comparison (e.g. <=)
+                # then we immediately fail the request if `val` was not a number
+                op_id = split_v[0]
+                if op_id in settings.NUMERIC_OPERATORS:
+                    try:
+                        val = float(val)
+                    except ValueError as ex:
+                        raise ParseException('Could not interpret the query'
+                            ' parameter value {v} as a number.'.format(v=val))
 
                 # the supplied value was ok. Check the operator supplied
                 try:
-                    op = settings.OPERATOR_MAPPING[split_v[0]]
+                    op = settings.OPERATOR_MAPPING[op_id]
                 except KeyError as ex:
                     raise ParseException('The operator string ("{s}") was not understood. Choose'
                         ' from among: {vals}'.format(
-                            s = split_v[0],
+                            s = op_id,
                             vals = ','.join(settings.OPERATOR_MAPPING.keys())
                         )
                     )
