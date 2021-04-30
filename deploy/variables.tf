@@ -53,3 +53,8 @@ variable "zone" {
   default = "us-east4-c"
 }
 
+variable "git_branch" {
+  default     = "master"
+  description = "Git repository branch to use for provisioning"
+  type        = string
+}
