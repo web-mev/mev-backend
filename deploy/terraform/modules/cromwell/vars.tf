@@ -7,8 +7,8 @@ variable "project_id" {
   description = "GCP project ID"
 }
 
-variable "credentials_file" {
-  description = "Path to JSON file with GCP service account key"
+variable "network"{
+
 }
 
 variable "region" {
@@ -56,4 +56,8 @@ variable "cromwell_db_password" {
 variable "branch" {
   description = "The git branch to use"
   default = "deploy"
+}
+
+variable "ssh_tag" {
+
 }
