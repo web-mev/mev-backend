@@ -21,7 +21,7 @@ resource "google_compute_instance" "cromwell" {
                                 "environment" = var.environment
                             }
 
-  metadata_startup_script = templatefile("../modules/cromwell/cromwell_provision.sh", 
+  metadata_startup_script = templatefile("${path.module}/cromwell_provision.sh", 
     { 
       project_id = var.project_id,
       cromwell_bucket = "gs://${var.cromwell_bucket}",

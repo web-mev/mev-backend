@@ -68,3 +68,11 @@ variable "branch" {
   description = "The git branch to use"
   default = "deploy"
 }
+
+variable "domain" {
+  description = "The domain where the API will be served from."
+}
+
+variable "managed_dns_zone" {
+  description = "The name of the managed zone where DNS is handled. Short name only."
+}
