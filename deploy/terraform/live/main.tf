@@ -56,4 +56,6 @@ module "api" {
     cromwell_ip = module.cromwell.cromwell_ip
     api_machine_config = var.api_machine_config
     api_os_image = var.api_os_image
+    domain = var.domain
+    managed_dns_zone = var.managed_dns_zone
 }

@@ -1,0 +1,17 @@
+environment = ""
+project_id = ""
+credentials_file = ""
+cromwell_machine_config = {
+    machine_type = ""
+    disk_size_gb = <integer>
+}
+api_machine_config = {
+    machine_type = ""
+    disk_size_gb = <integer>
+}
+cromwell_bucket = ""
+cromwell_db_name = ""
+cromwell_db_user = ""
+cromwell_db_password = ""
+branch = ""
+managed_dns_zone = ""
