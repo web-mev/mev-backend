@@ -16,6 +16,12 @@ node /cromwell/ {
     owner  => $cromwell_user,
     group  => $cromwell_user,
   }
+
+  vcsrepo { '/opt/mev-backend':
+    ensure   => present,
+    provider => git,
+    source   => 'https://github.com/web-mev/mev-backend.git',
+  }
 }
 
 node /api/ {
