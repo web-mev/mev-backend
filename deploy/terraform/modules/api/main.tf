@@ -6,9 +6,34 @@ resource "google_compute_instance" "mev_server" {
                               "backend-${var.environment}-allow-health-check"
                             ]
 
-  metadata_startup_script = templatefile("${path.module}/provision.sh", 
+  metadata_startup_script = templatefile("${path.module}/mev_provision.sh", 
     {
-        cromwell_ip = var.cromwell_ip
+        environment = var.environment,
+        cromwell_ip = var.cromwell_ip,
+        domain = var.domain,
+        db_user = var.db_user,
+        root_db_passwd = var.root_db_passwd
+        db_passwd = var.db_passwd,
+        db_name = var.db_name,
+        db_port = var.db_port,
+        db_host = var.db_host,
+        repo = var.repo,
+        django_secret = var.django_secret
+        cromwell_bucket = var.cromwell_bucket,
+        frontend_domain = var.frontend_domain,
+        django_superuser_email = var.django_superuser_email,
+        django_superuser_passwd = var.django_superuser_passwd,
+        mev_storage_bucket = var.mev_storage_bucket,
+        email_backend = var.email_backend,
+        from_email = var.from_email,
+        gmail_access_token = var.gmail_access_token,
+        gmail_refresh_token = var.gmail_refresh_token,
+        gmail_client_id = var.gmail_client_id,
+        gmail_client_secret = var.gmail_client_secret,
+        sentry_url = var.sentry_url,
+        dockerhub_username = var.dockerhub_username,
+        dockerhub_passwd = var.dockerhub_passwd,
+        branch = var.branch
     }
 )
 
@@ -23,6 +48,10 @@ resource "google_compute_instance" "mev_server" {
     network = var.network
     access_config {
     }
+  }
+
+  service_account {
+      scopes = ["cloud-platform"]
   }
 }
 
@@ -81,8 +110,7 @@ resource "google_compute_health_check" "http-health-check" {
   http_health_check {
     port = "80"
     port_name = "http"
-    # TODO: re-enable once api is up.
-    #request_path = "/api"
+    request_path = "/api/"
   }
 }
 
@@ -147,7 +175,7 @@ resource "google_compute_global_forwarding_rule" "https_fwd" {
 
   
 resource "google_compute_url_map" "https_redirect" {
-  name            = "backend-${var.environment}-https-redirect"
+  name            = "${var.environment}-backend-https-redirect"
 
   default_url_redirect {
     https_redirect         = true

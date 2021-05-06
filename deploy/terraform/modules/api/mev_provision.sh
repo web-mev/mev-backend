@@ -70,8 +70,8 @@ DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP
 
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
-# at a different domain. Include ports
-DJANGO_CORS_ORIGINS=$FRONTEND_DOMAIN
+# at a different domain. Include protocol and ports
+DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN
 
 
 # For automatically creating an admin, supply the following:
@@ -243,7 +243,7 @@ CROMWELL_BUCKET=${cromwell_bucket}
 # The address (including http/s protocol and any port) of the Cromwell server
 # Only needed if using the remote Cromwell job engine.
 # Should be the INTERNAL IP address in the same vpc network
-CROMWELL_SERVER_URL=${cromwell_ip}:8000
+CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 
 ########################## END Cromwell parameters #########################################
 
@@ -342,13 +342,21 @@ cp nginx.conf /etc/nginx/sites-enabled/
 mkdir -p /var/log/mev
 mkdir -p /www
 
+# touch some log files which will then be transferred to the mev 
+# user.
+touch /var/log/mev/celery_beat.log  \
+  /var/log/mev/celery_worker.log  \
+  /var/log/mev/cloud_sql.log  \
+  /var/log/mev/gunicorn.log  \
+  /var/log/mev/redis.log
+
 # Give the mev user ownership of the code directory and the logging directory
 chown -R mev:mev /opt/software /var/log/mev /www
 
 # Create the postgres database...
 # Extract the shorter database hostname from the full string. Django looks 
 # for this environment variable
-DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
+export DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
 
 # Need to set a password for the default postgres user
 gcloud beta sql users set-password postgres --instance=$DB_HOST --password $ROOT_DB_PASSWD
@@ -359,32 +367,38 @@ CLOUD_SQL_PROXY_VERSION=v1.21.0
 wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
 chmod +x cloud_sql_proxy
 
-# supervisor-ize this
 export CLOUD_SQL_MOUNT=/cloudsql
 export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
 
-# First restart supervisor since it needs access to the
-# environment variables (can only read those that are defined
-# when the supervisor daemon starts)
-service supervisor stop
-supervisord -c /etc/supervisor/supervisord.conf
-supervisorctl reread
-supervisorctl start cloud_sql_proxy
-
-# Setup the database.
-psql -v ON_ERROR_STOP=1 --host=$DB_HOST_SOCKET --username "postgres" --dbname "postgres" --password $ROOT_DB_PASSWD <<-EOSQL
-    CREATE USER "$DB_USER" WITH PASSWORD '$DB_PASSWD';
-    CREATE DATABASE "$DB_NAME";
-    GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
-    ALTER USER "$DB_USER" CREATEDB;
-EOSQL
-
-# Specify the appropriate settings file:
+# Specify the appropriate settings file.
+# We do this here so it's prior to cycling the supervisor daemon
 if [ $ENVIRONMENT = 'dev' ]; then
     export DJANGO_SETTINGS_MODULE=mev.settings_dev
 else
     export DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
+
+
+# First restart supervisor since it needs access to the
+# environment variables (can only read those that are defined
+# when the supervisor daemon starts)
+
+service supervisor stop
+supervisord -c /etc/supervisor/supervisord.conf
+supervisorctl reread
+supervisorctl start cloud_sql_proxy
+
+# Give it some time to setup the socket to the db
+sleep 10
+
+# Setup the database.
+export PGPASSWORD=$ROOT_DB_PASSWD
+psql -v ON_ERROR_STOP=1 --host=$DB_HOST_SOCKET --username "postgres" --dbname "postgres" <<-EOSQL
+    CREATE USER "$DB_USER" WITH PASSWORD '$DB_PASSWD';
+    CREATE DATABASE "$DB_NAME";
+    GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
+    ALTER USER "$DB_USER" CREATEDB;
+EOSQL
 
 # Some preliminaries before we start asking django to set things up:
 mkdir -p /opt/software/mev-backend/mev/pending_user_uploads
