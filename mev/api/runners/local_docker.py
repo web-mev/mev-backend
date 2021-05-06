@@ -284,7 +284,7 @@ class LocalDockerRunner(OperationRunner):
 
         cmd = self.DOCKER_RUN_CMD.format(
             container_name = execution_uuid,
-            execution_mount = settings.EXECUTION_VOLUME,
+            execution_mount = settings.OPERATION_EXECUTION_DIR,
             work_dir = settings.OPERATION_EXECUTION_DIR,
             job_dir = execution_dir,
             cmd = entrypoint_cmd,
