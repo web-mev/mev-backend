@@ -41,7 +41,7 @@ class OperationCategoryList(APIView, SchemaMixin):
     def get(self, request, *args, **kwargs):
 
         # no group-by directly, so we count and then rely on the serializer class
-        # to make all the propler objects
+        # to make all the proper objects
         all_records = OperationCategory.objects.values('category').annotate(dcount=Count('category'))
         s = self.serializer_class(all_records, many=True)
         return Response(s.data)

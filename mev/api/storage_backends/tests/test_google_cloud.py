@@ -15,7 +15,13 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    def test_resource_path_altered_correctly(self, mock_storage, mock_os_exists):
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_resource_path_altered_correctly(self, 
+        mock_settings,
+        mock_service_account, 
+        mock_storage, 
+        mock_os_exists):
 
         resources = Resource.objects.filter(owner=self.regular_user_1)
         r = resources[0]
@@ -48,7 +54,12 @@ class TestGoogleBucketStorage(BaseAPITestCase):
 
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.storage')
-    def test_bucket_transfer_call(self, mock_storage, mock_os_exists):
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_bucket_transfer_call(self, 
+        mock_settings, 
+        mock_service_account, 
+        mock_storage, mock_os_exists):
         '''
         If an analysis is performed remotely (so that files are located in 
         bucket storage) and the storage backend is also bucket-based, we need to 
@@ -65,6 +76,7 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         )
 
         os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        mock_settings.STORAGE_CREDENTIALS = '/some/dummy/path'
         storage_backend = GoogleBucketStorage()
         mock_bucket = mock.MagicMock()
         mock_upload_blob = mock.MagicMock()
@@ -94,7 +106,9 @@ class TestGoogleBucketStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
     def test_local_resource_pull_case1(self, \
+        mock_service_account, \
         mock_storage, \
         mock_settings, \
         mock_exists, \
@@ -133,7 +147,9 @@ class TestGoogleBucketStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
     def test_local_resource_pull_case2(self, \
+        mock_service_account, \
         mock_storage, \
         mock_settings, \
         mock_exists, \
@@ -172,7 +188,9 @@ class TestGoogleBucketStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
     def test_local_resource_pull_case3(self, \
+        mock_service_account, \
         mock_storage, \
         mock_settings, \
         mock_exists, \
@@ -210,7 +228,9 @@ class TestGoogleBucketStorage(BaseAPITestCase):
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')
     @mock.patch('api.storage_backends.google_cloud.settings')
     @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
     def test_local_resource_pull_retry(self, \
+        mock_service_account, \
         mock_storage, \
         mock_settings, \
         mock_exists, \

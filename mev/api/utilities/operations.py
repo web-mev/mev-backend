@@ -319,8 +319,19 @@ def create_workspace_dag(workspace_executed_ops):
         exec_op_inputs = exec_op.inputs
         exec_op_outputs = exec_op.outputs
 
+        # create a spec for the executed op that includes the operation spec
+        # and the actual inputs/outputs
+        full_op_data = {
+            'op_spec': op_data,
+            'inputs': exec_op_inputs,
+            'outputs': exec_op_outputs
+        }
+
         # create a node for the operation
-        op_node = DagNode(str(exec_op.pk), DagNode.OP_NODE, node_name = op_data['name'])
+        op_node = DagNode(str(exec_op.pk), 
+            DagNode.OP_NODE, 
+            node_name = op_data['name'],
+            op_data = full_op_data)
         graph.add_node(op_node)
 
         for k,v in exec_op_inputs.items():

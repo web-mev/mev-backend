@@ -44,7 +44,6 @@ def check_resource_request_validity(user, resource_pk):
     Returns a resource instance or a specific flag which indicates
     the type of issue to the caller.
     '''
-
     resource = get_resource_by_pk(resource_pk)
 
     if user.is_staff or (resource.owner == user):
@@ -78,6 +77,7 @@ def check_that_resource_exists(path):
     
 
 def get_resource_by_pk(resource_pk):
+
     try:
         resource = Resource.objects.get(pk=resource_pk)
         return resource
@@ -151,11 +151,14 @@ def add_metadata_to_resource(resource, metadata):
     try:
         rm = ResourceMetadata.objects.get(resource=resource)
         rms = ResourceMetadataSerializer(rm, data=metadata)
+        logger.info('Resource had some existing metadata, so update.')
     except ResourceMetadata.DoesNotExist:
+        logger.info('Resource did not previously have metadata attached.')
         rms = ResourceMetadataSerializer(data=metadata)
     if rms.is_valid(raise_exception=True):
         try:
             rm = rms.save()
+            rm.save()
         except OperationalError as ex:
             logger.error('Failed when adding ResourceMetadata.'
                 ' Reason was: {ex}'.format(
@@ -443,3 +446,22 @@ def resource_supports_pagination(resource_type_str):
         t = resource_type_str
     ))
     return _resource_supports_pagination(resource_type_str)
+
+def write_resource(content, destination):
+    '''
+    Writing local files is not particularly common in MEV, but
+    this is a central function which does all the "prep work"
+    like checking that the local directory exists, etc.
+
+    Note that this is a total rewrite, NOT an append (see the open mode below)
+    '''
+    storage_dir = os.path.dirname(destination)
+    if not os.path.exists(storage_dir):
+
+        # this function can raise an exception which will get
+        # pushed up to the caller
+        make_local_directory(storage_dir)
+
+    assert(type(content) == str)
+    with open(destination, 'w') as fout:
+        fout.write(content)

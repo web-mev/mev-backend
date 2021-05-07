@@ -2,13 +2,14 @@ import os
 import uuid
 import unittest.mock as mock
 
+from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource
-from api.utilities import normalize_identifier
+from api.utilities import normalize_filename
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
@@ -21,6 +22,9 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         self.url = reverse('resource-upload')
         self.establish_clients()
+        self.test_upload = os.path.join(settings.BASE_DIR, 'api', 'tests', 'upload_test_files', 'test_upload.tsv')
+        TEST_UPLOAD_WITH_INVALID_NAME = os.path.join(settings.BASE_DIR, 'api', 'tests', 'upload_test_files', '5x.tsv')
+        self.upload_test_dir = 'upload_test_files' # relative to the testing dir
 
     def cleanup(self, resource):
         self.assertFalse(resource.is_active)
@@ -87,7 +91,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         payload = {
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
 
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -104,7 +108,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email':'',
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
 
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -117,7 +121,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         '''
         payload = {
             'owner_email': self.regular_user_1.email,
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
 
         self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -131,7 +135,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'resource_type': 'AAAAAAAAAA',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_regular_client.post(
             self.url, 
@@ -152,7 +156,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
 
         self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -169,7 +173,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
@@ -178,7 +182,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': test_settings.JUNK_EMAIL,
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_regular_client.post(
             self.url, 
@@ -197,7 +201,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
@@ -206,7 +210,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_2.email,
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }        
         response = self.authenticated_regular_client.post(
             self.url, 
@@ -224,7 +228,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.admin_user.email,
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb'),
+            'upload_file': open(self.test_upload, 'rb'),
             'is_ownerless': True
         }
 
@@ -245,7 +249,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # request 
         payload = {
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb'),
+            'upload_file': open(self.test_upload, 'rb'),
             'is_ownerless': True
         }
 
@@ -265,7 +269,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # request 
         payload = {
             'resource_type': 'MTX',
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb'),
+            'upload_file': open(self.test_upload, 'rb'),
             'is_ownerless': True
         }
 
@@ -291,7 +295,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
             'is_public': False,
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
@@ -300,7 +304,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
             'is_public': True,
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_regular_client.post(
             self.url, 
@@ -327,7 +331,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'resource_type': 'MTX',
             'is_public': True,
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_admin_client.post(
             self.url, 
@@ -343,7 +347,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
             'resource_type': 'MTX',
             'is_public': True,
             'is_ownerless': True,
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_admin_client.post(
             self.url, 
@@ -363,7 +367,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
             'resource_type': 'MTX',
             'is_public': True,
             'is_ownerless': True,
-            'upload_file': open(test_settings.TEST_UPLOAD, 'rb')
+            'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_admin_client.post(
             self.url, 
@@ -382,14 +386,12 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         Test that we properly normalize file names that are 'out of bounds'
         (e.g. we edit the filename to be easy to handle)
         '''
-        # first check that the payload is correct by initiating a correct
-        # request 
         orig_name = 'test name with spaces.tsv'
-        edited_name = normalize_identifier(orig_name)
+        edited_name = normalize_filename(orig_name)
         payload = {
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
-            'upload_file': open(os.path.join(TESTDIR, orig_name), 'rb')
+            'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, orig_name), 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
@@ -399,8 +401,24 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         s = '.'.join(os.path.basename(r.path).split('.')[1:])
         self.assertEqual(s, edited_name)
 
-        # ok, now edit 
-
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_uploaded_file_with_invalid_name_is_handled(self, mock_api_tasks):
+        '''
+        Test that we properly handle a file name that is not valid
+        '''
+        filename = '?5x.tsv'
+        payload = {
+            'owner_email': self.regular_user_1.email,
+            'resource_type': 'MTX',
+            'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, filename), 'rb')
+        }
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data=payload, 
+            format='multipart'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        print(response.json())
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 

@@ -1,6 +1,7 @@
 import os
 import logging
 import operator
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
     x for x in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',') if len(x) > 0
 ]
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
 
 # Application definition
 
@@ -128,7 +130,8 @@ REST_FRAMEWORK = {
 
 # settings for the DRF JWT app:
 SIMPLE_JWT = {
-    'USER_ID_FIELD': 'user_uuid'
+    'USER_ID_FIELD': 'user_uuid',
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30)
 }
 
 
@@ -364,9 +367,10 @@ MAX_DOWNLOAD_SIZE_BYTES = float(get_env('MAX_DOWNLOAD_SIZE_BYTES'))
 
 # To sign URLs for download.
 # TODO: can we make this a bit more provider-agnostic?
-#if STORAGE_LOCATION == REMOTE:
-#    STORAGE_CREDENTIALS=get_env('STORAGE_CREDENTIALS')
-
+# if STORAGE_LOCATION == REMOTE:
+#     STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
+# else:
+#     STORAGE_CREDENTIALS = ''
 ###############################################################################
 # END Parameters for configuring resource storage
 ###############################################################################

@@ -28,11 +28,27 @@ CASE_INSENSITIVE_EQUALS = '[case-ins-eq]'
 STARTSWITH = '[startswith]'
 IS_IN = '[in]'
 
+def is_valid_numerical_comparison(x,y):
+    try:
+        return True, float(x), float(y)
+    except ValueError as ex:
+        return False, x, y
+    except TypeError as ex:
+        return False, x, y
+
 def abs_val_gt(x,y):
-    return np.abs(x) > y
+    valid, x, y = is_valid_numerical_comparison(x,y)
+    if valid:
+        return np.abs(x) > y
+    else:
+        return False
 
 def abs_val_lt(x,y):
-    return np.abs(x) < y
+    valid, x, y = is_valid_numerical_comparison(x,y)
+    if valid:
+        return np.abs(x) < y
+    else:
+        return False
 
 def case_insensitive_string_compare(x,y):
     return x.lower() == y.lower()
@@ -45,11 +61,36 @@ def list_contains(x,y):
     y_list = [a.strip() for a in y.split(',')]
     return x in y_list
 
+def lte(x,y):
+    valid, x, y = is_valid_numerical_comparison(x,y)
+    if valid:
+        return x<=y
+    else:
+        return False
+
+def gte(x,y):
+    valid, x, y = is_valid_numerical_comparison(x,y)
+    if valid:
+        return x>=y
+    return False
+
+def lt(x,y):
+    valid, x, y = is_valid_numerical_comparison(x,y)
+    if valid:
+        return x<y
+    return False
+
+def gt(x,y):
+    valid, x, y = is_valid_numerical_comparison(x,y)
+    if valid:
+        return x>y
+    return False
+
 OPERATOR_MAPPING = {
-    LESS_THAN: operator.lt,
-    LESS_THAN_OR_EQUAL: operator.le,
-    GREATER_THAN: operator.gt,
-    GREATER_THAN_OR_EQUAL: operator.ge,
+    LESS_THAN: lt,
+    LESS_THAN_OR_EQUAL: lte,
+    GREATER_THAN: gt,
+    GREATER_THAN_OR_EQUAL: gte,
     ABS_VAL_GREATER_THAN: abs_val_gt,
     ABS_VAL_LESS_THAN: abs_val_lt,
     EQUAL_TO: operator.eq,
@@ -59,4 +100,13 @@ OPERATOR_MAPPING = {
     STARTSWITH: case_insensitive_startswith,
     IS_IN: list_contains
 }
+
+NUMERIC_OPERATORS = [
+    LESS_THAN,
+    LESS_THAN_OR_EQUAL,
+    GREATER_THAN,
+    GREATER_THAN_OR_EQUAL,
+    ABS_VAL_GREATER_THAN,
+    ABS_VAL_LESS_THAN,
+]
 

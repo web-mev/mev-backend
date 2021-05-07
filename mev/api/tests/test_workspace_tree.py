@@ -1,9 +1,15 @@
 import unittest.mock as mock
+import uuid
+import os
+import json
+import datetime
 
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
+from rest_framework import status
 
-from api.models import Workspace
+
+from api.models import Workspace, Resource
 
 from api.tests.base import BaseAPITestCase
 
@@ -46,3 +52,70 @@ class TestWorkspaceTree(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(403, response.status_code)  
+
+
+    @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
+    def test_rejects_bad_workspace_uuid(self, mock_create_workspace_dag):
+        '''
+        The workspace arg doesn't reference a valid workspace
+        '''
+        url = reverse(
+            'executed-operation-tree', 
+            kwargs={'workspace_pk':str(uuid.uuid4())}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(400, response.status_code)  
+
+
+class TestWorkspaceTreeSave(BaseAPITestCase):
+    def setUp(self):
+        self.establish_clients()
+
+    @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
+    @mock.patch('api.views.workspace_tree_views.datetime')
+    def test_tree_response(self, mock_datetime, mock_create_workspace_dag):
+        workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one workspace to run this')
+        workspace = workspaces[0]
+        url = reverse(
+            'executed-operation-tree-save', 
+            kwargs={'workspace_pk':workspace.pk}
+        )
+        expected_content = [
+            {'id': 'foo'},
+            {'id': 'bar'}
+        ]
+        mock_create_workspace_dag.return_value = expected_content
+
+        now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = now
+
+        # check the number of initial resources for this owner:
+        orig_resources = [x.id for x in Resource.objects.filter(owner=self.regular_user_1)]
+        response = self.authenticated_regular_client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)   
+
+        # get the final resources. Check that we have one more:
+        final_resources = [x.id for x in Resource.objects.filter(owner=self.regular_user_1)]
+
+        diff_set = list(set(final_resources).difference(set(orig_resources)))
+        self.assertTrue(len(diff_set) == 1)
+        new_resource = Resource.objects.get(pk=diff_set[0])
+        self.assertTrue(new_resource.is_active)
+        path = new_resource.path
+        expected_name = 'workspace_export.{w_id}.{t}.json'.format(
+            w_id = str(workspace.pk),
+            t = now.strftime('%m-%d-%Y-%H-%M-%S')
+        )
+        expected_basename = '{resource_id}.{b}'.format(
+            resource_id = str(new_resource.pk),
+            b = expected_name
+        )
+        self.assertEqual(os.path.basename(path), expected_basename)
+        self.assertEqual(new_resource.name, expected_name)
+       
+        contents = json.load(open(path, 'r'))
+        self.assertCountEqual(contents, expected_content)
+        self.assertTrue(os.path.exists(path))
+        os.remove(path)

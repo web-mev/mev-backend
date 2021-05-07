@@ -54,9 +54,9 @@ PARSE_ERROR = ('There was an unexpected problem when'
 PARSER_NOT_FOUND_ERROR = ('Could not find an appropriate parser'
     ' for the resource.  Please check the instructions.')
 
-NON_NUMERIC_ERROR = 'The following columns contained non-numeric entries: {cols}'
+NON_NUMERIC_ERROR = 'Some of your columns contained non-numeric entries. Please check the file.'
 
-NON_INTEGER_ERROR = 'The following columns contained non-integer entries: {cols}'
+NON_INTEGER_ERROR = 'Some of your columns contained non-integer entries. Please check the file.'
 
 TRIVIAL_TABLE_ERROR = ('The file contained only a single column'
     ' which provided an index.  No data was provided in additional columns.')
@@ -714,8 +714,7 @@ class Matrix(TableResource):
         problem_columns = self.check_column_types(Matrix.TARGET_PATTERN)
 
         if len(problem_columns) > 0:
-            col_str = ', '.join([col_str_formatter(x) for x in problem_columns])
-            error_message = NON_NUMERIC_ERROR.format(cols=col_str)
+            error_message = NON_NUMERIC_ERROR
             return (False, error_message)
 
         return (True, None)
@@ -891,8 +890,7 @@ class IntegerMatrix(Matrix):
             # if there are still any remaining problematic cols,
             # we now issue an error
             if len(problem_columns) > 0:
-                col_str = ', '.join([col_str_formatter(x) for x in problem_columns])
-                error_message = NON_INTEGER_ERROR.format(cols=col_str)
+                error_message = NON_INTEGER_ERROR
                 return (False, error_message)
             
         return (True, None)

@@ -76,7 +76,7 @@ class ResourceDownload(APIView):
                 mime_type, _ = mimetypes.guess_type(url)
                 response = HttpResponse(content = contents)
                 response['Content-Type'] = mime_type
-                response['Content-Disposition'] = 'attachment; filename=%s' % os.path.basename(url)
+                response['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(url)
                 return response
             else:
                 logger.error('Local storage was specified, but the resource at path {p}'

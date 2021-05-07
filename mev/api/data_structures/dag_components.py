@@ -34,7 +34,7 @@ class DagNode(object):
 
     NODE_TYPES = [OP_NODE, DATARESOURCE_NODE]
 
-    def __init__(self, node_id, node_type, node_name = ''):
+    def __init__(self, node_id, node_type, node_name = '', op_data = None):
         if not node_type in DagNode.NODE_TYPES:
             raise Exception('Invalid node type. Choose from: {s}'.format(
             s = ', '.join(DagNode.NODE_TYPES)
@@ -43,6 +43,7 @@ class DagNode(object):
         self.node_type = node_type
         self.node_name = node_name
         self.parents = set()
+        self.op_data = op_data
         #TODO add other info
 
     def add_parent(self, new_parent):
@@ -57,6 +58,7 @@ class DagNode(object):
         node_info['node_type'] = self.node_type
         node_info['node_name'] = self.node_name
         node_info['parentIds'] = [x.node_id for x in self.parents]
+        node_info['data'] = self.op_data
         return node_info
 
     def __eq__(self, other):

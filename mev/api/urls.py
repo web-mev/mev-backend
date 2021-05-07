@@ -75,6 +75,7 @@ urlpatterns = [
     path('executed-operations/', api.views.ExecutedOperationList.as_view(), name='executed-operation-list'),
     path('executed-operations/workspace/<uuid:workspace_pk>/', api.views.WorkspaceExecutedOperationList.as_view(), name='workspace-executed-operation-list'),
     path('executed-operations/workspace/<uuid:workspace_pk>/tree/', api.views.WorkspaceTreeView.as_view(), name='executed-operation-tree'),
+    path('executed-operations/workspace/<uuid:workspace_pk>/tree/save/', api.views.WorkspaceTreeSave.as_view(), name='executed-operation-tree-save'),
     path('executed-operations/<uuid:exec_op_uuid>/', api.views.ExecutedOperationCheck.as_view(), name='operation-check'),
     path('operation-categories/', api.views.OperationCategoryList.as_view(), name='operation-category-list'),
     path('operation-categories/<str:category>/', api.views.OperationCategoryDetail.as_view(), name='operation-category-detail'),

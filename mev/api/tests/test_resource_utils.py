@@ -32,15 +32,17 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     handle_invalid_resource, \
     check_extension, \
     add_metadata_to_resource, \
-    get_resource_by_pk
+    get_resource_by_pk, \
+    write_resource
 from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
 from api.exceptions import NoResourceFoundException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
-TESTDIR = os.path.dirname(__file__)
-TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
+BASE_TESTDIR = os.path.dirname(__file__)
+TESTDIR = os.path.join(BASE_TESTDIR, 'operation_test_files')
+VAL_TESTDIR = os.path.join(BASE_TESTDIR, 'resource_validation_test_files')
 
 class TestResourceUtilities(BaseAPITestCase):
     '''
@@ -598,3 +600,104 @@ class TestResourceUtilities(BaseAPITestCase):
         )
         mock_serializer2.save.assert_called()
 
+    @mock.patch('api.utilities.resource_utilities.make_local_directory')
+    @mock.patch('api.utilities.resource_utilities.os')
+    def test_resource_write_dir_fails(self, mock_os, mock_make_local_directory):
+        '''
+        Tests the case where we fail to create a directory
+        to write into. Check that this is handled appropriately.
+        '''
+        mock_os.path.dirname.return_value = '/some/dir'
+        mock_os.path.exists.return_value = False
+        mock_make_local_directory.side_effect = Exception('something bad happened!')
+        with self.assertRaises(Exception):
+            write_resource('some content', '')
+
+    @mock.patch('api.utilities.resource_utilities.make_local_directory')
+    def test_resource_write_works_case1(self, mock_make_local_directory):
+        '''
+        Tests that we do, in fact, write correctly.
+        Here, we use the /tmp folder, which exists
+        '''
+        self.assertTrue(os.path.exists('/tmp'))
+        destination = '/tmp/some_file.txt'
+        content = 'some content'
+        write_resource(content, destination)
+        self.assertTrue(os.path.exists(destination))
+        read_content = open(destination).read()
+        self.assertEqual(read_content, content)
+        mock_make_local_directory.assert_not_called()
+        # cleanup
+        os.remove(destination)
+
+    def test_resource_write_works_case2(self):
+        '''
+        Tests that we do, in fact, write correctly.
+        Here, we write in a folder which doesn't already exist
+        '''
+        self.assertFalse(os.path.exists('/tmp/foo'))
+        destination = '/tmp/foo/some_file.txt'
+        content = 'some content'
+        write_resource(content, destination)
+        self.assertTrue(os.path.exists(destination))
+        read_content = open(destination).read()
+        self.assertEqual(read_content, content)
+        # cleanup
+        os.remove(destination)
+        os.removedirs('/tmp/foo')
+
+    def test_resource_write_only_writes_string(self):
+        '''
+        Tests that this function only handles strings.
+        Below, we try to have it write a dict and that 
+        should not work
+        '''
+        destination = '/tmp/some_file.txt'
+        content = {'some_key': 'some_val'}
+        with self.assertRaises(AssertionError):
+            write_resource(content, destination)
+
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    def test_metadata_when_type_changed(self, mock_move_resource_to_final_location):
+        '''
+        Checks that the update of resource metadata is updated. Related to a bug where
+        a file was initially set to a general type (and thus the metadata was effectively empty).
+        After trying to validate it as an annotation type, it was raising json serializer errors.
+        '''
+        resource_path = os.path.join(VAL_TESTDIR, 'test_annotation_valid.tsv')
+        mock_move_resource_to_final_location.return_value = resource_path
+        r = Resource.objects.create(
+            name = 'test_annotation_valid.tsv',
+            owner = self.regular_user_1,
+            is_active=True,
+            path = resource_path,
+            resource_type = '*'
+        )
+        validate_resource(r, '*')
+        rm = ResourceMetadata.objects.get(resource=r)
+        self.assertTrue(rm.observation_set is None)
+        validate_resource(r, 'ANN')
+        rm = ResourceMetadata.objects.get(resource=r)
+        self.assertFalse(rm.observation_set is None)
+
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    def test_metadata_when_type_changed_case2(self, mock_move_resource_to_final_location):
+        resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
+        mock_move_resource_to_final_location.return_value = resource_path
+        r = Resource.objects.create(
+            name = 'test_annotation_valid.tsv',
+            owner = self.regular_user_1,
+            is_active=True,
+            path = resource_path,
+            resource_type = '*'
+        )
+        validate_resource(r, '*')
+        rm = ResourceMetadata.objects.get(resource=r)
+        self.assertTrue(rm.observation_set is None)
+        r.save()
+        validate_resource(r, 'MTX')
+        rm = ResourceMetadata.objects.get(resource=r)
+        obs_set = rm.observation_set
+        samples = [x['id'] for x in obs_set['elements']]
+        expected = ['SW1_Control','SW2_Control','SW3_Control','SW4_Treated','SW5_Treated','SW6_Treated']
+        self.assertCountEqual(samples, expected)
