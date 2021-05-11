@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied, ParseError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import permissions as framework_permissions
 
 from api.utilities.operations import create_workspace_dag
 from api.utilities.resource_utilities import validate_and_store_resource, write_resource
@@ -41,12 +42,20 @@ class WorkspaceTreeBase(object):
 
 class WorkspaceTreeView(APIView, WorkspaceTreeBase):
 
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
+
     def get(self, request, *args, **kwargs):
         dag = self.get_tree(request, *args, **kwargs)
         return Response(dag)
 
 
 class WorkspaceTreeSave(APIView, WorkspaceTreeBase):
+
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
 
     def get(self, request, *args, **kwargs):
         timestamp_str = datetime.datetime.now().strftime('%m-%d-%Y-%H-%M-%S')
