@@ -66,7 +66,8 @@ DJANGO_SECRET_KEY=${django_secret}
 # e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
 # Also need to add the network internal IP, which we can query from the metadata
 INTERNAL_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
-DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP
+LOAD_BALANCER_IP=${load_balancer_ip}
+DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
 
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
@@ -406,6 +407,9 @@ mkdir -p /opt/software/mev-backend/mev/resource_cache
 mkdir -p /opt/software/mev-backend/mev/operation_staging
 mkdir -p /opt/software/mev-backend/mev/operations
 mkdir -p /opt/software/mev-backend/mev/operation_executions
+
+# Change the ownership so we have write permissions.
+chown -R mev:mev /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
