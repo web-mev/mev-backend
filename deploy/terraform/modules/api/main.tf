@@ -21,6 +21,7 @@ resource "google_compute_instance" "mev_server" {
         django_secret = var.django_secret
         cromwell_bucket = var.cromwell_bucket,
         frontend_domain = var.frontend_domain,
+        other_cors_origins = var.other_cors_origins,
         django_superuser_email = var.django_superuser_email,
         django_superuser_passwd = var.django_superuser_passwd,
         mev_storage_bucket = var.mev_storage_bucket,

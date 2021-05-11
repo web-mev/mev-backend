@@ -1,4 +1,3 @@
-environment = ""
 project_id = ""
 credentials_file = ""
 cromwell_machine_config = {
@@ -17,6 +16,7 @@ branch = ""
 managed_dns_zone = ""
 domain = ""
 frontend_domain = ""
+other_cors_origins = ""
 db_user = ""
 root_db_passwd = ""
 db_passwd = ""

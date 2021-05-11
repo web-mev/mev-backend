@@ -17,11 +17,11 @@ provider "google" {
 
 
 resource "google_compute_network" "mev_api_network" {
-    name           = "mev-${var.environment}-network"    
+    name           = "mev-${terraform.workspace}-network"    
 }
 
 resource "google_compute_firewall" "mev_firewall" {
-  name    = "webmev-ssh-firewall-${var.environment}"
+  name    = "webmev-ssh-firewall-${terraform.workspace}"
   network = google_compute_network.mev_api_network.name
 
   allow {
@@ -29,14 +29,14 @@ resource "google_compute_firewall" "mev_firewall" {
     ports    = ["22"]
   }
 
-  target_tags = ["allow-ssh-${var.environment}"]
+  target_tags = ["allow-ssh-${terraform.workspace}"]
 
 }
 
 module "cromwell" {
     source = "../modules/cromwell"
     project_id = var.project_id
-    environment = var.environment
+    environment = terraform.workspace
     network = google_compute_network.mev_api_network.name
     cromwell_machine_config = var.cromwell_machine_config
     cromwell_os_image = var.cromwell_os_image
@@ -45,14 +45,14 @@ module "cromwell" {
     cromwell_db_user = var.cromwell_db_user
     cromwell_db_password = var.cromwell_db_password
     branch = var.branch
-    ssh_tag = "allow-ssh-${var.environment}"
+    ssh_tag = "allow-ssh-${terraform.workspace}"
 }
 
 module "api" {
     source = "../modules/api"
     network = google_compute_network.mev_api_network.name
-    environment = var.environment
-    ssh_tag = "allow-ssh-${var.environment}"
+    environment = terraform.workspace
+    ssh_tag = "allow-ssh-${terraform.workspace}"
     cromwell_ip = module.cromwell.cromwell_ip
     api_machine_config = var.api_machine_config
     api_os_image = var.api_os_image
@@ -68,6 +68,7 @@ module "api" {
     cromwell_bucket = var.cromwell_bucket
     django_secret = var.django_secret
     frontend_domain = var.frontend_domain
+    other_cors_origins = var.other_cors_origins
     django_superuser_email = var.django_superuser_email
     django_superuser_passwd = var.django_superuser_passwd
     mev_storage_bucket = var.mev_storage_bucket
@@ -89,7 +90,7 @@ module "api" {
 
 resource "google_compute_global_address" "private_ip_address" {
 
-  name          = "mev-${var.environment}-private-ip-address"
+  name          = "mev-${terraform.workspace}-private-ip-address"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
@@ -110,7 +111,7 @@ resource "random_id" "db_name_suffix" {
 resource "google_sql_database_instance" "mev_db_instance" {
 
   database_version = "POSTGRES_12"
-  name   = "mev-test-${var.environment}-db-${random_id.db_name_suffix.hex}"
+  name   = "mev-test-${terraform.workspace}-db-${random_id.db_name_suffix.hex}"
   region = var.region
   deletion_protection = false
   depends_on = [google_service_networking_connection.private_vpc_connection]

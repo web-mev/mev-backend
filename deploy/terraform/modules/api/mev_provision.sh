@@ -71,7 +71,7 @@ DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
 # at a different domain. Include protocol and ports
-DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN
+DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN,${other_cors_origins}
 
 
 # For automatically creating an admin, supply the following:
