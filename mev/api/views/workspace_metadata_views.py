@@ -4,6 +4,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework import permissions as framework_permissions
 
 from api.models import Workspace, ResourceMetadata
 from api.serializers.observation import NullableObservationSerializer
@@ -114,6 +115,10 @@ class WorkspaceMetadataObservationsView(ListAPIView, WorkspaceMetadataBase):
     set_serializer_class = NullableObservationSetSerializer
     serializer_class = NullableObservationSerializer
 
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
+
     def get_queryset(self):
         x = self.fetch_metadata(OBSERVATION_SET_KEY)
         if x:
@@ -128,6 +133,10 @@ class WorkspaceMetadataFeaturesView(ListAPIView, WorkspaceMetadataBase):
 
     set_serializer_class = NullableFeatureSetSerializer
     serializer_class = NullableFeatureSerializer
+
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
 
     def get_queryset(self):
         x = self.fetch_metadata(FEATURE_SET_KEY)
