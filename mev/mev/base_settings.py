@@ -367,10 +367,10 @@ MAX_DOWNLOAD_SIZE_BYTES = float(get_env('MAX_DOWNLOAD_SIZE_BYTES'))
 
 # To sign URLs for download.
 # TODO: can we make this a bit more provider-agnostic?
-# if STORAGE_LOCATION == REMOTE:
-#     STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
-# else:
-#     STORAGE_CREDENTIALS = ''
+if STORAGE_LOCATION == REMOTE:
+    STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
+else:
+    STORAGE_CREDENTIALS = ''
 ###############################################################################
 # END Parameters for configuring resource storage
 ###############################################################################
