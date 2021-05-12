@@ -68,7 +68,7 @@ class ResourceDownload(APIView):
             logger.error('Encountered a problem when preparing download for resource'
                 ' with pk={u}'.format(u=resource_pk)
             )
-            return Response(status=status.HTTP_500_SERVER_ERROR)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if storage_backend.is_local_storage:
             if os.path.exists(url):
@@ -81,6 +81,6 @@ class ResourceDownload(APIView):
             else:
                 logger.error('Local storage was specified, but the resource at path {p}'
                     ' was not found.'.format(p=url))
-                return Response(status = status.HTTP_500_SERVER_ERROR)
+                return Response(status = status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return HttpResponseRedirect(url)
