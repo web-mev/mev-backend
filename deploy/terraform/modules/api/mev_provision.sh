@@ -380,11 +380,14 @@ else
     export DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
 
+# Generate a set of keys for signing the download URL for bucket-base files.
+export STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
+gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
+chown mev:mev $STORAGE_CREDENTIALS
 
 # First restart supervisor since it needs access to the
 # environment variables (can only read those that are defined
 # when the supervisor daemon starts)
-
 service supervisor stop
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread
@@ -429,10 +432,6 @@ cp -r /opt/software/mev-backend/mev/static /www/static
 if [ $POPULATE_DB = 'yes' ]; then
     /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py populate_db
 fi
-
-# Generate a set of keys for signing the download URL for bucket-base files.
-export STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
-gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
 
 # Add on "static" operations, such as the dropbox uploaders, etc.
 # Other operations (such as those used for a differential expression
