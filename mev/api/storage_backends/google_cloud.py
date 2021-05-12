@@ -25,9 +25,8 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
 
     def __init__(self):
         super().__init__()
-        #creds = service_account.Credentials.from_service_account_file(settings.STORAGE_CREDENTIALS)
-        #self.storage_client = storage.Client(credentials=creds)     
-        self.storage_client = storage.Client()     
+        creds = service_account.Credentials.from_service_account_file(settings.STORAGE_CREDENTIALS)
+        self.storage_client = storage.Client(credentials=creds)     
 
     def get_bucket_region(self, bucket_name):
         '''

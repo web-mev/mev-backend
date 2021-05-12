@@ -81,6 +81,7 @@ module "api" {
     dockerhub_username = var.dockerhub_username
     dockerhub_passwd = var.dockerhub_passwd
     branch = var.branch
+    service_account_email = var.service_account_email
 }
 
 

@@ -35,7 +35,8 @@ resource "google_compute_instance" "mev_server" {
         sentry_url = var.sentry_url,
         dockerhub_username = var.dockerhub_username,
         dockerhub_passwd = var.dockerhub_passwd,
-        branch = var.branch
+        branch = var.branch,
+        service_account_email = var.service_account_email
     }
 )
 
@@ -53,6 +54,7 @@ resource "google_compute_instance" "mev_server" {
   }
 
   service_account {
+      email = var.service_account_email
       scopes = ["cloud-platform"]
   }
 }
@@ -99,7 +101,6 @@ resource "google_compute_instance_group" "mev_api_ig" {
     port = "80"
   }
 
-  #zone = var.zone
 }
 
 

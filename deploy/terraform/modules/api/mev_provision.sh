@@ -168,9 +168,10 @@ STORAGE_BUCKET_NAME=${mev_storage_bucket}
 # like via Dropbox.
 MAX_DOWNLOAD_SIZE_BYTES=5.12e8
 
-# For signing download URLs we need a credentials file
-# TODO- see if we actually need this once we un-dockerize.
-#STORAGE_CREDENTIALS=
+# For signing download URLs we need a credentials file. To create that, we need a
+# service account with appropriate privileges. This variable is the full name of that
+# service account file (e.g. <id>@project.iam.gserviceaccount.com)
+SERVICE_ACCOUNT=${service_account_email}
 
 ###################### END Storage-related parameters ######################################
 
@@ -428,6 +429,10 @@ cp -r /opt/software/mev-backend/mev/static /www/static
 if [ $POPULATE_DB = 'yes' ]; then
     /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py populate_db
 fi
+
+# Generate a set of keys for signing the download URL for bucket-base files.
+export STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
+gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
 
 # Add on "static" operations, such as the dropbox uploaders, etc.
 # Other operations (such as those used for a differential expression

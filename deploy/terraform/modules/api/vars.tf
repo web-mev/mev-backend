@@ -133,3 +133,7 @@ variable "branch" {
 variable "other_cors_origins" {
   description = "Additional frontend origins which should be permitted. Can be used so that local frontend development can communicate with the backend. This is in addition to the primary frontend domain this app will serve. Provided as a comma-delimited string"
 }
+
+variable "service_account_email" {
+  description = "The email-like identifier of the service account attached to the VM instance. Must have adequate permissions."
+}
