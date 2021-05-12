@@ -41,7 +41,10 @@ resource "google_compute_instance" "cromwell" {
 
   network_interface {
     network = var.network
-    access_config {
-    }
+  }
+
+  service_account {
+      email = var.service_account_email
+      scopes = ["cloud-platform"]
   }
 }

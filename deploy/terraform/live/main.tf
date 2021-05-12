@@ -46,6 +46,7 @@ module "cromwell" {
     cromwell_db_password = var.cromwell_db_password
     branch = var.branch
     ssh_tag = "allow-ssh-${terraform.workspace}"
+    service_account_email = var.service_account_email
 }
 
 module "api" {

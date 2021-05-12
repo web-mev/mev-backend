@@ -59,5 +59,9 @@ variable "branch" {
 }
 
 variable "ssh_tag" {
+    description = "Used to tag the VM instance to allow SSH connections"
+}
 
+variable "service_account_email" {
+  description = "The email-like identifier of the service account attached to the VM instance. Must have adequate permissions."
 }

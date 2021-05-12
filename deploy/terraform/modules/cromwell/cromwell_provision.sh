@@ -64,6 +64,10 @@ python3 fill_conf.py \
 # Copy the supervisor conf files to the appropriate dir:
 cp cromwell_server.supervisor.conf /etc/supervisor/conf.d/
 
+# Change ownership- was failing on permissions to write
+mkdir /cromwell-workflow-logs
+chown cromwell-runner:cromwell-runner /cromwell-workflow-logs
+
 # Ensure we can reach the database...
 echo "Waiting for database..."
 while ! nc -z localhost 5432; do
