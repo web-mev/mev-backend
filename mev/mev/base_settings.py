@@ -11,6 +11,9 @@ from django.utils.module_loading import import_string
 
 from .settings_helpers import get_env
 
+print('+'*200)
+print(os.environ)
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,6 +26,8 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
     x for x in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',') if len(x) > 0
 ]
+print(CORS_ORIGIN_WHITELIST)
+print('+'*200)
 CORS_EXPOSE_HEADERS = ['Content-Disposition']
 
 # Application definition
