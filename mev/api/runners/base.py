@@ -172,13 +172,14 @@ class OperationRunner(object):
             try:
                 spec = op_spec_outputs[k]['spec']
             except KeyError as ex:
-                logger.error('Could not locate the output with key={k} in'
+                error_msg = ('Could not locate the output with key={k} in'
                     ' the outputs of operation with ID: {id}'.format(
                         k = k,
                         id = str(executed_op.operation.id)
                     )
                 )
-                alert_admins()
+                logger.info(error_msg)
+                alert_admins(error_msg)
             else:
                 if v is not None:
                     logger.info('Executed operation output was not None. Convert.')

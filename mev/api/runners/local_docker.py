@@ -107,6 +107,8 @@ class LocalDockerRunner(OperationRunner):
             # collect the errors that are  reported in the logs
             log_msg = get_logs(job_id)
             executed_op.error_messages = [log_msg,]
+            alert_admins(log_msg)
+            
         else:
             logger.info('Container exit code was zero. Fetch outputs.')
             # read the outputs json file and convert to mev-compatible outputs:
@@ -127,7 +129,7 @@ class LocalDockerRunner(OperationRunner):
                 # raised, mark the job failed.
                 executed_op.job_failed = True
                 executed_op.status = str(ex)
-                alert_admins()
+                alert_admins(str(ex))
 
         # finally, we cleanup the docker container
         remove_container(job_id)
@@ -307,4 +309,4 @@ class LocalDockerRunner(OperationRunner):
             executed_op.execution_stop_datetime = datetime.datetime.now()
             executed_op.status = ExecutedOperation.ADMIN_NOTIFIED
             executed_op.save()
-            alert_admins()
+            alert_admins(str(ex))

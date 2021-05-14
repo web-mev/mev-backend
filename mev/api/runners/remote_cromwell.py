@@ -324,12 +324,13 @@ class RemoteCromwellRunner(OperationRunner):
                 executed_op.status = status
 
         else:
-            logger.info('Received a response code of {rc} when submitting job'
+            error_msg = ('Received a response code of {rc} when submitting job'
                 ' to the remote Cromwell runner.'.format(
                     rc = response.status_code
                 )
-            )
-            alert_admins()
+            ) 
+            logger.info(error_msg)
+            alert_admins(error_msg)
             executed_op.status = 'Not submitted. Try again later. Admins have been notified.'
         executed_op.save()
 
@@ -420,14 +421,15 @@ class RemoteCromwellRunner(OperationRunner):
             outputs_dict = job_metadata['outputs']
         except KeyError as ex:
             outputs_dict = {}
-            logger.info('The job metadata payload received from executed op ({op_id})'
+            error_msg = ('The job metadata payload received from executed op ({op_id})'
                 ' with Cromwell ID {cromwell_id} did not contain the "outputs"'
                 ' key in the payload'.format(
                     cromwell_id = job_id,
                     op_id = executed_op.id
                 )
             )
-            alert_admins()
+            logger.info(error_msg)
+            alert_admins(error_msg)
 
         # instantiate the output converter class which will take the job outputs
         # and create MEV-compatible data structures or resources:
@@ -470,7 +472,10 @@ class RemoteCromwellRunner(OperationRunner):
         executed_op.status = ('Experienced an unexpected response'
             ' when querying for the job status. Admins have been notified.'
         )
-        alert_admins()
+        alert_admins(
+            'Experienced an unexpected response when querying for '
+            'the job status of op: {op_id}.'.format(op_id=executed_op.job_id)
+        )
 
     def finalize(self, executed_op):
         '''

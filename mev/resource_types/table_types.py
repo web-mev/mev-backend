@@ -353,7 +353,13 @@ class TableResource(DataResource):
 
         if any([x in self.IGNORED_QUERY_PARAMS for x in table_cols]):
             logger.warning('One of the column names conflicted with the pagination query params.')
-            alert_admins()
+            alert_admins('Edge-case error: when filtering on a column, one of the column names'
+                ' conflicted with the pagination query params. Query params was: {p} and column'
+                ' names were: {c}'.format(
+                    p = query_params,
+                    c = ','.join(table_cols)
+                )
+            )
         filters = []
 
         # used to map the pandas native type to a MEV-type so we can do type casting consistently
@@ -419,7 +425,7 @@ class TableResource(DataResource):
                     raise ParseException('Error encountered with filter on rows.'
                         ' Admin has been notified.'
                     )
-                    alert_admins()
+                    alert_admins('Error when attempting to perform a row filter. Exception was: {x}'.format(x=ex))
             else:
                 raise ParseException('The column "{c}" is not available for filtering.'.format(c=k))
         if len(filters) > 1:
