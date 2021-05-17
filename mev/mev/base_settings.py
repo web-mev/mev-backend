@@ -518,7 +518,7 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 DOCKERHUB_USERNAME = get_env('DOCKERHUB_USERNAME')
 DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
 
-if (len(DOCKERHUB_USERNAME) == 0) || (len(DOCKERHUB_PASSWORD) == 0) :
+if (len(DOCKERHUB_USERNAME) == 0) or (len(DOCKERHUB_PASSWORD) == 0) :
     raise ImportError('The dockerhub username or password was blank.')
 
 DOCKERHUB_ORG = get_env('DOCKERHUB_ORG')
