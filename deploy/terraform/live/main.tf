@@ -81,7 +81,7 @@ module "api" {
     sentry_url = var.sentry_url
     dockerhub_username = var.dockerhub_username
     dockerhub_passwd = var.dockerhub_passwd
-    dockerhub_org = var.dockerhub_org,
+    dockerhub_org = var.dockerhub_org
     branch = var.branch
     service_account_email = var.service_account_email
     ssl_cert = var.ssl_cert
