@@ -35,6 +35,7 @@ resource "google_compute_instance" "mev_server" {
         sentry_url = var.sentry_url,
         dockerhub_username = var.dockerhub_username,
         dockerhub_passwd = var.dockerhub_passwd,
+        dockerhub_org = var.dockerhub_org,
         branch = var.branch,
         service_account_email = var.service_account_email
     }
@@ -75,7 +76,7 @@ resource "google_compute_firewall" "allow_hc_firewall" {
 }
 
 resource "google_compute_global_address" "lb-static-ip" {
-  name = "webmev-${var.environment}-lb-static-address"
+  name = "webmev-backend-${var.environment}-lb-static-address"
 }
 
 
@@ -156,18 +157,8 @@ resource "google_compute_url_map" "urlmap" {
 resource "google_compute_target_https_proxy" "mev_backend_lb" {
   name             = "backend-${var.environment}-https-proxy"
   url_map          = google_compute_url_map.urlmap.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.backend_ssl_cert.id]
+  ssl_certificates = [var.ssl_cert]
 }
-
-
-resource "google_compute_managed_ssl_certificate" "backend_ssl_cert" {
-  name = "mev-api-${var.environment}-ssl-cert"
-
-  managed {
-    domains = ["${var.domain}."]
-  }
-}
-
 
 resource "google_compute_global_forwarding_rule" "https_fwd" {
   name       = "mev-api-${var.environment}-forwarding-rule"

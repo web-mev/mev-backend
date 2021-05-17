@@ -229,6 +229,10 @@ SENTRY_URL=${sentry_url}
 DOCKERHUB_USERNAME=${dockerhub_username}
 DOCKERHUB_PASSWORD=${dockerhub_passwd}
 
+# If we wish to associate the images with an organization account, specify this variable.
+# If not given (i.e. empty string), then images will be pushed to the username given above.
+DOCKERHUB_ORG=${dockerhub_org}
+
 ############################ END Dockerhub related parameters ######################################
 
 
@@ -437,7 +441,7 @@ fi
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
 # Temporarily commented to avoid the slow build.
-#/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
+/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
 
 # Start and wait for Redis. Redis needs to be ready before
 # celery starts.

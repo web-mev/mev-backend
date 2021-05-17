@@ -11,8 +11,9 @@ from django.utils.module_loading import import_string
 
 from .settings_helpers import get_env
 
-print('+'*200)
-print(os.environ)
+logger.info('+'*200)
+logger.info(os.environ)
+logger.info('+'*200)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -516,6 +517,15 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 # from dockerhub at docker.io/xyz/<image>:<tag>
 DOCKERHUB_USERNAME = get_env('DOCKERHUB_USERNAME')
 DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
+
+if (len(DOCKERHUB_USERNAME) == 0) || (len(DOCKERHUB_PASSWORD) == 0) :
+    raise ImportError('The dockerhub username or password was blank.')
+
+DOCKERHUB_ORG = get_env('DOCKERHUB_ORG')
+
+# If the org was blank, just use the username
+if len(DOCKERHUB_ORG) == 0:
+    DOCKERHUB_ORG = DOCKERHUB_USERNAME
 
 ###############################################################################
 # END Settings for Dockerhub

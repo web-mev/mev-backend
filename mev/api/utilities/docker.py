@@ -27,7 +27,7 @@ def build_docker_image(image, tag, dockerfile, context_dir):
         tag = 'latest'
     
     build_cmd = DOCKER_BUILD_CMD.format(
-        username = settings.DOCKERHUB_USERNAME,
+        username = settings.DOCKERHUB_ORG,
         image = image.lower(),
         tag = tag,
         dockerfile = dockerfile,
@@ -57,7 +57,7 @@ def push_image_to_dockerhub(image, tag):
     IMAGE_STR = '{username}/{image}:{tag}'
     DOCKER_PUSH_CMD = 'docker push {img_str}'
     image_str = IMAGE_STR.format(
-        username = settings.DOCKERHUB_USERNAME,
+        username = settings.DOCKERHUB_ORG,
         image = image.lower(),
         tag = tag
     )

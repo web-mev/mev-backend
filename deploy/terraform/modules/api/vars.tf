@@ -121,6 +121,11 @@ variable "dockerhub_passwd" {
   description = "The password for your Dockerhub account"
 }
 
+variable "dockerhub_org" {
+  description = "The organization of your Dockerhub user, which determines where any Docker images will be stored. If not supplied, images will be pushed to the user account."
+  default = ""
+}
+
 variable "cromwell_bucket" {
   description = "Name of the bucket where Cromwell will place its files. Do NOT include the gs prefix."
 }
@@ -136,4 +141,8 @@ variable "other_cors_origins" {
 
 variable "service_account_email" {
   description = "The email-like identifier of the service account attached to the VM instance. Must have adequate permissions."
+}
+
+variable "ssl_cert" {
+  description = "The identifiers for the SSL certificate to use for the load balancer."
 }

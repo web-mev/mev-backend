@@ -158,10 +158,19 @@ variable "dockerhub_passwd" {
   description = "The password for your Dockerhub account"
 }
 
+variable "dockerhub_org" {
+  description = "The organization of your Dockerhub user, which determines where any Docker images will be stored. If not supplied, images will be pushed to the user account."
+  default = ""
+}
+
 variable "other_cors_origins" {
   description = "Additional frontend origins which should be permitted. Can be used so that local frontend development can communicate with the backend. This is in addition to the primary frontend domain this app will serve. Provided as a comma-delimited string"
 }
 
 variable "service_account_email" {
   description = "The email-like identifier of the service account attached to the VM instance. Must have adequate permissions."
+}
+
+variable "ssl_cert" {
+  description = "The identifiers for the SSL certificate to use for the load balancer."
 }

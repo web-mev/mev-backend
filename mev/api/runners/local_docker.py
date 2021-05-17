@@ -54,7 +54,7 @@ class LocalDockerRunner(OperationRunner):
     DOCKER_RUN_CMD = ('docker run -d --name {container_name}'
         ' -v {execution_mount}:/{work_dir}'
         ' --env WORKDIR={job_dir}'
-        ' --entrypoint="" {username}/{image}:{tag} {cmd}')
+        ' --entrypoint="" {repo_name}/{image}:{tag} {cmd}')
 
     def check_status(self, job_uuid):
         container_is_running = check_if_container_running(job_uuid)
@@ -290,7 +290,7 @@ class LocalDockerRunner(OperationRunner):
             work_dir = settings.OPERATION_EXECUTION_DIR,
             job_dir = execution_dir,
             cmd = entrypoint_cmd,
-            username = settings.DOCKERHUB_USERNAME,
+            repo_name = settings.DOCKERHUB_ORG,
             image = op_data['repo_name'].lower(),
             tag = op_data['git_hash']
         )

@@ -17,11 +17,11 @@ provider "google" {
 
 
 resource "google_compute_network" "mev_api_network" {
-    name           = "mev-${terraform.workspace}-network"    
+    name           = "webmev-backend-${terraform.workspace}-network"    
 }
 
 resource "google_compute_firewall" "mev_firewall" {
-  name    = "webmev-ssh-firewall-${terraform.workspace}"
+  name    = "webmev-backend-ssh-firewall-${terraform.workspace}"
   network = google_compute_network.mev_api_network.name
 
   allow {
@@ -29,7 +29,7 @@ resource "google_compute_firewall" "mev_firewall" {
     ports    = ["22"]
   }
 
-  target_tags = ["allow-ssh-${terraform.workspace}"]
+  target_tags = ["webmev-backend-allow-ssh-${terraform.workspace}"]
 
 }
 
@@ -45,7 +45,7 @@ module "cromwell" {
     cromwell_db_user = var.cromwell_db_user
     cromwell_db_password = var.cromwell_db_password
     branch = var.branch
-    ssh_tag = "allow-ssh-${terraform.workspace}"
+    ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     service_account_email = var.service_account_email
 }
 
@@ -53,7 +53,7 @@ module "api" {
     source = "../modules/api"
     network = google_compute_network.mev_api_network.name
     environment = terraform.workspace
-    ssh_tag = "allow-ssh-${terraform.workspace}"
+    ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     cromwell_ip = module.cromwell.cromwell_ip
     api_machine_config = var.api_machine_config
     api_os_image = var.api_os_image
@@ -81,8 +81,10 @@ module "api" {
     sentry_url = var.sentry_url
     dockerhub_username = var.dockerhub_username
     dockerhub_passwd = var.dockerhub_passwd
+    dockerhub_org = var.dockerhub_org,
     branch = var.branch
     service_account_email = var.service_account_email
+    ssl_cert = var.ssl_cert
 }
 
 
@@ -92,7 +94,7 @@ module "api" {
 
 resource "google_compute_global_address" "private_ip_address" {
 
-  name          = "mev-${terraform.workspace}-private-ip-address"
+  name          = "webmev-backend-${terraform.workspace}-private-ip-address"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
@@ -113,7 +115,7 @@ resource "random_id" "db_name_suffix" {
 resource "google_sql_database_instance" "mev_db_instance" {
 
   database_version = "POSTGRES_12"
-  name   = "mev-test-${terraform.workspace}-db-${random_id.db_name_suffix.hex}"
+  name   = "webmev-${terraform.workspace}-db-${random_id.db_name_suffix.hex}"
   region = var.region
   deletion_protection = false
   depends_on = [google_service_networking_connection.private_vpc_connection]
@@ -121,7 +123,7 @@ resource "google_sql_database_instance" "mev_db_instance" {
   settings {
     tier = "db-g1-small"
     availability_type = "ZONAL"
-    disk_size = 10
+    disk_size = 30
     disk_type = "PD_SSD"
     disk_autoresize = true
 
