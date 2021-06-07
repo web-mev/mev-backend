@@ -121,7 +121,7 @@ CLOUD_PLATFORM=GOOGLE
 # Will you be using one of the remote job runners?
 # Case-sensitive "yes" (without quotes) will enable. Otherwise we will
 # not enable remote job runs
-ENABLE_REMOTE_JOB_RUNNERS=yes
+ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
 
 # Which remote job runners will be used?
 # Doesn't matter if the ENABLE_REMOTE_JOB_RUNNERS is "false"
@@ -148,7 +148,7 @@ REMOTE_JOB_RUNNERS=CROMWELL
 # then you are REQUIRED to use bucket storage. You can only use local storage if all
 # your runners are local.
 # Options include "local" and "remote"
-STORAGE_LOCATION=remote
+STORAGE_LOCATION=${storage_location}
 
 # If using local storage for all files (not recommended since sequencing files
 # could consume large amount of disk space), set the following:
@@ -359,28 +359,33 @@ touch /var/log/mev/celery_beat.log  \
 # Give the mev user ownership of the code directory and the logging directory
 chown -R mev:mev /opt/software /var/log/mev /www
 
-# Create the postgres database...
-# Extract the shorter database hostname from the full string. Django looks 
-# for this environment variable
-export DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
-
-# Need to set a password for the default postgres user
-gcloud beta sql users set-password postgres --instance=$DB_HOST --password $ROOT_DB_PASSWD
-
-# Download the cloud SQL proxy
-cd /opt/software && mkdir database && cd database
-CLOUD_SQL_PROXY_VERSION=v1.21.0
-wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
-chmod +x cloud_sql_proxy
-
-export CLOUD_SQL_MOUNT=/cloudsql
-export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
-
 # Specify the appropriate settings file.
 # We do this here so it's prior to cycling the supervisor daemon
 if [ $ENVIRONMENT = 'dev' ]; then
+
+    # create a local postgres database
+
+    export DB_HOST_SOCKET=""
+
     export DJANGO_SETTINGS_MODULE=mev.settings_dev
 else
+    # Create the postgres database...
+    # Extract the shorter database hostname from the full string. Django looks 
+    # for this environment variable
+    export DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
+
+    # Need to set a password for the default postgres user
+    gcloud beta sql users set-password postgres --instance=$DB_HOST --password $ROOT_DB_PASSWD
+
+    # Download the cloud SQL proxy
+    cd /opt/software && mkdir database && cd database
+    CLOUD_SQL_PROXY_VERSION=v1.21.0
+    wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
+    chmod +x cloud_sql_proxy
+
+    export CLOUD_SQL_MOUNT=/cloudsql
+    export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
+
     export DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
 
@@ -395,7 +400,9 @@ chown mev:mev $STORAGE_CREDENTIALS
 service supervisor stop
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread
-supervisorctl start cloud_sql_proxy
+if [ $ENVIRONMENT != 'dev' ]; then
+  supervisorctl start cloud_sql_proxy
+fi
 
 # Give it some time to setup the socket to the db
 sleep 10

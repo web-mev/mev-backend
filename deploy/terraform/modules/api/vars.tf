@@ -146,3 +146,11 @@ variable "service_account_email" {
 variable "ssl_cert" {
   description = "The identifiers for the SSL certificate to use for the load balancer."
 }
+
+variable "enable_remote_job_runners" {
+  description = "Whether we will be using the remote job runners like Cromwell"
+}
+
+variable "storage_location" {
+  description = "Where the data will be stored. One of remote or local"
+}

@@ -85,11 +85,9 @@ module "api" {
     branch = var.branch
     service_account_email = var.service_account_email
     ssl_cert = var.ssl_cert
+    storage_location = var.storage_location
+    enable_remote_job_runners = var.enable_remote_job_runners
 }
-
-
-
-
 
 
 resource "google_compute_global_address" "private_ip_address" {

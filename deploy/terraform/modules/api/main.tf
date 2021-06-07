@@ -26,6 +26,7 @@ resource "google_compute_instance" "mev_server" {
         django_superuser_email = var.django_superuser_email,
         django_superuser_passwd = var.django_superuser_passwd,
         mev_storage_bucket = var.mev_storage_bucket,
+        storage_location = var.storage_location,
         email_backend = var.email_backend,
         from_email = var.from_email,
         gmail_access_token = var.gmail_access_token,
@@ -37,6 +38,7 @@ resource "google_compute_instance" "mev_server" {
         dockerhub_passwd = var.dockerhub_passwd,
         dockerhub_org = var.dockerhub_org,
         branch = var.branch,
+        enable_remote_job_runners = var.enable_remote_job_runners,
         service_account_email = var.service_account_email
     }
 )
