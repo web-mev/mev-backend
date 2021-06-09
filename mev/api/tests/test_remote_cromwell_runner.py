@@ -297,6 +297,9 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
         # call the tested function
         rcr = RemoteCromwellRunner()
+        mock_convert_outputs = mock.MagicMock()
+        mock_convert_outputs.return_value = {}
+        rcr.convert_outputs = mock_convert_outputs
         rcr.finalize(self.executed_op)
 
         # query again to see changes were made to the db
