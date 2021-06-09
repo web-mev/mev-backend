@@ -73,7 +73,9 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
 
     @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
     @mock.patch('api.views.workspace_tree_views.datetime')
-    def test_tree_response(self, mock_datetime, mock_create_workspace_dag):
+    @mock.patch('api.views.workspace_tree_views.validate_and_store_resource')
+    def test_tree_response(self, mock_validate_and_store_resource, mock_datetime, mock_create_workspace_dag):
+
         workspaces = Workspace.objects.filter(owner=self.regular_user_1)
         if len(workspaces) == 0:
             raise ImproperlyConfigured('Need at least one workspace to run this')
@@ -102,19 +104,9 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         diff_set = list(set(final_resources).difference(set(orig_resources)))
         self.assertTrue(len(diff_set) == 1)
         new_resource = Resource.objects.get(pk=diff_set[0])
-        self.assertTrue(new_resource.is_active)
+
+        mock_validate_and_store_resource.assert_called()
         path = new_resource.path
-        expected_name = 'workspace_export.{w_id}.{t}.json'.format(
-            w_id = str(workspace.pk),
-            t = now.strftime('%m-%d-%Y-%H-%M-%S')
-        )
-        expected_basename = '{resource_id}.{b}'.format(
-            resource_id = str(new_resource.pk),
-            b = expected_name
-        )
-        self.assertEqual(os.path.basename(path), expected_basename)
-        self.assertEqual(new_resource.name, expected_name)
-       
         contents = json.load(open(path, 'r'))
         self.assertCountEqual(contents, expected_content)
         self.assertTrue(os.path.exists(path))

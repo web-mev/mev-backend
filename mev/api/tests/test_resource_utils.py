@@ -657,8 +657,10 @@ class TestResourceUtilities(BaseAPITestCase):
         with self.assertRaises(AssertionError):
             write_resource(content, destination)
 
+
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    def test_metadata_when_type_changed(self, mock_move_resource_to_final_location):
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_metadata_when_type_changed(self, mock_get_storage_backend, mock_move_resource_to_final_location):
         '''
         Checks that the update of resource metadata is updated. Related to a bug where
         a file was initially set to a general type (and thus the metadata was effectively empty).
@@ -666,6 +668,11 @@ class TestResourceUtilities(BaseAPITestCase):
         '''
         resource_path = os.path.join(VAL_TESTDIR, 'test_annotation_valid.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
+
+        mock_f = mock.MagicMock()
+        mock_f.get_local_resource_path.return_value = resource_path
+        mock_get_storage_backend.return_value = mock_f
+
         r = Resource.objects.create(
             name = 'test_annotation_valid.tsv',
             owner = self.regular_user_1,
@@ -681,9 +688,15 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertFalse(rm.observation_set is None)
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    def test_metadata_when_type_changed_case2(self, mock_move_resource_to_final_location):
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_metadata_when_type_changed_case2(self, mock_get_storage_backend, mock_move_resource_to_final_location):
         resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
+
+        mock_f = mock.MagicMock()
+        mock_f.get_local_resource_path.return_value = resource_path
+        mock_get_storage_backend.return_value = mock_f
+        
         r = Resource.objects.create(
             name = 'test_annotation_valid.tsv',
             owner = self.regular_user_1,
