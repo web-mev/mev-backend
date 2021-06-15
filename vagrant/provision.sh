@@ -145,7 +145,7 @@ REMOTE_JOB_RUNNERS=CROMWELL
 
 # the path to a JSON file containing the credentials to authenticate with the Google storage API.
 # The startup script will perform the authentication and place the credentials into this file.
-STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
+STORAGE_CREDENTIALS="/vagrant/storage_credentials.json"
 
 
 # the storage backend dictates where the "absolute" source of the files is. Of course,
@@ -262,7 +262,7 @@ CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 ########################## END Cromwell parameters #########################################
 
 # set the directory where the MEV src will live. Used by the supervisor conf files
-MEV_HOME=/opt/software/mev-backend/mev
+MEV_HOME=/vagrant/mev
 
 set +o allexport
 
@@ -324,10 +324,8 @@ cd /opt/software && \
   make && \
   make install
 
-# Get the MEV backend source and install the python packages:
-cd /opt/software && \
-  git clone https://github.com/web-mev/mev-backend.git && \
-  cd mev-backend && \
+# Install the python packages we'll need:
+cd /vagrant && \
   git checkout ${branch} && \
   cd mev && \
   /usr/local/bin/pip3 install -U pip && \
@@ -340,20 +338,16 @@ export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
 # Copy the various supervisor conf files to the appropriate locations
-# remove the following comment once we have integrated into the main project.
-# The location of the supervisor conf files will change once we have done that.
-cd /opt/software/mev-backend/deploy/mev/ && \
-  cp ./supervisor_conf_files/redis.conf /etc/supervisor/conf.d/ && \
-  cp ./supervisor_conf_files/celery_worker.conf /etc/supervisor/conf.d/ && \
-  cp ./supervisor_conf_files/celery_beat.conf /etc/supervisor/conf.d/ && \
-  cp ./supervisor_conf_files/gunicorn.conf /etc/supervisor/conf.d/
-if [ $ENVIRONMENT != 'dev' ]; then
-  cp ./supervisor_conf_files/cloud_sql_proxy.conf /etc/supervisor/conf.d/
-fi
+cd /vagrant/deploy/mev/supervisor_conf_files && \
+cp redis.conf /etc/supervisor/conf.d/ && \
+cp celery_worker.conf /etc/supervisor/conf.d/ && \
+cp celery_beat.conf /etc/supervisor/conf.d/ && \
+cp gunicorn.conf /etc/supervisor/conf.d/
+
 
 # Copy the nginx config file, removing the existing default
 rm -f /etc/nginx/sites-enabled/default
-cp nginx.conf /etc/nginx/sites-enabled/
+cp /vagrant/deploy/mev/nginx.conf /etc/nginx/sites-enabled/
 
 # Create the log directory and the dir from which nginx will
 # eventually serve static files
@@ -369,44 +363,19 @@ touch /var/log/mev/celery_beat.log  \
   /var/log/mev/redis.log
 
 # Give the mev user ownership of the code directory and the logging directory
-chown -R mev:mev /opt/software /var/log/mev /www
+chown -R mev:mev /var/log/mev /www
+ 
+# use localhost when we're in dev. the postgres server is local
+export DB_HOST_SOCKET=$DB_HOST_FULL
 
 # Specify the appropriate settings file.
 # We do this here so it's prior to cycling the supervisor daemon
-if [ $ENVIRONMENT = 'dev' ]; then
-
-    # use localhost when we're in dev. the postgres server is local
-    export DB_HOST_SOCKET=$DB_HOST_FULL
-
-    export DJANGO_SETTINGS_MODULE=mev.settings_dev
-else
-    # Create the postgres database...
-    # Extract the shorter database hostname from the full string. Django looks 
-    # for this environment variable
-    export DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
-
-    # Need to set a password for the default postgres user
-    gcloud beta sql users set-password postgres --instance=$DB_HOST --password $ROOT_DB_PASSWD
-
-    # Download the cloud SQL proxy
-    cd /opt/software && mkdir database && cd database
-    CLOUD_SQL_PROXY_VERSION=v1.21.0
-    wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
-    chmod +x cloud_sql_proxy
-
-    export CLOUD_SQL_MOUNT=/cloudsql
-    export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
-
-    export DJANGO_SETTINGS_MODULE=mev.settings_production
-fi
+export DJANGO_SETTINGS_MODULE=mev.settings_dev
 
 # Generate a set of keys for signing the download URL for bucket-based files.
-if [ $ENVIRONMENT != 'dev' ]; then
-  gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
-  chown mev:mev $STORAGE_CREDENTIALS
-else
-  touch $STORAGE_CREDENTIALS
-fi
+# Don't really need this for local dev, but it needs to be populated for the app
+# to startup properly
+touch $STORAGE_CREDENTIALS
 
 # First restart supervisor since it needs access to the
 # environment variables (can only read those that are defined
@@ -414,61 +383,47 @@ fi
 service supervisor stop
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread
-if [ $ENVIRONMENT != 'dev' ]; then
-  supervisorctl start cloud_sql_proxy
-fi
 
 # Give it some time to setup the socket to the db
-sleep 10
+sleep 3
 
 # Setup the database.
-if [ $ENVIRONMENT != 'dev' ]; then
-  export PGPASSWORD=$ROOT_DB_PASSWD
-psql -v ON_ERROR_STOP=1 --host=$DB_HOST_SOCKET --username "postgres" --dbname "postgres" <<-EOSQL
-    CREATE USER "$DB_USER" WITH PASSWORD '$DB_PASSWD';
-    CREATE DATABASE "$DB_NAME";
-    GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
-    ALTER USER "$DB_USER" CREATEDB;
-EOSQL
-else
 runuser -m postgres -c "psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
     CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWD';
     CREATE DATABASE $DB_NAME;
     GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
     ALTER USER $DB_USER CREATEDB;
 EOSQL"
-fi
 
 # Some preliminaries before we start asking django to set things up:
-mkdir -p /opt/software/mev-backend/mev/pending_user_uploads
-mkdir -p /opt/software/mev-backend/mev/resource_cache
-mkdir -p /opt/software/mev-backend/mev/operation_staging
-mkdir -p /opt/software/mev-backend/mev/operations
-mkdir -p /opt/software/mev-backend/mev/operation_executions
+mkdir -p /vagrant/mev/pending_user_uploads
+mkdir -p /vagrant/mev/resource_cache
+mkdir -p /vagrant/mev/operation_staging
+mkdir -p /vagrant/mev/operations
+mkdir -p /vagrant/mev/operation_executions
 
 # Change the ownership so we have write permissions.
-chown -R mev:mev /opt/software/mev-backend/mev
+chown -R mev:mev /vagrant/mev
 
 ### DANGER-- 777 permissions to get this to work. Only for local dev.
-if [ $ENVIRONMENT = 'dev' ]; then
-  chmod -R 777 /opt/software/mev-backend/mev
-fi
+chmod -R 777 /vagrant/mev
+
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py makemigrations api
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py migrate
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py createsuperuser --noinput
+/usr/local/bin/python3 /vagrant/mev/manage.py makemigrations api
+/usr/local/bin/python3 /vagrant/mev/manage.py migrate
+/usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
 
 # The collectstatic command gets all the static files 
-# and puts them at /opt/software/mev-backend/mev/static.
+# and puts them at /vagrant/mev/static.
 # We them copy the contents to /www/static so nginx can serve:
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py collectstatic --noinput
-cp -r /opt/software/mev-backend/mev/static /www/static
+/usr/local/bin/python3 /vagrant/mev/manage.py collectstatic --noinput
+cp -r /vagrant/mev/static /www/static
 
 # Populate a "test" database, so the database
 # will have some content to query.
 if [ $POPULATE_DB = 'yes' ]; then
-    /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py populate_db
+    /usr/local/bin/python3 /vagrant/mev/manage.py populate_db
 fi
 
 # Add on "static" operations, such as the dropbox uploaders, etc.
@@ -476,14 +431,14 @@ fi
 # analysis) are added by admins once the application is running.
 # Temporarily commented to avoid the slow build.
 if [ $ENVIRONMENT != 'dev' ]; then
-  /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
+  /usr/local/bin/python3 /vagrant/mev/manage.py add_static_operations
 fi
 # Start and wait for Redis. Redis needs to be ready before
 # celery starts.
 supervisorctl start redis
 echo "Waiting for Redis..."
 while ! nc -z $REDIS_HOST 6379; do
-  sleep 1
+  sleep 2
 done
 echo "Redis started!"
 
@@ -493,8 +448,3 @@ supervisorctl start mev_celery_worker
 
 # Restart nginx so it loads the new config:
 service nginx restart
-
-# Startup the application server:
-if [ $ENVIRONMENT != 'dev' ]; then
-  supervisorctl start gunicorn
-fi
