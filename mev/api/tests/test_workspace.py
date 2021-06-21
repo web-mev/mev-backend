@@ -126,6 +126,26 @@ class WorkspaceListTests(BaseAPITestCase):
         new_workspace = Workspace.objects.get(pk=new_uuid)
         self.assertEqual(new_workspace.workspace_name, expected_name)
 
+    def test_duplicate_workspace_name_handled(self):
+        """
+        Test that we handle the request to create a new workspace appropriately if another workspace
+        with that name already exists
+        """
+        # first create a workspace with name 'foo'. Then try to create another.
+
+        # get all initial instances before anything happens:
+        initial_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
+
+        expected_name = 'foo'
+        payload = {'owner_email': self.regular_user_1.email, 'workspace_name': expected_name}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('workspace_name' in response.json())
+
+
     def test_user_can_create_workspace_for_self_no_name(self):
         """
         Test that users can create a Workpace for themself.
