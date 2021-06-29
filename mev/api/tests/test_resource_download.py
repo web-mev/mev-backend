@@ -86,11 +86,11 @@ class ResourceDownloadTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(self.url_for_active_resource)
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
-        headers = response._headers
-        content_type = headers['content-type']
-        content_disp = headers['content-disposition']
-        self.assertEqual(content_type, ('Content-Type', 'text/tab-separated-values'))
-        self.assertEqual(content_disp, ('Content-Disposition', 'attachment; filename="demo_file2.tsv"'))
+        headers = response.headers
+        content_type = headers['Content-Type']
+        content_disp = headers['Content-Disposition']
+        self.assertEqual(content_type, 'text/tab-separated-values')
+        self.assertEqual(content_disp, 'attachment; filename="demo_file2.tsv"')
 
     @mock.patch('api.views.resource_download.get_storage_backend')
     def test_remote_resource(self, mock_get_storage_backend):
@@ -106,8 +106,8 @@ class ResourceDownloadTests(BaseAPITestCase):
         mock_get_storage_backend.return_value = mock_backend
         response = self.authenticated_regular_client.get(self.url_for_active_resource)
         self.assertTrue(response.status_code, status.HTTP_302_FOUND)
-        headers = response._headers
-        self.assertEqual(headers['location'], ('Location', some_url))
+        headers = response.headers
+        self.assertEqual(headers['location'],  some_url)
 
     def test_inactive_resource_request_returns_400(self):
         '''

@@ -1670,8 +1670,10 @@ class ResourceContentTests(BaseAPITestCase):
             url, format='json'
         )
         self.assertEqual(response.status_code, 
-            status.HTTP_400_BAD_REQUEST)
-        
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j) == 0)
+
         # space-delimited doesn't work- should return nothing.
         selected_genes = ['g8', 'g68']
         suffix = '?__rowname__=[in]:{s}'.format(s=' '.join(selected_genes))
