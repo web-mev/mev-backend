@@ -220,10 +220,13 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         blob exists. Note that the google library is such that
         the blob will evaluate to None if it does not exist.
         '''
-        blob = self.get_blob(path)
-        if blob:
-            return True
-        return False
+        try:
+            blob = self.get_blob(path)
+            if blob:
+                return True
+            return False
+        except Exception:
+            return False
 
     def get_local_resource_path(self, resource_instance):
         '''

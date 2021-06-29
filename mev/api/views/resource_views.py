@@ -17,6 +17,7 @@ from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive, \
     resource_supports_pagination
+from api.storage_backends import get_storage_backend
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
 from api.exceptions import NonIterableContentsException
@@ -223,3 +224,58 @@ class ResourceContents(APIView):
                     return paginator.get_paginated_response(results)
                 else:
                     return Response(contents)
+
+class AddBucketResourceView(APIView):
+    '''
+    This view is used to create a new user-associated resource given
+    a path to a bucket-based file. 
+
+    Use-cases for this endpoint are where we have example or public data files
+    which we would like to attach to a particular user. The tutorial files are
+    an example of this. Thus, the user does not have to download and then 
+    subsequently upload to run through the tutorial example.
+    '''
+
+    BUCKET_PATH = 'bucket_path'
+    permission_classes = [framework_permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        logger.info('POSTing to create a new resource from bucket-based data')
+        try:
+            resource_url = request.data[self.BUCKET_PATH]
+        except KeyError as ex:
+            return Response({self.BUCKET_PATH: 'You must supply this required key.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # We require the ability to interact with our storage backend.
+        storage_backend = get_storage_backend()
+
+        # If the storage backend happens to be local storage, we immediately fail
+        # the request.
+        if storage_backend.is_local_storage:
+            return Response({self.BUCKET_PATH: 'The storage system does not support this endpoint.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # If here, we are using a non-local storage 
+        # backend (which, for us, means bucket-based).
+        # We still need to ensure the path given was real and accessible
+        if storage_backend.resource_exists(resource_url):
+            # create a Resource instance
+            r = Resource.objects.create(
+                path = resource_url,
+                owner = request.user
+            )
+            final_path = storage_backend.store(r)
+            r.path = final_path
+            r.save()
+            resource_serializer = ResourceSerializer(r, context={'request': request})
+            return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            msg = ('The file located at {p} could not be accessed. If the path is indeed'
+                ' correct, then ensure that it is publicly accessible.'
+            )
+            return Response({self.BUCKET_PATH: msg},
+                status=status.HTTP_400_BAD_REQUEST
+            )

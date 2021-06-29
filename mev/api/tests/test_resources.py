@@ -2664,3 +2664,109 @@ class ResourceContentTests(BaseAPITestCase):
         results = response.json()
         expected_ordering = ['A', 'C', 'B']
         self.assertEqual([x['rowname'] for x in results], expected_ordering)
+
+class BucketResourceAddTests(BaseAPITestCase):
+
+    def setUp(self):
+
+        self.url = reverse('bucket-resource-add')
+        self.establish_clients()
+
+    def test_requires_auth(self):
+        """
+        Test that general requests to the endpoint generate 401
+        """
+        response = self.regular_client.get(self.url)
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
+
+    @mock.patch('api.views.resource_views.get_storage_backend')
+    def test_local_storage_backend_fails_request(self, mock_get_storage_backend):
+        '''
+        If the storage backend is NOT bucket-based, then we 
+        can't reasonably handle requests to this endpoint.
+        Hence, fail all the requests in this case.
+        '''
+        mock_storage_impl = mock.MagicMock()
+        mock_storage_impl.is_local_storage = True
+        mock_get_storage_backend.return_value = mock_storage_impl
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data = {'bucket_path': 'gs://some-bucket/some-path'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_missing_key(self):
+        '''
+        Test that we ask for the required key and ignore other payload data
+        '''
+
+        # typo on 'bucket_path'
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data = {'bucket_pathS': 'gs://some-bucket/some-path', 'abc':'foo'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+    @mock.patch('api.views.resource_views.get_storage_backend')
+    def test_nonexistent_url(self, mock_get_storage_backend):
+        '''
+        Tests the case where the supplied file path does not exist 
+        OR it is not accessible. The tests that actually check existence
+        vs access are contained at the storage-class implementation level.
+        All that we mock here is that the 'resource_exists` method returns
+        False
+        '''
+        mock_storage_impl = mock.MagicMock()
+        mock_storage_impl.is_local_storage = False
+        mock_storage_impl.resource_exists.return_value = False
+        mock_get_storage_backend.return_value = mock_storage_impl
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data = {'bucket_path': 'gs://some-bucket/some-path'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+    @mock.patch('api.views.resource_views.get_storage_backend')
+    def test_path_edited_correctly(self, mock_get_storage_backend):
+        '''
+        Tests the case where everything works-- check that the file goes
+        where we expect.
+        '''
+        mock_storage_impl = mock.MagicMock()
+        mock_storage_impl.is_local_storage = False
+        mock_storage_impl.resource_exists.return_value = True
+        fake_path = 'gs://our-bucket/some-path.txt'
+        mock_storage_impl.store.return_value = fake_path
+        mock_get_storage_backend.return_value = mock_storage_impl
+
+        # count the number of original resources:
+        all_resources = Resource.objects.all()
+        n0 = len(all_resources)
+
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data = {'bucket_path': 'gs://some-bucket/some-path'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_201_CREATED)
+
+        j = response.json()
+        new_resource_uuid = j['id']
+
+        # count the number of original resources:
+        all_resources = Resource.objects.all()
+        n1 = len(all_resources)
+        self.assertEqual(n1-n0, 1)
+
+        # check the new path of the resource:
+        r = Resource.objects.get(id=new_resource_uuid)
+        self.assertTrue(r.path == fake_path)
+        self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)

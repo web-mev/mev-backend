@@ -265,3 +265,49 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         self.assertEqual(2,mock_blob.download_to_filename.call_count)
         mock_make_local_directory.assert_called_with(os.path.dirname(location))
         self.assertEqual(location, expected_final_location)
+
+    @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    def test_resource_exists_case1(self, \
+        mock_service_account, \
+        mock_storage, \
+        mock_settings, \
+        mock_exists, \
+        mock_make_local_directory):
+        
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        storage_backend = GoogleBucketStorage()
+
+        mock_client = mock.MagicMock()
+        storage_backend.storage_client = mock_client
+
+        mock_client.get_bucket.side_effect = Exception('ack!')
+
+        with self.assertRaises(Exception):
+            storage_backend.get_bucket('foo')
+
+    # @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    # @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    # @mock.patch('api.storage_backends.google_cloud.settings')
+    # @mock.patch('api.storage_backends.google_cloud.storage')
+    # @mock.patch('api.storage_backends.google_cloud.service_account')
+    # def test_resource_exists_case1(self, \
+    #     mock_service_account, \
+    #     mock_storage, \
+    #     mock_settings, \
+    #     mock_exists, \
+    #     mock_make_local_directory):
+        
+    #     os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+    #     storage_backend = GoogleBucketStorage()
+
+    #     mock_client = mock.MagicMock()
+    #     storage_backend.storage_client = mock_client
+
+    #     mock_client.get_bucket.side_effect = Exception('ack!')
+
+    #     with self.assertRaises(Exception):
+    #         storage_backend.get_bucket('foo')

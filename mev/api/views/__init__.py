@@ -9,7 +9,10 @@ from .user_views import UserList, \
     PasswordChangeView
 from .social_views import GoogleOauth2View
 from .workspace_views import WorkspaceList, WorkspaceDetail
-from .resource_views import ResourceList, ResourceDetail, ResourceContents
+from .resource_views import ResourceList, \
+    ResourceDetail, \
+    ResourceContents, \
+    AddBucketResourceView
 from .resource_download import ResourceDownload
 from .operation_resource_views import OperationResourceList, OperationResourceFieldList
 from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAdd, WorkspaceResourceRemove
