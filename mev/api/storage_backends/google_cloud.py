@@ -45,14 +45,25 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             bucket_name=bucket_name))
         try:
             return self.storage_client.get_bucket(bucket_name)
-        except Exception as ex:
-            logger.info('Failed to retrieve bucket ({bucket_name}). Check'
+        except google.api_core.exceptions.NotFound as ex:
+            logger.info('Bucket ({bucket_name}) not found. Check'
                 ' that this bucket exists.'.format(bucket_name=bucket_name)
+            )
+            raise ex
+        except google.api_core.exceptions.Forbidden as ex:
+            logger.info('Did not have proper permissions to access bucket' 
+                ' ({bucket_name}). Check that this bucket'
+                ' exists.'.format(bucket_name=bucket_name)
+            )
+            raise ex
+        except Exception as ex:
+            logger.info('Failed to retrieve bucket ({bucket_name}) for unexpected'
+                ' reason. Check that this bucket exists.'.format(bucket_name=bucket_name)
             )
             raise ex
 
     def get_or_create_bucket(self):
-        # can't import above as we get a 
+        # can't import above as we get a circular dep. issue 
         from api.cloud_backends.google_cloud import get_instance_region
         try:
             bucket = self.get_bucket(self.BUCKET_NAME)
@@ -124,15 +135,25 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         try:
             bucket = self.get_bucket(bucket_name)
         except google.api_core.exceptions.NotFound as ex:
-            logger.error('When requesting size of Resource located at'
-                '{path}, the bucket with name {bucket_name} did'
+            logger.info('When requesting a blob located at'
+                ' {path}, the bucket with name {bucket_name} did'
                 ' not exist.'.format(
                     path=path,
                     bucket_name = bucket_name
                 ))
             raise ex
-
-        return bucket.get_blob(object_name)
+        except google.api_core.exceptions.Forbidden as ex:
+            logger.info('When requesting a blob located at'
+                ' {path}, access to the bucket with name {bucket_name}'
+                ' was not permitted (403).'.format(
+                    path=path,
+                    bucket_name = bucket_name
+                ))
+            raise ex
+        try:
+            return bucket.get_blob(object_name)
+        except Exception as ex:
+            return None
 
     def perform_interbucket_transfer(self, destination_blob, path):
         logger.info('Perform a bucket-to-bucket copy from {p} to {d}'.format(

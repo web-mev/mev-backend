@@ -2766,7 +2766,10 @@ class BucketResourceAddTests(BaseAPITestCase):
         n1 = len(all_resources)
         self.assertEqual(n1-n0, 1)
 
-        # check the new path of the resource:
+        # check the new path of the resource.
+        # Note that we don't have to check that the `store`
+        # method is called since the path re-assignment affirms that
+        # already
         r = Resource.objects.get(id=new_resource_uuid)
         self.assertTrue(r.path == fake_path)
         self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)

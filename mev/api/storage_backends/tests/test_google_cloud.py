@@ -5,6 +5,7 @@ from api.tests.base import BaseAPITestCase
 from api.models import Resource
 from api.storage_backends.base import BaseStorageBackend
 from api.storage_backends.google_cloud import GoogleBucketStorage
+import google
 
 DUMMY_BUCKETNAME = 'a-google-bucket'
 
@@ -277,6 +278,10 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         mock_settings, \
         mock_exists, \
         mock_make_local_directory):
+        '''
+        Test the case where the object is not found since the bucket
+        is not found by the google api client.
+        '''
         
         os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
         storage_backend = GoogleBucketStorage()
@@ -284,30 +289,123 @@ class TestGoogleBucketStorage(BaseAPITestCase):
         mock_client = mock.MagicMock()
         storage_backend.storage_client = mock_client
 
-        mock_client.get_bucket.side_effect = Exception('ack!')
+        mock_client.get_bucket.side_effect = google.api_core.exceptions.NotFound('ack!')
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(google.api_core.exceptions.NotFound):
             storage_backend.get_bucket('foo')
 
-    # @mock.patch('api.storage_backends.google_cloud.make_local_directory')
-    # @mock.patch('api.storage_backends.google_cloud.os.path.exists')
-    # @mock.patch('api.storage_backends.google_cloud.settings')
-    # @mock.patch('api.storage_backends.google_cloud.storage')
-    # @mock.patch('api.storage_backends.google_cloud.service_account')
-    # def test_resource_exists_case1(self, \
-    #     mock_service_account, \
-    #     mock_storage, \
-    #     mock_settings, \
-    #     mock_exists, \
-    #     mock_make_local_directory):
+        self.assertFalse(storage_backend.resource_exists('gs://foo/something.txt'))
+
+    @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    def test_resource_exists_case2(self, \
+        mock_service_account, \
+        mock_storage, \
+        mock_settings, \
+        mock_exists, \
+        mock_make_local_directory):
+        '''
+        Tests the case where we don't have access to the object
+        in the bucket since the bucket permissions block our access.
+        Note, however, that you can encounter situations where the bucket
+        access is blocked, but the actual object IS public. We handle
+        that case elsewhere.
+        '''
         
-    #     os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
-    #     storage_backend = GoogleBucketStorage()
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        storage_backend = GoogleBucketStorage()
 
-    #     mock_client = mock.MagicMock()
-    #     storage_backend.storage_client = mock_client
+        mock_client = mock.MagicMock()
+        storage_backend.storage_client = mock_client
 
-    #     mock_client.get_bucket.side_effect = Exception('ack!')
+        mock_client.get_bucket.side_effect = google.api_core.exceptions.Forbidden('ack!')
 
-    #     with self.assertRaises(Exception):
-    #         storage_backend.get_bucket('foo')
+        with self.assertRaises(google.api_core.exceptions.Forbidden):
+            storage_backend.get_bucket('foo')
+        self.assertFalse(storage_backend.resource_exists('gs://foo/something.txt'))
+
+    @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    def test_resource_exists_case3(self, \
+        mock_service_account, \
+        mock_storage, \
+        mock_settings, \
+        mock_exists, \
+        mock_make_local_directory):
+        '''
+        This mocks out the get_blob method so that it returns
+        something that is not None
+        '''
+        
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        storage_backend = GoogleBucketStorage()
+
+        mock_client = mock.MagicMock()
+        storage_backend.storage_client = mock_client
+
+        mock_blob = mock.MagicMock()
+        mock_get_blob = mock.MagicMock()
+        mock_get_blob.return_value = mock_blob
+        storage_backend.get_blob = mock_get_blob
+        self.assertTrue(storage_backend.resource_exists('gs://foo/something.txt'))
+
+    @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    def test_resource_exists_case4(self, \
+        mock_service_account, \
+        mock_storage, \
+        mock_settings, \
+        mock_exists, \
+        mock_make_local_directory):
+        '''
+        This mocks out the get_blob method so that it returns
+        None ()
+        '''
+        
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        storage_backend = GoogleBucketStorage()
+
+        mock_client = mock.MagicMock()
+        storage_backend.storage_client = mock_client
+
+        mock_get_blob = mock.MagicMock()
+        mock_get_blob.return_value = None
+        storage_backend.get_blob = mock_get_blob
+        self.assertFalse(storage_backend.resource_exists('gs://foo/something.txt'))
+
+    @mock.patch('api.storage_backends.google_cloud.make_local_directory')
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    def test_resource_exists_case5(self, \
+        mock_service_account, \
+        mock_storage, \
+        mock_settings, \
+        mock_exists, \
+        mock_make_local_directory):
+        '''
+        Here we mock that *something* raised an exception in the process of getting
+        either the bucket or the object. Hence, the get_blob method will raise an ex
+        and we check that the existence method returns False appropriately.
+        '''
+        
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        storage_backend = GoogleBucketStorage()
+
+        mock_client = mock.MagicMock()
+        storage_backend.storage_client = mock_client
+
+        mock_get_blob = mock.MagicMock()
+        mock_get_blob.side_effect = Exception('ack')
+        storage_backend.get_blob = mock_get_blob
+        self.assertFalse(storage_backend.resource_exists('gs://foo/something.txt'))
