@@ -18,6 +18,9 @@ CROMWELL_DB_NAME="${cromwell_db_name}"
 CROMWELL_DB_USER="${cromwell_db_user}"
 CROMWELL_DB_PASSWORD="${cromwell_db_password}"
 
+# The specific git commit to deploy
+GIT_COMMIT=${commit_id}
+
 set +o allexport
 
 # Basic installs
@@ -53,7 +56,7 @@ chown cromwell-runner:cromwell-runner /var/log/cromwell
 # Pull the WebMeV backend repo and move into the Cromwell deployment dir:
 cd /opt/software
 /usr/bin/git clone https://github.com/web-mev/mev-backend.git
-cd mev-backend && /usr/bin/git checkout ${branch}
+cd mev-backend && /usr/bin/git checkout -q $GIT_COMMIT
 cd deploy/cromwell || exit 1
 
 # Fill out the config files and create the database based on the environment variables.

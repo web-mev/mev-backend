@@ -60,8 +60,8 @@ variable "db_host" {
     description = "The full name of the database server (cloud-based). Given as <project>:<region>:<db name>"
 }
 
-variable "repo" {
-  description = "The backend github repository from which to pull the source code."
+variable "commit_id" {
+  description = "Identifies the specific commit which will be deployed."
 }
 
 variable "django_secret" {
@@ -128,11 +128,6 @@ variable "dockerhub_org" {
 
 variable "cromwell_bucket" {
   description = "Name of the bucket where Cromwell will place its files. Do NOT include the gs prefix."
-}
-
-variable "branch" {
-  description = "The git branch to use."
-  default = "deploy"
 }
 
 variable "other_cors_origins" {

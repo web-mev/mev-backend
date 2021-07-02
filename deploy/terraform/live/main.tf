@@ -44,7 +44,7 @@ module "cromwell" {
     cromwell_db_name = var.cromwell_db_name
     cromwell_db_user = var.cromwell_db_user
     cromwell_db_password = var.cromwell_db_password
-    branch = var.branch
+    commit_id = var.commit_id
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     service_account_email = var.service_account_email
 }
@@ -65,7 +65,7 @@ module "api" {
     db_name = var.db_name
     db_port = var.db_port
     db_host = google_sql_database_instance.mev_db_instance.connection_name
-    repo = var.repo
+    commit_id = var.commit_id
     cromwell_bucket = var.cromwell_bucket
     django_secret = var.django_secret
     frontend_domain = var.frontend_domain
@@ -82,7 +82,6 @@ module "api" {
     dockerhub_username = var.dockerhub_username
     dockerhub_passwd = var.dockerhub_passwd
     dockerhub_org = var.dockerhub_org
-    branch = var.branch
     service_account_email = var.service_account_email
     ssl_cert = var.ssl_cert
     storage_location = var.storage_location

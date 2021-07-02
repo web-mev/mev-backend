@@ -28,7 +28,7 @@ resource "google_compute_instance" "cromwell" {
       cromwell_db_name = var.cromwell_db_name,
       cromwell_db_user = var.cromwell_db_user,
       cromwell_db_password = var.cromwell_db_password,
-      branch = var.branch
+      commit_id = var.commit_id
     }
   )
 

@@ -15,6 +15,13 @@ set -o allexport
 # dev or production status. Should be "dev" or "production"
 ENVIRONMENT=${environment}
 
+###################### Git-related parameters ###########################################
+
+# The commit identifier which we will deploy
+GIT_COMMIT=${commit_id}
+
+###################### END Git-related parameters ###########################################
+
 ###################### Database-related parameters ######################################
 
 # Postgres database params
@@ -65,11 +72,8 @@ DJANGO_SECRET_KEY=${django_secret}
 # A comma-delimited list of the hosts.  Add hosts as necessary
 # e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
 # Also need to add the network internal IP, which we can query from the metadata
-if [ $ENVIRONMENT != 'dev' ]; then
-  INTERNAL_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
-else
-  INTERNAL_IP=""
-fi
+INTERNAL_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
+
 LOAD_BALANCER_IP=${load_balancer_ip}
 DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
 
@@ -328,7 +332,7 @@ cd /opt/software && \
 cd /opt/software && \
   git clone https://github.com/web-mev/mev-backend.git && \
   cd mev-backend && \
-  git checkout ${branch} && \
+  git checkout -q $GIT_COMMIT && \
   cd mev && \
   /usr/local/bin/pip3 install -U pip && \
   /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
@@ -347,9 +351,7 @@ cd /opt/software/mev-backend/deploy/mev/ && \
   cp ./supervisor_conf_files/celery_worker.conf /etc/supervisor/conf.d/ && \
   cp ./supervisor_conf_files/celery_beat.conf /etc/supervisor/conf.d/ && \
   cp ./supervisor_conf_files/gunicorn.conf /etc/supervisor/conf.d/
-if [ $ENVIRONMENT != 'dev' ]; then
   cp ./supervisor_conf_files/cloud_sql_proxy.conf /etc/supervisor/conf.d/
-fi
 
 # Copy the nginx config file, removing the existing default
 rm -f /etc/nginx/sites-enabled/default
@@ -374,39 +376,32 @@ chown -R mev:mev /opt/software /var/log/mev /www
 # Specify the appropriate settings file.
 # We do this here so it's prior to cycling the supervisor daemon
 if [ $ENVIRONMENT = 'dev' ]; then
-
-    # use localhost when we're in dev. the postgres server is local
-    export DB_HOST_SOCKET=$DB_HOST_FULL
-
     export DJANGO_SETTINGS_MODULE=mev.settings_dev
 else
-    # Create the postgres database...
-    # Extract the shorter database hostname from the full string. Django looks 
-    # for this environment variable
-    export DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
-
-    # Need to set a password for the default postgres user
-    gcloud beta sql users set-password postgres --instance=$DB_HOST --password $ROOT_DB_PASSWD
-
-    # Download the cloud SQL proxy
-    cd /opt/software && mkdir database && cd database
-    CLOUD_SQL_PROXY_VERSION=v1.21.0
-    wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
-    chmod +x cloud_sql_proxy
-
-    export CLOUD_SQL_MOUNT=/cloudsql
-    export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
-
     export DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
 
+  # Create the postgres database...
+  # Extract the shorter database hostname from the full string. Django looks 
+  # for this environment variable
+  export DB_HOST=$(python3 -c "import sys,os; s=os.environ['DB_HOST_FULL']; sys.stdout.write(s.split(':')[-1])")
+
+  # Need to set a password for the default postgres user
+  gcloud beta sql users set-password postgres --instance=$DB_HOST --password $ROOT_DB_PASSWD
+
+  # Download the cloud SQL proxy
+  cd /opt/software && mkdir database && cd database
+  CLOUD_SQL_PROXY_VERSION=v1.21.0
+  wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
+  chmod +x cloud_sql_proxy
+
+  export CLOUD_SQL_MOUNT=/cloudsql
+  export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
+
+
 # Generate a set of keys for signing the download URL for bucket-based files.
-if [ $ENVIRONMENT != 'dev' ]; then
-  gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
-  chown mev:mev $STORAGE_CREDENTIALS
-else
-  touch $STORAGE_CREDENTIALS
-fi
+gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
+chown mev:mev $STORAGE_CREDENTIALS
 
 # First restart supervisor since it needs access to the
 # environment variables (can only read those that are defined
@@ -414,29 +409,26 @@ fi
 service supervisor stop
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread
-if [ $ENVIRONMENT != 'dev' ]; then
-  supervisorctl start cloud_sql_proxy
-fi
+supervisorctl start cloud_sql_proxy
 
 # Give it some time to setup the socket to the db
 sleep 10
 
-# Setup the database.
-if [ $ENVIRONMENT != 'dev' ]; then
-  export PGPASSWORD=$ROOT_DB_PASSWD
+# Setup the database if it does not exist
+export PGPASSWORD=$ROOT_DB_PASSWD
+
+if psql -lqt --host=$DB_HOST_SOCKET --username "postgres" | cut -d \| -f1 | grep -qw $DB_NAME; then
+  echo "Database already existed."
+  export DB_EXISTED=1
+else
+  echo "Create the database."
 psql -v ON_ERROR_STOP=1 --host=$DB_HOST_SOCKET --username "postgres" --dbname "postgres" <<-EOSQL
     CREATE USER "$DB_USER" WITH PASSWORD '$DB_PASSWD';
     CREATE DATABASE "$DB_NAME";
     GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
     ALTER USER "$DB_USER" CREATEDB;
 EOSQL
-else
-runuser -m postgres -c "psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
-    CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWD';
-    CREATE DATABASE $DB_NAME;
-    GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
-    ALTER USER $DB_USER CREATEDB;
-EOSQL"
+  export DB_EXISTED=0
 fi
 
 # Some preliminaries before we start asking django to set things up:
@@ -449,15 +441,17 @@ mkdir -p /opt/software/mev-backend/mev/operation_executions
 # Change the ownership so we have write permissions.
 chown -R mev:mev /opt/software/mev-backend/mev
 
-### DANGER-- 777 permissions to get this to work. Only for local dev.
-if [ $ENVIRONMENT = 'dev' ]; then
-  chmod -R 777 /opt/software/mev-backend/mev
-fi
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
 /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py makemigrations api
 /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py migrate
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py createsuperuser --noinput
+
+if [ $DB_EXISTED == 1 ]; then
+  echo "Since the DB existed, skip the creation of the Django superuser."
+else
+  echo "Since the DB did not exist, create the Django superuser."
+  /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py createsuperuser --noinput
+fi
 
 # The collectstatic command gets all the static files 
 # and puts them at /opt/software/mev-backend/mev/static.
@@ -474,10 +468,8 @@ fi
 # Add on "static" operations, such as the dropbox uploaders, etc.
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
-# Temporarily commented to avoid the slow build.
-if [ $ENVIRONMENT != 'dev' ]; then
-  /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
-fi
+/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
+
 # Start and wait for Redis. Redis needs to be ready before
 # celery starts.
 supervisorctl start redis
@@ -495,6 +487,4 @@ supervisorctl start mev_celery_worker
 service nginx restart
 
 # Startup the application server:
-if [ $ENVIRONMENT != 'dev' ]; then
-  supervisorctl start gunicorn
-fi
+supervisorctl start gunicorn

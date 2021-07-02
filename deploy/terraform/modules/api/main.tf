@@ -17,7 +17,7 @@ resource "google_compute_instance" "mev_server" {
         db_name = var.db_name,
         db_port = var.db_port,
         db_host = var.db_host,
-        repo = var.repo,
+        commit_id = var.commit_id,
         django_secret = var.django_secret
         cromwell_bucket = var.cromwell_bucket,
         frontend_domain = var.frontend_domain,
@@ -37,7 +37,6 @@ resource "google_compute_instance" "mev_server" {
         dockerhub_username = var.dockerhub_username,
         dockerhub_passwd = var.dockerhub_passwd,
         dockerhub_org = var.dockerhub_org,
-        branch = var.branch,
         enable_remote_job_runners = var.enable_remote_job_runners,
         service_account_email = var.service_account_email
     }
@@ -64,7 +63,7 @@ resource "google_compute_instance" "mev_server" {
 
 # allows the load balancer health check to reach the VM
 resource "google_compute_firewall" "allow_hc_firewall" {
-  name    = "webmev-backend-healthcheck-firewall"
+  name    = "webmev-backend-${var.environment}-healthcheck-firewall"
   network = var.network
 
   allow {

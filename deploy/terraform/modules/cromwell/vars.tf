@@ -53,9 +53,8 @@ variable "cromwell_db_password" {
   sensitive   = true
 }
 
-variable "branch" {
-  description = "The git branch to use"
-  default = "deploy"
+variable "commit_id" {
+  description = "The identifier of the specific commit to deploy"
 }
 
 variable "ssh_tag" {

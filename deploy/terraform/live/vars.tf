@@ -63,11 +63,6 @@ variable "cromwell_db_password" {
   sensitive   = true
 }
 
-variable "branch" {
-  description = "The git branch to use."
-  default = "deploy"
-}
-
 variable "domain" {
   description = "The domain where the API will be served from."
 }
@@ -97,8 +92,8 @@ variable "db_port" {
   default = 5432
 }
 
-variable "repo" {
-  description = "The backend github repository from which to pull the source code."
+variable "commit_id" {
+  description = "The github commit to use for deployment."
 }
 
 variable "django_secret" {
