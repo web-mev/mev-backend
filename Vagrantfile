@@ -69,7 +69,7 @@ Vagrant.configure("2") do |config|
         dockerhub_org:ENV["DOCKERHUB_ORG"],
         cromwell_bucket:ENV["CROMWELL_BUCKET"],
         cromwell_ip:ENV["CROMWELL_IP"],
-        branch:ENV["BRANCH"]
+        git_commit_id:ENV["GIT_COMMIT_ID"]
       }
     end
   end

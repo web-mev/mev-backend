@@ -15,6 +15,8 @@ set -o allexport
 # dev or production status. Should be "dev" or "production"
 ENVIRONMENT=${environment}
 
+GIT_COMMIT=${git_commit_id}
+
 ###################### Database-related parameters ######################################
 
 # Postgres database params
@@ -326,7 +328,7 @@ cd /opt/software && \
 
 # Install the python packages we'll need:
 cd /vagrant && \
-  git checkout ${branch} && \
+  git checkout -q $GIT_COMMIT && \
   cd mev && \
   /usr/local/bin/pip3 install -U pip && \
   /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
