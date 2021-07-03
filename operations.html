@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>Operation concepts - WebMeV REST API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  <link href="style.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Operation concepts";
+    var mkdocs_page_input_path = "operations.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="icon icon-home"> WebMeV REST API</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="index.html">Home</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="general_architecture.html">Architecture</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="install.html">Preliminaries</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="mev_cluster_setup.html">Installation and setup</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration.html">Configuration</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">API</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="resources.html">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_types.html">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_metadata.html">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="operation_resources.html">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="attributes.html">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="elements.html">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets.html">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="workspaces.html">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="metadata.html">Workspace metadata</a>
+                </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a>
+                    </li>
+                </ul>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="operations.html">Operation concepts</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#executedoperations">ExecutedOperations</a>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses.html">Creating new analyses/operations</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="example_workflow.html">Workflow and analysis concepts</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">WebMeV REST API</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Operation concepts</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/operations.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h3 id="operations-and-executedoperations"><a class="toclink" href="#operations-and-executedoperations">Operations and ExecutedOperations</a></h3>
+<p>An <code>Operation</code> is <em>any</em> manipulation of some data that produces some output; it defines the type of analysis that is run, its inputs and outputs, and other relevant information. An <code>Operation</code> can be as simple as selecting a subset of the columns/rows of a matrix or running a large-scale processing job that spans many machines and significant time. </p>
+<p>An <code>ExecutedOperation</code> represents an actual execution of an <code>Operation</code>.  While the <code>Operation</code> identifies the process used, the <code>ExecutedOperation</code> contains information about the actual execution, such as the job status, the exact inputs and outputs, the runtime, and other relevant information. Clearly, the <code>ExecutedOperation</code> maintains a foreign-key relation to the <code>Operation</code>.</p>
+<p>The various <code>ExecutedOperation</code>s performed in MEV will all create some output so that there will be no ambiguity regarding how data was manipulated through the course of an analysis workflow. Essentially, we do not perform <em>in-place</em> operations on data.  For example, if a user chooses a subset of samples/columns in their expression matrix, we create a new <code>DataResource</code> (and corresponding <code>Resource</code> database record).  While this has the potential to create multiple files with similar data, this makes auditing a workflow history much simpler.  Typically, the size of files where users are interacting with the data are relatively small (on the order of MB) so excessive storage is not a major concern.</p>
+<p>Note that client-side manipulations of the data, such as filtering out samples are distinct from this concept of an <code>Operation</code>/<code>ExecutedOperation</code>.  That is, users can select various filters on their data to change the visualizations without executing any <code>Operation</code>s.  <em>However</em>, once they choose to use the subset data for use in an analysis, they will be required to implicitly execute an <code>Operation</code> on the backend.  As a concrete example, consider analyzing a large cohort of expression data from TCGA.  A user initially imports the expression matrix and perhaps uses PCA or some other clustering method in an exploratory analysis. Each of those initial analyses were <code>ExecutedOperation</code>s.  Based on those initial visualizations, the user may select a subset of those samples to investigate for potential subtypes; note that those client-side sample selections have not triggered any actual analyses.  However, once they choose to run those samples through a differential expression analysis, we require that they perform filter/subset <code>Operation</code>.  </p>
+<p>As new <code>DataResource</code>s are created, the metadata tracks which <code>ExecutedOperation</code> created them, addressed by the UUID assigned to each <code>ExecutedOperation</code>.  By tracing the foreign-key relation, we can determine the exact <code>Operation</code> that was run so that the steps of the analysis are transparent and reproducible.</p>
+<p><code>Operation</code>s can be lightweight jobs such as a basic filter or a simple R script, or involve complex, multi-step pipelines involving WDL and Cromwell.  Depending on the computational resources needed, the <code>Operation</code> can be run locally or remotely.  As jobs complete, their outputs will populate in the user's workspace and further analysis can be performed.</p>
+<p>All jobs, whether local or remote, will be placed in a queue and executed ascynchronously. Progress/status of remote jobs can be monitored by querying the Cromwell server.</p>
+<p>Also note that ALL <code>Operation</code>s (even basic table filtering) are executed in Docker containers so that the software and environments can be carefully tracked and controlled.  This ensures a consistent "plugin" style architecture so that new <code>Operation</code>s can be integrated consistently.</p>
+<p><code>Operation</code>s should maintain the following data:</p>
+<ul>
+<li>
+<p>unique identifier (UUID)</p>
+</li>
+<li>
+<p>name</p>
+</li>
+<li>
+<p>description of the analysis</p>
+</li>
+<li>
+<p>Inputs to the analysis.  These are the acceptable types and potentially some parameters.  For instance, a DESeq2 analysis should take an <code>IntegerMatrix</code>, two <code>ObservationSet</code> instances (defining the contrast groups), and a string "name" for the contrast. See below for a concrete example.</p>
+</li>
+<li>
+<p>Outputs of the analysis.  This would be similar to the inputs in that it describes the "types" of outputs.  Again, using the DESEq2 example, the outputs could be a "feature table" (<code>FT</code>, <code>FeatureTable</code>) giving the table of differentially expressed genes (e.g. fold-change, p-values) and a normalized expression matrix of type "expression matrix" (<code>EXP_MTX</code>).</p>
+</li>
+<li>
+<p>github repo/Docker info (commit hashes) so that the backend analysis code may be traced</p>
+</li>
+<li>
+<p>whether the <code>Operation</code> is a "local" one or requires use of the Cromwell engine. The front-end users don't need to know that, but internally MEV needs to know how to run the analysis.</p>
+</li>
+</ul>
+<p>Note that some of these will be specified by whoever creates the analysis. However, some information (like the UUID identifier, git hash, etc.) will be populated when the analysis is "ingested". It should not be the job of the analysis developer to maintain those pieces of information and we can create them on the fly during ingestion.</p>
+<p>Therefore, an <code>Operation</code> has the following structure:</p>
+<pre class="codehilite"><code>{
+    &quot;id&quot;: &lt;UUID&gt;,
+    &quot;name&quot;: &lt;string&gt;,
+    &quot;description&quot;: &lt;string&gt;,
+    &quot;inputs&quot;: Object&lt;OperationInput&gt;,
+    &quot;outputs&quot;: Object&lt;OperationOutput&gt;,
+    &quot;mode&quot;: &lt;string&gt;,
+    &quot;repository_url&quot;: &lt;string url&gt;,
+    &quot;repo_name&quot;: &lt;string&gt;.
+    &quot;git_hash&quot;: &lt;string&gt;,
+    &quot;workspace_operation&quot;: &lt;bool&gt;
+}
+</code></pre>
+
+<p>where:</p>
+<ul>
+<li>
+<p><code>mode</code>: identifies <em>how</em> the analysis is run. Will be one of an enum of strings (e.g. <code>local_docker</code>, <code>cromwell</code>)</p>
+</li>
+<li>
+<p><code>workspace_operation</code>: This bool tells us whether the operation is run within the context of a user's workspace. Some operations, such as file uploads, can be run outside of a workspace and hence don't require some of the additional fields that a workspace-associated operation would use.</p>
+</li>
+<li>
+<p><code>repository_url</code>, <code>repo_name</code>: identifies the github repo (and name) used to pull the data. For the ingestion, admins will give that url which will initiate a clone process. </p>
+</li>
+<li>
+<p><code>git_hash</code>: This is the commit hash which uniquely identifies the code state. This way the analysis code can be exactly traced back.</p>
+</li>
+</ul>
+<p>Both <code>inputs</code> and <code>outputs</code> address nested objects. That is, they are mappings of string identifiers to <code>OperationInput</code> or <code>OperationOutput</code> instances:</p>
+<pre class="codehilite"><code>{
+    'abc': &lt;OperationInput/OperationOutput&gt;,
+    'def': &lt;OperationInput/OperationOutput&gt;
+}
+</code></pre>
+
+<p>An <code>OperationInput</code> looks like:</p>
+<pre class="codehilite"><code>{
+    &quot;description&quot;: &lt;string&gt;,
+    &quot;name&quot;: &lt;string&gt;,
+    &quot;required&quot;: &lt;bool&gt;,
+    &quot;spec&quot;: &lt;InputSpec&gt;
+}
+</code></pre>
+
+<p>(and similarly for <code>OperationOutput</code>, which has fewer keys).</p>
+<p>As an example of an <code>OperationInputs</code>, consider a p-value for thresholding:</p>
+<pre class="codehilite"><code>{
+    &quot;description&quot;: &quot;The filtering threshold for the p-value&quot;,
+    &quot;name&quot;: &quot;P-value threshold:&quot;,
+    &quot;required&quot;: false,
+    &quot;spec&quot;: {
+        &quot;type&quot;: &quot;BoundedFloat&quot;,
+        &quot;min&quot;: 0,
+        &quot;max&quot;: 1.0,
+        &quot;default&quot;: 0.05
+    }
+}
+</code></pre>
+
+<p>The <code>spec</code> key addresses a child class of <code>InputSpec</code> whose behavior is specific to each "type" (above, a <code>BoundedFloat</code>). The <code>spec</code> allows us to validate a user's input for compliance with the expected type; for instance, when an analysis is requested, the <code>spec</code> ensures that we get sensible inputs for that field.</p>
+<h4 id="executedoperations"><a class="toclink" href="#executedoperations"><code>ExecutedOperation</code>s</a></h4>
+<p>Once a user makes a request with the proper, validated inputs, we create an <code>ExecutedOperation</code> which tracks the execution of the job. An <code>ExecutedOperation</code> tracks the following:</p>
+<ul>
+<li>The <code>Workspace</code>, assuming the underlying <code>Operation</code> has <code>workspace_operation=True</code>. This gives access to the user who initiated the execution.</li>
+<li>a foreign-key to the <code>Operation</code> "type"</li>
+<li>unique identifier (UUID) for the execution</li>
+<li>a job identifier. We need the Cromwell job UUID to track the progress as we query the Cromwell server. For Docker-based jobs, we can set the tag on the container and then query its status (e.g. if it's still "up", then the job is still going)</li>
+<li>The inputs to the analysis (a JSON document)</li>
+<li>The outputs (another JSON document) once complete</li>
+<li>Job execution status (e.g. "running", "complete", "failed", etc.)</li>
+<li>Start time</li>
+<li>Completion time</li>
+<li>Any errors or warnings</li>
+</ul>
+<hr />
+<h3 id="a-concrete-example"><a class="toclink" href="#a-concrete-example">A concrete example</a></h3>
+<p>For this, consider a differential expression analysis (e.g. like DESeq2). In this simplified analysis, we will take a count matrix, a p-value (for filtering significance based on some hypothesis test), and an output file name. For outputs, we have a single file which has the results of the differential expression testing on each gene.  Since each row concerns a gene (and the columns give information about that gene), the output file is a "feature table" in our nomenclature.</p>
+<p>Thus, the file which defines this analysis would look like:</p>
+<pre class="codehilite"><code>{
+    &quot;name&quot;:&quot;DESeq2 differential gene expression&quot;,
+    &quot;description&quot;: &quot;Find genes which are differentially expressed and filter...&quot;
+    &quot;inputs&quot;: {
+        &quot;count_matrix&quot;: {
+            &quot;description&quot;: &quot;The count matrix of expressions&quot;,
+            &quot;name&quot;: &quot;Count matrix:&quot;,
+            &quot;required&quot;: true,
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;DataResource&quot;,
+                &quot;resource_types&quot;: [&quot;RNASEQ_COUNT_MTX&quot;, &quot;I_MTX&quot;],
+                &quot;many&quot;: false
+            }
+        },
+        &quot;p_val&quot;: {
+            &quot;description&quot;: &quot;The filtering threshold for the p-value&quot;,
+            &quot;name&quot;: &quot;P-value threshold:&quot;,
+            &quot;required&quot;: false,
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;BoundedFloat&quot;,
+                &quot;min&quot;: 0,
+                &quot;max&quot;: 1.0,
+                &quot;default&quot;: 0.05
+            },
+        }
+        &quot;output_filename&quot;: {
+            &quot;description&quot;: &quot;The name of the contrast for your own reference.&quot;,
+            &quot;name&quot;: &quot;Contrast name:&quot;,
+            &quot;required&quot;: false,
+            &quot;spec&quot;: {
+                &quot;attribute_type&quot;: &quot;String&quot;,
+                &quot;default&quot;: &quot;deseq2_results&quot;
+            }
+        }
+    },
+    &quot;outputs&quot;: {
+        &quot;dge_table&quot;: {
+            &quot;spec&quot;:{
+                &quot;attribute_type&quot;: &quot;DataResource&quot;,
+                &quot;resource_type&quot;: &quot;FT&quot;
+            } 
+        }
+    }
+}
+</code></pre>
+
+<p>This specification will be placed into a file. In the repo, there will be a Dockerfile and possibly other files (e.g. scripts). Upon ingestion, MEV will read this inputs file, get the commit hash, assign a UUID, build the container, push the container, etc. </p>
+<p>As mentioned before, we note that the JSON above does not contain all of the required fields to create an <code>Operation</code> instance; it is missing <code>id</code>, <code>git_hash</code>, and<code>repository_url</code>. Note that when the API endpoint <code>/api/operations/</code> is requested, the returned object will match that above, but will also contain those required additional fields.</p>
+<h3 id="executing-an-operation"><a class="toclink" href="#executing-an-operation">Executing an Operation</a></h3>
+<p>The <code>Operation</code> objects above are typically used to populate the user interface such that the proper input fields can be displayed (e.g. a file chooser for an input that specifies it requires a <code>DataResource</code>). To actually initiate the <code>Operation</code>, thus creating an <code>ExecutedOperation</code>, the front-end (or API request) will need to POST a payload with the proper parameters/inputs. The backend will check those inputs against the specification.</p>
+<p>As an example, a valid payload for the above would be:</p>
+<pre class="codehilite"><code>{
+    &quot;operation_id&quot;: &lt;UUID&gt;,
+    &quot;workspace_id&quot;: &lt;UUID&gt;,
+    &quot;inputs&quot;: {
+        &quot;count_matrix&quot;: &lt;UUID of Resource&gt;
+        &quot;p_val&quot;: 0.01
+    }
+}
+</code></pre>
+
+<p>(note that the <code>"output_filename"</code> field was not required so we do not need it here)</p>
+<p>The <code>operation_id</code> allows us to locate the <code>Operation</code> that we wish to run and the <code>workspace_id</code> allows us to associate the eventual <code>ExecutedOperation</code> with a <code>Workspace</code>. Finally, the <code>inputs</code> key is an object of key-value pairs. Depending on the "type" of the input, the values can be effectively arbitrary.</p>
+<p><strong>Walking through the backend logic</strong>
+In the backend, we locate the proper <code>Operation</code> by its UUID. In our example, we see that this <code>Operation</code> expects two required inputs: <code>"count_matrix"</code> and <code>"p_val"</code>. Below, we walk though how these are validated.</p>
+<p>For the <code>count_matrix</code> input, we see the <code>spec</code> field says it accepts <code>"DataResource"</code>s (files) with resource types of <code>["RNASEQ_COUNT_MTX", "I_MTX"]</code>. It also says <code>"many": false</code>, so we only will accept a single file. The payload example above provided a single UUID (so it is validated for <code>"many": false</code>). Then, we will take that UUID and query our database to see if it corresponds to a <code>Resource</code> instance that has a <code>resource_type</code> member that is either <code>"RNASEQ_COUNT_MTX"</code> or <code>"I_MTX"</code>. If that is indeed the case, then the <code>"count_matrix"</code> field is successfully validated.</p>
+<p>For the <code>"p_val"</code> field, we receive a value of 0.01. The <code>spec</code> states that this input should be of type <code>BoundedFloat</code> with a min of 0.0 and a max of 1.0. The backend validates that 0.01 is indeed in the range [0.0,1.0].</p>
+<h3 id="operation-modes"><a class="toclink" href="#operation-modes">Operation modes</a></h3>
+<p>Depending on how the <code>Operation</code> should be run, we perform different actions upon ingestion. For local docker-based runs, we obviously require that the image be located on the same machine as the MEV instance. To ensure everything is "aligned", we require additional files depending on the run mode. These are verified during the ingestion process.</p>
+<p>For instance, in the local docker run mode, we need a Dockerfile to build from. The image will be built and pushed to Dockerhub during ingestion. The image will be tagged with the github commit hash so that the file(s) used to build the image can be uniquely identified and re-traced over time.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="creating_analyses.html" class="btn btn-neutral float-right" title="Creating new analyses/operations">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="auth.html" class="btn btn-neutral" title="Authentication"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="auth.html" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="creating_analyses.html" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

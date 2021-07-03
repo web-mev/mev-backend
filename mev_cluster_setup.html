@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>Installation and setup - WebMeV REST API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  <link href="style.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Installation and setup";
+    var mkdocs_page_input_path = "mev_cluster_setup.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="icon icon-home"> WebMeV REST API</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="index.html">Home</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="general_architecture.html">Architecture</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+                <ul class="current">
+                    <li class="toctree-l1"><a class="reference internal" href="install.html">Preliminaries</a>
+                    </li>
+                    <li class="toctree-l1 current"><a class="reference internal current" href="mev_cluster_setup.html">Installation and setup</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#local-development-using-vagrant">Local development using Vagrant</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#deploying-to-gcp-using-terraform">Deploying to GCP using terraform</a>
+    </li>
+    </ul>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration.html">Configuration</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">API</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="resources.html">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_types.html">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_metadata.html">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="operation_resources.html">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="attributes.html">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="elements.html">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets.html">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="workspaces.html">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="metadata.html">Workspace metadata</a>
+                </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="operations.html">Operation concepts</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses.html">Creating new analyses/operations</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="example_workflow.html">Workflow and analysis concepts</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">WebMeV REST API</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+      
+        
+          <li>Installation and Setup &raquo;</li>
+        
+      
+    
+    <li>Installation and setup</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/mev_cluster_setup.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h2 id="the-webmev-api"><a class="toclink" href="#the-webmev-api">The WebMEV API</a></h2>
+<p>This section of the installation instructions describes:</p>
+<ul>
+<li>Creation of a local development stack using Vagrant</li>
+<li>Creation of a cloud-based stack</li>
+</ul>
+<hr />
+<p>As described in the general architecture section, WebMEV consists of two servers: the main Django-based application server and the remote job scheduler (Cromwell). </p>
+<p>The application server consists of a production web server (nginx), an application server (gunicorn), the Django-based application, and a database. The database can be implemented locally (when in the local, Vagrant-based build) or with a cloud-based instance (when deploying on a cloud platform). Regardless of the implementation of the database server, Django communicates with the database via a unix socket on the VM.</p>
+<p><img alt="" src="arch.svg" /></p>
+<hr />
+<h3 id="local-development-using-vagrant"><a class="toclink" href="#local-development-using-vagrant">Local development using Vagrant</a></h3>
+<ul>
+<li>Install <a href="https://git-scm.com/">Git</a>, <a href="https://www.virtualbox.org/">VirtualBox</a>, and <a href="https://www.vagrantup.com/">Vagrant</a></li>
+<li>Clone the WebMEV backend repository: <code>git clone https://github.com/web-mev/mev-backend.git</code></li>
+<li>Change into the repository directory: <code>cd mev-backend</code></li>
+<li>Copy the template file for the environment variables you will need: <code>cp vagrant/env.tmpl vagrant/env.txt</code>. Note that the name/path of the file is important since the provisioning script makes reference to a file at this path.</li>
+<li>Fill in the proper environment variables in that copied file (e.g. <code>vagrant/env.txt</code> above). Note that for local dev like unit testing, many of the variables can be left as-is. However, if you would like to test the integration with dockerhub, gmail, then
+you can certainly fill-in those variables.</li>
+<li>Provision and start the VM: <code>vagrant up</code></li>
+<li>SSH into the VM: <code>vagrant ssh</code></li>
+</ul>
+<p>You are now ready to develop locally. Note that the code is shared between the host and VM at the <code>/vagrant</code> directory.</p>
+<p><strong>To run unit tests</strong></p>
+<pre class="codehilite"><code>cd /vagrant/mev
+python3 manage.py test
+</code></pre>
+
+<p>(use the <code>--failfast</code> flag if you want to fail the test suite on the first failure encountered)</p>
+<p><strong>To run the application locally</strong>
+By default, the provisioning script does not start the gunicorn application server. To do that, simply run:</p>
+<pre class="codehilite"><code>sudo supervisorctl start gunicorn
+</code></pre>
+
+<p>(Note that you need to use elevated privileges since you are interacting with the supervisor daemon. Otherwise you will get a permission error.)</p>
+<hr />
+<h3 id="deploying-to-gcp-using-terraform"><a class="toclink" href="#deploying-to-gcp-using-terraform">Deploying to GCP using terraform</a></h3>
+<p>The GCP deployment includes two virtual machines, a managed cloud-based database, and several network services. In particular, we employ a public-facing load balancer which obviates the need for configuring and managing SSL certificates on the individual VMs. Instead, the load balancer and Google-managed SSL certificates (with HTTPS forwarding rules) provide secure connections to WebMeV.</p>
+<p>In addition to having a GCP account, this deployment strategy assumes:</p>
+<ul>
+<li>You have a custom domain you wish to use</li>
+<li>You will only allow HTTPS connections (HTTP will be upgraded to HTTPS)</li>
+<li>You have already created a "managed zone" in GCP's Cloud DNS and your domain registrar is using the Cloud DNS nameservers. Note that Cloud DNS is NOT the same as Google Domains, if that happens to be your domain registrar. We do this since the terraform script dynamically creates DNS records which will point at the load balancer IP.</li>
+</ul>
+<p>These items are obviously not <em>required</em>, but you would need to modify the terraform scripts.</p>
+<p><strong>To deploy</strong></p>
+<ul>
+<li>Install <a href="https://cloud.google.com/sdk/docs/install">Google Cloud SDK</a> and <a href="https://www.terraform.io/downloads.html">Terraform</a></li>
+<li>Create a service account with the appropriate roles and obtain a JSON-format service account key file. You can do this via the <a href="#gcloud-svc-acct">gcloud commandline tool</a> or using the <a href="#gcp-svc-acct">web console</a>. Keep the key file safe.</li>
+<li>To allow https, we need a SSL certificate. The <code>gcloud</code> commandline tool provides a convenient way to provision one:</li>
+</ul>
+<pre class="codehilite"><code>gcloud beta compute ssl-certificates create &lt;CERTIFICATE NAME&gt;
+--description=&quot;SSL certificate for WebMeV dev server&quot;
+--domains=mydomain1-dev.tm4.org,mydomain2-dev.tm4.org
+</code></pre>
+
+<p>Note: until the full stack is up and the load balancer is active, this will remain in a "provisioning" state.</p>
+<ul>
+<li><code>cd deploy/terraform/live</code></li>
+<li><code>terraform init</code></li>
+<li><code>cp config.tfvars.template terraform.tfvars</code></li>
+<li>
+<p>Edit <code>terraform.tfvars</code> to assign required configuration values. You can refer to the <code>vars.tf</code> file for explanations of these variables and what they do. These are obviously the same environment variables used in the local, Vagrant-based deployment, so further information may be available in the comments of the <code>vagrant/env.tmpl</code> file at the root of this repository.</p>
+<p><strong>Special notes:</strong></p>
+<ul>
+<li>The <code>ssl_cert</code> variable refers to the SSL certificate you created above. It is a resource string like: <code>projects/&lt;GCP PROJECT&gt;/global/sslCertificates/&lt;CERTIFICATE NAME&gt;</code></li>
+<li>The <code>credentials_file</code> variable is the JSON-format key file you obtained for your service account. Assuming you saved this file in your <code>deploy/terraform/live/</code> directory, then you can simply write the file name.</li>
+<li>The <code>service_account_email</code> variable is the email-like name of the service account you created. For example, <code>abc123@&lt;GCP PROJECT&gt;.iam.gserviceaccount.com</code></li>
+</ul>
+</li>
+<li>
+<p>Create and set your terraform workspace.</p>
+<p>Note that we make use of <a href="https://www.terraform.io/docs/language/state/workspaces.html">terraform workspaces</a> which allow independent deployments using the same scripts. The <em>name</em> of the workspace is typically used when naming the cloud-based resources created (e.g. <code>backend-&lt;WORKSPACE NAME&gt;</code>) to make them more obvious when interacting with the GCP console or gcloud tool. By default, the workspace name is, appropriately enough, <code>default</code>. You can create a new workspace with:</p>
+</li>
+</ul>
+<pre class="codehilite"><code>terraform workspace new &lt;WORKSPACE NAME&gt;
+</code></pre>
+
+<p>and you can switch between workspaces with:</p>
+<pre class="codehilite"><code>terraform workspace select &lt;WORKSPACE NAME&gt;
+</code></pre>
+
+<ul>
+<li>Once you have set a workspace, you can build it with</li>
+</ul>
+<pre class="codehilite"><code>terraform apply
+</code></pre>
+
+<p>This will prompt for any configuration variables that were not included in <code>terraform.tfvars</code>. Often, variables like these are intentionally left out to force the user to take a moment and think about what they are doing. One example is the git commit ID. This will tell terraform which git commit should be deployed. We intentionally prompt for this so that the developer is forced to examine the <em>exact</em> version of the application they wish to deploy.</p>
+<ul>
+<li>To delete your resources:</li>
+</ul>
+<pre class="codehilite"><code>terraform destroy
+</code></pre>
+
+<hr />
+<p><a name="gcp-svc-acct"><strong>Creating a service account with the GCP console</strong></a></p>
+<ul>
+<li>
+<p>Navigate to "IAM &amp; Admin" --&gt; "Service Accounts":
+<a href="gcp_service_account_1.png"><img src="gcp_service_account_1.png" width="300"></a></p>
+</li>
+<li>
+<p>Click the "create service account" button at the top:</p>
+</li>
+</ul>
+<p><a href="gcp_service_account_2.png"><img src="gcp_service_account_2.png" width="200"></a></p>
+<ul>
+<li>
+<p>Give the account a name:
+<a href="gcp_service_account_3.png"><img src="gcp_service_account_3.png" width="300"></a></p>
+</li>
+<li>
+<p>Add "roles" to this service account. To work with the deployment, you will need:</p>
+<ul>
+<li>Editor (<code>roles/editor</code>)</li>
+<li>Service Networking Admin (<code>roles/servicenetworking.networksAdmin</code>)</li>
+</ul>
+</li>
+</ul>
+<p><a href="gcp_service_account_4.png"><img src="gcp_service_account_4.png" width="300"></a></p>
+<ul>
+<li>
+<p>After the account is created, you will be directed to the page with all the service accounts for your your GCP project. Click on the one you  just created:
+<a href="gcp_service_account_5.png"><img src="gcp_service_account_5.png" width="300"></a></p>
+</li>
+<li>
+<p>Go to the "keys" tab and create a new JSON key:
+<a href="gcp_service_account_6.png"><img src="gcp_service_account_6.png" width="300"></a>
+<a href="gcp_service_account_7.png"><img src="gcp_service_account_7.png" width="300"></a></p>
+</li>
+<li>
+<p>Save this key in your <code>deploy/terraform/live/</code> folder. Then the <code>terraform.tfvars</code> file can reference this file easily.</p>
+</li>
+</ul>
+<p><a name="gcloud-svc-acct"><strong>Creating a service account with the gcloud tool</strong></a></p>
+<ul>
+<li>Create a service account:</li>
+</ul>
+<pre class="codehilite"><code>gcloud iam service-accounts create &lt;NAME&gt; --display-name=&quot;&lt;SOME NAME&gt;&quot;
+</code></pre>
+
+<p>e.g. </p>
+<pre class="codehilite"><code>gcloud iam service-accounts create abc123 --display-name=&quot;A basic name&quot;
+</code></pre>
+
+<p>The identifier "abc123" below will create a service account with a "full" email-like name, e.g. <code>abc123@myproject.iam.gserviceaccount.com</code>. The name needs to conform to some basic requirements (minimum length, characters) and gcloud will warn you if you it doesn't comply.</p>
+<ul>
+<li>Add the appropriate policies to this service account. This will enable the account to perform certain actions like creation of VMs, etc. Specifically, you will need to add the <code>roles/editor</code> and <code>roles/servicenetworking.networksAdmin</code> to your service account. The latter will enable your application server to connect to the cloud-based database. Project "editor" permissions alone will not be adequate.</li>
+</ul>
+<pre class="codehilite"><code>gcloud projects add-iam-policy-binding myproject \ 
+    --member='serviceAccount:abc123@myproject.iam.gserviceaccount.com' \ 
+    --role='roles/editor'
+
+gcloud projects add-iam-policy-binding myproject \   
+    --member='serviceAccount:abc123@myproject.iam.gserviceaccount.com' \ 
+    --role='roles/servicenetworking.networksAdmin'
+</code></pre>
+
+<p>Then create a JSON key file which terraform will use:</p>
+<pre class="codehilite"><code>gcloud iam service-accounts keys create my_gcp_key.json \
+    --iam-account=abc123@myproject.iam.gserviceaccount.com
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="setup_configuration.html" class="btn btn-neutral float-right" title="Configuration">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="install.html" class="btn btn-neutral" title="Preliminaries"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="install.html" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="setup_configuration.html" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

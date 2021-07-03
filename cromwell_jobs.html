@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="img/favicon.ico">
-  <title>Gsea - WebMeV REST API</title>
+  <title>Cromwell jobs - WebMeV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Gsea";
-    var mkdocs_page_input_path = "gsea.md";
+    var mkdocs_page_name = "Cromwell jobs";
+    var mkdocs_page_input_path = "cromwell_jobs.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -132,10 +132,10 @@
     
       
     
-    <li>Gsea</li>
+    <li>Cromwell jobs</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/gsea.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/cromwell_jobs.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -147,45 +147,85 @@
           <div role="main">
             <div class="section">
               
-                <h2 id="a-primer-on-gsea-viz"><a class="toclink" href="#a-primer-on-gsea-viz">A primer on GSEA + viz</a></h2>
-<p>For GSEA, we imagine two analyses. One handles the overview, finding biological pathways of interest given a set of differential expression results. The other gives a more detailed view of an individual pathway.</p>
-<h3 id="high-level-overview-of-gsea"><a class="toclink" href="#high-level-overview-of-gsea">High-level overview of GSEA</a></h3>
-<p>We are using the "fast" gene set enrichment analysis (fgsea) in the R language. This is effectively a copy of the original GSEA with some algorithmic tweaks to make it run much faster. https://www.biorxiv.org/content/10.1101/060012v2.full.pdf</p>
-<p>The input to a fgsea analysis is the results of a differential gene expression analysis (e.g. DESeq2, etc.). We use those differential expression results to make a ranked list of the genes. Typically, this ranking would be based on something like</p>
-<p>$$r_i = -\log(p_i)\cdot\mathrm{sgn}(logFC_i)$$</p>
-<p>for gene $i$ where $p_i$ is the p-value from the test and $logFC_i$ is the log fold-change; $\mathrm{sgn}$ is the "sign" function. This way, we can rank the genes so that the most differentially expressed are at the extremes (top or bottom) of the list.</p>
-<p>GSEA also needs a list of "gene sets", which can be things like a set of genes involved in some biological process (i.e. cell death, etc). The idea is that if many genes in those pathways are differentially expressed, we have reason to believe that pathway would be disrupted or changed in some interesting way.</p>
-<h3 id="part-1"><a class="toclink" href="#part-1">Part 1</a></h3>
-<p>For this overview analysis, we have to provide the results from a differential expression analysis, such as DESeq2.</p>
-<p>GSEA will produce a table giving the top pathways, like the following: 
-<img alt="" src="gsea_fig2.png" /></p>
-<p>The "rug plots" (in the Gene ranks column) here show where that pathway's genes lie inside the ranked list of ~12,000 genes. The height of the lines is equal to the ranking statistics (the $-\log(p)\cdot \mathrm{sgn}(lfc)$), normalized by the maximum absolute value. We look for denser lines at the left and right side which indicate likely up and down-regulated pathways.</p>
-<p>The output could be a JSON file with the following structure (unless something else makes more sense):</p>
-<pre class="codehilite"><code>[
-    {
-        &quot;name&quot;:&quot;5990980_Cell_Cycle&quot;,
-        &quot;NES&quot;: 2.66,
-        &quot;pval&quot;:2.5e-26,
-        &quot;padj&quot;: 1.5e-23,
-        &quot;gene_ranks&quot;: {
-            &quot;x&quot;:[3,7,...,11202],
-            &quot;y&quot;:[1.0, 0.93,...,-0.97]
-        }
-    },
-    ...
-]
+                <h2 id="cromwell-setup"><a class="toclink" href="#cromwell-setup">Cromwell setup</a></h2>
+<h2 id="remote-cromwell-based-jobs"><a class="toclink" href="#remote-cromwell-based-jobs">Remote Cromwell-based jobs</a></h2>
+<p>For a Cromwell-based job, we include all the workflow components in one or more
+WDL-format files.</p>
+<p>In those WDL files, workflow authors specify the Docker image they wish to use, e.g.</p>
+<pre class="codehilite"><code>task SomeTask {
+    ...&lt;other content&gt;
+
+    runtime {
+        ...
+        docker: &quot;docker.io/&lt;username&gt;/&lt;image name&gt;:&lt;tag&gt;&quot;
+        ...
+    }
+}
 </code></pre>
 
-<p>As for the UI</p>
-<p><img alt="" src="gsea_fig3.svg" /></p>
-<h3 id="outputs-of-part-2"><a class="toclink" href="#outputs-of-part-2">Outputs of Part 2</a></h3>
-<p>For a single pathway, the "classic" GSEA figure looks like:</p>
-<p><img alt="" src="gsea_fig.png" /></p>
-<p>The green line is based on their "enrichment score" (ES), which is kind of a running sum as it goes through the ranked list of all genes. Each time it sees a gene that is in the pathway, it adds to that sum; otherwise, it subtracts. Since many of this pathway's genes are at the top of the ranked list, the green line ascends quickly. The genes to the left of the "peak" are called the "leading edge" genes and is given as an output in the analysis. Therefore, we can easily give users a list of genes in their pathway that are the "most important". This calculation is technically performed as part of the more general analysis above, but the package does not provide a direct way to access the results and get the points for the green line. It's also likely too much data to return for the general analysis where we only want to provide an overview. </p>
-<p>In the figure above, the lines at the bottom show the location of the pathway genes in the ranked list, just as in the table above.</p>
-<h3 id="some-nice-to-haves"><a class="toclink" href="#some-nice-to-haves">Some "nice to have"s:</a></h3>
-<p>If we displayed the table shown above, it would be great if we could use that to create a <code>FeatureSet</code>. For example, the user could click on a button that says "create new gene set". This would be just like how we can create an <code>ObservationSet</code> by highlighting samples in the PCA plot. </p>
-<p>Since the GSEA results originate from a specific differential expression analysis, we can use that file to create the plots in the same way we do when we plot after the basic diff. exp. analysis.</p>
+<p>For our purposes with MEV, we will end up replacing these tags which appropriately versioned/tagged images. The process is as follows:
+- The repository is cloned onto the MEV instance
+- When the workflow is ingested into MEV, the github commit hash is noted. As an example take this to be <code>"abc123"</code>
+- We parse the WDL files and collect all unique docker image names from <em>all</em> WDL files. Uniqueness is determined by the combination of username and image name. It does <em>not</em> include the tag, since that will be changed anyway (see below). Two docker images that differ in only their tag will be rejected.
+- For each of those unique Docker images we look for an image-specific Dockerfile, where the name of the Dockerfile is determined by the name of the corresponding Docker image. For example, consider that we parse <code>docker.io/myuser/foo</code> from our WDL files. We would then look for a file at <code>docker/Dockerfile.foo</code> among the repository files. 
+- We then build an image from the Dockerfile specification and tag it with the github commit hash. Thus, the final image (built from <code>docker/Dockerfile.foo</code>) would be <code>myuser/foo:abc123</code>
+- An exact search/replace for the image specification is performed on the WDL files. Thus, if we parsed <code>docker.io/myuser/foo</code> was parsed from the WDL file(s), we replace that with <code>docker.io/myuser/foo:abc123</code></p>
+<p>In this way, the Docker images can be unambiguously associated with the github commit that generated them. The downside of this approach is that the workflow files we use <em>within</em> MEV are not <em>exactly</em> the same as they are seen in github. Since we can't know the git commit hash up front (i.e. prior to commit), we can't tag the Docker images correctly in the first place. <em>However</em>, the <code>Operation</code> info pulled from the database will contain that hash. From there, interested users can go to the repository history and find the exact state of the repository that created their analysis; the only difference would be the references to the Docker images. Users can then view the Docker image that was used (e.g. <code>docker.io/myuser/foo</code>), append the hash (e.g. <code>abc123</code>) and be able to find the exact image version(s) that ran their analysis. Importantly, the commands do not change in our ingestion process.</p>
+<p>This tradeoff seemed preferable to the option where we establish tags prior to commit and push those tagged Docker images to Dockerhub. In that case, developers had to be sure not to overwrite earlier images or had to ensure a system for keeping them all up to date/in-sync.</p>
+<h2 id="dealing-with-cromwell-jobs"><a class="toclink" href="#dealing-with-cromwell-jobs">Dealing with Cromwell jobs</a></h2>
+<p>After we have a set of WDL files, we also have an associated JSON-format inputs file.</p>
+<p>In general, that inputs file can have user-supplied items like strings, numbers, and files (e.g. fastq files). However, there may be other file-based resources required which are not something that the user "owns". An example would be a genome index as required by an alignment. The user should only have to specify their reference genome-- they should not have to deal with the creation or maintenance of those files.</p>
+<p>To speak concretely about this, imagine we have some simple alignment workflow. For inputs, we require one or more fastq files and a reference to align against. One way to accomplish this could be:</p>
+<pre class="codehilite"><code>{
+  &quot;SomeWorkflow.fastq_files&quot;: &quot;Array[File]&quot;,
+  &quot;SomeWorkflow.genome&quot;: &quot;String&quot;
+}
+</code></pre>
+
+<p>Then, in the repository, we have a tab-delimited file which gives us the ability to map the genome string to one or more files (e.g. index files) that are associated with that genome. </p>
+<p>For instance, if the final json was:</p>
+<pre class="codehilite"><code>{
+  &quot;SomeWorkflow.fastq_files&quot;: [
+      &quot;gs://mybucket/fileA_R1.fastq.gz&quot;,
+      &quot;gs://mybucket/fileB_R1.fastq.gz&quot;,
+    ],
+  &quot;SomeWorkflow.genome&quot;: &quot;GRCh38_human&quot;
+}
+</code></pre>
+
+<p>we could have a file in the repository that has:</p>
+<pre class="codehilite"><code>{
+    &quot;GRCh38_human&quot;: {
+        &quot;index&quot;: &quot;/path/to/human.index&quot;,
+        &quot;gtf&quot;: &quot;/path/to/human.gtf&quot;
+    },
+    &quot;GRCm38_mouse&quot;: {
+        &quot;index&quot;: &quot;/path/to/mouse.index&quot;,
+        &quot;gtf&quot;: &quot;/path/to/mouse.gtf&quot;
+    }
+}
+</code></pre>
+
+<p>Then, in the WDL, it will perform that mapping to use the proper index.
+NOTE: Using WDL's <code>read_json</code> does not seem to work as expected.</p>
+<p><strong>Option 2</strong>
+Instead of having a separate file for the index, gtf, etc. we could hard-code it into the WDL file itself. Since the WDL is version-controlled, this is not the worst solution.</p>
+<p><strong>Option 3</strong>
+Use a converter. Can we make a converter class that will take the genome string and give us the various files we need? Don't think so- would require the converter to look at the repo and grab that file.</p>
+<p>What about a "mapper" converter. Given a string (e.g. "GRCh38_human"), it loads a file (with some standard name) that looks like:</p>
+<pre class="codehilite"><code>{
+    &quot;GRCh38_human&quot;: {
+        &quot;Workflow.index&quot;: &quot;/path/to/human.index&quot;,
+        &quot;Workflow.gtf&quot;: &quot;/path/to/human.gtf&quot;
+    },
+    &quot;GRCm38_mouse&quot;: {
+        &quot;Workflow.index&quot;: &quot;/path/to/mouse.index&quot;,
+        &quot;Workflow.gtf&quot;: &quot;/path/to/mouse.gtf&quot;
+    }
+}
+</code></pre>
+
+<p>Note that the keys would be the variable names (as given in the <code>inputs.json</code> file). By using the user-supplied key/choice (GRCh38_human), we can add those values to the <code>inputs.json</code> (along with the other values)</p>
               
             </div>
           </div>

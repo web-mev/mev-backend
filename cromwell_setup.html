@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>Cromwell setup - WebMeV REST API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  <link href="style.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Cromwell setup";
+    var mkdocs_page_input_path = "cromwell_setup.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="icon icon-home"> WebMeV REST API</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="index.html">Home</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="general_architecture.html">Architecture</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="install.html">Preliminaries</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="mev_cluster_setup.html">Installation and setup</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration.html">Configuration</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">API</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="resources.html">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_types.html">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_metadata.html">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="operation_resources.html">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="attributes.html">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="elements.html">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets.html">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="workspaces.html">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="metadata.html">Workspace metadata</a>
+                </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="operations.html">Operation concepts</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses.html">Creating new analyses/operations</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="example_workflow.html">Workflow and analysis concepts</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">WebMeV REST API</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Cromwell setup</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/cromwell_setup.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h2 id="cromwell-server-setup"><a class="toclink" href="#cromwell-server-setup">Cromwell server setup</a></h2>
+<p>This section covers the setup of a second machine which will act as the Cromwell server.  This server is responsible for handling remote job submissions from WebMEV and performing all the orchestration of cloud-based resources (e.g. starting VMs, pulling data from storage buckets).</p>
+<h3 id="creating-a-new-vm"><a class="toclink" href="#creating-a-new-vm">Creating a new VM</a></h3>
+<p>Depending on your cloud platform, starting the new compute instance will be different. However, the instructions below were only run on a Debian distro. We make note of the following considerations:</p>
+<ul>
+<li>
+<p>Documentation on the machine requirements is challenging to find on the Cromwell site, but we have had success using a machine with 2 vCPU and 8Gb RAM.</p>
+</li>
+<li>
+<p>Cromwell produces rather verbose logs, although these are only simple text files without a huge footprint. We have used 100Gb.</p>
+</li>
+<li>
+<p>You must expose port 8000 on this machine, which is the default port for Cromwell. Other ports can be configured, but we do not cover that here.</p>
+</li>
+<li>
+<p>We create a firewall rule which only allows requests originating from the WebMEV machine. For WebMEV, there is no need to expose Cromwell publicly.</p>
+</li>
+</ul>
+<h3 id="installing-and-configuring-cromwell-server"><a class="toclink" href="#installing-and-configuring-cromwell-server">Installing and configuring Cromwell server</a></h3>
+<p>SSH into the Cromwell host.  Install the Java runtime environment, which we need to run Cromwell:</p>
+<pre class="codehilite"><code>$ sudo -s
+$ apt-get update
+$ apt-get install -y default-jre
+</code></pre>
+
+<p>We also need Docker to be installed-- for ease of installation, we simply use a MySQL Docker container.  Of course you may wish to install MySQL directly on your Cromwell server, but that is not covered here.  We follow the instructions for installing Docker and then run:</p>
+<pre class="codehilite"><code>docker run -p 3306:3306 --name mysql_container \
+    -e MYSQL_ROOT_PASSWORD=&lt;ROOT PASSWORD&gt; \
+    -e MYSQL_DATABASE=&lt;DATABASE NAME&gt; \
+    -e MYSQL_USER=&lt;DATABASE USER&gt; \
+    -e MYSQL_PASSWORD=&lt;DATABASE USER PASSWORD&gt; \ 
+    -d mysql/mysql-server:5.7
+</code></pre>
+
+<p>Note that the <code>latest</code> image version ended up causing problems with Cromwell, so we used 5.7.  Also be sure to change the various usernames/passwords above.  </p>
+<p>Now get the latest Cromwell JAR from the Broad Institute's Github (https://github.com/broadinstitute/cromwell/releases).  We keep the JAR under a new directory, <code>/opt/cromwell/</code>.</p>
+<pre class="codehilite"><code>$ mkdir /opt/cromwell
+$ wget https://github.com/broadinstitute/cromwell/releases/download/36/cromwell-36.jar -P /opt/cromwell/
+</code></pre>
+
+<p>Since we would like Cromwell to remain alive (and recover from failures), we place it under control of supervisor, which we need to install</p>
+<pre class="codehilite"><code>$ apt-get install -y supervisor
+</code></pre>
+
+<p>We will also create a non-root user to run execute Cromwell:</p>
+<pre class="codehilite"><code>$ adduser cromwell-runner
+</code></pre>
+
+<p>In addition, we need to create a folder for Cromwell to write logs.  By default it tries to write to <code>/cromwell-workflow-logs</code>.  so we must create a folder there and give ownership of that folder to the <code>cromwell-runner</code> user.  As root (which you should be):</p>
+<pre class="codehilite"><code>$ mkdir /cromwell-workflow-logs
+$ chown cromwell-runner:cromwell-runner /cromwell-workflow-logs
+</code></pre>
+
+<p>Create a conf file for supervisor at <code>/etc/supervisor/conf.d/cromwell.conf</code>: </p>
+<pre class="codehilite"><code>[program:cromwell_server]
+command=/usr/bin/java -D&lt;JAVA PROPERTIES&gt; -jar /opt/cromwell/cromwell-&lt;VERSION&gt;.jar server
+user=cromwell-runner
+
+; Put process stdout output in this file
+stdout_logfile=/var/log/cromwell/stdout.log
+
+; Put process stderr output in this file
+stderr_logfile=/var/log/cromwell/stderr.log
+
+autostart=true
+autorestart=true
+stopsignal=QUIT
+</code></pre>
+
+<p>Note that you should change the path to the JAR file to match the version you have downloaded. Also take note of the template/dummy <code>-D&lt;JAVA PROPERTIES&gt;</code> flag at the start of the <code>command</code> parameter.  This provides arguments to the Java runtime environment (JRE).  This flag is not strictly required (and should be removed if no arguments are passed), but when running on a cloud platform, we typically use the <code>-D</code> flag to pass the path to a configuration file. That config file contains platform-specific parameters which dictate how Cromwell is to be run when using a specific cloud platform.  Details about these files are given below.</p>
+<p>Prior to starting supervisor, the log directory needs to be created:</p>
+<pre class="codehilite"><code>$ mkdir /var/log/cromwell
+</code></pre>
+
+<p>Then start supervisor:</p>
+<pre class="codehilite"><code>$ supervisord
+$ supervisorctl reread
+$ supervisorctl update
+</code></pre>
+
+<p>Running <code>supervisorctl status</code> should show the <code>cromwell_server</code> process as <code>RUNNING</code> if all is well.  To test that the Cromwell server is up, you can check the log at <code>/var/log/cromwell/stdout.log</code>.  </p>
+<p>To test that Cromwell is able to respond to your requests, you can log into the main application VM and initiate a request to one of the Cromwell API endpoints.  For instance, you can query the job status endpoint (here using a random, but valid UUID):</p>
+<pre class="codehilite"><code> $ curl -X GET http://&lt;CROMWELL SERVER IP&gt;:8000/api/workflows/v1/e442e52a-9de1-47f0-8b4f-e6e565008cf1/status
+</code></pre>
+
+<p>If the server is running, it will return a 404 (with the JSON below) since the random UUID will not be a job identifier that Cromwell is aware of:</p>
+<pre class="codehilite"><code>{
+    &quot;status&quot;: &quot;fail&quot;,
+    &quot;message&quot;: &quot;Unrecognized workflow ID: e442e52a-9de1-47f0-8b4f-e6e565008cf1&quot;
+}
+</code></pre>
+
+<p>If you try this same request from a different machine (e.g. your local machine), the request should timeout if the firewall rule was applied correctly.</p>
+<p><strong>GCP configuration</strong></p>
+<p>As described above, for Cromwell to have access to GCP resources (e.g. to start VMs and access bucket storage), it needs to be started with a configuration file specific to GCP.  A template is provided at <code>cromwell/google.template.conf</code>.  Project-specific variables are encased in angle brackets "&lt;", "&gt;", and need to be completed before using with the Cromwell JAR.  Specifically, you need to fill-in the google project ID (the name, <em>not</em> the numeric project ID), and the location of an <em>existing</em> storage bucket where Cromwell will execute the workflows. Also note the <code>database</code> stanza, where you include database name, user, and password details; these should match the corresponding values you entered when starting the MySQL Docker container above.  </p>
+<p>Once complete, save this file on the Cromwell server; below we chose to locate it at <code>/opt/cromwell/google.conf</code>.  The <code>command</code> in the supervisor config file above should then point at this config file, reading:</p>
+<pre class="codehilite"><code>...
+command=/usr/bin/java -Dconfig.file=/opt/cromwell/google.conf -jar /opt/cromwell/cromwell-&lt;VERSION&gt;.jar server
+...
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

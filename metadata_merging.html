@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="img/favicon.ico">
-  <title>Gsea - WebMeV REST API</title>
+  <title>Metadata merging - WebMeV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Gsea";
-    var mkdocs_page_input_path = "gsea.md";
+    var mkdocs_page_name = "Metadata merging";
+    var mkdocs_page_input_path = "metadata_merging.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -132,10 +132,10 @@
     
       
     
-    <li>Gsea</li>
+    <li>Metadata merging</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/gsea.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/metadata_merging.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -147,45 +147,55 @@
           <div role="main">
             <div class="section">
               
-                <h2 id="a-primer-on-gsea-viz"><a class="toclink" href="#a-primer-on-gsea-viz">A primer on GSEA + viz</a></h2>
-<p>For GSEA, we imagine two analyses. One handles the overview, finding biological pathways of interest given a set of differential expression results. The other gives a more detailed view of an individual pathway.</p>
-<h3 id="high-level-overview-of-gsea"><a class="toclink" href="#high-level-overview-of-gsea">High-level overview of GSEA</a></h3>
-<p>We are using the "fast" gene set enrichment analysis (fgsea) in the R language. This is effectively a copy of the original GSEA with some algorithmic tweaks to make it run much faster. https://www.biorxiv.org/content/10.1101/060012v2.full.pdf</p>
-<p>The input to a fgsea analysis is the results of a differential gene expression analysis (e.g. DESeq2, etc.). We use those differential expression results to make a ranked list of the genes. Typically, this ranking would be based on something like</p>
-<p>$$r_i = -\log(p_i)\cdot\mathrm{sgn}(logFC_i)$$</p>
-<p>for gene $i$ where $p_i$ is the p-value from the test and $logFC_i$ is the log fold-change; $\mathrm{sgn}$ is the "sign" function. This way, we can rank the genes so that the most differentially expressed are at the extremes (top or bottom) of the list.</p>
-<p>GSEA also needs a list of "gene sets", which can be things like a set of genes involved in some biological process (i.e. cell death, etc). The idea is that if many genes in those pathways are differentially expressed, we have reason to believe that pathway would be disrupted or changed in some interesting way.</p>
-<h3 id="part-1"><a class="toclink" href="#part-1">Part 1</a></h3>
-<p>For this overview analysis, we have to provide the results from a differential expression analysis, such as DESeq2.</p>
-<p>GSEA will produce a table giving the top pathways, like the following: 
-<img alt="" src="gsea_fig2.png" /></p>
-<p>The "rug plots" (in the Gene ranks column) here show where that pathway's genes lie inside the ranked list of ~12,000 genes. The height of the lines is equal to the ranking statistics (the $-\log(p)\cdot \mathrm{sgn}(lfc)$), normalized by the maximum absolute value. We look for denser lines at the left and right side which indicate likely up and down-regulated pathways.</p>
-<p>The output could be a JSON file with the following structure (unless something else makes more sense):</p>
-<pre class="codehilite"><code>[
-    {
-        &quot;name&quot;:&quot;5990980_Cell_Cycle&quot;,
-        &quot;NES&quot;: 2.66,
-        &quot;pval&quot;:2.5e-26,
-        &quot;padj&quot;: 1.5e-23,
-        &quot;gene_ranks&quot;: {
-            &quot;x&quot;:[3,7,...,11202],
-            &quot;y&quot;:[1.0, 0.93,...,-0.97]
-        }
-    },
-    ...
-]
-</code></pre>
-
-<p>As for the UI</p>
-<p><img alt="" src="gsea_fig3.svg" /></p>
-<h3 id="outputs-of-part-2"><a class="toclink" href="#outputs-of-part-2">Outputs of Part 2</a></h3>
-<p>For a single pathway, the "classic" GSEA figure looks like:</p>
-<p><img alt="" src="gsea_fig.png" /></p>
-<p>The green line is based on their "enrichment score" (ES), which is kind of a running sum as it goes through the ranked list of all genes. Each time it sees a gene that is in the pathway, it adds to that sum; otherwise, it subtracts. Since many of this pathway's genes are at the top of the ranked list, the green line ascends quickly. The genes to the left of the "peak" are called the "leading edge" genes and is given as an output in the analysis. Therefore, we can easily give users a list of genes in their pathway that are the "most important". This calculation is technically performed as part of the more general analysis above, but the package does not provide a direct way to access the results and get the points for the green line. It's also likely too much data to return for the general analysis where we only want to provide an overview. </p>
-<p>In the figure above, the lines at the bottom show the location of the pathway genes in the ranked list, just as in the table above.</p>
-<h3 id="some-nice-to-haves"><a class="toclink" href="#some-nice-to-haves">Some "nice to have"s:</a></h3>
-<p>If we displayed the table shown above, it would be great if we could use that to create a <code>FeatureSet</code>. For example, the user could click on a button that says "create new gene set". This would be just like how we can create an <code>ObservationSet</code> by highlighting samples in the PCA plot. </p>
-<p>Since the GSEA results originate from a specific differential expression analysis, we can use that file to create the plots in the same way we do when we plot after the basic diff. exp. analysis.</p>
+                <h2 id="merging-metadata"><a class="toclink" href="#merging-metadata">Merging metadata</a></h2>
+<p>This document goes over some of the issues concerning the harmonization and merging of resource metadata, particularly when we plan to use that metadata as filters or inputs in the context of an analysis workspace.</p>
+<h3 id="backgroundcontext"><a class="toclink" href="#backgroundcontext">Background/context</a></h3>
+<p>Initially, we thought that each file/<code>Resource</code> should have metadata associated with it. This metadata includes:</p>
+<ul>
+<li>
+<p><code>ObservationSet</code>: The set of samples or <code>Observations</code> that a file contains. For instance, given an expression matrix with $N$ columns, this would be the $N$ column names. For files where we have a 1:1 association with an <code>Observation</code> (e.g. a FastQ file), the <code>ObservationSet</code> contains only a single item. The <code>Observation</code> instances nested within the <code>ObservationSet</code> are used to hold additional data about each sample. That is, the expression matrix can have the <em>name</em> of the sample, but cannot tell us its phenotype, treatment group, etc. The <code>Observation</code> data structure allows us to associate a set of attributes.</p>
+</li>
+<li>
+<p><code>FeatureSet</code>: Similar to above. Here, we imagined (again, using the example of an expression matrix) that each <code>Observation</code>/sample would have a number of <code>Feature</code>s associated with it. For example, an <code>Observation</code>/sample has $m$ genes. Similar to <code>Observation</code>s, our <code>Feature</code>s can carry additional information about the gene (such as its status as a putative oncogene, its mutation status, etc.)</p>
+</li>
+</ul>
+<p>The whole idea of the metadata concept was to provide the user with the ability to filter their data during the analysis. For instance, one can say, "give me all <code>Observation</code>s/samples from the treated group" and we can iterate through the <code>ObservationSet</code> associated with their <code>Workspace</code> and return that subset.</p>
+<p>Similarly, if we perform, say, a differential expression analysis, we can then ask for all the genes that passed significance at some threshold (e.g. 0.05). In our nomenclature, this amounts to saying, "give me all <code>Feature</code>s/genes where its <code>pvalue</code> attribute is less than 0.05"</p>
+<h3 id="where-we-have-some-problems"><a class="toclink" href="#where-we-have-some-problems">Where we have some problems</a></h3>
+<p>Regardless of the analysis, the <code>ObservationSet</code> within a <code>Workspace</code> is fairly static. We can imagine adding attributes to each <code>Observation</code>, but an analysis operation does not fundamentally change any thing about each <code>Observation</code>.</p>
+<p>However, the situation is different for <code>Feature</code>s. Imagine running two different statistical tests for differential expression. The analyses produce similar tables.</p>
+<p>From analysis A:</p>
+<table>
+<thead>
+<tr>
+<th>gene</th>
+<th>logFoldChange</th>
+<th>pval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>geneA</td>
+<td>2.2</td>
+<td>0.02</td>
+</tr>
+<tr>
+<td>geneB</td>
+<td>-0.2</td>
+<td>0.05</td>
+</tr>
+</tbody>
+</table>
+<p>From analysis B:
+| gene  | lfc | pval |
+|-------|---------------|------|
+| geneB | -0.03           | 0.1 |
+| geneA | 2.03          | 0.00005 |</p>
+<p>Above, both would have p-values representing the significance of differential expression. </p>
+<p>Thus, depending on the context, the "attributes" of geneA or geneB would be different. There is no immediately sensible way to handle this in a general way.</p>
+<h3 id="possible-fix"><a class="toclink" href="#possible-fix">Possible fix</a></h3>
+<p>Recall that the primary reason for defining <code>FeatureSet</code>s and <code>ObservationSet</code>s is to provide a way to filter down to samples or genes of interest. We can use <code>ObservationSet</code>s to set up a contrast and we could use a <code>FeatureSet</code> to hold a set of genes that are important (e.g. because they are differentially expressed, or maybe because they are related to some biological function). </p>
+<p>If we restrict the selection of <code>FeatureSet</code>s to the context of a single <code>Resource</code>, then we can avoid this issue of "conflicting" <code>Feature</code> attributes. One drawback is that the user is required to remember exactly how the <code>FeatureSet</code> was created. For instance, the set of selected genes may be different in analysis A and analysis B and the user should know the file from which they originated. For this reason, we should have a way for the user to name/label the <code>FeatureSet</code>s.</p>
               
             </div>
           </div>

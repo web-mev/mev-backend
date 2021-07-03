@@ -9,7 +9,7 @@
   
   
   <link rel="shortcut icon" href="img/favicon.ico">
-  <title>Gsea - WebMeV REST API</title>
+  <title>Intro and core concepts - WebMeV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="css/theme.css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Gsea";
-    var mkdocs_page_input_path = "gsea.md";
+    var mkdocs_page_name = "Intro and core concepts";
+    var mkdocs_page_input_path = "api.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -65,8 +65,12 @@
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="api.html">Intro and core concepts</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#core-concepts">Core concepts</a>
+    </li>
+    </ul>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
@@ -131,11 +135,15 @@
     <li><a href="index.html">Docs</a> &raquo;</li>
     
       
+        
+          <li>API &raquo;</li>
+        
+      
     
-    <li>Gsea</li>
+    <li>Intro and core concepts</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/gsea.md"
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/api.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -147,49 +155,42 @@
           <div role="main">
             <div class="section">
               
-                <h2 id="a-primer-on-gsea-viz"><a class="toclink" href="#a-primer-on-gsea-viz">A primer on GSEA + viz</a></h2>
-<p>For GSEA, we imagine two analyses. One handles the overview, finding biological pathways of interest given a set of differential expression results. The other gives a more detailed view of an individual pathway.</p>
-<h3 id="high-level-overview-of-gsea"><a class="toclink" href="#high-level-overview-of-gsea">High-level overview of GSEA</a></h3>
-<p>We are using the "fast" gene set enrichment analysis (fgsea) in the R language. This is effectively a copy of the original GSEA with some algorithmic tweaks to make it run much faster. https://www.biorxiv.org/content/10.1101/060012v2.full.pdf</p>
-<p>The input to a fgsea analysis is the results of a differential gene expression analysis (e.g. DESeq2, etc.). We use those differential expression results to make a ranked list of the genes. Typically, this ranking would be based on something like</p>
-<p>$$r_i = -\log(p_i)\cdot\mathrm{sgn}(logFC_i)$$</p>
-<p>for gene $i$ where $p_i$ is the p-value from the test and $logFC_i$ is the log fold-change; $\mathrm{sgn}$ is the "sign" function. This way, we can rank the genes so that the most differentially expressed are at the extremes (top or bottom) of the list.</p>
-<p>GSEA also needs a list of "gene sets", which can be things like a set of genes involved in some biological process (i.e. cell death, etc). The idea is that if many genes in those pathways are differentially expressed, we have reason to believe that pathway would be disrupted or changed in some interesting way.</p>
-<h3 id="part-1"><a class="toclink" href="#part-1">Part 1</a></h3>
-<p>For this overview analysis, we have to provide the results from a differential expression analysis, such as DESeq2.</p>
-<p>GSEA will produce a table giving the top pathways, like the following: 
-<img alt="" src="gsea_fig2.png" /></p>
-<p>The "rug plots" (in the Gene ranks column) here show where that pathway's genes lie inside the ranked list of ~12,000 genes. The height of the lines is equal to the ranking statistics (the $-\log(p)\cdot \mathrm{sgn}(lfc)$), normalized by the maximum absolute value. We look for denser lines at the left and right side which indicate likely up and down-regulated pathways.</p>
-<p>The output could be a JSON file with the following structure (unless something else makes more sense):</p>
-<pre class="codehilite"><code>[
-    {
-        &quot;name&quot;:&quot;5990980_Cell_Cycle&quot;,
-        &quot;NES&quot;: 2.66,
-        &quot;pval&quot;:2.5e-26,
-        &quot;padj&quot;: 1.5e-23,
-        &quot;gene_ranks&quot;: {
-            &quot;x&quot;:[3,7,...,11202],
-            &quot;y&quot;:[1.0, 0.93,...,-0.97]
-        }
-    },
-    ...
-]
-</code></pre>
+                <h2 id="documentation-on-the-api"><a class="toclink" href="#documentation-on-the-api">Documentation on the API</a></h2>
+<p>There are two aspects of the WebMEV backend.  </p>
+<p>First, we have the public-facing RESTful API endpoints which are used to drive an analysis, upload files, and perform other actions.  Documentation of the API is provided by auto-generated documentation conforming to the OpenAPI spec here: <a href="api_spec.html">API documentation</a>.</p>
+<p>The second aspect of WebMEV is the data structures, models, and concepts that we use to architect the system. You will find information about these entities and their relationships in this section. Understanding these data structures and associated nomenclature will be important when describing how to work with WebMEV and create new workflows.</p>
+<h3 id="core-concepts"><a class="toclink" href="#core-concepts">Core concepts</a></h3>
+<p>The goal of WebMEV is to provide a suite of analysis tools and visualizations to guide users through self-directed analyses, most commonly with genomic (particularly transcriptomic) data. </p>
+<p>At a high level, users will start from either files that they provide (e.g. a previously generated expression matrix) or (if available) can import data from public repositories that are available through WebMEV. Users will then create one or more <code>Workspace</code>s which facilitates logical organization of analyses and separation of distinct projects or experiments. Within the context of the <code>Workspace</code>, users can perform a custom analysis as a series of atomic steps which we call <code>Operation</code>s.</p>
+<p>More specific details about each of these steps, including how we handle metadata are available in the other sections of this documentation.</p>
+<!-- Once files are uploaded, users can declare the expected file "type"s; for instance, they might declare that a particular file corresponds to an RNA-seq expression matrix. The WebMEV backend will attempt to check the integrity of these files, namely that they conform to our formatting expectations. To prevent potential issues in downstream analysis tools, we require strict adherence to our expected formatting. 
 
-<p>As for the UI</p>
-<p><img alt="" src="gsea_fig3.svg" /></p>
-<h3 id="outputs-of-part-2"><a class="toclink" href="#outputs-of-part-2">Outputs of Part 2</a></h3>
-<p>For a single pathway, the "classic" GSEA figure looks like:</p>
-<p><img alt="" src="gsea_fig.png" /></p>
-<p>The green line is based on their "enrichment score" (ES), which is kind of a running sum as it goes through the ranked list of all genes. Each time it sees a gene that is in the pathway, it adds to that sum; otherwise, it subtracts. Since many of this pathway's genes are at the top of the ranked list, the green line ascends quickly. The genes to the left of the "peak" are called the "leading edge" genes and is given as an output in the analysis. Therefore, we can easily give users a list of genes in their pathway that are the "most important". This calculation is technically performed as part of the more general analysis above, but the package does not provide a direct way to access the results and get the points for the green line. It's also likely too much data to return for the general analysis where we only want to provide an overview. </p>
-<p>In the figure above, the lines at the bottom show the location of the pathway genes in the ranked list, just as in the table above.</p>
-<h3 id="some-nice-to-haves"><a class="toclink" href="#some-nice-to-haves">Some "nice to have"s:</a></h3>
-<p>If we displayed the table shown above, it would be great if we could use that to create a <code>FeatureSet</code>. For example, the user could click on a button that says "create new gene set". This would be just like how we can create an <code>ObservationSet</code> by highlighting samples in the PCA plot. </p>
-<p>Since the GSEA results originate from a specific differential expression analysis, we can use that file to create the plots in the same way we do when we plot after the basic diff. exp. analysis.</p>
+Within the WebMEV code, files are referred to as `Resource`s. A `Resource` may either be associated with a user ("owned" by that user) or is user-independent, but associated with an analysis operation (an `OperationResource`). An example of an `OperationResource` is a genome index for an alignment process; users should not be responsible for these process-specific `OperationResource`s, so we associate them directly with the 
+
+Users may then begin to analyze their data in the context of 
+
+**Users**
+To track usage and better diagnose potential problems, we require that all users register with WebMEV; anonymous usage is not permitted. Users are identified by their email address but may choose to register by using their email/password *or* by using one of the third-party identity providers (e.g. Google).
+
+**User-p
+Users upload their own files or import data from selected public repositories as they are made available. These data can then be manipulated within *workspaces*, which provide a way to separate out distinct analysis flows to keep a user's data and analyses organized.
+
+One of the guiding principles within WebMEV is to provide transparent and reproducible analysis. As a result, the system is architected such that all analysis modules and workflows are available as standalone repositories; all code and supporting files are version-controlled and able to be executed independent of WebMEV (typically with containers such as Docker).
+
+In accordance with this principle of reproducibility, WebMEV does not modify files in-place. That is, if a subset operation occurs, or crucial intermediate data is created, all those components are made available and are able to visualized as a tree structure.  -->
               
             </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="resources.html" class="btn btn-neutral float-right" title="General info">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="setup_configuration.html" class="btn btn-neutral" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -217,6 +218,10 @@
         </span>
     
     
+      <span><a href="setup_configuration.html" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="resources.html" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

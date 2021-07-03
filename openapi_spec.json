@@ -17,123 +17,61 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "url": {
-                        "type": "string",
-                        "readOnly": true
-                      },
-                      "email": {
-                        "type": "string",
-                        "format": "email",
-                        "maxLength": 100
-                      }
-                    },
-                    "required": [
-                      "email"
-                    ]
+                    "$ref": "#/components/schemas/User"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "post": {
-        "operationId": "CreateUser",
+        "operationId": "createUser",
         "description": "Lists User instances.\n\nAdmins can view and create new users.\nNon-admin users can only view their own information.",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/User"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/User"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/User"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email",
-                      "maxLength": 100
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/User"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/{user_uuid}/": {
       "get": {
-        "operationId": "RetrieveCustomUser",
+        "operationId": "retrieveCustomUser",
         "description": "Retrieves a specific user.\n\nAdmins may view/modify/delete any user.\n\nNon-admins may only view/modify/delete their own user instance.",
         "parameters": [
           {
@@ -151,29 +89,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email",
-                      "maxLength": 100
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/User"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "put": {
-        "operationId": "UpdateCustomUser",
+        "operationId": "updateCustomUser",
         "description": "Retrieves a specific user.\n\nAdmins may view/modify/delete any user.\n\nNon-admins may only view/modify/delete their own user instance.",
         "parameters": [
           {
@@ -190,59 +118,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/User"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/User"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/User"
               }
             }
           }
@@ -252,29 +138,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email",
-                      "maxLength": 100
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/User"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "patch": {
-        "operationId": "PartialUpdateCustomUser",
+        "operationId": "partialUpdateCustomUser",
         "description": "Retrieves a specific user.\n\nAdmins may view/modify/delete any user.\n\nNon-admins may only view/modify/delete their own user instance.",
         "parameters": [
           {
@@ -291,47 +167,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/User"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/User"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/User"
               }
             }
           }
@@ -341,29 +187,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email",
-                      "maxLength": 100
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/User"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "delete": {
-        "operationId": "DestroyCustomUser",
+        "operationId": "destroyCustomUser",
         "description": "Retrieves a specific user.\n\nAdmins may view/modify/delete any user.\n\nNon-admins may only view/modify/delete their own user instance.",
         "parameters": [
           {
@@ -380,7 +216,10 @@
           "204": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/workspaces/": {
@@ -395,128 +234,61 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "url": {
-                        "type": "string",
-                        "readOnly": true
-                      },
-                      "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                      },
-                      "workspace_name": {
-                        "type": "string",
-                        "maxLength": 100
-                      },
-                      "owner_email": {
-                        "type": "string",
-                        "format": "email"
-                      },
-                      "created": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                      }
-                    }
+                    "$ref": "#/components/schemas/Workspace"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "post": {
-        "operationId": "CreateWorkspace",
+        "operationId": "createWorkspace",
         "description": "Lists available Workspace instances.\n\nAdmins can list all available Workspaces.\n\nNon-admin users can only view their own Workspaces.",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "workspace_name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Workspace"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/workspaces/{id}/": {
       "get": {
-        "operationId": "RetrieveWorkspace",
+        "operationId": "retrieveWorkspace",
         "description": "Retrieves a specific Workspace instance.\n\nAdmins may access any user's Workspace.\n\nNon-admin users may only access their own Workspace instances.",
         "parameters": [
           {
@@ -534,39 +306,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "workspace_name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Workspace"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "put": {
-        "operationId": "UpdateWorkspace",
+        "operationId": "updateWorkspace",
         "description": "Retrieves a specific Workspace instance.\n\nAdmins may access any user's Workspace.\n\nNon-admin users may only access their own Workspace instances.",
         "parameters": [
           {
@@ -583,44 +335,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             }
           }
@@ -630,39 +355,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "workspace_name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Workspace"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "patch": {
-        "operationId": "PartialUpdateWorkspace",
+        "operationId": "partialUpdateWorkspace",
         "description": "Retrieves a specific Workspace instance.\n\nAdmins may access any user's Workspace.\n\nNon-admin users may only access their own Workspace instances.",
         "parameters": [
           {
@@ -679,44 +384,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "workspace_name": {
-                    "type": "string",
-                    "maxLength": 100
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
+                "$ref": "#/components/schemas/Workspace"
               }
             }
           }
@@ -726,39 +404,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "workspace_name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Workspace"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "delete": {
-        "operationId": "DestroyWorkspace",
+        "operationId": "destroyWorkspace",
         "description": "Retrieves a specific Workspace instance.\n\nAdmins may access any user's Workspace.\n\nNon-admin users may only access their own Workspace instances.",
         "parameters": [
           {
@@ -775,7 +433,10 @@
           "204": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/": {
@@ -790,361 +451,61 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                      },
-                      "url": {
-                        "type": "string",
-                        "readOnly": true
-                      },
-                      "name": {
-                        "type": "string",
-                        "maxLength": 255
-                      },
-                      "resource_type": {
-                        "enum": [
-                          "FQ",
-                          "FA",
-                          "ALN",
-                          "FT",
-                          "MTX",
-                          "I_MTX",
-                          "EXP_MTX",
-                          "RNASEQ_COUNT_MTX",
-                          "ANN",
-                          "BED",
-                          "JSON",
-                          "*"
-                        ],
-                        "nullable": true
-                      },
-                      "owner_email": {
-                        "type": "string",
-                        "format": "email",
-                        "nullable": true
-                      },
-                      "is_active": {
-                        "type": "boolean"
-                      },
-                      "is_public": {
-                        "type": "boolean"
-                      },
-                      "status": {
-                        "type": "string",
-                        "nullable": true,
-                        "maxLength": 2000
-                      },
-                      "workspaces": {
-                        "type": "array",
-                        "items": {
-                          "properties": {
-                            "url": {
-                              "type": "string",
-                              "readOnly": true
-                            },
-                            "id": {
-                              "type": "string",
-                              "format": "uuid",
-                              "readOnly": true
-                            },
-                            "workspace_name": {
-                              "type": "string",
-                              "maxLength": 100
-                            },
-                            "owner_email": {
-                              "type": "string",
-                              "format": "email"
-                            },
-                            "created": {
-                              "type": "string",
-                              "format": "date-time",
-                              "readOnly": true
-                            }
-                          }
-                        },
-                        "readOnly": true
-                      },
-                      "created": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                      },
-                      "size": {
-                        "type": "integer",
-                        "readOnly": true
-                      },
-                      "readable_resource_type": {
-                        "type": "string",
-                        "readOnly": true
-                      }
-                    }
+                    "$ref": "#/components/schemas/Resource"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "post": {
-        "operationId": "CreateResource",
+        "operationId": "createResource",
         "description": "Lists available Resource instances.\n\nAdmins can list all available Resources.\n\nNon-admin users can only view their own Resources.",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ],
-                      "nullable": true
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email",
-                      "nullable": true
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_public": {
-                      "type": "boolean"
-                    },
-                    "status": {
-                      "type": "string",
-                      "nullable": true,
-                      "maxLength": 2000
-                    },
-                    "workspaces": {
-                      "type": "array",
-                      "items": {
-                        "properties": {
-                          "url": {
-                            "type": "string",
-                            "readOnly": true
-                          },
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "readOnly": true
-                          },
-                          "workspace_name": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "owner_email": {
-                            "type": "string",
-                            "format": "email"
-                          },
-                          "created": {
-                            "type": "string",
-                            "format": "date-time",
-                            "readOnly": true
-                          }
-                        }
-                      },
-                      "readOnly": true
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    },
-                    "size": {
-                      "type": "integer",
-                      "readOnly": true
-                    },
-                    "readable_resource_type": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Resource"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/{id}/": {
       "get": {
-        "operationId": "RetrieveResource",
+        "operationId": "retrieveResource",
         "description": "Retrieves a specific Resource instance.\n\nAdmins can get/modify any Resource.\n\nNon-admin users can only view/edit their own Resources.",
         "parameters": [
           {
@@ -1162,106 +523,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ],
-                      "nullable": true
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email",
-                      "nullable": true
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_public": {
-                      "type": "boolean"
-                    },
-                    "status": {
-                      "type": "string",
-                      "nullable": true,
-                      "maxLength": 2000
-                    },
-                    "workspaces": {
-                      "type": "array",
-                      "items": {
-                        "properties": {
-                          "url": {
-                            "type": "string",
-                            "readOnly": true
-                          },
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "readOnly": true
-                          },
-                          "workspace_name": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "owner_email": {
-                            "type": "string",
-                            "format": "email"
-                          },
-                          "created": {
-                            "type": "string",
-                            "format": "date-time",
-                            "readOnly": true
-                          }
-                        }
-                      },
-                      "readOnly": true
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    },
-                    "size": {
-                      "type": "integer",
-                      "readOnly": true
-                    },
-                    "readable_resource_type": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Resource"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "put": {
-        "operationId": "UpdateResource",
+        "operationId": "updateResource",
         "description": "Retrieves a specific Resource instance.\n\nAdmins can get/modify any Resource.\n\nNon-admin users can only view/edit their own Resources.",
         "parameters": [
           {
@@ -1278,143 +552,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             }
           }
@@ -1424,106 +572,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ],
-                      "nullable": true
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email",
-                      "nullable": true
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_public": {
-                      "type": "boolean"
-                    },
-                    "status": {
-                      "type": "string",
-                      "nullable": true,
-                      "maxLength": 2000
-                    },
-                    "workspaces": {
-                      "type": "array",
-                      "items": {
-                        "properties": {
-                          "url": {
-                            "type": "string",
-                            "readOnly": true
-                          },
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "readOnly": true
-                          },
-                          "workspace_name": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "owner_email": {
-                            "type": "string",
-                            "format": "email"
-                          },
-                          "created": {
-                            "type": "string",
-                            "format": "date-time",
-                            "readOnly": true
-                          }
-                        }
-                      },
-                      "readOnly": true
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    },
-                    "size": {
-                      "type": "integer",
-                      "readOnly": true
-                    },
-                    "readable_resource_type": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Resource"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "patch": {
-        "operationId": "PartialUpdateResource",
+        "operationId": "partialUpdateResource",
         "description": "Retrieves a specific Resource instance.\n\nAdmins can get/modify any Resource.\n\nNon-admin users can only view/edit their own Resources.",
         "parameters": [
           {
@@ -1540,143 +601,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ],
-                    "nullable": true
-                  },
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email",
-                    "nullable": true
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "type": "string",
-                    "nullable": true,
-                    "maxLength": 2000
-                  },
-                  "path": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                }
+                "$ref": "#/components/schemas/Resource"
               }
             }
           }
@@ -1686,106 +621,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "url": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ],
-                      "nullable": true
-                    },
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email",
-                      "nullable": true
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_public": {
-                      "type": "boolean"
-                    },
-                    "status": {
-                      "type": "string",
-                      "nullable": true,
-                      "maxLength": 2000
-                    },
-                    "workspaces": {
-                      "type": "array",
-                      "items": {
-                        "properties": {
-                          "url": {
-                            "type": "string",
-                            "readOnly": true
-                          },
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "readOnly": true
-                          },
-                          "workspace_name": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "owner_email": {
-                            "type": "string",
-                            "format": "email"
-                          },
-                          "created": {
-                            "type": "string",
-                            "format": "date-time",
-                            "readOnly": true
-                          }
-                        }
-                      },
-                      "readOnly": true
-                    },
-                    "created": {
-                      "type": "string",
-                      "format": "date-time",
-                      "readOnly": true
-                    },
-                    "size": {
-                      "type": "integer",
-                      "readOnly": true
-                    },
-                    "readable_resource_type": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/Resource"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       },
       "delete": {
-        "operationId": "DestroyResource",
+        "operationId": "destroyResource",
         "description": "Retrieves a specific Resource instance.\n\nAdmins can get/modify any Resource.\n\nNon-admin users can only view/edit their own Resources.",
         "parameters": [
           {
@@ -1802,7 +650,10 @@
           "204": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/{id}/contents/": {
@@ -1832,12 +683,15 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/{id}/metadata/": {
       "get": {
-        "operationId": "RetrieveResourceMetadata",
+        "operationId": "retrieveResourceMetadata",
         "description": "",
         "parameters": [
           {
@@ -1855,87 +709,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "resource": {
-                      "type": "string"
-                    },
-                    "parent_operation": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "observation_set": {
-                      "properties": {
-                        "multiple": {
-                          "type": "boolean"
-                        },
-                        "elements": {
-                          "type": "array",
-                          "items": {
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "maxLength": 50
-                              },
-                              "attributes": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "multiple"
-                      ],
-                      "type": "object",
-                      "nullable": true
-                    },
-                    "feature_set": {
-                      "properties": {
-                        "multiple": {
-                          "type": "boolean"
-                        },
-                        "elements": {
-                          "type": "array",
-                          "items": {
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "maxLength": 50
-                              },
-                              "attributes": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "multiple"
-                      ],
-                      "type": "object",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "resource"
-                  ]
+                  "$ref": "#/components/schemas/ResourceMetadata"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/{id}/metadata/observations/": {
       "get": {
-        "operationId": "RetrieveResourceMetadataObservations",
+        "operationId": "retrieveResourceMetadataObservations",
         "description": "",
         "parameters": [
           {
@@ -1953,23 +741,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "observation_set": {
-                      "type": "object",
-                      "nullable": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/ResourceMetadataObservations"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/{id}/metadata/features/": {
       "get": {
-        "operationId": "RetrieveResourceMetadataFeatures",
+        "operationId": "retrieveResourceMetadataFeatures",
         "description": "",
         "parameters": [
           {
@@ -1987,23 +773,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "feature_set": {
-                      "type": "object",
-                      "nullable": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/ResourceMetadataFeatures"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/{id}/metadata/parent/": {
       "get": {
-        "operationId": "RetrieveResourceMetadataParentOperation",
+        "operationId": "retrieveResourceMetadataParentOperation",
         "description": "",
         "parameters": [
           {
@@ -2021,18 +805,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "parent_operation": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/ResourceMetadataParentOperation"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/upload/progress": {
@@ -2052,7 +834,40 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/resources/download/{id}/": {
+      "get": {
+        "operationId": "retrieveResourceDownload",
+        "description": "Request endpoint for downloading a file.\n\nWe don't want to initiate these types of downloads for large files,\nso we limit the size.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resource-types/": {
@@ -2067,32 +882,17 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "resource_type_key": {
-                        "type": "string",
-                        "maxLength": 50
-                      },
-                      "resource_type_title": {
-                        "type": "string",
-                        "maxLength": 250
-                      },
-                      "resource_type_description": {
-                        "type": "string",
-                        "maxLength": 2000
-                      }
-                    },
-                    "required": [
-                      "resource_type_key",
-                      "resource_type_title",
-                      "resource_type_description"
-                    ]
+                    "$ref": "#/components/schemas/ResourceType"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/workspaces/{workspace_pk}/resources/": {
@@ -2117,194 +917,17 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                      },
-                      "url": {
-                        "type": "string",
-                        "readOnly": true
-                      },
-                      "name": {
-                        "type": "string",
-                        "maxLength": 255
-                      },
-                      "resource_type": {
-                        "enum": [
-                          "FQ",
-                          "FA",
-                          "ALN",
-                          "FT",
-                          "MTX",
-                          "I_MTX",
-                          "EXP_MTX",
-                          "RNASEQ_COUNT_MTX",
-                          "ANN",
-                          "BED",
-                          "JSON",
-                          "*"
-                        ],
-                        "nullable": true
-                      },
-                      "owner_email": {
-                        "type": "string",
-                        "format": "email",
-                        "nullable": true
-                      },
-                      "is_active": {
-                        "type": "boolean"
-                      },
-                      "is_public": {
-                        "type": "boolean"
-                      },
-                      "status": {
-                        "type": "string",
-                        "nullable": true,
-                        "maxLength": 2000
-                      },
-                      "workspaces": {
-                        "type": "array",
-                        "items": {
-                          "properties": {
-                            "url": {
-                              "type": "string",
-                              "readOnly": true
-                            },
-                            "id": {
-                              "type": "string",
-                              "format": "uuid",
-                              "readOnly": true
-                            },
-                            "workspace_name": {
-                              "type": "string",
-                              "maxLength": 100
-                            },
-                            "owner_email": {
-                              "type": "string",
-                              "format": "email"
-                            },
-                            "created": {
-                              "type": "string",
-                              "format": "date-time",
-                              "readOnly": true
-                            }
-                          }
-                        },
-                        "readOnly": true
-                      },
-                      "created": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                      },
-                      "size": {
-                        "type": "integer",
-                        "readOnly": true
-                      },
-                      "readable_resource_type": {
-                        "type": "string",
-                        "readOnly": true
-                      }
-                    }
+                    "$ref": "#/components/schemas/WorkspaceResource"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
-      }
-    },
-    "/api/workspaces/{workspace_pk}/metadata/": {
-      "get": {
-        "operationId": "listWorkspaceMetadatas",
-        "description": "",
-        "parameters": [
-          {
-            "name": "workspace_pk",
-            "in": "path",
-            "required": true,
-            "description": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {}
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/workspaces/{workspace_pk}/metadata/observations/": {
-      "get": {
-        "operationId": "listWorkspaceMetadataObservations",
-        "description": "",
-        "parameters": [
-          {
-            "name": "workspace_pk",
-            "in": "path",
-            "required": true,
-            "description": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {}
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/workspaces/{workspace_pk}/metadata/features/": {
-      "get": {
-        "operationId": "listWorkspaceMetadataFeatures",
-        "description": "",
-        "parameters": [
-          {
-            "name": "workspace_pk",
-            "in": "path",
-            "required": true,
-            "description": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {}
-                }
-              }
-            },
-            "description": ""
-          }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/workspaces/{workspace_pk}/resources/{resource_pk}/remove/": {
@@ -2343,12 +966,163 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_pk}/metadata/observations/": {
+      "get": {
+        "operationId": "listNullableObservations",
+        "description": "This class will send a set of Observation instances that reside\nin a given workspace. \n\nNote that we do NOT use the ObservationSetSerializer class (or its\nnullable sibling) since we can't paginate an ObservationSet. To paginate,\nthe \"top level\" of the data structure has to be an iterable. We do, however,\nrely on all the set-like methods that are available on the ObservationSet\nclass to prep the data structure. We then extract the elements attribute/field\nand give that to the serializer.",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "example": 123
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NullableObservation"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_pk}/metadata/features/": {
+      "get": {
+        "operationId": "listNullableFeatures",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "example": 123
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NullableFeature"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operation-resources/{operation_uuid}/": {
       "get": {
-        "operationId": "RetrieveOperationResource",
+        "operationId": "retrieveOperationResource",
         "description": "Lists available OperationResource instances for\na particular Operation. Includes the OperationResources\nfor all fields",
         "parameters": [
           {
@@ -2366,64 +1140,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "input_field": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "operation": {
-                      "type": "string"
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ],
-                      "nullable": true
-                    },
-                    "size": {
-                      "type": "integer",
-                      "readOnly": true
-                    },
-                    "readable_resource_type": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  },
-                  "required": [
-                    "input_field",
-                    "operation"
-                  ]
+                  "$ref": "#/components/schemas/OperationResource"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operation-resources/{operation_uuid}/{input_field}/": {
       "get": {
-        "operationId": "RetrieveOperationResource",
+        "operationId": "retrieveOperationResource",
         "description": "Lists available OperationResource instances for\na particular input field of Operation.",
         "parameters": [
           {
@@ -2450,59 +1181,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "readOnly": true
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "input_field": {
-                      "type": "string",
-                      "maxLength": 255
-                    },
-                    "operation": {
-                      "type": "string"
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ],
-                      "nullable": true
-                    },
-                    "size": {
-                      "type": "integer",
-                      "readOnly": true
-                    },
-                    "readable_resource_type": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  },
-                  "required": [
-                    "input_field",
-                    "operation"
-                  ]
+                  "$ref": "#/components/schemas/OperationResource"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operations/": {
@@ -2517,68 +1205,22 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "name": {
-                        "type": "string",
-                        "maxLength": 100
-                      },
-                      "description": {
-                        "type": "string",
-                        "maxLength": 5000
-                      },
-                      "repository_url": {
-                        "type": "string",
-                        "format": "uri",
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
-                      },
-                      "git_hash": {
-                        "type": "string"
-                      },
-                      "mode": {
-                        "type": "string",
-                        "maxLength": 100
-                      },
-                      "inputs": {
-                        "type": "string"
-                      },
-                      "outputs": {
-                        "type": "string"
-                      },
-                      "repo_name": {
-                        "type": "string"
-                      },
-                      "workspace_operation": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "name",
-                      "description",
-                      "repository_url",
-                      "git_hash",
-                      "mode",
-                      "inputs",
-                      "outputs",
-                      "repo_name",
-                      "workspace_operation"
-                    ]
+                    "$ref": "#/components/schemas/Operation"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operations/{operation_uuid}/": {
       "get": {
-        "operationId": "RetrieveOperationDetail",
+        "operationId": "retrieveOperation",
         "description": "Returns specific Operation instances.",
         "parameters": [
           {
@@ -2596,62 +1238,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "description": {
-                      "type": "string",
-                      "maxLength": 5000
-                    },
-                    "repository_url": {
-                      "type": "string",
-                      "format": "uri",
-                      "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
-                    },
-                    "git_hash": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "inputs": {
-                      "type": "string"
-                    },
-                    "outputs": {
-                      "type": "string"
-                    },
-                    "repo_name": {
-                      "type": "string"
-                    },
-                    "workspace_operation": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "description",
-                    "repository_url",
-                    "git_hash",
-                    "mode",
-                    "inputs",
-                    "outputs",
-                    "repo_name",
-                    "workspace_operation"
-                  ]
+                  "$ref": "#/components/schemas/Operation"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/executed-operations/": {
@@ -2671,12 +1267,15 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/executed-operations/workspace/{workspace_pk}/": {
       "get": {
-        "operationId": "RetrieveWorkspaceExecutedOperationList",
+        "operationId": "retrieveWorkspaceExecutedOperationList",
         "description": "Lists available ExecutedOperation instances for a given Workspace.\n\nAdmins can list all available executedOperations in a Workspace.\n\nNon-admin users can only view ExecutedOperations on Workspaces they own.",
         "parameters": [
           {
@@ -2698,7 +1297,10 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/executed-operations/workspace/{workspace_pk}/tree/": {
@@ -2728,12 +1330,48 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/executed-operations/workspace/{workspace_pk}/tree/save/": {
+      "get": {
+        "operationId": "listWorkspaceTreeSaves",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace_pk",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/executed-operations/{exec_op_uuid}/": {
       "get": {
-        "operationId": "RetrieveExecutedOperationCheck",
+        "operationId": "retrieveExecutedOperationCheck",
         "description": "Checks the status of an ExecutedOperation.\n\nIf the ExecutedOperation is still running, nothing happens.\nIf the ExecutedOperation has completed, runs some final steps, such as\nregistering output files with the user, performing cleanup, etc.",
         "parameters": [
           {
@@ -2755,12 +1393,15 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operation-categories/": {
       "get": {
-        "operationId": "listOperationCategorys",
+        "operationId": "listOperationCategoryLists",
         "description": "Returns a mapping of operation categories to the corresponding `Operation`s.\nPrimarily used for populating a user-interface and grouping `Operation`s by\ntheir type.",
         "parameters": [],
         "responses": {
@@ -2770,81 +1411,22 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "readOnly": true,
-                        "maxLength": 200
-                      },
-                      "children": {
-                        "type": "array",
-                        "items": {
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "format": "uuid"
-                            },
-                            "name": {
-                              "type": "string",
-                              "maxLength": 100
-                            },
-                            "description": {
-                              "type": "string",
-                              "maxLength": 5000
-                            },
-                            "repository_url": {
-                              "type": "string",
-                              "format": "uri",
-                              "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
-                            },
-                            "git_hash": {
-                              "type": "string"
-                            },
-                            "mode": {
-                              "type": "string",
-                              "maxLength": 100
-                            },
-                            "inputs": {
-                              "type": "string"
-                            },
-                            "outputs": {
-                              "type": "string"
-                            },
-                            "repo_name": {
-                              "type": "string"
-                            },
-                            "workspace_operation": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "name",
-                            "description",
-                            "repository_url",
-                            "git_hash",
-                            "mode",
-                            "inputs",
-                            "outputs",
-                            "repo_name",
-                            "workspace_operation"
-                          ]
-                        },
-                        "readOnly": true
-                      }
-                    }
+                    "$ref": "#/components/schemas/OperationCategoryList"
                   }
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operation-categories/{category}/": {
       "get": {
-        "operationId": "RetrieveOperationCategoryDetail",
+        "operationId": "retrieveOperation",
         "description": "Returns a list of the `Operation`s associated with the category\npassed as part of the url",
         "parameters": [
           {
@@ -2862,62 +1444,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "description": {
-                      "type": "string",
-                      "maxLength": 5000
-                    },
-                    "repository_url": {
-                      "type": "string",
-                      "format": "uri",
-                      "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
-                    },
-                    "git_hash": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "inputs": {
-                      "type": "string"
-                    },
-                    "outputs": {
-                      "type": "string"
-                    },
-                    "repo_name": {
-                      "type": "string"
-                    },
-                    "workspace_operation": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "description",
-                    "repository_url",
-                    "git_hash",
-                    "mode",
-                    "inputs",
-                    "outputs",
-                    "repo_name",
-                    "workspace_operation"
-                  ]
+                  "$ref": "#/components/schemas/Operation"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/": {
@@ -2937,949 +1473,489 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/token/": {
       "post": {
-        "operationId": "CreateAuthToken",
+        "operationId": "createAuthToken",
         "description": "This endpoint allows a client to submit an email/password\nand receive a JWT token (and refresh token)",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "writeOnly": true
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/AuthToken"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "writeOnly": true
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/AuthToken"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "writeOnly": true
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
+                "$ref": "#/components/schemas/AuthToken"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "access": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "refresh": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  },
-                  "required": []
+                  "$ref": "#/components/schemas/AuthToken"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/token/refresh/": {
       "post": {
-        "operationId": "CreateRefreshAuthToken",
+        "operationId": "createRefreshAuthToken",
         "description": "Endpoint for refreshing the JWT auth token.",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "refresh": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "refresh"
-                ]
+                "$ref": "#/components/schemas/RefreshAuthToken"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "refresh": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "refresh"
-                ]
+                "$ref": "#/components/schemas/RefreshAuthToken"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "refresh": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "refresh"
-                ]
+                "$ref": "#/components/schemas/RefreshAuthToken"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "refresh": {
-                      "type": "string"
-                    },
-                    "access": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  },
-                  "required": [
-                    "refresh"
-                  ]
+                  "$ref": "#/components/schemas/RefreshAuthToken"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/register/": {
       "post": {
-        "operationId": "CreateUserRegister",
+        "operationId": "createUserRegister",
         "description": "Used to register a new user by email/password",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "password",
-                  "confirm_password",
-                  "email"
-                ]
+                "$ref": "#/components/schemas/UserRegister"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "password",
-                  "confirm_password",
-                  "email"
-                ]
+                "$ref": "#/components/schemas/UserRegister"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "password",
-                  "confirm_password",
-                  "email"
-                ]
+                "$ref": "#/components/schemas/UserRegister"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "email": {
-                      "type": "string",
-                      "format": "email"
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/UserRegister"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/activate/": {
       "post": {
-        "operationId": "CreateUserActivate",
+        "operationId": "createUserActivate",
         "description": "This validates the uid/token and activates the user once they click on\nthe link in their email",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "uid": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "uid",
-                  "token"
-                ]
+                "$ref": "#/components/schemas/UserActivate"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "uid": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "uid",
-                  "token"
-                ]
+                "$ref": "#/components/schemas/UserActivate"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "uid": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "uid",
-                  "token"
-                ]
+                "$ref": "#/components/schemas/UserActivate"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "uid": {
-                      "type": "string"
-                    },
-                    "token": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "uid",
-                    "token"
-                  ]
+                  "$ref": "#/components/schemas/UserActivate"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/resend-activation/": {
       "post": {
-        "operationId": "CreateResendActivation",
+        "operationId": "createResendActivation",
         "description": "If a user's token expires, they exist in our system, but can't\nactivate.  This sends them another email with a new token",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
+                "$ref": "#/components/schemas/ResendActivation"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
+                "$ref": "#/components/schemas/ResendActivation"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
+                "$ref": "#/components/schemas/ResendActivation"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "email": {
-                      "type": "string",
-                      "format": "email"
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/ResendActivation"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/reset-password/confirm/": {
       "post": {
-        "operationId": "CreatePasswordResetConfirm",
+        "operationId": "createPasswordResetConfirm",
         "description": "Used when a user has clicked on a reset link\nand is sending a UID (encoded), a token, a new password,\nand a re-typed confirmation of that password",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "uid": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "uid",
-                  "token",
-                  "password",
-                  "confirm_password"
-                ]
+                "$ref": "#/components/schemas/PasswordResetConfirm"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "uid": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "uid",
-                  "token",
-                  "password",
-                  "confirm_password"
-                ]
+                "$ref": "#/components/schemas/PasswordResetConfirm"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "uid": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "uid",
-                  "token",
-                  "password",
-                  "confirm_password"
-                ]
+                "$ref": "#/components/schemas/PasswordResetConfirm"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "uid": {
-                      "type": "string"
-                    },
-                    "token": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "uid",
-                    "token"
-                  ]
+                  "$ref": "#/components/schemas/PasswordResetConfirm"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/reset-password/": {
       "post": {
-        "operationId": "CreatePasswordReset",
+        "operationId": "createPasswordReset",
         "description": "Used when a user has forgotten password and\nwants to reset.  Initiates the reset flow\nincluding the sending of confirmation password.",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
+                "$ref": "#/components/schemas/PasswordReset"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
+                "$ref": "#/components/schemas/PasswordReset"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
+                "$ref": "#/components/schemas/PasswordReset"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "email": {
-                      "type": "string",
-                      "format": "email"
-                    }
-                  },
-                  "required": [
-                    "email"
-                  ]
+                  "$ref": "#/components/schemas/PasswordReset"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/change-password/": {
       "post": {
-        "operationId": "CreatePasswordChange",
+        "operationId": "createPasswordChange",
         "description": "For changing password (once authenticated)",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "current_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "password",
-                  "confirm_password",
-                  "current_password"
-                ]
+                "$ref": "#/components/schemas/PasswordChange"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "current_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "password",
-                  "confirm_password",
-                  "current_password"
-                ]
+                "$ref": "#/components/schemas/PasswordChange"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "confirm_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  },
-                  "current_password": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "password",
-                  "confirm_password",
-                  "current_password"
-                ]
+                "$ref": "#/components/schemas/PasswordChange"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {},
-                  "required": []
+                  "$ref": "#/components/schemas/PasswordChange"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/users/social/google/": {
       "post": {
-        "operationId": "CreateGoogleOauth2",
+        "operationId": "createSocialAuthToken",
         "description": "This endpoint allows a client to exchange a google access token\nfor a WebMEV JWT token",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "provider_token": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "provider_token"
-                ]
+                "$ref": "#/components/schemas/SocialAuthToken"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "provider_token": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "provider_token"
-                ]
+                "$ref": "#/components/schemas/SocialAuthToken"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "provider_token": {
-                    "type": "string",
-                    "writeOnly": true
-                  }
-                },
-                "required": [
-                  "provider_token"
-                ]
+                "$ref": "#/components/schemas/SocialAuthToken"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "access": {
-                      "type": "string",
-                      "readOnly": true
-                    },
-                    "refresh": {
-                      "type": "string",
-                      "readOnly": true
-                    }
-                  },
-                  "required": []
+                  "$ref": "#/components/schemas/SocialAuthToken"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/resources/add-bucket-resources/": {
+      "post": {
+        "operationId": "createAddBucketResource",
+        "description": "This view is used to create a new user-associated resource given\na path to a bucket-based file. \n\nUse-cases for this endpoint are where we have example or public data files\nwhich we would like to attach to a particular user. The tutorial files are\nan example of this. Thus, the user does not have to download and then \nsubsequently upload to run through the tutorial example.",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/upload/": {
       "post": {
-        "operationId": "CreateServerLocalResourceUpload",
+        "operationId": "createUpload",
         "description": "Endpoint for a direct upload to the server.",
         "parameters": [],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "owner_email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "resource_type": {
-                    "enum": [
-                      "FQ",
-                      "FA",
-                      "ALN",
-                      "FT",
-                      "MTX",
-                      "I_MTX",
-                      "EXP_MTX",
-                      "RNASEQ_COUNT_MTX",
-                      "ANN",
-                      "BED",
-                      "JSON",
-                      "*"
-                    ]
-                  },
-                  "upload_file": {
-                    "type": "string",
-                    "format": "binary"
-                  },
-                  "is_public": {
-                    "type": "boolean"
-                  },
-                  "is_ownerless": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "upload_file"
-                ]
+                "$ref": "#/components/schemas/Upload"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "owner_email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "resource_type": {
-                      "enum": [
-                        "FQ",
-                        "FA",
-                        "ALN",
-                        "FT",
-                        "MTX",
-                        "I_MTX",
-                        "EXP_MTX",
-                        "RNASEQ_COUNT_MTX",
-                        "ANN",
-                        "BED",
-                        "JSON",
-                        "*"
-                      ]
-                    },
-                    "upload_file": {
-                      "type": "string",
-                      "format": "binary"
-                    },
-                    "is_public": {
-                      "type": "boolean"
-                    },
-                    "is_ownerless": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "upload_file"
-                  ]
+                  "$ref": "#/components/schemas/Upload"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/resources/dropbox-upload/": {
       "post": {
-        "operationId": "CreateDropboxUpload",
+        "operationId": "createDropboxUpload",
         "description": "Endpoint for uploading resources from Dropbox\n\nDepending on the storage backend, the files will be uploaded locally\nor in the remote storage. Either way, the same endpoint is used.",
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "download_link": {
-                    "type": "string"
-                  },
-                  "filename": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "download_link",
-                  "filename"
-                ]
+                "$ref": "#/components/schemas/DropboxUpload"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "properties": {
-                  "download_link": {
-                    "type": "string"
-                  },
-                  "filename": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "download_link",
-                  "filename"
-                ]
+                "$ref": "#/components/schemas/DropboxUpload"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "download_link": {
-                    "type": "string"
-                  },
-                  "filename": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "download_link",
-                  "filename"
-                ]
+                "$ref": "#/components/schemas/DropboxUpload"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "download_link": {
-                      "type": "string"
-                    },
-                    "filename": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "download_link",
-                    "filename"
-                  ]
+                  "$ref": "#/components/schemas/DropboxUpload"
                 }
               }
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/workspaces/{workspace_pk}/resources/add/": {
       "post": {
-        "operationId": "CreateWorkspaceResourceAdd",
+        "operationId": "createWorkspaceResourceAdd",
         "description": "This endpoint adds a Resource instance to a specific Workspace.",
         "parameters": [
           {
@@ -3892,8 +1968,21 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -3901,16 +1990,131 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/metadata/intersect/": {
+      "post": {
+        "operationId": "createMetadataIntersect",
+        "description": "",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/metadata/union/": {
+      "post": {
+        "operationId": "createMetadataUnion",
+        "description": "",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/metadata/set-difference/": {
+      "post": {
+        "operationId": "createMetadataSetDifference",
+        "description": "",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operations/add/": {
       "post": {
-        "operationId": "CreateOperation",
+        "operationId": "createOperation",
         "description": "",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -3918,16 +2122,32 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operations/run/": {
       "post": {
-        "operationId": "CreateOperationRun",
+        "operationId": "createOperationRun",
         "description": "Starts the execution of an Operation",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -3935,16 +2155,32 @@
             },
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "api"
+        ]
       }
     },
     "/api/operation-categories-add/": {
       "post": {
-        "operationId": "CreateOperationCategoryAdd",
+        "operationId": "createOperationCategoryAdd",
         "description": "",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -3952,7 +2188,821 @@
             },
             "description": ""
           }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "workspace_name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
         }
+      },
+      "Resource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "resource_type": {
+            "enum": [
+              "FQ",
+              "FA",
+              "ALN",
+              "FT",
+              "MTX",
+              "I_MTX",
+              "EXP_MTX",
+              "RNASEQ_COUNT_MTX",
+              "ANN",
+              "BED",
+              "JSON",
+              "*"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "workspaces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "readOnly": true
+                },
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "readOnly": true
+                },
+                "workspace_name": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "owner_email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "created": {
+                  "type": "string",
+                  "format": "date-time",
+                  "readOnly": true
+                }
+              }
+            },
+            "readOnly": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "path": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "readable_resource_type": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "ResourceMetadata": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string"
+          },
+          "parent_operation": {
+            "type": "string",
+            "nullable": true
+          },
+          "observation_set": {
+            "type": "object",
+            "properties": {
+              "multiple": {
+                "type": "boolean"
+              },
+              "elements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 50
+                    },
+                    "attributes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "multiple"
+            ],
+            "nullable": true
+          },
+          "feature_set": {
+            "type": "object",
+            "properties": {
+              "multiple": {
+                "type": "boolean"
+              },
+              "elements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 50
+                    },
+                    "attributes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "multiple"
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "resource"
+        ]
+      },
+      "ResourceMetadataObservations": {
+        "type": "object",
+        "properties": {
+          "observation_set": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "ResourceMetadataFeatures": {
+        "type": "object",
+        "properties": {
+          "feature_set": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "ResourceMetadataParentOperation": {
+        "type": "object",
+        "properties": {
+          "parent_operation": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ResourceType": {
+        "type": "object",
+        "properties": {
+          "resource_type_key": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "resource_type_title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "resource_type_description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "example": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "resource_type_key",
+          "resource_type_title",
+          "resource_type_description",
+          "example"
+        ]
+      },
+      "WorkspaceResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "resource_type": {
+            "enum": [
+              "FQ",
+              "FA",
+              "ALN",
+              "FT",
+              "MTX",
+              "I_MTX",
+              "EXP_MTX",
+              "RNASEQ_COUNT_MTX",
+              "ANN",
+              "BED",
+              "JSON",
+              "*"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "workspaces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "readOnly": true
+                },
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "readOnly": true
+                },
+                "workspace_name": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "owner_email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "created": {
+                  "type": "string",
+                  "format": "date-time",
+                  "readOnly": true
+                }
+              }
+            },
+            "readOnly": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "path": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "readable_resource_type": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "NullableObservation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "attributes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "NullableFeature": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "attributes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "OperationResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "default": "",
+            "maxLength": 255
+          },
+          "input_field": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "operation": {
+            "type": "string"
+          },
+          "resource_type": {
+            "enum": [
+              "FQ",
+              "FA",
+              "ALN",
+              "FT",
+              "MTX",
+              "I_MTX",
+              "EXP_MTX",
+              "RNASEQ_COUNT_MTX",
+              "ANN",
+              "BED",
+              "JSON",
+              "*"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "readable_resource_type": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "input_field",
+          "operation"
+        ]
+      },
+      "Operation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "repository_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^(?:[a-z0-9.+-]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:0|25[0-5]|2[0-4]\\d|1\\d?\\d?|[1-9]\\d?)(?:\\.(?:0|25[0-5]|2[0-4]\\d|1\\d?\\d?|[1-9]\\d?)){3}|\\[[0-9a-f:.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\z"
+          },
+          "git_hash": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "inputs": {
+            "type": "string"
+          },
+          "outputs": {
+            "type": "string"
+          },
+          "repo_name": {
+            "type": "string"
+          },
+          "workspace_operation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "repository_url",
+          "git_hash",
+          "mode",
+          "inputs",
+          "outputs",
+          "repo_name",
+          "workspace_operation"
+        ]
+      },
+      "OperationCategoryList": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "readOnly": true,
+            "maxLength": 200
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 5000
+                },
+                "repository_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^(?:[a-z0-9.+-]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:0|25[0-5]|2[0-4]\\d|1\\d?\\d?|[1-9]\\d?)(?:\\.(?:0|25[0-5]|2[0-4]\\d|1\\d?\\d?|[1-9]\\d?)){3}|\\[[0-9a-f:.]+\\]|([a-z\u00a1-\uffff0-9](?:[a-z\u00a1-\uffff0-9-]{0,61}[a-z\u00a1-\uffff0-9])?(?:\\.(?!-)[a-z\u00a1-\uffff0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z\u00a1-\uffff-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\z"
+                },
+                "git_hash": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "inputs": {
+                  "type": "string"
+                },
+                "outputs": {
+                  "type": "string"
+                },
+                "repo_name": {
+                  "type": "string"
+                },
+                "workspace_operation": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description",
+                "repository_url",
+                "git_hash",
+                "mode",
+                "inputs",
+                "outputs",
+                "repo_name",
+                "workspace_operation"
+              ]
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "AuthToken": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "writeOnly": true
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "access": {
+            "type": "string",
+            "readOnly": true
+          },
+          "refresh": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RefreshAuthToken": {
+        "type": "object",
+        "properties": {
+          "refresh": {
+            "type": "string"
+          },
+          "access": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "refresh"
+        ]
+      },
+      "UserRegister": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "confirm_password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "password",
+          "confirm_password",
+          "email"
+        ]
+      },
+      "UserActivate": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "token"
+        ]
+      },
+      "ResendActivation": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "PasswordResetConfirm": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "confirm_password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "uid",
+          "token",
+          "password",
+          "confirm_password"
+        ]
+      },
+      "PasswordReset": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "PasswordChange": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "confirm_password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "current_password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password",
+          "confirm_password",
+          "current_password"
+        ]
+      },
+      "SocialAuthToken": {
+        "type": "object",
+        "properties": {
+          "provider_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "access": {
+            "type": "string",
+            "readOnly": true
+          },
+          "refresh": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "provider_token"
+        ]
+      },
+      "Upload": {
+        "type": "object",
+        "properties": {
+          "owner_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "resource_type": {
+            "enum": [
+              "FQ",
+              "FA",
+              "ALN",
+              "FT",
+              "MTX",
+              "I_MTX",
+              "EXP_MTX",
+              "RNASEQ_COUNT_MTX",
+              "ANN",
+              "BED",
+              "JSON",
+              "*"
+            ],
+            "type": "string"
+          },
+          "upload_file": {
+            "type": "string",
+            "format": "binary"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "is_ownerless": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "upload_file"
+        ]
+      },
+      "DropboxUpload": {
+        "type": "object",
+        "properties": {
+          "download_link": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "download_link",
+          "filename"
+        ]
       }
     }
   }
