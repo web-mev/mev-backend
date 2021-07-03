@@ -31,7 +31,7 @@ class MetadataMixin(object):
         'feature': FeatureSet
     }
 
-    def get_serializer(self, set_type):
+    def _get_serializer(self, set_type):
         try:
             return self.serializer_choices[set_type]
         except KeyError as ex:
@@ -55,7 +55,7 @@ class MetadataMixin(object):
                 )
             if type(sets) is list:
                 element_set_list = []
-                serializer = self.get_serializer(request.data[self.SET_TYPE])
+                serializer = self._get_serializer(request.data[self.SET_TYPE])
                 for s in sets:
                     if ignore_attributes:
                         # if we are ignoring the attributes, we only care about
@@ -85,7 +85,7 @@ class MetadataIntersectView(APIView, MetadataMixin):
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
         r = reduce(lambda x,y: x.set_intersection(y), element_set_list)
-        serializer = self.get_serializer(request.data[self.SET_TYPE])
+        serializer = self._get_serializer(request.data[self.SET_TYPE])
         return Response(serializer(r).data)
 
 
@@ -93,7 +93,7 @@ class MetadataUnionView(APIView, MetadataMixin):
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
         r = reduce(lambda x,y: x.set_union(y), element_set_list)
-        serializer = self.get_serializer(request.data[self.SET_TYPE])
+        serializer = self._get_serializer(request.data[self.SET_TYPE])
         return Response(serializer(r).data)
 
 
@@ -106,5 +106,5 @@ class MetadataSetDifferenceView(APIView, MetadataMixin):
             )
         x,y = element_set_list
         r = x.set_difference(y)
-        serializer = self.get_serializer(request.data[self.SET_TYPE])
+        serializer = self._get_serializer(request.data[self.SET_TYPE])
         return Response(serializer(r).data)
