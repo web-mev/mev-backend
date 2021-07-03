@@ -1,139 +1,165 @@
-## The MEV application cluster
+## The WebMEV API
 
 This section of the installation instructions describes:
-- How to set up a new host for WebMEV
-- Basic host machine configuration
-- Starting WebMEV on the host, regardless of your hardware
 
-### Creating a host machine
+- Creation of a local development stack using Vagrant
+- Creation of a cloud-based stack
 
-*Note: If you wish to run WebMEV as a local application (i.e. not using a cloud provider), you may skip this section.*
+---
 
-**Starting the machine**
-Using the instructions specific to your cloud platform, start a new virtual machine. Note that we have only run WebMEV on a Debian-based Linux system and do not plan to support other operating systems. However, by using Docker, we anticipate that WebMEV *should* be portalbe to any system capable of running Docker.
+As described in the general architecture section, WebMEV consists of two servers: the main Django-based application server and the remote job scheduler (Cromwell). 
 
-There is relatively little that is specific to WebMEV about this process, but we make note of the following considerations:
+The application server consists of a production web server (nginx), an application server (gunicorn), the Django-based application, and a database. The database can be implemented locally (when in the local, Vagrant-based build) or with a cloud-based instance (when deploying on a cloud platform). Regardless of the implementation of the database server, Django communicates with the database via a unix socket on the VM.
 
-- **Ports:** The public-facing nginx server used by MEV expects both 80 (for http) and 443 (for https) to be open, although the choice of protocol is up to you.
+![](arch.svg)
 
-- **Disk size:** In addition to the application itself, the host machine will maintain a temporary cache of user data and any Docker images used to run local Docker-based jobs. Choose your disk size to accommodate this anticipated load.
 
-- **Processor/RAM requirements:** The resource requirements for WebMEV itself are not substantial, but you should aim to size your VM to successfully handle your most resource-intensive analyses. Recall that local Docker-based jobs will consume resources of the host machine, so you should have some idea of the resources required for each type of analysis that you plan to run using the local Docker-based job runner. We advise at least 4vCPU and >8Gb RAM, although this may change as we see additional stress or more intensive analysis requirements. 
+---
 
-In theory, one could execute large, resource-intensive alignment jobs using the local Docker-based job engine, but this would incur substantial costs for maintaining a large on-demand virtual machine. Thus, we advise that local Docker-based jobs have relatively small resource requirements and larger, resource and time-intensive tasks be implemented to make use of the remote job runners such as Cromwell.
+### Local development using Vagrant
 
-### Software requirements of the host machine
 
-WebMEV uses `docker-compose` and thus requires that both `Docker` and `docker-compose` are installed on the host system. Refer to the respective projects for installation instructions.
+- Install [Git](https://git-scm.com/), [VirtualBox](https://www.virtualbox.org/), and [Vagrant](https://www.vagrantup.com/)
+- Clone the WebMEV backend repository: `git clone https://github.com/web-mev/mev-backend.git`
+- Change into the repository directory: `cd mev-backend`
+- Copy the template file for the environment variables you will need: `cp vagrant/env.tmpl vagrant/env.txt`. Note that the name/path of the file is important since the provisioning script makes reference to a file at this path.
+- Fill in the proper environment variables in that copied file (e.g. `vagrant/env.txt` above). Note that for local dev like unit testing, many of the variables can be left as-is. However, if you would like to test the integration with dockerhub, gmail, then
+you can certainly fill-in those variables.
+- Provision and start the VM: `vagrant up`
+- SSH into the VM: `vagrant ssh`
 
-Other requirements include `git` and your favorite text editor.
+You are now ready to develop locally. Note that the code is shared between the host and VM at the `/vagrant` directory.
 
-### Cloning and starting the application
-
-The WebMEV application is architected as a collection of Docker images which is orchestrated/managed by `docker-compose`.  As mentioned previously, you will need to have Docker and docker-compose installed.
-
-As mentioned before, WebMEV consists of three containers with the following responsibilities.
-
-- `nginx`: Handles communication to the outside world. Serves static files directly and forwards other requests to the application server (gunicorn), which is packaged in the `api` container.
-
-- `db`: The database container. Currently using postgres as we require saving of JSON-format data structures
-
-- `api`: The main application container. This container wraps several components, including the web application (written in Django), redis for cache and job queueing, and gunicorn as the application server.
-
-![](docker_arch.svg)
-
-**Step 1:** Clone the repository:
+**To run unit tests**
 ```
-git clone https://github.com/web-mev/mev-backend.git
+cd /vagrant/mev
+python3 manage.py test
 ```
+(use the `--failfast` flag if you want to fail the test suite on the first failure encountered)
 
-**Step 2:** Set the required environment variables
-
-Regardless of whether you are running in development or production mode, you will need to supply various environment variables to properly configure WebMEV. In the root of the repository is a file named `env_vars.template.txt`.  Edit that with usernames, passwords, etc. as necessary. Each variable is commented to guide you through setup.
-
-For more detailed information on configuration, see [Configuration](setup_configuration.md)
-
-###To start the application in local *development* mode:
-
-In development mode, the application server (gunicorn) does not start automatically as the API container starts.  Rather, all the containers are started but the application container (named `api`) remains idle.  This allows us to mount a local directory where we can dynamically edit the code and immediately see changes without having to rebuild the entire cluster.  
-
-**Note that the Django `DEBUG` argument is set to `True` in this dev mode, so be mindful of this if the server is exposed to the public/internet.**
-
-Development mode requires you to have a file containing your environment variables that is named `env_vars.dev.txt`. Thus, copy the file and edit with your passwords and other info:
+**To run the application locally**
+By default, the provisioning script does not start the gunicorn application server. To do that, simply run:
 ```
-cp env_vars.template.txt env_vars.dev.txt
-# Now edit env_vars.dev.txt as necessary
+sudo supervisorctl start gunicorn
 ```
+(Note that you need to use elevated privileges since you are interacting with the supervisor daemon. Otherwise you will get a permission error.)
 
-Now we can start the docker-compose cluster. Run:
-```
-docker-compose up -d --build
-```
-This builds all the containers and runs in "detached" mode (`-d`).  By default, `docker-compose` will look for the `docker-compose.yml` file which, by design, puts us in *development* mode.  The current directory on the host machine (the directory where the MEV repository was cloned) will be mounted at `/workspace` inside the `api` container.
+---
 
-Next, enter the container with:
-```
-docker-compose exec api /bin/bash
-```
-You may optionally choose to add the `-u 0` flag which logs you into the `api` container as root.
+### Deploying to GCP using terraform
 
-Once inside, run the following:
+The GCP deployment includes two virtual machines, a managed cloud-based database, and several network services. In particular, we employ a public-facing load balancer which obviates the need for configuring and managing SSL certificates on the individual VMs. Instead, the load balancer and Google-managed SSL certificates (with HTTPS forwarding rules) provide secure connections to WebMeV.
+
+In addition to having a GCP account, this deployment strategy assumes:
+
+- You have a custom domain you wish to use
+- You will only allow HTTPS connections (HTTP will be upgraded to HTTPS)
+- You have already created a "managed zone" in GCP's Cloud DNS and your domain registrar is using the Cloud DNS nameservers. Note that Cloud DNS is NOT the same as Google Domains, if that happens to be your domain registrar. We do this since the terraform script dynamically creates DNS records which will point at the load balancer IP.
+
+These items are obviously not *required*, but you would need to modify the terraform scripts.
+
+**To deploy**
+
+- Install [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) and [Terraform](https://www.terraform.io/downloads.html)
+- Create a service account with the appropriate roles and obtain a JSON-format service account key file. You can do this via the [gcloud commandline tool](#gcloud-svc-acct) or using the [web console](#gcp-svc-acct). Keep the key file safe.
+- To allow https, we need a SSL certificate. The `gcloud` commandline tool provides a convenient way to provision one:
 ```
-cd /workspace/mev
-source startup_for_local_dev.sh
+gcloud beta compute ssl-certificates create <CERTIFICATE NAME>
+--description="SSL certificate for WebMeV dev server"
+--domains=mydomain1-dev.tm4.org,mydomain2-dev.tm4.org
 ```
-This will run some database migrations and other preliminaries, but will **not** actually start the gunicorn application server.  To do that, you must then run:
+Note: until the full stack is up and the load balancer is active, this will remain in a "provisioning" state.
+
+  - `cd deploy/terraform/live`
+  - `terraform init`
+  - `cp config.tfvars.template terraform.tfvars`
+  - Edit `terraform.tfvars` to assign required configuration values. You can refer to the `vars.tf` file for explanations of these variables and what they do. These are obviously the same environment variables used in the local, Vagrant-based deployment, so further information may be available in the comments of the `vagrant/env.tmpl` file at the root of this repository.
+
+    **Special notes:**
+
+    - The `ssl_cert` variable refers to the SSL certificate you created above. It is a resource string like: `projects/<GCP PROJECT>/global/sslCertificates/<CERTIFICATE NAME>`
+    - The `credentials_file` variable is the JSON-format key file you obtained for your service account. Assuming you saved this file in your `deploy/terraform/live/` directory, then you can simply write the file name.
+    - The `service_account_email` variable is the email-like name of the service account you created. For example, `abc123@<GCP PROJECT>.iam.gserviceaccount.com`
+
+- Create and set your terraform workspace.
+
+    Note that we make use of [terraform workspaces](https://www.terraform.io/docs/language/state/workspaces.html) which allow independent deployments using the same scripts. The *name* of the workspace is typically used when naming the cloud-based resources created (e.g. `backend-<WORKSPACE NAME>`) to make them more obvious when interacting with the GCP console or gcloud tool. By default, the workspace name is, appropriately enough, `default`. You can create a new workspace with:
 ```
-cd /workspace/mev
-gunicorn mev.wsgi:application --bind 0.0.0.0:8000
-```
-(note that the `startup_for_local_dev.sh` should place you in the proper directory, but we include the `cd` either way).  The `bind` argument should have the port set to 8000 as this is how the NGINX container communicates over the internal docker-compose network.
-
-Following all that, **the application should be running on port 8081** (e.g. http://127.0.0.1:8081/api/)
-
-
-If you are interested, note that additional gunicorn configuration parameters can be specified (see https://docs.gunicorn.org/en/latest/configure.html). 
-
-By stopping the gunicorn server (Ctrl+C), you can make local edits (i.e. on your host machine) to your code (which is, again, available within the container via the volume mount) and immediately restart the server to see the changes.  
-
-**Running unit tests**
-
-The unit test suite can also be run in this manner with
-```
-python3 /workspace/mev/manage.py test
+terraform workspace new <WORKSPACE NAME>
 ```
 
-###To start the application in *production* mode:
-
-In production mode, the application server *will* be started following the usual startup steps contained in `mev/startup.sh`.
-
-In the root of the repository (where the `docker-compose.prod.yml` file resides) run:
+and you can switch between workspaces with:
 ```
-docker-compose -f docker-compose.prod.yml up -d --build
+terraform workspace select <WORKSPACE NAME>
 ```
 
-This should start everything up.  Given that there are typically some Docker containers that need to be built and pushed to Dockerhub, you should expect the application to spend several minutes on startup. During that time, NGINX will issue a 502 bad gateway error.  To check progress, you can issue the following command from the host machine:
+- Once you have set a workspace, you can build it with
 
 ```
-docker-compose -f docker-compose.prod.yml logs api
+terraform apply
 ```
 
-In production mode, Django debugging is turned off, so any errors will be reported as generic 500 server errors without any corresponding debug details.
+This will prompt for any configuration variables that were not included in `terraform.tfvars`. Often, variables like these are intentionally left out to force the user to take a moment and think about what they are doing. One example is the git commit ID. This will tell terraform which git commit should be deployed. We intentionally prompt for this so that the developer is forced to examine the *exact* version of the application they wish to deploy.
 
-
-### Stopping the application
-
-To shut down the application (in verbose mode), run
-```
-docker-compose down -v
-```
-
-### Restarting only the application container
-
-If you need to update the API code and wish to preserve the remainder of the application, such as database rows, etc. then you can update the `api` container independently. On the host machine, run: 
+- To delete your resources:
 
 ```
-docker-compose -f docker-compose.prod.yml up --build --force-recreate --no-deps -d api
+terraform destroy
+```
+---
+
+<a name="gcp-svc-acct">**Creating a service account with the GCP console**</a>
+
+- Navigate to "IAM & Admin" --> "Service Accounts":
+[<img src="gcp_service_account_1.png" width="300">](gcp_service_account_1.png)
+
+- Click the "create service account" button at the top:
+
+[<img src="gcp_service_account_2.png" width="200">](gcp_service_account_2.png)
+
+- Give the account a name:
+[<img src="gcp_service_account_3.png" width="300">](gcp_service_account_3.png)
+
+- Add "roles" to this service account. To work with the deployment, you will need:
+    - Editor (`roles/editor`)
+    - Service Networking Admin (`roles/servicenetworking.networksAdmin`)
+
+[<img src="gcp_service_account_4.png" width="300">](gcp_service_account_4.png)
+
+- After the account is created, you will be directed to the page with all the service accounts for your your GCP project. Click on the one you  just created:
+[<img src="gcp_service_account_5.png" width="300">](gcp_service_account_5.png)
+
+- Go to the "keys" tab and create a new JSON key:
+[<img src="gcp_service_account_6.png" width="300">](gcp_service_account_6.png)
+[<img src="gcp_service_account_7.png" width="300">](gcp_service_account_7.png)
+
+- Save this key in your `deploy/terraform/live/` folder. Then the `terraform.tfvars` file can reference this file easily.
+
+<a name="gcloud-svc-acct">**Creating a service account with the gcloud tool**</a>
+
+- Create a service account:
+```
+gcloud iam service-accounts create <NAME> --display-name="<SOME NAME>"
+```
+e.g. 
+```
+gcloud iam service-accounts create abc123 --display-name="A basic name"
+```
+ The identifier "abc123" below will create a service account with a "full" email-like name, e.g. `abc123@myproject.iam.gserviceaccount.com`. The name needs to conform to some basic requirements (minimum length, characters) and gcloud will warn you if you it doesn't comply.
+
+- Add the appropriate policies to this service account. This will enable the account to perform certain actions like creation of VMs, etc. Specifically, you will need to add the `roles/editor` and `roles/servicenetworking.networksAdmin` to your service account. The latter will enable your application server to connect to the cloud-based database. Project "editor" permissions alone will not be adequate.
+```
+gcloud projects add-iam-policy-binding myproject \ 
+    --member='serviceAccount:abc123@myproject.iam.gserviceaccount.com' \ 
+    --role='roles/editor'
+
+gcloud projects add-iam-policy-binding myproject \   
+    --member='serviceAccount:abc123@myproject.iam.gserviceaccount.com' \ 
+    --role='roles/servicenetworking.networksAdmin'
 ```
 
-Of course updates to the database structure will require database migrations, which is challenging if you wish to maintain the existing rows. We do not cover that here.
+Then create a JSON key file which terraform will use:
+```
+gcloud iam service-accounts keys create my_gcp_key.json \
+    --iam-account=abc123@myproject.iam.gserviceaccount.com
+```
