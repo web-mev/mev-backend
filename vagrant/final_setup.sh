@@ -3,7 +3,9 @@
 # Source the file that was used to setup the environment variables
 # for creating this virtual machine. That file comes from filling in
 # env.tmpl.
+set -o allexport
 source $1
+set +o allexport
 
 # After exporting all those variables, we still need to export these 
 # for Django's purposes. The provisioning script dynamically sets these to create
