@@ -73,6 +73,7 @@ module "api" {
     django_superuser_email = var.django_superuser_email
     django_superuser_passwd = var.django_superuser_passwd
     mev_storage_bucket = var.mev_storage_bucket
+    email_backend = var.email_backend
     from_email = var.from_email
     gmail_access_token = var.gmail_access_token
     gmail_refresh_token = var.gmail_refresh_token
