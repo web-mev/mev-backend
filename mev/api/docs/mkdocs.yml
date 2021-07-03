@@ -1,5 +1,5 @@
-site_name: MEV REST API
-site_description: Documentation for the MEV RESTful API
+site_name: WebMeV REST API
+site_description: Documentation for the WebMeV RESTful API
 
 repo_url: https://github.com/web-mev/mev-backend
 
@@ -18,9 +18,8 @@ nav:
  - Architecture: 'general_architecture.md'
  - Installation and Setup: 
    - Preliminaries: 'install.md'
-   - MEV cluster setup: 'mev_cluster_setup.md'
+   - Installation and setup: 'mev_cluster_setup.md'
    - Configuration: 'setup_configuration.md'
-   - Cromwell job runner setup: 'cromwell_setup.md'
  - API: 
    - Intro and core concepts: 'api.md'
    - Data Structures:
