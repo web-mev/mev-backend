@@ -12,256 +12,44 @@ set -x
 
 set -o allexport
 
-# dev or production status. Should be "dev" or "production"
-ENVIRONMENT=${environment}
+source /vagrant/$1
 
-GIT_COMMIT=${git_commit_id}
+# Some "extra" setup of environment varibles below
 
-###################### Database-related parameters ######################################
+ENVIRONMENT="dev"
 
-# Postgres database params
-DB_NAME=${db_name}
-DB_USER=${db_user}
-DB_PASSWD=${db_passwd}
-ROOT_DB_PASSWD=${root_db_passwd}
-DB_PORT=${db_port}
-
-# Note that the db_host is given as <project>:<region>:<db name>
-# To use in Django, we eventually split this string to extract
-# what we need
-DB_HOST_FULL=${db_host}
-
-# Should we populate the database with dummy data (the same data we test with)?
-# Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
-POPULATE_DB=no
-
-
-###################### END Database-related parameters ###################################
-
-
-############################ Domain parameters ######################################
-
-# The frontend can be located on a different server.
-# This is used for communications, etc. (such as verification emails)
-# which will direct the user to a link on the front-end
-FRONTEND_DOMAIN=${frontend_domain}
-
-# The domain of the API:
-BACKEND_DOMAIN=${domain}
-
-# This setting gives a "human readable" name to the site for contacts
-# For instance, could be "WebMEV" or other so that emails will have a subject
-# like "Registration details for WebMEV"
-SITE_NAME="WebMeV"
-
-########################## END Domain parameters #####################################
-
-
-######################### Django-related parameters ######################################
-
-
-# The secret key is used to encrypt data when making tokens, etc.
-# Accordingly, make this appropriately long:
-DJANGO_SECRET_KEY=${django_secret}
 
 # A comma-delimited list of the hosts.  Add hosts as necessary
 # e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
-# Also need to add the network internal IP, which we can query from the metadata
-if [ $ENVIRONMENT != 'dev' ]; then
-  INTERNAL_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
-else
-  INTERNAL_IP=""
-fi
-LOAD_BALANCER_IP=${load_balancer_ip}
-DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
 # at a different domain. Include protocol and ports
-DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN,${other_cors_origins}
-
-
-# For automatically creating an admin, supply the following:
-# username is required, but the user model uses the email field 
-# as the username.  Therefore, we auto-fill that based on the email
-DJANGO_SUPERUSER_PASSWORD=${django_superuser_passwd}
-DJANGO_SUPERUSER_EMAIL=${django_superuser_email}
-
-# Don't change this:
-# We use a different user model which relies on the email instead of a 
-# username. However, still need to define this environment variable
-# for Django's createsuperuser command to work
-DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
-
-
-####################### END Django-related parameters ###################################
-
-
-
-
-
-####################### Redis-related parameters ###################################
-
+DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN,$OTHER_CORS_ORIGINS
 
 # Where is redis listening?
-# We assume that it is listening on the dfault port of 6379
+# We assume that it is listening on the default port of 6379
 REDIS_HOST=localhost
-
-
-####################### END Redis-related parameters ###################################
-
-
-
-
-
-###################### Start cloud env related parameters ###############################
-
-
-# Here we setup some parameters relating to the cloud environment, including the location
-# of remote job runner services, etc.
-
-# The cloud platform determines which classes are used to hook up to 
-# storage buckets, etc.
-CLOUD_PLATFORM=GOOGLE
-
-# Will you be using one of the remote job runners?
-# Case-sensitive "yes" (without quotes) will enable. Otherwise we will
-# not enable remote job runs
-ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
-
-# Which remote job runners will be used?
-# Doesn't matter if the ENABLE_REMOTE_JOB_RUNNERS is "false"
-# This is a comma-delimited list of strings which have to match
-# the recognized keys (see AVAILABLE_REMOTE_JOB_RUNNERS in the
-# Django settings file(s)).
-REMOTE_JOB_RUNNERS=CROMWELL
-
-
-###################### END cloud env related parameters #################################
-
-
-
-
-
-###################### Storage-related parameters ######################################
 
 # the path to a JSON file containing the credentials to authenticate with the Google storage API.
 # The startup script will perform the authentication and place the credentials into this file.
+# Note that this authentication can ONLY happen if we are on GCP and can use the VMs service
+# account.
+# For local dev that does not interact with a google bucket, that authentication doesn't
+# happen and we simply "touch" this file.
 STORAGE_CREDENTIALS="/vagrant/storage_credentials.json"
-
-
-# the storage backend dictates where the "absolute" source of the files is. Of course,
-# to perform many operations we need to move files back and forth between local and
-# cloud storage. However, only one location serves as the "ground truth", and this is
-# the path that is saved in the database (in the Resource table).
-# Note that if you are requesting to use remote job runners (ENABLE_REMOTE_JOB_RUNNERS)
-# then you are REQUIRED to use bucket storage. You can only use local storage if all
-# your runners are local.
-# Options include "local" and "remote"
-STORAGE_LOCATION=${storage_location}
 
 # If using local storage for all files (not recommended since sequencing files
 # could consume large amount of disk space), set the following:
 # This directory is relative to the django BASE_DIR
 LOCAL_STORAGE_DIRNAME=user_resources
 
-# A bucket where MEV user's files will be stored (if using bucket storage). This
-# is independent of any buckets used as a storage location for remote job runners, etc.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://".
-# THIS BUCKET MUST ALREADY EXIST. 
-STORAGE_BUCKET_NAME=${mev_storage_bucket}
-
-# The maximum size (in bytes) to allow "direct" downloads from the API.
-# If the file exceeds this, we ask the user to download in another way. 
-# Most files are small and this will be fine. However, we don't want users
-# trying to download BAM or other large files. They can do that with other methods,
-# like via Dropbox.
-MAX_DOWNLOAD_SIZE_BYTES=5.12e8
-
 # For signing download URLs we need a credentials file. To create that, we need a
 # service account with appropriate privileges. This variable is the full name of that
 # service account file (e.g. <id>@project.iam.gserviceaccount.com)
-SERVICE_ACCOUNT=${service_account_email}
-
-###################### END Storage-related parameters ######################################
-
-############################ Email-related parameters ######################################
-
-# How to send email-- by default, we print emails to the console for dev
-# If you would like to set another email backend (e.g. gmail), set this accordingly.
-# See the docs and/or base_settings.py in the relevant section regarding email.
-EMAIL_BACKEND_CHOICE=${email_backend}
-
-# When email is sent, this will give the "from" field.  e.g. "some name <some@email.com>" (without the quotes)
-FROM_EMAIL="${from_email}"
-
-# If using Gmail for your email service, specify the following:
-# See docs for how to get these values.
-GMAIL_ACCESS_TOKEN=${gmail_access_token}
-GMAIL_REFRESH_TOKEN=${gmail_refresh_token}
-GMAIL_CLIENT_ID=${gmail_client_id}
-GMAIL_CLIENT_SECRET=${gmail_client_secret}
-
-
-########################## END Email-related parameters #####################################
-
-
-
-
-############################ Social auth-related parameters ######################################
-
-# a comma-delimited list giving the social auth providers to use.  Check the available
-# implementations in mev/api/base_settings.py
-SOCIAL_BACKENDS=GOOGLE
-
-########################## END Social-auth-related parameters #####################################
-
-
-############################ Sentry parameters ######################################
-
-# After starting the sentry instance, tell it to configure for Django.  When you do 
-# that, it will give a code snippet.  Note the "dsn" it provides, which is a URL
-# that typically looks like http://<string>@<ip>:<port>/1
-# Copy that url below (including the http/https prefix)
-SENTRY_URL=${sentry_url}
-
-########################## END Sentry parameters #####################################
-
-
-
-
-
-############################ Dockerhub related parameters ######################################
-
-# To push to the Dockerhub repository, we need to authenticate with `docker login`...
-# These credentials are used for that.
-
-DOCKERHUB_USERNAME=${dockerhub_username}
-DOCKERHUB_PASSWORD=${dockerhub_passwd}
-
-# If we wish to associate the images with an organization account, specify this variable.
-# If not given (i.e. empty string), then images will be pushed to the username given above.
-DOCKERHUB_ORG=${dockerhub_org}
-
-############################ END Dockerhub related parameters ######################################
-
-
-########################## Cromwell parameters #########################################
-# Only need to fill-in variables here if you are using the remote Cromwell job engine
-# This is only relevant if ENABLE_REMOTE_JOB_RUNNERS and REMOTE_JOB_RUNNERS
-# are used
-
-# If using the Cromwell engine to run remote jobs, we need to know the bucket where it will
-# write files. If NOT using Cromwell, then this does not have to be filled.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
-CROMWELL_BUCKET=${cromwell_bucket}
-
-# The address (including http/s protocol and any port) of the Cromwell server
-# Only needed if using the remote Cromwell job engine.
-# Should be the INTERNAL IP address in the same vpc network
-CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
-
-########################## END Cromwell parameters #########################################
+# For local dev, can leave as-is
+SERVICE_ACCOUNT="id@project.iam.gserviceaccount.com"
 
 # set the directory where the MEV src will live. Used by the supervisor conf files
 MEV_HOME=/vagrant/mev
@@ -328,7 +116,7 @@ cd /opt/software && \
 
 # Install the python packages we'll need:
 cd /vagrant && \
-  git checkout -q $GIT_COMMIT && \
+  git checkout -q $GIT_COMMIT_ID && \
   cd mev && \
   /usr/local/bin/pip3 install -U pip && \
   /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
@@ -450,3 +238,7 @@ supervisorctl start mev_celery_worker
 
 # Restart nginx so it loads the new config:
 service nginx restart
+
+# Add to the vagrant user's ~/.profile so that the environment variables
+# are "ready" after you SSH into the VM
+echo "source /vagrant/vagrant/final_setup.sh /vagrant/"$1 >> /home/vagrant/.profile
