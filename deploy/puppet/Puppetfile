@@ -3,4 +3,4 @@
 
 forge "https://forgeapi.puppetlabs.com"
 
-mod 'puppetlabs-vcsrepo', '4.0.1'
+mod 'puppetlabs-vcsrepo', '5.0.0'
