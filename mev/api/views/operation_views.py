@@ -66,7 +66,9 @@ class OperationList(APIView):
 
 class OperationDetail(APIView):
     '''
-    Returns specific Operation instances.
+    Returns specific Operation instances. Note that we only permit GET operations
+    as this is the only way users should be able to access the Operation table.
+    Specific operations like modifications can only be performed by admins
     '''
     
     permission_classes = [
@@ -93,6 +95,33 @@ class OperationDetail(APIView):
         except OperationDbModel.DoesNotExist:
             return Response({}, status=status.HTTP_404_NOT_FOUND)
 
+
+class OperationUpdate(APIView):
+    '''
+    Note that this method will NOT update aspects of the operation itself,
+    such as the inputs, outputs, etc. as that breaks the principle that the
+    operations are immutable once ingested. Rather, this only updates fields
+    of the Operation database objects, which is more appropriately considered
+    as metadata about the actual operation JSON object. For instance, you can
+    use this endpoint to set the 'active' status, etc.
+    '''
+
+    permission_classes = [
+        framework_permissions.IsAdminUser
+    ]
+
+    def patch(self, request, pk):
+        db_object = OperationDbModel.objects.get(pk=pk)
+        for field in request.data:
+            if hasattr(db_object, field):
+                setattr(db_object, field, request.data.get(field))
+            else:
+                return Response(
+                    'Field {f} is not valid.'.format(f=field), 
+                    status = status.HTTP_400_BAD_REQUEST
+                )
+        db_object.save()
+        return Response({}, status=status.HTTP_200_OK)
 
 class OperationCreate(APIView):
 

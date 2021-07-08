@@ -37,7 +37,8 @@ from .operation_views import OperationList, \
     OperationRun, \
     ExecutedOperationCheck, \
     ExecutedOperationList, \
-    WorkspaceExecutedOperationList
+    WorkspaceExecutedOperationList, \
+    OperationUpdate
 from .operation_category_views import OperationCategoryList, \
     OperationCategoryDetail, \
     OperationCategoryAdd

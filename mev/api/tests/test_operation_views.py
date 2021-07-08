@@ -1248,3 +1248,56 @@ class OperationRunTests(BaseAPITestCase):
         response_json = response.json()
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue('job_name' in response_json.keys())
+
+
+class OperationUpdateTests(BaseAPITestCase):
+
+    def setUp(self):
+        setup_db_elements(self)
+        self.establish_clients()
+
+    def test_admin_only(self):
+        '''
+        Tests that regular users can't use this endpoint
+        '''
+        url = reverse('operation-update', kwargs={
+            'pk': str(self.op_uuid)
+        })
+        response = self.authenticated_regular_client.get(url)
+        self.assertTrue(response.status_code == 403)
+
+    def test_change_active_status(self):
+        '''
+        Tests that we can modify the "active" status on an existing operation
+        '''
+        self.op.active = True
+        self.op.save()
+        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        self.assertTrue(op.active)
+        url = reverse('operation-update', kwargs={
+            'pk': str(self.op_uuid)
+        })
+        response = self.authenticated_admin_client.patch(url, {'active': False})
+        self.assertTrue(response.status_code == 200)
+        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        self.assertFalse(op.active)
+
+    def test_bad_update_field_triggers_400(self):
+        '''
+        Tests that a bad field (even if others are fine) triggers a
+        400. This prevents awkward partial updates.
+        '''
+        self.op.active = True
+        self.op.save()
+        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        self.assertTrue(op.active)
+        url = reverse('operation-update', kwargs={
+            'pk': str(self.op_uuid)
+        })
+        response = self.authenticated_admin_client.patch(url, 
+            {'active': False, 'foo': 'xyz'})
+        self.assertTrue(response.status_code == 400)
+        op = OperationDbModel.objects.get(pk=self.op_uuid)
+
+        # Check that the active field as NOT updated
+        self.assertTrue(op.active)
