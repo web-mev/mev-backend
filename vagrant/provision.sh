@@ -116,7 +116,6 @@ cd /opt/software && \
 
 # Install the python packages we'll need:
 cd /vagrant && \
-  git checkout -q $GIT_COMMIT_ID && \
   cd mev && \
   /usr/local/bin/pip3 install -U pip && \
   /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
