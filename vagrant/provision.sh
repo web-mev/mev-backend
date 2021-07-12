@@ -14,46 +14,6 @@ set -o allexport
 
 source /vagrant/$1
 
-# Some "extra" setup of environment varibles below
-
-ENVIRONMENT="dev"
-
-
-# A comma-delimited list of the hosts.  Add hosts as necessary
-# e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
-DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
-
-# A comma-delimited list of the origins for cors requests
-# Needed to hookup to front-end frameworks which may be 
-# at a different domain. Include protocol and ports
-DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN,$OTHER_CORS_ORIGINS
-
-# Where is redis listening?
-# We assume that it is listening on the default port of 6379
-REDIS_HOST=localhost
-
-# the path to a JSON file containing the credentials to authenticate with the Google storage API.
-# The startup script will perform the authentication and place the credentials into this file.
-# Note that this authentication can ONLY happen if we are on GCP and can use the VMs service
-# account.
-# For local dev that does not interact with a google bucket, that authentication doesn't
-# happen and we simply "touch" this file.
-STORAGE_CREDENTIALS="/vagrant/storage_credentials.json"
-
-# If using local storage for all files (not recommended since sequencing files
-# could consume large amount of disk space), set the following:
-# This directory is relative to the django BASE_DIR
-LOCAL_STORAGE_DIRNAME=user_resources
-
-# For signing download URLs we need a credentials file. To create that, we need a
-# service account with appropriate privileges. This variable is the full name of that
-# service account file (e.g. <id>@project.iam.gserviceaccount.com)
-# For local dev, can leave as-is
-SERVICE_ACCOUNT="id@project.iam.gserviceaccount.com"
-
-# set the directory where the MEV src will live. Used by the supervisor conf files
-MEV_HOME=/vagrant/mev
-
 set +o allexport
 
 #################### End ENV variables #################################
