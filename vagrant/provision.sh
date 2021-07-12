@@ -176,7 +176,8 @@ supervisorctl reread
 # Give it some time to setup the socket to the db
 sleep 3
 
-# Setup the database.
+# Setup the database. Even if we are populating from a backup, we need to 
+# create the database user and database
 runuser -m postgres -c "psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
     CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWD';
     CREATE DATABASE $DB_NAME;
@@ -197,23 +198,65 @@ chown -R mev:mev /vagrant/mev
 ### DANGER-- 777 permissions to get this to work. Only for local dev.
 chmod -R 777 /vagrant/mev
 
-# Apply database migrations, collect the static files to server, and create
-# a superuser based on the environment variables passed to the container.
-/usr/local/bin/python3 /vagrant/mev/manage.py makemigrations api
-/usr/local/bin/python3 /vagrant/mev/manage.py migrate
-/usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
+if [ $RESTORE_FROM_BACKUP = 'yes' ]; then
+
+    # Check that the proper folder exists which has the backup data
+    BACKUP_DIR="/vagrant/example_data"
+    ls $BACKUP_DIR || (echo "Since you requested to populate the database from a backup, you must have a directory named example_data."; exit 1)
+
+    ls $BACKUP_DIR/$BACKUP_FILE* || (echo "Did not find any database dump."; exit 1)
+
+    # Have either a compressed or uncompressed file present. If the following `ls` for the
+    # uncompressed file fails, then we need to uncompress
+    ls $BACKUP_DIR/$BACKUP_FILE || gunzip $BACKUP_DIR/$BACKUP_FILE".gz" 
+
+    # The cloud managed database adds some extra users which interfere with our setup here.
+    # This first line removes the line referencing the "cloudsqladmin" user
+    sed -i 's?^.*cloudsqladmin.*$??g' $BACKUP_DIR/$BACKUP_FILE
+
+    # This next command replaces the GRANT command for the cloudsqlsuperuser
+    # with the WebMeV database user. Without this, we end up with permissions
+    # errors when querying the DB via Django
+    sed -i "s?cloudsqlsuperuser?$DB_USER?g" $BACKUP_DIR/$BACKUP_FILE
+
+    # If we are restoring from a backup, we fill the database with real data.
+    # This also sets up the tables, etc.
+    export PGPASSWORD=$DB_PASSWD
+    runuser -m postgres -c "psql -v ON_ERROR_STOP=1 -h localhost --username "$DB_USER" --dbname "$DB_NAME" < $BACKUP_DIR/$BACKUP_FILE"
+
+    # Run a script which will correct the cloud-based paths to local ones.
+    # This edits the database AND moves the files
+    /usr/local/bin/python3 /vagrant/mev/manage.py edit_db_data \
+      --email $DJANGO_SUPERUSER_EMAIL \
+      --password $DJANGO_SUPERUSER_PASSWORD \
+      --dir $BACKUP_DIR/$LOCAL_STORAGE_DIRNAME
+
+    # Also move the operations
+    /usr/local/bin/python3 /vagrant/mev/manage.py move_operations \
+      --dir $BACKUP_DIR"/operations" \
+      --output /vagrant/mev/operations
+else
+
+  # Apply database migrations, collect the static files to server, and create
+  # a superuser based on the environment variables passed to the container.
+  /usr/local/bin/python3 /vagrant/mev/manage.py makemigrations api
+  /usr/local/bin/python3 /vagrant/mev/manage.py migrate
+  /usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
+
+  # Populate a "test" database, so the database
+  # will have some content to query. Note that we only do this
+  # if we are not populating from a backup
+  if [ $POPULATE_DB = 'yes' ]; then
+      /usr/local/bin/python3 /vagrant/mev/manage.py populate_db
+  fi
+
+fi
 
 # The collectstatic command gets all the static files 
 # and puts them at /vagrant/mev/static.
 # We them copy the contents to /www/static so nginx can serve:
 /usr/local/bin/python3 /vagrant/mev/manage.py collectstatic --noinput
 cp -r /vagrant/mev/static /www/static
-
-# Populate a "test" database, so the database
-# will have some content to query.
-if [ $POPULATE_DB = 'yes' ]; then
-    /usr/local/bin/python3 /vagrant/mev/manage.py populate_db
-fi
 
 # Add on "static" operations, such as the dropbox uploaders, etc.
 # Other operations (such as those used for a differential expression
