@@ -158,6 +158,9 @@ chown -R mev:mev /vagrant/mev
 ### DANGER-- 777 permissions to get this to work. Only for local dev.
 chmod -R 777 /vagrant/mev
 
+# Apply database migrations, collect the static files to server, and create
+# a superuser based on the environment variables passed to the container.
+
 if [ $RESTORE_FROM_BACKUP = 'yes' ]; then
 
     # Check that the proper folder exists which has the backup data
@@ -195,13 +198,16 @@ if [ $RESTORE_FROM_BACKUP = 'yes' ]; then
     /usr/local/bin/python3 /vagrant/mev/manage.py move_operations \
       --dir $BACKUP_DIR"/operations" \
       --output /vagrant/mev/operations
+  /usr/local/bin/python3 /vagrant/mev/manage.py makemigrations api
+  /usr/local/bin/python3 /vagrant/mev/manage.py migrate
+  /usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput || echo "User existed already"
+
 else
 
-  # Apply database migrations, collect the static files to server, and create
-  # a superuser based on the environment variables passed to the container.
   /usr/local/bin/python3 /vagrant/mev/manage.py makemigrations api
   /usr/local/bin/python3 /vagrant/mev/manage.py migrate
   /usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
+
 
   # Populate a "test" database, so the database
   # will have some content to query. Note that we only do this
