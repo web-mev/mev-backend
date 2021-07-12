@@ -20,6 +20,7 @@ nav:
    - Preliminaries: 'install.md'
    - Installation and setup: 'mev_cluster_setup.md'
    - Configuration: 'setup_configuration.md'
+   - Mock data server: 'data_server.md'
  - API: 
    - Intro and core concepts: 'api.md'
    - Data Structures:
