@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>Mock data server - WebMeV REST API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  <link href="style.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Mock data server";
+    var mkdocs_page_input_path = "data_server.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="icon icon-home"> WebMeV REST API</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="index.html">Home</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="general_architecture.html">Architecture</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+                <ul class="current">
+                    <li class="toctree-l1"><a class="reference internal" href="install.html">Preliminaries</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="mev_cluster_setup.html">Installation and setup</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration.html">Configuration</a>
+                    </li>
+                    <li class="toctree-l1 current"><a class="reference internal current" href="data_server.html">Mock data server</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#instructions">Instructions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#downloading-the-extracted-dataresults">Downloading the extracted data/results</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#preparing-your-local-development-instance-for-this-data">Preparing your local development instance for this data</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#potential-pitfalls">Potential pitfalls</a>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">API</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="resources.html">General info</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_types.html">Resource types</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="resource_metadata.html">Resource metadata</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="operation_resources.html">Operation-associated resources</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="attributes.html">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="elements.html">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets.html">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="workspaces.html">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="metadata.html">Workspace metadata</a>
+                </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="operations.html">Operation concepts</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses.html">Creating new analyses/operations</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="example_workflow.html">Workflow and analysis concepts</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">WebMeV REST API</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+      
+        
+          <li>Installation and Setup &raquo;</li>
+        
+      
+    
+    <li>Mock data server</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/data_server.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h3 id="using-the-webmev-backend-as-a-local-data-server"><a class="toclink" href="#using-the-webmev-backend-as-a-local-data-server">Using the WebMeV backend as a local data server</a></h3>
+<p>The purpose of this document is to describe the process for creating a local WebMeV API that contains all the relevant operations and result files such that a frontend application can develop against actual output files and interact just as one might with a real, production server.</p>
+<p>The motivation for this is that backend analysis tools and frontend dev typically happens in parallel. When a new tool is created, the frontend needs access to the specific output/result files for developing the new results page and visualization. Unforunately, due to the complexities of some of the analyses and how they are run (e.g. locally run or remotely via Cromwell), it's not always feasible to run a fully-featured, local API server. For example, the local machine may not have sufficient resources to run a particular analysis. Further, it is faster to develop the frontend with a set of well-defined outputs to use.</p>
+<p>Hence, what we describe here will create an API server which has "pre-baked" results which can be served to a frontend application.</p>
+<p>Note that the purpose of the data server is NOT to run analyses, although it is technically possible provided you are running "local" (i.e. Docker-based analyses) on your local machine.</p>
+<p>Finally, also note that the data export described below can export a large amount of data, depending on how many users are actively using your WebMeV deployment. Thus, for a smaller storage footprint, it may be advisable to first generate a new cloud-based deployment with a minimal set of operations and results specific to your frontend development effort.</p>
+<h4 id="instructions"><a class="toclink" href="#instructions">Instructions</a></h4>
+<p>The first step is extract the data from another deployment (e.g. production) which has operations and results you wish to import. For that, we have a helper script in <code>etc/extract_data.sh</code>. It takes five commandline args in order:</p>
+<ul>
+<li>
+<p><strong>Database ID:</strong> This is the string identifier for the database <em>instance</em> you are extracting data from. You can find this either from your terraform deployment, by browsing to the SQL area of the Google web console, or by executing the following gcloud command: <code>gcloud sql instances list</code>. We are looking for the string identifier in the first, <code>NAME</code> column.</p>
+</li>
+<li>
+<p><strong>Database name:</strong> This is the name of the database created on the instance above. This is the postgres database you are creating as part of the provisioning scripts.</p>
+</li>
+<li>
+<p><strong>GCP zone:</strong> This is the zone (e.g. us-east4-c) where the compute instance (the VM serving the API you are extracting data from) is located.</p>
+</li>
+<li>
+<p><strong>GCP compute instance:</strong> This is the name of the VM hosting the API</p>
+</li>
+<li>
+<p><strong>API storage bucket:</strong> The cloud-based API stores all user files in a storage bucket. We need to copy those files, so this variable is the name, <em>without the <code>gs://</code> prefix</em>, of that bucket.</p>
+</li>
+</ul>
+<p>Run the script:</p>
+<pre class="codehilite"><code>etc/extract_data.sh &lt;DB ID&gt; &lt;DB name&gt; &lt;zone&gt; &lt;GCP VM name&gt; &lt;Bucket name&gt;
+</code></pre>
+
+<p>and it will perform all the data extraction and copying. It will place all the necessary files into a new bucket, which it will print to your console, <code>gs://mev-data-export-&lt;UUID&gt;</code>.</p>
+<h4 id="downloading-the-extracted-dataresults"><a class="toclink" href="#downloading-the-extracted-dataresults">Downloading the extracted data/results</a></h4>
+<p>First, we need to download the data we just extracted. The Vagrant-based provisioning script expects that we are locating this data in a folder named <code>example_data</code> at the root of the project (i.e. as a sibling of your Vagrantfile). If not there already, make a directory:</p>
+<pre class="codehilite"><code>cd mev-backend
+mkdir example_data
+</code></pre>
+
+<p>then, change into that directory and use <code>gsutil</code> to copy everything:</p>
+<pre class="codehilite"><code>cd example_data
+gsutil -m cp -r gs://&lt;YOUR EXPORT BUCKET&gt;/* .
+</code></pre>
+
+<p>Note that the <code>-m</code> flag is optional, but allows faster, parallel downloads.</p>
+<p>When the download is complete, you should have three items in this <code>example_data</code> folder:</p>
+<ul>
+<li>db_export.gz</li>
+<li>user_resources/</li>
+<li>operations/</li>
+</ul>
+<p>Both <code>user_resources/</code> and <code>operations/</code> are folders with further subdirectories.</p>
+<h4 id="preparing-your-local-development-instance-for-this-data"><a class="toclink" href="#preparing-your-local-development-instance-for-this-data">Preparing your local development instance for this data</a></h4>
+<p>To populate our development instance with this data, we need to tell the Vagrant provisioning script that we wish to populate our local instance with an existing database dump and some result files. </p>
+<p>To do this, we simply set <code>RESTORE_FROM_BACKUP=yes</code> in <code>vagrant/env.txt</code>. If you set this variable to anything but <code>"yes"</code>, then it will <em>NOT</em> work. Also note that setting this variable will effectively ignore the <code>POPULATE_DB</code> variable which is typically used for creating fake/dummy data in a dev environment.</p>
+<p>Then, as part of the provisioning process, we have two scripts (written as Django command hooks) which 1) edits the database and 2) moves the operation folders to the appropriate locations. </p>
+<p>When editing the database, the script updates all the resource paths to reference the local, filesystem based files instead of the bucket-based objects. Further, the database editing script assigns ownership of all files and executed operations to the superuser account created as part of the provisioning.</p>
+<h4 id="potential-pitfalls"><a class="toclink" href="#potential-pitfalls">Potential pitfalls</a></h4>
+<p>One potential pitfall is that if you run the provisioning script multiple times, you need to repopulate the test data directly from the bucket. Otherwise, the referenced paths and database dump will have been changed and we cannot guarantee the integrity of the <code>example_data/</code> folder.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="api.html" class="btn btn-neutral float-right" title="Intro and core concepts">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="setup_configuration.html" class="btn btn-neutral" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="setup_configuration.html" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="api.html" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

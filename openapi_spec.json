@@ -1221,7 +1221,7 @@
     "/api/operations/{operation_uuid}/": {
       "get": {
         "operationId": "retrieveOperation",
-        "description": "Returns specific Operation instances.",
+        "description": "Returns specific Operation instances. Note that we only permit GET operations\nas this is the only way users should be able to access the Operation table.\nSpecific operations like modifications can only be performed by admins",
         "parameters": [
           {
             "name": "operation_uuid",
@@ -2181,6 +2181,49 @@
         },
         "responses": {
           "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/operations/{id}/update/": {
+      "patch": {
+        "operationId": "partialUpdateOperationUpdate",
+        "description": "Note that this method will NOT update aspects of the operation itself,\nsuch as the inputs, outputs, etc. as that breaks the principle that the\noperations are immutable once ingested. Rather, this only updates fields\nof the Operation database objects, which is more appropriately considered\nas metadata about the actual operation JSON object. For instance, you can\nuse this endpoint to set the 'active' status, etc.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {}
