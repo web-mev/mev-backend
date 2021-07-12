@@ -63,6 +63,10 @@ Then, as part of the provisioning process, we have two scripts (written as Djang
 
 When editing the database, the script updates all the resource paths to reference the local, filesystem based files instead of the bucket-based objects. Further, the database editing script assigns ownership of all files and executed operations to the superuser account created as part of the provisioning.
 
+#### Potential pitfalls
+
+One potential pitfall is that if you run the provisioning script multiple times, you need to repopulate the test data directly from the bucket. Otherwise, the referenced paths and database dump will have been changed and we cannot guarantee the integrity of the `example_data/` folder.
+
 
 
 
