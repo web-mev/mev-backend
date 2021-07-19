@@ -506,6 +506,21 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 # END Settings for Operation executions
 ###############################################################################
 
+###############################################################################
+# START Settings for public datasets
+###############################################################################
+
+PUBLIC_DATA_DIR = os.path.join(BASE_DIR, 'public_data')
+if not os.path.exists(PUBLIC_DATA_DIR):
+    raise ImproperlyConfigured('There should be a directory for public data at {d}.'.format(
+            d = PUBLIC_DATA_DIR
+        )
+    )
+
+###############################################################################
+# END Settings for public datasets
+###############################################################################
+
 
 ###############################################################################
 # START Settings for Dockerhub 

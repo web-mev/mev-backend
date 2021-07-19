@@ -151,6 +151,7 @@ mkdir -p /vagrant/mev/resource_cache
 mkdir -p /vagrant/mev/operation_staging
 mkdir -p /vagrant/mev/operations
 mkdir -p /vagrant/mev/operation_executions
+mkdir -p /vagrant/mev/public_data
 
 # Change the ownership so we have write permissions.
 chown -R mev:mev /vagrant/mev

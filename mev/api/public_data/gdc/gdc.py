@@ -177,7 +177,7 @@ class GDCDataSource(PublicDataSource):
         d = {}
         for attr in ATTRIBUTES:
             property_list = []
-            url = self.DICTIONARY_ENDPOINT.format(attribute = attr)
+            url = self.GDC_DICTIONARY_ENDPOINT.format(attribute = attr)
             response = requests.get(url)
             j = response.json()
             properties = j['properties']

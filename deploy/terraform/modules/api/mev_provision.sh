@@ -437,6 +437,7 @@ mkdir -p /opt/software/mev-backend/mev/resource_cache
 mkdir -p /opt/software/mev-backend/mev/operation_staging
 mkdir -p /opt/software/mev-backend/mev/operations
 mkdir -p /opt/software/mev-backend/mev/operation_executions
+mkdir -p /opt/software/mev-backend/mev/public_data
 
 # Change the ownership so we have write permissions.
 chown -R mev:mev /opt/software/mev-backend/mev

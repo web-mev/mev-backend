@@ -10,6 +10,10 @@ import tarfile
 
 import pandas as pd
 
+from django.conf import settings
+
+from api.utilities.basic_utils import get_with_retry, make_local_directory
+
 from .gdc import GDCDataSource
 
 logger = logging.getLogger(__name__)
@@ -18,6 +22,9 @@ class TCGADataSource(GDCDataSource):
     '''
     A general class for pulling data from TCGA, exposed via the GDC API
     '''
+
+    # All the TCGA-based data will be stored in this directory
+    ROOT_DIR = os.path.join(settings.PUBLIC_DATA_DIR, 'tcga')
 
     # This list helps to define the full filter used in the child classes.
     # Each item in this list (dicts) conforms to the GDC query syntax. We
@@ -34,6 +41,13 @@ class TCGADataSource(GDCDataSource):
                 }
         }
     ]
+
+    def __init__(self):
+        if not os.path.exists(self.ROOT_DIR):
+            logger.info('When instantiating an instance of TCGADataSource, the'
+                ' expected directory did not exist. Go create it...'
+            )
+            make_local_directory(self.ROOT_DIR)
 
     def download_dataset(self):
         pass
@@ -98,15 +112,10 @@ class TCGARnaSeqDataSource(TCGADataSource):
         '__alignment_not_unique'
     ]
 
-    def download_dataset(self):
+    def _create_filters(self):
         '''
-        Implementation of the RNA-seq data download
+        Internal method to create the GDC-compatible filter syntax
         '''
-
-        # Get the data dictionary, which will tell us the universe of available
-        # fields and how to interpret them:
-        data_fields = GDCDataSource.get_data_dictiontary()
-
         final_filter_list = []
         final_filter_list.extend(TCGADataSource.FILTER_LIST)
         final_filter_list.extend(self.FILTER_LIST)
@@ -117,7 +126,23 @@ class TCGARnaSeqDataSource(TCGADataSource):
         }
 
         final_query_params = copy.deepcopy(GDCDataSource.QUERY_PARAMS)
+
+        # The query format requires that the nested items are already serialized
+        # to JSON format. e.g. if `final_filter` were to remain a native python
+        # dict, then the request would fail. 
         final_query_params['filters'] = json.dumps(final_filter)
+        return final_query_params
+
+    def download_dataset(self):
+        '''
+        Implementation of the RNA-seq data download
+        '''
+
+        # Get the data dictionary, which will tell us the universe of available
+        # fields and how to interpret them:
+        data_fields = self.get_data_dictiontary()
+
+        final_query_params = self._create_filters()
         
         # prepare some temporary loop variables
         finished = False
@@ -139,12 +164,26 @@ class TCGARnaSeqDataSource(TCGADataSource):
                     'from': start_index
                 }
             )
+            print(final_query_params)
+            print('*'*200)
+            try:
+                response = get_with_retry(
+                    GDCDataSource.GDC_FILES_ENDPOINT, 
+                    params = final_query_params
+                )
+            except Exception as ex:
+                logger.info('An exception was raised when querying the GDC for'
+                    ' metadata. The exception reads: {ex}'.format(ex=ex)
+                )
+                return
 
-            response = requests.get(
-                GDCDataSource.GDC_FILES_ENDPOINT, 
-                params = final_query_params
-            )
-            response_json = json.loads(response.content.decode("utf-8"))
+            if response.status_code == 200:
+                response_json = json.loads(response.content.decode("utf-8"))
+            else:
+                logger.error('The response code was NOT 200, but the request'
+                    ' exception was not handled.'
+                )
+                return
 
             # If the first request, we can get the total records by examining
             # the pagination data
@@ -238,10 +277,9 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
             # Remove the extra project_id column from the exposure, demo, and diagnoses dataframes. Otherwise we get duplicated
             # columns that we have to carry around:
-            columns_to_remove = ['project_id',]
-            exposure_df = remove_column(exposure_df, columns_to_remove)
-            diagnoses_df = remove_column(diagnoses_df, columns_to_remove)
-            demographic_df = remove_column(demographic_df, columns_to_remove)
+            exposure_df = exposure_df.drop('project_id', axis=1)
+            diagnoses_df = diagnoses_df.drop('project_id', axis=1)
+            demographic_df = demographic_df.drop('project_id', axis=1)
 
             # Now merge all the dataframes (concatenate horizontally)
             # to get the full metadata/annotations
@@ -283,7 +321,11 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # Write all the metadata to a file
         date_str = datetime.datetime.now().strftime('%m%d%Y')
-        annotation_df.to_csv(self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, dt=date_str), 
+        annotation_df.to_csv(
+            os.path.join(
+                self.ROOT_DIR,
+                self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=date_str)
+            ), 
             sep=',', 
             index_label = 'id'
         )
@@ -291,6 +333,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         # Merge and write the count files
         self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping, date_str)
 
+        # Cleanup the downloads
         [os.remove(x) for x in downloaded_archives]
 
 
@@ -299,7 +342,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         Given a list of the downloaded archives, extract and merge them into a single count matrix
         '''
         count_df = pd.DataFrame()
-        tmpdir = './tmparchive'
+        tmpdir = os.path.join(self.ROOT_DIR, 'tmparchive')
         for f in downloaded_archives:
             with tarfile.open(f, 'r:gz') as tf:
                 tf.extractall(path=tmpdir)
@@ -315,7 +358,11 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
-        count_df.to_csv(self.COUNT_OUTPUT_FILE.format(tag=self.TAG, dt=date_str), 
+        count_df.to_csv(
+            os.path.join(
+                self.ROOT_DIR,
+                self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=date_str)
+            ), 
             sep='\t'
         )
 
