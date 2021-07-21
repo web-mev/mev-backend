@@ -4,7 +4,7 @@ import requests
 
 import pandas as pd
 
-from api.public_data.base import PublicDataSource
+from api.public_data.sources.base import PublicDataSource
 
 class GDCDataSource(PublicDataSource):
     
@@ -48,7 +48,7 @@ class GDCDataSource(PublicDataSource):
         "expand": ','.join(EXPANDABLE_FIELDS)
     }
 
-    def download_dataset(self):
+    def download_and_prep_dataset(self):
         '''
         Used to periodically pull data from the GDC 
         '''

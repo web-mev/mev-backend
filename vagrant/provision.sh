@@ -47,7 +47,8 @@ apt-get update \
     postgresql-12 \
     python3-pip \
     nginx \
-    docker.io
+    docker.io \
+    default-jre
 
 # create the mev user and add them to the docker group
 # so they are able to execute Docker containers
@@ -73,6 +74,14 @@ cd /opt/software && \
   cd redis-6.2.1 && \
   make && \
   make install
+
+# Install solr for indexing public data sources
+cd /opt/software && \
+  mkdir solr && \
+  cd solr && \
+  wget https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
+  tar -xzf solr-8.9.0.tgz solr-8.9.0/bin/install_solr_service.sh --strip-components=2
+  ./install_solr_service.sh solr-8.9.0.tgz -i /opt/software/solr -u vagrant
 
 # Install the python packages we'll need:
 cd /vagrant && \

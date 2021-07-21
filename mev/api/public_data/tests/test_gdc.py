@@ -6,8 +6,8 @@ import datetime
 
 from django.conf import settings
 
-from api.public_data.gdc.gdc import GDCDataSource
-from api.public_data.gdc.tcga import TCGADataSource, TCGARnaSeqDataSource
+from api.public_data.sources.gdc.gdc import GDCDataSource
+from api.public_data.sources.gdc.tcga import TCGADataSource, TCGARnaSeqDataSource
 
 
 class TestGDC(unittest.TestCase): 
@@ -43,10 +43,10 @@ class TestTCGARnaSeq(unittest.TestCase):
         self.assertDictEqual(d, expected_query_filters)
 
 
-    @mock.patch('api.public_data.gdc.tcga.TCGARnaSeqDataSource.ANNOTATION_OUTPUT_FILE', '__TEST__annotations.{tag}.{ds}.tsv')
-    @mock.patch('api.public_data.gdc.tcga.TCGARnaSeqDataSource.COUNT_OUTPUT_FILE', '__TEST__counts.{tag}.{ds}.tsv')
-    @mock.patch('api.public_data.gdc.tcga.TCGARnaSeqDataSource._create_filters')
-    @mock.patch('api.public_data.gdc.tcga.datetime')
+    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.ANNOTATION_OUTPUT_FILE', '__TEST__annotations.{tag}.{ds}.tsv')
+    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.COUNT_OUTPUT_FILE', '__TEST__counts.{tag}.{ds}.tsv')
+    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource._create_filters')
+    @mock.patch('api.public_data.sources.gdc.tcga.datetime')
     def test_download_works(self, mock_datetime, mock_create_filters):
         '''
         This may not be an official unit test as it actually does communicate out
@@ -62,12 +62,11 @@ class TestTCGARnaSeq(unittest.TestCase):
             "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.program.name\", \"value\": [\"TCGA\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-UVM\", \"TCGA-MESO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"HTSeq - Counts\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"RNA-Seq\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.data_type\", \"value\": [\"Gene Expression Quantification\"]}}]}"
         }   
         mock_create_filters.return_value = query_filters
-        data_src = TCGARnaSeqDataSource()
-
         now = datetime.datetime.now()
         mock_datetime.datetime.now.return_value = now
 
-        data_src.download_dataset()
+        data_src = TCGARnaSeqDataSource()
+        data_src.download_and_prep_dataset()
 
         expected_output_annotation_file = os.path.join(
             TCGADataSource.ROOT_DIR,
@@ -83,10 +82,12 @@ class TestTCGARnaSeq(unittest.TestCase):
                 ds = now.strftime('%m%d%Y')
             )
         )
+        print(expected_output_annotation_file)
         self.assertTrue(os.path.exists(expected_output_annotation_file))
         self.assertTrue(os.path.exists(expected_output_count_file))
 
+        print(expected_output_annotation_file)
         # cleanup those files:
-        os.remove(expected_output_count_file)
-        os.remove(expected_output_annotation_file)
+        #os.remove(expected_output_count_file)
+        #os.remove(expected_output_annotation_file)
       

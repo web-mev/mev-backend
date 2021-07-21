@@ -7,14 +7,14 @@ import datetime
 import shutil
 import os
 import tarfile
-
+ 
 import pandas as pd
 
 from django.conf import settings
 
 from api.utilities.basic_utils import get_with_retry, make_local_directory
-
 from .gdc import GDCDataSource
+from api.public_data.indexers import get_indexer
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class TCGADataSource(GDCDataSource):
             )
             make_local_directory(self.ROOT_DIR)
 
-    def download_dataset(self):
+    def download_and_prep_dataset(self):
         pass
 
 
@@ -62,8 +62,20 @@ class TCGARnaSeqDataSource(TCGADataSource):
     # We look for HTSeq-based counts from TCGA
     HTSEQ_SUFFIX = 'htseq.counts.gz'
 
+    # A short name (string) which can be used as a "title" for the dataset
+    PUBLIC_NAME = 'TCGA RNA-Seq'
+
+    # A longer, more descriptive text explaining the datasource:
+    DESCRIPTION = ('RNA-Seq expression data as processed by the'
+        ' Genomic Data Commons'
+        ' <a href="https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/Expression_mRNA_Pipeline/">'
+        ' mRNA analysis pipeline</a>. Quantifications from this pipeline'
+        ' are produced by HTSeq.'
+    )
+
     # a string which will make it obvious where the data has come from. For example, we can use
-    # this tag to name an output file produced by this class (e.g. the count matrix)
+    # this tag to name an output file produced by this class (e.g. the count matrix).
+    # We also use this tag
     TAG = 'tcga-rnaseq'
 
     # A format-string for the annotation file
@@ -112,6 +124,9 @@ class TCGARnaSeqDataSource(TCGADataSource):
         '__alignment_not_unique'
     ]
 
+    def __init__(self):
+        self.date_str = datetime.datetime.now().strftime('%m%d%Y')
+
     def _create_filters(self):
         '''
         Internal method to create the GDC-compatible filter syntax
@@ -133,7 +148,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         final_query_params['filters'] = json.dumps(final_filter)
         return final_query_params
 
-    def download_dataset(self):
+    def download_and_prep_dataset(self):
         '''
         Implementation of the RNA-seq data download
         '''
@@ -164,8 +179,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
                     'from': start_index
                 }
             )
-            print(final_query_params)
-            print('*'*200)
+
             try:
                 response = get_with_retry(
                     GDCDataSource.GDC_FILES_ENDPOINT, 
@@ -320,24 +334,23 @@ class TCGARnaSeqDataSource(TCGADataSource):
                 finished = True
 
         # Write all the metadata to a file
-        date_str = datetime.datetime.now().strftime('%m%d%Y')
         annotation_df.to_csv(
             os.path.join(
                 self.ROOT_DIR,
-                self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=date_str)
+                self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
             ), 
             sep=',', 
             index_label = 'id'
         )
 
         # Merge and write the count files
-        self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping, date_str)
+        self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
 
         # Cleanup the downloads
         [os.remove(x) for x in downloaded_archives]
 
 
-    def _merge_downloaded_archives(self, downloaded_archives, file_to_aliquot_mapping, date_str):
+    def _merge_downloaded_archives(self, downloaded_archives, file_to_aliquot_mapping):
         '''
         Given a list of the downloaded archives, extract and merge them into a single count matrix
         '''
@@ -361,10 +374,28 @@ class TCGARnaSeqDataSource(TCGADataSource):
         count_df.to_csv(
             os.path.join(
                 self.ROOT_DIR,
-                self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=date_str)
+                self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=self.date_str)
             ), 
             sep='\t'
         )
 
         # Clean up:
         shutil.rmtree(tmpdir)
+
+    def _index_data(self, path):
+        '''
+        Uses the indexer to index the file located at `path`
+        '''
+        indexer_cls = get_indexer()
+        indexer = indexer_cls()
+        indexer.index(self.TAG, path)
+
+    def prepare(self):
+        
+        self.download_and_prep_dataset()
+
+        annotation_path = os.path.join(
+            self.ROOT_DIR,
+            self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
+        )
+        self._index_data(annotation_path)

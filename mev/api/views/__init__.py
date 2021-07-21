@@ -42,6 +42,9 @@ from .operation_views import OperationList, \
 from .operation_category_views import OperationCategoryList, \
     OperationCategoryDetail, \
     OperationCategoryAdd
+from .public_dataset import PublicDatasetList, \
+    PublicDatasetAdd, \
+    PublicDatasetQuery
 
 def sentry_debug(request):
     '''

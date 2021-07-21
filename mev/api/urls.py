@@ -83,6 +83,11 @@ urlpatterns = [
     path('operation-categories/<str:category>/', api.views.OperationCategoryDetail.as_view(), name='operation-category-detail'),
     path('operation-categories-add/', api.views.OperationCategoryAdd.as_view(), name='operation-category-add'),
 
+    ################# Views for public datasets ############################
+    path('public-datasets/', api.views.PublicDatasetList.as_view(), name='public-dataset-list'),
+    path('public-datasets/add/<str:dataset_id>/', api.views.PublicDatasetAdd.as_view(), name='public-dataset-create'),
+    path('public-datasets/query/<str:dataset_id>/', api.views.PublicDatasetQuery.as_view(), name='public-dataset-query'),
+
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
 
