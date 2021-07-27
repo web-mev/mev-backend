@@ -5,6 +5,10 @@ A Django Rest Framework backend for the MEV web application.  See documentation 
 ## Quick start
 1. Install [Git](https://git-scm.com/), [VirtualBox](https://www.virtualbox.org/), and [Vagrant](https://www.vagrantup.com/)
 1. `git clone https://github.com/web-mev/mev-backend.git`
-1. Fill out the `vagrant/env.tmpl` with appropriate variables. Best to copy that (e.g. to `vagrant/env.txt`) so you don't accidentally commit any changes to that template file.
-1. Source those environment variables: `source vagrant/env.txt` so they are now in your shell session.
-1. Start and provision: `vagrant up`
+1. Copy `vagrant/env.tmpl` to `vagrant/env.txt`
+1. Edit `vagrant/env.txt` to provide values for the following variables:
+   * DB_NAME, DB_USER, DB_PASSWD, ROOT_DB_PASSWD
+   * RESTORE_FROM_BACKUP
+   * DOCKERHUB_USERNAME, DOCKERHUB_PASSWORD, DOCKERHUB_ORG
+   * DJANGO_SECRET_KEY
+1. Start and configure the VM: `vagrant up`

@@ -11,3 +11,5 @@ api/docs/site
 .terraform.tfstate*
 terraform.tfstate*
 terraform.tfvars
+
+/vagrant/env.txt
