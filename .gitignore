@@ -1,7 +1,5 @@
 __pycache__
 *.pyc
-*/migrations
-api/docs/site
 *.sqlite3
 .vagrant/
 .idea/
@@ -13,3 +11,6 @@ terraform.tfstate*
 terraform.tfvars
 
 /vagrant/env.txt
+
+/api/docs/site
+/mev/static/
