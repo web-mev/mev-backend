@@ -13,5 +13,5 @@ A Django Rest Framework backend for the MEV web application.  See documentation 
    * DJANGO_SECRET_KEY
 1. Start and configure the VM: `vagrant up`
 1. Log in to the VM: `vagrant ssh`
-1. Start Gunicorn: `cd /vagrant` and `sudo supervisorctl start gunicorn`
+1. Start Gunicorn: `sudo supervisorctl start gunicorn`
 1. Open http://localhost:8080/api/ in a web browser

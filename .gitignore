@@ -10,7 +10,13 @@ __pycache__
 terraform.tfstate*
 terraform.tfvars
 
+/storage_credentials.json
 /vagrant/env.txt
 
 /api/docs/site
+/example_data/
+/mev/dump.rdb
+/mev/operations/
+/mev/pending_user_uploads/
 /mev/static/
+/mev/user_resources/
