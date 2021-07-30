@@ -155,10 +155,14 @@ mkdir -p /vagrant/mev/operation_executions
 # Change the ownership so we have write permissions.
 chown -R mev:mev /vagrant/mev
 
+# Create a directory for data so it's not stored under the source tree:
+mkdir /data
+chown -R mev:mev /data
+
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
 
-if [ $RESTORE_FROM_BACKUP = 'yes' ]; then
+if [ "$RESTORE_FROM_BACKUP" = "yes" ]; then
 
     # Check that the proper folder exists which has the backup data
     BACKUP_DIR="/vagrant/example_data"
@@ -207,7 +211,7 @@ else
   # Populate a "test" database, so the database
   # will have some content to query. Note that we only do this
   # if we are not populating from a backup
-  if [ $POPULATE_DB = 'yes' ]; then
+  if [ "$POPULATE_DB" = "yes" ]; then
       /usr/local/bin/python3 /vagrant/mev/manage.py populate_db
   fi
 
@@ -223,7 +227,7 @@ cp -r /vagrant/mev/static /www/static
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
 # Temporarily commented to avoid the slow build.
-if [ $ENVIRONMENT != 'dev' ]; then
+if [ "$ENVIRONMENT" != "dev" ]; then
   /usr/local/bin/python3 /vagrant/mev/manage.py add_static_operations
 fi
 # Start and wait for Redis. Redis needs to be ready before
