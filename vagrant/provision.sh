@@ -20,37 +20,6 @@ set +o allexport
 
 #################### End ENV variables #################################
 
-
-# Install some dependencies
-apt-get update \
-    && apt-get install -y \
-    build-essential \
-    apt-transport-https \
-    ca-certificates \
-    gnupg2 \
-    software-properties-common \
-    zlib1g-dev \
-    libssl-dev \
-    libncurses5-dev \
-    libreadline-dev \
-    libbz2-dev \
-    libffi-dev \
-    liblzma-dev \
-    libsqlite3-dev \
-    libpq-dev \
-    wget \
-    supervisor \
-    nano \
-    git \
-    curl \
-    pkg-config \
-    netcat \
-    procps \
-    postgresql-12 \
-    python3-pip \
-    nginx \
-    docker.io
-
 # create the mev user and add them to the docker group
 # so they are able to execute Docker containers
 addgroup --system mev && adduser --system --group mev
