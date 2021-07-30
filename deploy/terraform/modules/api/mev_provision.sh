@@ -268,6 +268,8 @@ CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 # set the directory where the MEV src will live. Used by the supervisor conf files
 MEV_HOME=/opt/software/mev-backend/mev
 
+DATA_DIR=/data
+
 set +o allexport
 
 #################### End ENV variables #################################
@@ -432,18 +434,16 @@ EOSQL
 fi
 
 # Some preliminaries before we start asking django to set things up:
-mkdir -p /opt/software/mev-backend/mev/pending_user_uploads
-mkdir -p /opt/software/mev-backend/mev/resource_cache
-mkdir -p /opt/software/mev-backend/mev/operation_staging
-mkdir -p /opt/software/mev-backend/mev/operations
-mkdir -p /opt/software/mev-backend/mev/operation_executions
+mkdir $DATA_DIR
+mkdir -p $DATA_DIR/pending_user_uploads
+mkdir -p $DATA_DIR/resource_cache
+mkdir -p $DATA_DIR/operation_staging
+mkdir -p $DATA_DIR/operations
+mkdir -p $DATA_DIR/operation_executions
 
 # Change the ownership so we have write permissions.
+chown -R mev:mev $DATA_DIR
 chown -R mev:mev /opt/software/mev-backend/mev
-
-# Create a directory for data so it's not stored under the source tree:
-mkdir /data
-chown -R mev:mev /data
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.

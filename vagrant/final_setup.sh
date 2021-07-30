@@ -16,3 +16,4 @@ set +o allexport
 export DJANGO_SETTINGS_MODULE=mev.settings_dev
 export DB_HOST_SOCKET=$DB_HOST_FULL
 export MEV_HOME=/vagrant/mev
+export DATA_DIR=/data

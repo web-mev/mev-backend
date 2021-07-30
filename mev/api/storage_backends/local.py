@@ -30,7 +30,7 @@ class LocalStorage(BaseStorageBackend):
         relative_path = self.construct_relative_path(resource_instance)
 
         # where all user files are kept locally:
-        base_storage_dir = os.path.join(settings.BASE_DIR, STORAGE_DIRNAME)
+        base_storage_dir = os.path.join(settings.DATA_DIR, STORAGE_DIRNAME)
 
         # the final location of this file on our local storage:
         destination = os.path.join(base_storage_dir, relative_path)

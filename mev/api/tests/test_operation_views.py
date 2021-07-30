@@ -39,7 +39,7 @@ def setup_db_elements(self, mock_clone_repository, \
     mock_prepare_operation):
 
     # make a dummy git repo and copy the valid spec file there:
-    self.dummy_src_path = os.path.join(settings.BASE_DIR, 'test_dummy_dir')
+    self.dummy_src_path = os.path.join('/tmp', 'test_dummy_dir')
     os.mkdir(self.dummy_src_path)
     copy_local_resource(
         os.path.join(TESTDIR, 'valid_workspace_operation.json'), 
