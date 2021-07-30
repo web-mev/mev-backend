@@ -441,6 +441,10 @@ mkdir -p /opt/software/mev-backend/mev/operation_executions
 # Change the ownership so we have write permissions.
 chown -R mev:mev /opt/software/mev-backend/mev
 
+# Create a directory for data so it's not stored under the source tree:
+mkdir /data
+chown -R mev:mev /data
+
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
 /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py makemigrations api
