@@ -447,7 +447,6 @@ chown -R mev:mev /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py makemigrations api
 /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py migrate
 
 if [ $DB_EXISTED == 1 ]; then
