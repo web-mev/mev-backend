@@ -28,15 +28,6 @@ usermod -aG docker mev
 # Create a directory where we will download/install our software
 mkdir /opt/software
 
-# Install Python 3.7.6. Ends up in /usr/local/bin/python3
-cd /opt/software && \
-  wget https://www.python.org/ftp/python/3.7.6/Python-3.7.6.tgz && \
-  tar -xzf Python-3.7.6.tgz && \
-  cd Python-3.7.6 && \
-  ./configure && \
-  make && \
-  make install
-
 # Install redis
 cd /opt/software && \
   wget https://download.redis.io/releases/redis-6.2.1.tar.gz
@@ -44,12 +35,6 @@ cd /opt/software && \
   cd redis-6.2.1 && \
   make && \
   make install
-
-# Install the python packages we'll need:
-cd /vagrant && \
-  cd mev && \
-  /usr/local/bin/pip3 install -U pip && \
-  /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
 
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
