@@ -125,6 +125,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
     ]
 
     def __init__(self):
+        super().__init__()
         self.date_str = datetime.datetime.now().strftime('%m%d%Y')
 
     def _create_filters(self):
