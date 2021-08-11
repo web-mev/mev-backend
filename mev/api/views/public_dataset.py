@@ -51,12 +51,23 @@ class PublicDatasetAdd(APIView):
 
         if is_valid:
 
-            # create a model in the database. This will mark that the process has started
+            # get or create a model in the database. This will mark that the process has started
             # and we can update it as the task completes.
-            dataset_db_model = PublicDataset.objects.get_or_create(
-                active = False, # the default, but we're being explicit here
-                index_name = dataset_id
-            )
+            try:
+                dataset_db_model = PublicDataset.objects.get(
+                    index_name = dataset_id
+                )
+                # set to inactive so the data is temporarily not shown. This way there is no chance for a conflict
+                # where someone is querying the data while we are updating a search index 
+                dataset_db_model.active = False
+                dataset_db_model.save()
+
+            except PublicDataset.DoesNotExist:
+                # By default, the instance is set to inactive. once the data prep is done and indexed, the 
+                # active field will be updated.
+                dataset_db_model = PublicDataset.objects.create(index_name = dataset_id)
+            
+            # regardless of whether this is a new or existing dataset, treat the same way
             prepare_dataset.delay(dataset_db_model.pk)
             return Response({}, status=status.HTTP_200_OK) 
         else:
