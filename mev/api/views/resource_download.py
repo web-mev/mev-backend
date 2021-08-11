@@ -42,11 +42,17 @@ class ResourceDownload(APIView):
         except OwnershipException:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        # Get the storage backend since we need to know whether it's local or not
+        storage_backend = get_storage_backend()
+
         # requester can access, resource is active. OK so far.
         # Check the file size. We don't want large files tying up the server
         # Those should be performed by something else, like via Dropbox.
+        # HOWEVER, this is only an issue if the storage backend is local. 
+        # Redirects for bucket storage can obviously be handled since they are 
+        # downloading directly from the bucket and this will not tie up our server.
         size_in_bytes = r.size
-        if size_in_bytes > settings.MAX_DOWNLOAD_SIZE_BYTES:
+        if (storage_backend.is_local_storage) & (size_in_bytes > settings.MAX_DOWNLOAD_SIZE_BYTES):
             msg = ('The resource size exceeds our limits for a direct'
                 ' download. Please use one of the alternative download methods'
                 ' more suited for larger files.')
@@ -55,13 +61,12 @@ class ResourceDownload(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # size is acceptable.
+        # size is acceptable (if downloading from server) 
+        # or moot (if downloading directly from a bucket).
         # Now, depending on the storage backend, we return different things.
         # If we have local storage, we just return the file contents.
         # If we have remote storage, we return a signed url and issue a 302 to redirect them
-
-        # url can be a local path or a remote url depending on the storage backend we are using
-        storage_backend = get_storage_backend()
+        # Hence, url can be a local path or a remote url depending on the storage backend we are using
         url = storage_backend.get_download_url(r)
 
         if not url:

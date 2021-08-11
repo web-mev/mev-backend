@@ -28,7 +28,7 @@ class TestLocalStorage(BaseAPITestCase):
         '''
 
         base_dir = '/foo'
-        mock_settings.BASE_DIR = base_dir
+        mock_settings.DATA_DIR = base_dir
 
         resources = Resource.objects.filter(owner=self.regular_user_1)
         r = resources[0]
@@ -69,7 +69,7 @@ class TestLocalStorage(BaseAPITestCase):
         '''
 
         base_dir = '/foo'
-        mock_settings.BASE_DIR = base_dir
+        mock_settings.DATA_DIR = base_dir
 
         resources = Resource.objects.filter(owner=self.regular_user_1)
         r = resources[0]

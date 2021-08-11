@@ -62,7 +62,7 @@ class TestBasicUtilities(unittest.TestCase):
 
     def test_recursive_copy(self):
         # make a tmp dummy folder
-        dummy_src_path = os.path.join(settings.BASE_DIR, 'test_dummy_dir')
+        dummy_src_path = os.path.join('/tmp', 'test_dummy_dir')
         os.mkdir(dummy_src_path)
 
         # add some files to that dummy dir:
@@ -90,7 +90,7 @@ class TestBasicUtilities(unittest.TestCase):
 
         # now use the copy. First check that all the files are included
         # if we include the flag to copy the hidden file:
-        dummy_dest_path = os.path.join(settings.BASE_DIR, 'test_dest_dir')
+        dummy_dest_path = os.path.join('/tmp', 'test_dest_dir')
         recursive_copy(dummy_src_path, dummy_dest_path, include_hidden=True)
         self.assertCountEqual(
             os.listdir(dummy_dest_path), 

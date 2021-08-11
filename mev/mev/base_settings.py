@@ -14,6 +14,15 @@ from .settings_helpers import get_env
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# A directory where we store user data, etc. Outside of the source tree!
+DATA_DIR = get_env('DATA_DIR')
+
+# double-check that the data dir exists:
+if not os.path.exists(DATA_DIR):
+    raise ImproperlyConfigured('There needs to be a directory located at {d}'
+        ' for user and operation data.'.format(d=DATA_DIR)
+    )
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
@@ -184,7 +193,7 @@ MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 # After validation, they are moved to a users' own storage
 # DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
 # IN-SYNC WITH THE DOCKER-COMPOSE YAML
-PENDING_FILES_DIR = os.path.join(BASE_DIR, 'pending_user_uploads')
+PENDING_FILES_DIR = os.path.join(DATA_DIR, 'pending_user_uploads')
 if not os.path.exists(PENDING_FILES_DIR):
     raise ImproperlyConfigured('Please create a directory for the'
     ' pending uploaded files at {path}.'.format(
@@ -343,7 +352,7 @@ if ENABLE_REMOTE_JOBS and (STORAGE_LOCATION==LOCAL):
 # are temporary and will be removed after some period of inactivity
 # DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
 # IN-SYNC WITH THE DOCKER-COMPOSE YAML
-RESOURCE_CACHE_DIR = os.path.join(BASE_DIR, 'resource_cache')
+RESOURCE_CACHE_DIR = os.path.join(DATA_DIR, 'resource_cache')
 if not os.path.exists(RESOURCE_CACHE_DIR):
     raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
         ' directory should persist by making use of docker volumes. This preserves'
@@ -454,7 +463,7 @@ if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
 # and staged for ingestion
 # DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
 # IN-SYNC WITH THE DOCKER-COMPOSE YAML
-CLONE_STAGING_DIR = os.path.join(BASE_DIR, 'operation_staging')
+CLONE_STAGING_DIR = os.path.join(DATA_DIR, 'operation_staging')
 if not os.path.exists(CLONE_STAGING_DIR):
     raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
         ' directory should persist by making use of docker volumes. This preserves'
@@ -468,7 +477,7 @@ OPERATION_SPEC_FILENAME = 'operation_spec.json'
 # a local directory where the various Operations are stashed
 # DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
 # IN-SYNC WITH THE DOCKER-COMPOSE YAML
-OPERATION_LIBRARY_DIR = os.path.join(BASE_DIR, 'operations')
+OPERATION_LIBRARY_DIR = os.path.join(DATA_DIR, 'operations')
 if not os.path.exists(OPERATION_LIBRARY_DIR):
     raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
         ' directory should persist by making use of docker volumes. This preserves'
@@ -491,7 +500,7 @@ ACCEPTABLE_REPOSITORY_DOMAINS = ['github.com',]
 
 # a directory where the operations will be run-- each execution of an operation
 # gets its own sandbox
-OPERATION_EXECUTION_DIR = os.path.join(BASE_DIR, 'operation_executions')
+OPERATION_EXECUTION_DIR = os.path.join(DATA_DIR, 'operation_executions')
 if not os.path.exists(OPERATION_EXECUTION_DIR):
     raise ImproperlyConfigured('There should be a directory at {d}.'.format(
             d = OPERATION_EXECUTION_DIR

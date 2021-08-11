@@ -25,5 +25,33 @@ node /cromwell/ {
 }
 
 node /api/ {
-
+  $mev_dependencies = [
+    'build-essential',
+    'apt-transport-https',
+    'ca-certificates',
+    'gnupg2',
+    'software-properties-common',
+    'zlib1g-dev',
+    'libssl-dev',
+    'libncurses5-dev',
+    'libreadline-dev',
+    'libbz2-dev',
+    'libffi-dev',
+    'liblzma-dev',
+    'libsqlite3-dev',
+    'libpq-dev',
+    'wget',
+    'supervisor',
+    'nano',
+    'git',
+    'curl',
+    'pkg-config',
+    'netcat',
+    'procps',
+    'postgresql-12',
+    'python3-pip',
+    'nginx',
+    'docker.io'
+  ]
+  package { $mev_dependencies: }
 }

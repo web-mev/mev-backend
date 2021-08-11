@@ -304,7 +304,7 @@ class OperationIngestionTester(BaseAPITestCase):
         )
 
         # make a dummy git repo:
-        dummy_src_path = os.path.join(settings.BASE_DIR, 'test_dummy_dir')
+        dummy_src_path = os.path.join('/tmp', 'test_dummy_dir')
         os.mkdir(dummy_src_path)
 
         # add some files to that dummy dir:

@@ -180,7 +180,7 @@ class Command(BaseCommand):
 
         # need to make a directory with dummy files to use the 
         # `save_operation` function
-        dummy_dir_path = os.path.join(settings.BASE_DIR, 'dummy_op')
+        dummy_dir_path = os.path.join('/tmp', 'dummy_op')
         try:
             os.mkdir(dummy_dir_path)
         except OSError as ex:
@@ -210,7 +210,7 @@ class Command(BaseCommand):
 
         # need to make a directory with dummy files to use the 
         # `save_operation` function
-        dummy_dir_path = os.path.join(settings.BASE_DIR, 'dummy_op2')
+        dummy_dir_path = os.path.join('/tmp', 'dummy_op2')
         try:
             os.mkdir(dummy_dir_path)
         except OSError as ex:
