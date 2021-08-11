@@ -51,7 +51,8 @@ node /api/ {
     'postgresql-12',
     'python3-pip',
     'nginx',
-    'docker.io'
+    'docker.io',
+    'default-jre'
   ]
   package { $mev_dependencies: }
 }
