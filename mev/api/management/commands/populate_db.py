@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from api.models import Workspace, Resource, ResourceMetadata
+from api.models import Workspace, Resource, ResourceMetadata, PublicDataset
 from api.models import Operation as OperationDbModel
 from api.utilities.operations import read_operation_json, \
     validate_operation
@@ -223,6 +223,20 @@ class Command(BaseCommand):
         save_operation(op_data, dummy_dir_path, True)
         OperationDbModel.objects.create(id=op.id, name=op.name)
 
+    def add_dummy_public_dataset(self):
+        p1 = PublicDataset.objects.create(
+            index_name = 'public-foo',
+            active = True
+        )
+        p2 = PublicDataset.objects.create(
+            index_name = 'public-bar',
+            active = True
+        )
+        p3 = PublicDataset.objects.create(
+            index_name = 'public-baz',
+            active = False
+        )
+        
     def handle(self, *args, **options):
         self.populate_users()
         self.populate_workspaces()
@@ -230,3 +244,4 @@ class Command(BaseCommand):
         self.add_metadata_to_resources()
         self.add_resources_to_workspace()
         self.add_dummy_operation()
+        self.add_dummy_public_dataset()

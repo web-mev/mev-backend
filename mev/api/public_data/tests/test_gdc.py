@@ -85,9 +85,8 @@ class TestTCGARnaSeq(unittest.TestCase):
         print(expected_output_annotation_file)
         self.assertTrue(os.path.exists(expected_output_annotation_file))
         self.assertTrue(os.path.exists(expected_output_count_file))
-
-        print(expected_output_annotation_file)
+        
         # cleanup those files:
-        #os.remove(expected_output_count_file)
-        #os.remove(expected_output_annotation_file)
+        os.remove(expected_output_count_file)
+        os.remove(expected_output_annotation_file)
       

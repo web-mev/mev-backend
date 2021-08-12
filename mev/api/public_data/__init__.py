@@ -3,6 +3,8 @@ import logging
 
 from api.models import PublicDataset
 from .sources.gdc.tcga import TCGARnaSeqDataSource
+from .indexers import get_indexer
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,3 +59,27 @@ def add_dataset(dataset_db_instance):
     dataset_db_instance.timestamp = datetime.datetime.today()
     dataset_db_instance.active = True
     dataset_db_instance.save()
+
+def query_dataset(dataset_id, query_payload):
+    '''
+    This is the interface for the view functions to query the index
+    for data meeting specific filters/criteria
+
+    `dataset_id` is a unique ID string (corresponds to the unique `index_name`
+    field of the database table containing public dataset metadata)
+
+    `query_payload` is a dict which contains the query parameters. 
+
+    The indexers should be able to interpret these two args and form
+    the proper query, which is dependent on the indexer technology (e.g. solr)
+    '''
+
+    # instantiate the indexer we're using
+    indexer_cls = get_indexer()
+    indexer = indexer_cls()
+
+    if check_if_valid_public_dataset_name(dataset_id):
+        return indexer.query(dataset_id, query_payload)
+    else: 
+        raise Exception('The requested public dataset ({d})'
+        ' could not be found.'.format(d=dataset_id))

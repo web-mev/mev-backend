@@ -33,11 +33,10 @@ class TestLocalStorage(BaseAPITestCase):
         resources = Resource.objects.filter(owner=self.regular_user_1)
         r = resources[0]
         original_path = r.path
-        filename = r.name
         owner_uuid = self.regular_user_1.pk
         expected_basename = '{uuid}.{name}'.format(
             uuid = str(r.pk),
-            name = filename
+            name = os.path.basename(original_path)
         )
         expected_destination = os.path.join(base_dir, \
             DUMMY_DIRNAME,\
@@ -74,11 +73,10 @@ class TestLocalStorage(BaseAPITestCase):
         resources = Resource.objects.filter(owner=self.regular_user_1)
         r = resources[0]
         original_path = r.path
-        filename = r.name
         owner_uuid = self.regular_user_1.pk
         expected_basename = '{uuid}.{name}'.format(
             uuid = str(r.pk),
-            name = filename
+            name = os.path.basename(original_path)
         )
         expected_destination = os.path.join(base_dir, \
             DUMMY_DIRNAME,
