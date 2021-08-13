@@ -481,3 +481,4 @@ service nginx restart
 supervisorctl start gunicorn
 
 env > /data/env_vars.txt
+chown ubuntu:ubuntu /data/env_vars.txt
