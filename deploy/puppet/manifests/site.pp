@@ -49,10 +49,15 @@ node /api/ {
     'netcat',
     'procps',
     'postgresql-12',
-    'python3-pip',
     'nginx',
     'docker.io',
     'default-jre'
   ]
   package { $mev_dependencies: }
+
+  class { 'python':
+    version => 'system',
+  }
+
+  python::requirements { '/vagrant/mev/requirements.txt': }
 }
