@@ -313,15 +313,6 @@ usermod -aG docker mev
 # Create a directory where we will download/install our software
 mkdir /opt/software
 
-# Install Python 3.7.6. Ends up in /usr/local/bin/python3
-cd /opt/software && \
-  wget https://www.python.org/ftp/python/3.7.6/Python-3.7.6.tgz && \
-  tar -xzf Python-3.7.6.tgz && \
-  cd Python-3.7.6 && \
-  ./configure && \
-  make && \
-  make install
-
 # Install redis
 cd /opt/software && \
   wget https://download.redis.io/releases/redis-6.2.1.tar.gz
@@ -336,8 +327,8 @@ cd /opt/software && \
   cd mev-backend && \
   git checkout -q $GIT_COMMIT && \
   cd mev && \
-  /usr/local/bin/pip3 install -U pip && \
-  /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
+  /usr/bin/pip3 install -U pip && \
+  /usr/bin/pip3 install --no-cache-dir -r ./requirements.txt
 
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
@@ -447,31 +438,31 @@ chown -R mev:mev /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py migrate
+/usr/bin/python3 /opt/software/mev-backend/mev/manage.py migrate
 
 if [ $DB_EXISTED == 1 ]; then
   echo "Since the DB existed, skip the creation of the Django superuser."
 else
   echo "Since the DB did not exist, create the Django superuser."
-  /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py createsuperuser --noinput
+  /usr/bin/python3 /opt/software/mev-backend/mev/manage.py createsuperuser --noinput
 fi
 
 # The collectstatic command gets all the static files 
 # and puts them at /opt/software/mev-backend/mev/static.
 # We them copy the contents to /www/static so nginx can serve:
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py collectstatic --noinput
+/usr/bin/python3 /opt/software/mev-backend/mev/manage.py collectstatic --noinput
 cp -r /opt/software/mev-backend/mev/static /www/static
 
 # Populate a "test" database, so the database
 # will have some content to query.
 if [ $POPULATE_DB = 'yes' ]; then
-    /usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py populate_db
+    /usr/bin/python3 /opt/software/mev-backend/mev/manage.py populate_db
 fi
 
 # Add on "static" operations, such as the dropbox uploaders, etc.
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
-/usr/local/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
+/usr/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
 
 # Start and wait for Redis. Redis needs to be ready before
 # celery starts.

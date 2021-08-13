@@ -28,15 +28,6 @@ usermod -aG docker mev
 # Create a directory where we will download/install our software
 mkdir /opt/software
 
-# Install Python 3.7.6. Ends up in /usr/local/bin/python3
-cd /opt/software && \
-  wget https://www.python.org/ftp/python/3.7.6/Python-3.7.6.tgz && \
-  tar -xzf Python-3.7.6.tgz && \
-  cd Python-3.7.6 && \
-  ./configure && \
-  make && \
-  make install
-
 # Install redis
 cd /opt/software && \
   wget https://download.redis.io/releases/redis-6.2.1.tar.gz
@@ -44,12 +35,6 @@ cd /opt/software && \
   cd redis-6.2.1 && \
   make && \
   make install
-
-# Install the python packages we'll need:
-cd /vagrant && \
-  cd mev && \
-  /usr/local/bin/pip3 install -U pip && \
-  /usr/local/bin/pip3 install --no-cache-dir -r ./requirements.txt
 
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
@@ -162,29 +147,29 @@ if [ "$RESTORE_FROM_BACKUP" = "yes" ]; then
 
     # Run a script which will correct the cloud-based paths to local ones.
     # This edits the database AND moves the files
-    /usr/local/bin/python3 /vagrant/mev/manage.py edit_db_data \
+    /usr/bin/python3 /vagrant/mev/manage.py edit_db_data \
       --email $DJANGO_SUPERUSER_EMAIL \
       --password $DJANGO_SUPERUSER_PASSWORD \
       --dir $BACKUP_DIR/$LOCAL_STORAGE_DIRNAME
 
     # Also move the operations
-    /usr/local/bin/python3 /vagrant/mev/manage.py move_operations \
+    /usr/bin/python3 /vagrant/mev/manage.py move_operations \
       --dir $BACKUP_DIR"/operations" \
       --output /vagrant/mev/operations
-  /usr/local/bin/python3 /vagrant/mev/manage.py migrate
-  /usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput || echo "User existed already"
+  /usr/bin/python3 /vagrant/mev/manage.py migrate
+  /usr/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput || echo "User existed already"
 
 else
 
-  /usr/local/bin/python3 /vagrant/mev/manage.py migrate
-  /usr/local/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
+  /usr/bin/python3 /vagrant/mev/manage.py migrate
+  /usr/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
 
 
   # Populate a "test" database, so the database
   # will have some content to query. Note that we only do this
   # if we are not populating from a backup
   if [ "$POPULATE_DB" = "yes" ]; then
-      /usr/local/bin/python3 /vagrant/mev/manage.py populate_db
+      /usr/bin/python3 /vagrant/mev/manage.py populate_db
   fi
 
 fi
@@ -192,7 +177,7 @@ fi
 # The collectstatic command gets all the static files 
 # and puts them at /vagrant/mev/static.
 # We them copy the contents to /www/static so nginx can serve:
-/usr/local/bin/python3 /vagrant/mev/manage.py collectstatic --noinput
+/usr/bin/python3 /vagrant/mev/manage.py collectstatic --noinput
 cp -r /vagrant/mev/static /www/static
 
 # Add on "static" operations, such as the dropbox uploaders, etc.
@@ -200,7 +185,7 @@ cp -r /vagrant/mev/static /www/static
 # analysis) are added by admins once the application is running.
 # Temporarily commented to avoid the slow build.
 if [ "$ENVIRONMENT" != "dev" ]; then
-  /usr/local/bin/python3 /vagrant/mev/manage.py add_static_operations
+  /usr/bin/python3 /vagrant/mev/manage.py add_static_operations
 fi
 # Start and wait for Redis. Redis needs to be ready before
 # celery starts.
