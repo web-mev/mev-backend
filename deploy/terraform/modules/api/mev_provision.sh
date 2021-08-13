@@ -305,10 +305,7 @@ apt-get update \
     nginx \
     docker.io
 
-# create the mev user and add them to the docker group
-# so they are able to execute Docker containers
-addgroup --system mev && adduser --system --group mev
-usermod -aG docker mev
+usermod -aG docker ubuntu
 
 # Create a directory where we will download/install our software
 mkdir /opt/software
@@ -364,7 +361,7 @@ touch /var/log/mev/celery_beat.log  \
   /var/log/mev/redis.log
 
 # Give the mev user ownership of the code directory and the logging directory
-chown -R mev:mev /opt/software /var/log/mev /www
+chown -R ubuntu:ubuntu /opt/software /var/log/mev /www
 
 # Specify the appropriate settings file.
 # We do this here so it's prior to cycling the supervisor daemon
@@ -394,7 +391,7 @@ fi
 
 # Generate a set of keys for signing the download URL for bucket-based files.
 gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
-chown mev:mev $STORAGE_CREDENTIALS
+chown ubuntu:ubuntu $STORAGE_CREDENTIALS
 
 # First restart supervisor since it needs access to the
 # environment variables (can only read those that are defined
@@ -433,8 +430,8 @@ mkdir -p $DATA_DIR/operations
 mkdir -p $DATA_DIR/operation_executions
 
 # Change the ownership so we have write permissions.
-chown -R mev:mev $DATA_DIR
-chown -R mev:mev /opt/software/mev-backend/mev
+chown -R ubuntu:ubuntu $DATA_DIR
+chown -R ubuntu:ubuntu /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
@@ -482,3 +479,5 @@ service nginx restart
 
 # Startup the application server:
 supervisorctl start gunicorn
+
+env > /data/env_vars.txt
