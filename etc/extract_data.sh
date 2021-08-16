@@ -6,30 +6,26 @@ set -x
 # Immediately fail if anything goes wrong
 set -e
 
+# This script is used to preserve the server state PRIOR to a restart.
+# It's intended be run on said machine
+
+
 ############################################################################
 
 # Command-line args go here
 
 # Provide the name of the database instance as the first arg:
-# This is the name that google gives to the database instance, NOT
-# the actual database holding the data
+# This is the name that Google gives to the database instance, NOT
+# the actual database holding the data. This is some string like
+# webmev-<environment>-db-<random>, WITHOUT any prefixes (like the GCP project or zone)
 DB_ID=$1
 
 # Pass the name of the database (which is given as part of the terraform vars)
 # as the second arg:
 DB_NAME=$2
 
-# The gcp zone where everything is deployed
-GCP_ZONE=$3
-
-# The name of the GCP compute instance hosting the application
-COMPUTE_INSTANCE=$4
-
-# The name of the storage bucket where the API stores files
-# Do NOT include the "gs//" prefix
-API_STORAGE_BUCKET=$5
-
 #############################################################################
+
 
 # Create a UUID to tag a bucket:
 DUMP_UUID=$(python3 -c 'import uuid; print(uuid.uuid4())')
@@ -49,14 +45,20 @@ gsutil iam ch serviceAccount:$SVC_ACCT:objectAdmin $BUCKET
 # Create a snapshot of the database and send it to that bucket:
 gcloud sql export sql $DB_ID $BUCKET/db_export.gz --database=$DB_NAME
 
-# Copy the operations folder from the VM
-gcloud compute ssh \
-    --zone $GCP_ZONE \
-    $COMPUTE_INSTANCE \
-    --command "cd /opt/software/mev-backend/mev && gsutil -mq cp -r ./operations $BUCKET"
+# This lists the current Docker images on the machine. The images are already persisted
+# to Dockerhub by design, so when the server restarts, we can simply use this list to 
+# pull the images
+docker image ls --format "table {{.Repository}}:{{.Tag}}" \
+    | grep -v "<none>:<none>" \
+    | grep -v "REPOSITORY:TAG" \
+    > docker_images.txt
+gsutil cp docker_images.txt $BUCKET
 
-# Copy the storage bucket's user_resources folder:
-gsutil -qm cp -r gs://$API_STORAGE_BUCKET/user_resources $BUCKET 
+# We need to save the operations/ and operation_executions/ directories
+OPERATIONS_DIR=/data/operations
+EXECUTED_OPERATIONS_DIR=/data/operation_executions
+gsutil -m cp -r $OPERATIONS_DIR $BUCKET
+gsutil -m cp -r $EXECUTED_OPERATIONS_DIR $BUCKET
 
-echo "Extracted data is available at:"
+echo "Files are at:"
 echo $BUCKET
