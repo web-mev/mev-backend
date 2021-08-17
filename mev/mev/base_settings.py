@@ -236,14 +236,6 @@ CACHES = {
     }
 }
 
-###############################################################################
-# Parameters for Celery queueing
-###############################################################################
-CELERY_BROKER_URL = REDIS_BASE_LOCATION
-CELERY_RESULT_BACKEND = REDIS_BASE_LOCATION
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
 
 # Import the logging config:
 from mev import base_logging_config as log_config
