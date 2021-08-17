@@ -20,10 +20,9 @@ set +o allexport
 
 #################### End ENV variables #################################
 
-# create the mev user and add them to the docker group
-# so they are able to execute Docker containers
-addgroup --system mev && adduser --system --group mev
-usermod -aG docker mev
+# Add the ubuntu user to the docker group so it can interact
+# with the Docker daemon
+usermod -aG docker ubuntu
 
 # Create a directory where we will download/install our software
 mkdir /opt/software
@@ -68,7 +67,7 @@ touch /var/log/mev/celery_beat.log  \
   /var/log/mev/redis.log
 
 # Give the mev user ownership of the code directory and the logging directory
-chown -R mev:mev /var/log/mev /www
+chown -R ubuntu:ubuntu /var/log/mev /www
  
 # use localhost when we're in dev. the postgres server is local
 export DB_HOST_SOCKET=$DB_HOST_FULL
@@ -110,7 +109,7 @@ mkdir -p $DATA_DIR/operations
 mkdir -p $DATA_DIR/operation_executions
 
 # Change the ownership so we have write permissions.
-chown -R mev:mev $DATA_DIR
+chown -R ubuntu:ubuntu $DATA_DIR
 
 # Workaround to allow vagrant to write to /data. This is needed
 # when running unit tests
@@ -203,6 +202,7 @@ supervisorctl start mev_celery_worker
 # Restart nginx so it loads the new config:
 service nginx restart
 
-# Add to the vagrant user's ~/.profile so that the environment variables
+# Add to the vagrant and ubuntu user's ~/.profile so that the environment variables
 # are "ready" after you SSH into the VM
 echo "source /vagrant/vagrant/final_setup.sh /vagrant/"$1 >> /home/vagrant/.profile
+echo "source /vagrant/vagrant/final_setup.sh /vagrant/"$1 >> /home/ubuntu/.profile
