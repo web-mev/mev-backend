@@ -11,10 +11,6 @@ from django.utils.module_loading import import_string
 
 from .settings_helpers import get_env
 
-logger.info('+'*200)
-logger.info(os.environ)
-logger.info('+'*200)
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -507,6 +503,21 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 # END Settings for Operation executions
 ###############################################################################
 
+###############################################################################
+# START Settings for public datasets
+###############################################################################
+
+PUBLIC_DATA_DIR = os.path.join(DATA_DIR, 'public_data')
+if not os.path.exists(PUBLIC_DATA_DIR):
+    raise ImproperlyConfigured('There should be a directory for public data at {d}.'.format(
+            d = PUBLIC_DATA_DIR
+        )
+    )
+
+###############################################################################
+# END Settings for public datasets
+###############################################################################
+
 
 ###############################################################################
 # START Settings for Dockerhub 
@@ -553,3 +564,17 @@ from api.filters import *
 # END settings/imports for filtering
 ###############################################################################
 
+
+###############################################################################
+# START settings/imports for public data indexing
+###############################################################################
+
+# This determines which indexer we are using for the public data.
+# See api/public_data/indexers/__init__.py for the implementing classes.
+# Specifically, choose one of the keys in INDEXER_CHOICES
+# Don't change unless you know what you're doing.
+PUBLIC_DATA_INDEXER = 'solr'
+
+###############################################################################
+# END settings/imports for public data indexing
+###############################################################################

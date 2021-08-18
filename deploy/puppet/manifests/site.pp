@@ -50,7 +50,8 @@ node /api/ {
     'procps',
     'postgresql-12',
     'nginx',
-    'docker.io'
+    'docker.io',
+    'default-jre'
   ]
   package { $mev_dependencies: }
 

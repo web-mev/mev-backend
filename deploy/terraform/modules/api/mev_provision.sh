@@ -303,7 +303,8 @@ apt-get update \
     postgresql-12 \
     python3-pip \
     nginx \
-    docker.io
+    docker.io \
+    default-jre
 
 usermod -aG docker ubuntu
 
@@ -317,6 +318,14 @@ cd /opt/software && \
   cd redis-6.2.1 && \
   make && \
   make install
+
+# Install solr for indexing public data sources
+cd /opt/software && \
+  mkdir solr && \
+  cd solr && \
+  wget https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
+  tar -xzf solr-8.9.0.tgz solr-8.9.0/bin/install_solr_service.sh --strip-components=2
+  ./install_solr_service.sh solr-8.9.0.tgz -i /opt/software/solr -u mev
 
 # Get the MEV backend source and install the python packages:
 cd /opt/software && \
@@ -428,6 +437,7 @@ mkdir -p $DATA_DIR/resource_cache
 mkdir -p $DATA_DIR/operation_staging
 mkdir -p $DATA_DIR/operations
 mkdir -p $DATA_DIR/operation_executions
+mkdir -p $DATA_DIR/publid_data
 
 # Change the ownership so we have write permissions.
 chown -R ubuntu:ubuntu $DATA_DIR

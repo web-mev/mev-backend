@@ -107,6 +107,7 @@ mkdir -p $DATA_DIR/resource_cache
 mkdir -p $DATA_DIR/operation_staging
 mkdir -p $DATA_DIR/operations
 mkdir -p $DATA_DIR/operation_executions
+mkdir -p $DATA_DIR/public_data
 
 # Change the ownership so we have write permissions.
 chown -R ubuntu:ubuntu $DATA_DIR

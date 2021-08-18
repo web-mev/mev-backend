@@ -349,19 +349,23 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         metadata. Not a true unit test, but whatever.
         '''
         # get a workspace in our db:
-        workpaces = Workspace.objects.filter(owner=self.regular_user_1)
-        if len(workpaces) == 0:
+        workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(workspaces) == 0:
             raise ImproperlyConfigured('Need at least one workspace.')
 
-        workspace = workpaces[0]
+        workspace = None
+        for w in workspaces:
+            workspace_resources = w.resources.filter(is_active = True)
+            if len(workspace_resources) >= 2:
+                workspace = w
+        if workspace is None:
+            raise ImproperlyConfigured('Need at least two resources that'
+                ' are in a workspace. Modify the test database'
+            ) 
         # we will attach the metadata to two resources:
         all_resources = workspace.resources.all()
         all_resources = [x for x in all_resources if x.is_active]
-        if len(all_resources) < 2:
-            raise ImproperlyConfigured('Need at least two resources that'
-                ' and in a workspace.'
-            )
-
+    
         TESTDIR = os.path.dirname(__file__)
         TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
 
