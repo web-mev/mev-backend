@@ -15,6 +15,7 @@ set -o allexport
 source /vagrant/$1
 
 DATA_DIR=/data
+MEV_USER=vagrant
 
 set +o allexport
 
@@ -22,7 +23,7 @@ set +o allexport
 
 # Add the ubuntu user to the docker group so it can interact
 # with the Docker daemon
-usermod -aG docker ubuntu
+usermod -aG docker $MEV_USER
 
 # Create a directory where we will download/install our software
 mkdir /opt/software
@@ -43,11 +44,15 @@ export LANG=C.UTF-8
 
 # Copy the various supervisor conf files to the appropriate locations
 cd /vagrant/deploy/mev/supervisor_conf_files && \
-cp redis.conf /etc/supervisor/conf.d/ && \
-cp celery_worker.conf /etc/supervisor/conf.d/ && \
-cp celery_beat.conf /etc/supervisor/conf.d/ && \
-cp gunicorn.conf /etc/supervisor/conf.d/
-
+# cp redis.conf /etc/supervisor/conf.d/ && \
+# cp celery_worker.conf /etc/supervisor/conf.d/ && \
+# cp celery_beat.conf /etc/supervisor/conf.d/ && \
+# cp gunicorn.conf /etc/supervisor/conf.d/
+sed -e "s?__MEV_USER__?$MEV_USER?g" redis.conf > /etc/supervisor/conf.d/redis.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" supervisord.conf > /etc/supervisor/supervisord.conf
 
 # Copy the nginx config file, removing the existing default
 rm -f /etc/nginx/sites-enabled/default
@@ -67,7 +72,7 @@ touch /var/log/mev/celery_beat.log  \
   /var/log/mev/redis.log
 
 # Give the mev user ownership of the code directory and the logging directory
-chown -R ubuntu:ubuntu /var/log/mev /www
+chown -R $MEV_USER:$MEV_USER /var/log/mev /www
  
 # use localhost when we're in dev. the postgres server is local
 export DB_HOST_SOCKET=$DB_HOST_FULL
@@ -85,6 +90,8 @@ touch $STORAGE_CREDENTIALS
 # environment variables (can only read those that are defined
 # when the supervisor daemon starts)
 service supervisor stop
+mkdir /tmp/supervisor
+chown $MEV_USER:$MEV_USER /tmp/supervisor
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread
 
@@ -110,7 +117,7 @@ mkdir -p $DATA_DIR/operation_executions
 mkdir -p $DATA_DIR/public_data
 
 # Change the ownership so we have write permissions.
-chown -R ubuntu:ubuntu $DATA_DIR
+chown -R $MEV_USER:$MEV_USER $DATA_DIR
 
 # Workaround to allow vagrant to write to /data. This is needed
 # when running unit tests
@@ -206,4 +213,3 @@ service nginx restart
 # Add to the vagrant and ubuntu user's ~/.profile so that the environment variables
 # are "ready" after you SSH into the VM
 echo "source /vagrant/vagrant/final_setup.sh /vagrant/"$1 >> /home/vagrant/.profile
-echo "source /vagrant/vagrant/final_setup.sh /vagrant/"$1 >> /home/ubuntu/.profile

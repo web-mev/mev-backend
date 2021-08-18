@@ -26,6 +26,11 @@ def build_docker_image(image, tag, dockerfile, context_dir):
     if len(tag) == 0:
         tag = 'latest'
     
+    import os
+    logger.info('os.environ:')
+    logger.info(os.environ)
+    print('os.environ:')
+    print(os.environ)
     build_cmd = DOCKER_BUILD_CMD.format(
         username = settings.DOCKERHUB_ORG,
         image = image.lower(),

@@ -269,6 +269,7 @@ CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 MEV_HOME=/opt/software/mev-backend/mev
 
 DATA_DIR=/data
+MEV_USER=ubuntu
 
 set +o allexport
 
@@ -306,7 +307,7 @@ apt-get update \
     docker.io \
     default-jre
 
-usermod -aG docker ubuntu
+usermod -aG docker $MEV_USER
 
 # Create a directory where we will download/install our software
 mkdir /opt/software
@@ -345,12 +346,13 @@ export LANG=C.UTF-8
 # Copy the various supervisor conf files to the appropriate locations
 # remove the following comment once we have integrated into the main project.
 # The location of the supervisor conf files will change once we have done that.
-cd /opt/software/mev-backend/deploy/mev/ && \
-  cp ./supervisor_conf_files/redis.conf /etc/supervisor/conf.d/ && \
-  cp ./supervisor_conf_files/celery_worker.conf /etc/supervisor/conf.d/ && \
-  cp ./supervisor_conf_files/celery_beat.conf /etc/supervisor/conf.d/ && \
-  cp ./supervisor_conf_files/gunicorn.conf /etc/supervisor/conf.d/
-  cp ./supervisor_conf_files/cloud_sql_proxy.conf /etc/supervisor/conf.d/
+cd /opt/software/mev-backend/deploy/mev/
+cp ./supervisor_conf_files/cloud_sql_proxy.conf /etc/supervisor/conf.d/
+sed -e "s?__MEV_USER__?$MEV_USER?g" redis.conf > /etc/supervisor/conf.d/redis.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" supervisord.conf > /etc/supervisor/supervisord.conf
 
 # Copy the nginx config file, removing the existing default
 rm -f /etc/nginx/sites-enabled/default
@@ -370,7 +372,7 @@ touch /var/log/mev/celery_beat.log  \
   /var/log/mev/redis.log
 
 # Give the mev user ownership of the code directory and the logging directory
-chown -R ubuntu:ubuntu /opt/software /var/log/mev /www
+chown -R $MEV_USER:$MEV_USER /opt/software /var/log/mev /www
 
 # Specify the appropriate settings file.
 # We do this here so it's prior to cycling the supervisor daemon
@@ -400,12 +402,14 @@ fi
 
 # Generate a set of keys for signing the download URL for bucket-based files.
 gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
-chown ubuntu:ubuntu $STORAGE_CREDENTIALS
+chown $MEV_USER:$MEV_USER $STORAGE_CREDENTIALS
 
 # First restart supervisor since it needs access to the
 # environment variables (can only read those that are defined
 # when the supervisor daemon starts)
 service supervisor stop
+mkdir /tmp/supervisor
+chown $MEV_USER:$MEV_USER /tmp/supervisor
 supervisord -c /etc/supervisor/supervisord.conf
 supervisorctl reread
 supervisorctl start cloud_sql_proxy
@@ -440,8 +444,8 @@ mkdir -p $DATA_DIR/operation_executions
 mkdir -p $DATA_DIR/publid_data
 
 # Change the ownership so we have write permissions.
-chown -R ubuntu:ubuntu $DATA_DIR
-chown -R ubuntu:ubuntu /opt/software/mev-backend/mev
+chown -R $MEV_USER:$MEV_USER $DATA_DIR
+chown -R $MEV_USER:$MEV_USER /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
@@ -491,4 +495,4 @@ service nginx restart
 supervisorctl start gunicorn
 
 env > /data/env_vars.txt
-chown ubuntu:ubuntu /data/env_vars.txt
+chown $MEV_USER:$MEV_USER /data/env_vars.txt
