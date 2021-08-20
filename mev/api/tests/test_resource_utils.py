@@ -422,6 +422,72 @@ class TestResourceUtilities(BaseAPITestCase):
         was_used = check_for_resource_operations(mock_used_resource, workspace_with_resource)
         self.assertFalse(was_used)
 
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_check_for_resource_operations_case3(self, mock_get_operation_instance_data):
+        '''
+        When removing a Resource from a Workspace, we need to ensure
+        we are not removing a file that has been used in one or more 
+        ExecutedOperations.
+
+        Below, we check where a file HAS been used, but the analysis
+        failed. Hence, it's safe to remove since it was not used to
+        create anything.
+        '''
+        # need to create an ExecutedOperation that is based on a known
+        # Operation and part of an existing workspace. Also need to ensure
+        # that there is a Resource that is being used in that Workspace
+
+        all_workspaces = Workspace.objects.all()
+        workspace_with_resource = None
+        for w in all_workspaces:
+            if len(w.resources.all()) > 0:
+                workspace_with_resource = w
+        if workspace_with_resource is None:
+            raise ImproperlyConfigured('Need at least one Workspace that has'
+                 ' at least a single Resource.'
+            )
+
+        ops = Operation.objects.all()
+        if len(ops) > 0:
+            op = ops[0]
+        else:
+            raise ImproperlyConfigured('Need at least one Operation'
+                ' to use for this test'
+            )
+        
+        f = os.path.join(
+            TESTDIR,
+            'valid_workspace_operation.json'
+        )
+        op_data = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = op_data
+        executed_op_pk = uuid.uuid4()
+        # the op_data we get from above has two outputs, one of which
+        # is a DataResource. Just to be sure everything is consistent
+        # between the spec and our mocked inputs below, we do this assert:
+        input_keyset = list(op_data['inputs'].keys())
+        self.assertCountEqual(input_keyset, ['count_matrix','p_val'])
+
+        mock_used_resource = workspace_with_resource.resources.all()[0]
+        mock_validated_inputs = {
+            'count_matrix': str(mock_used_resource.pk), 
+            'p_val': 0.01
+        }
+        ex_op = WorkspaceExecutedOperation.objects.create(
+            id=executed_op_pk,
+            owner = self.regular_user_1, 
+            workspace = workspace_with_resource,
+            job_name = 'abc',
+            inputs = mock_validated_inputs,
+            outputs = {},
+            operation = op,
+            mode = op_data['mode'],
+            status = ExecutedOperation.COMPLETION_ERROR,
+            job_failed = True
+        )
+        was_used = check_for_resource_operations(mock_used_resource, workspace_with_resource)
+        self.assertFalse(was_used)
+
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')

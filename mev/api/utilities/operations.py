@@ -199,6 +199,9 @@ def check_for_resource_operations(resource_instance, workspace_instance):
     workspace_executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace_instance)
     used_resource_uuids = set()
     for exec_op in workspace_executed_ops:
+        if exec_op.job_failed:
+            logger.info('Skipping inspection of job ({u}) since it failed.'.format(u = str(exec_op.pk)))
+            continue
         logger.info('Look in executedOp: {u}'.format(u = str(exec_op.pk)))
         # get the corresponding operation spec:
         op = exec_op.operation
