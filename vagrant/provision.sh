@@ -54,9 +54,10 @@ sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/ce
 sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" supervisord.conf > /etc/supervisor/supervisord.conf
 
-# Copy the nginx config file, removing the existing default
+# Copy the nginx config file, filling out the host, and removing the existing default
 rm -f /etc/nginx/sites-enabled/default
-cp /vagrant/deploy/mev/nginx.conf /etc/nginx/sites-enabled/
+cd /vagrant/deploy/mev
+sed -e "s?__SERVER_NAME__?$BACKEND_DOMAIN?g" nginx.conf > /etc/nginx/sites-enabled/nginx.conf
 
 # Create the log directory and the dir from which nginx will
 # eventually serve static files
