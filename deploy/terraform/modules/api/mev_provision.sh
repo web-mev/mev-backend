@@ -346,8 +346,8 @@ export LANG=C.UTF-8
 # Copy the various supervisor conf files to the appropriate locations
 # remove the following comment once we have integrated into the main project.
 # The location of the supervisor conf files will change once we have done that.
-cd /opt/software/mev-backend/deploy/mev/
-cp ./supervisor_conf_files/cloud_sql_proxy.conf /etc/supervisor/conf.d/
+cd /opt/software/mev-backend/deploy/mev/supervisor_conf_files
+cp cloud_sql_proxy.conf /etc/supervisor/conf.d/
 sed -e "s?__MEV_USER__?$MEV_USER?g" redis.conf > /etc/supervisor/conf.d/redis.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
