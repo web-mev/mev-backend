@@ -356,7 +356,7 @@ sed -e "s?__MEV_USER__?$MEV_USER?g" supervisord.conf > /etc/supervisor/superviso
 
 # Copy the nginx config file, filling out the host, and removing the existing default
 rm -f /etc/nginx/sites-enabled/default
-sed -e "s?__SERVER_NAME__?$BACKEND_DOMAIN?g" nginx.conf > /etc/nginx/sites-enabled/nginx.conf
+sed -e "s?__SERVER_NAME__?$BACKEND_DOMAIN?g" /opt/software/mev-backend/deploy/mev/nginx.conf > /etc/nginx/sites-enabled/nginx.conf
 
 # Create the log directory and the dir from which nginx will
 # eventually serve static files
