@@ -60,4 +60,6 @@ node /api/ {
   }
 
   python::requirements { '/vagrant/mev/requirements.txt': }
+
+  include rabbitmq
 }

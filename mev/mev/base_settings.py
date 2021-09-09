@@ -214,25 +214,6 @@ if not os.path.exists(TMP_DIR):
 FILE_UPLOAD_HANDLERS = ['mev.upload_handler.UploadProgressCachedHandler',] + \
     global_settings.FILE_UPLOAD_HANDLERS
 
-# We use Redis to manage cache and celery queues.
-REDIS_HOST = get_env('REDIS_HOST')
-REDIS_BASE_LOCATION = 'redis://{redis_host}:6379'.format(redis_host=REDIS_HOST)
-
-###############################################################################
-# Parameters for Redis-based cache
-###############################################################################
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': '%s/1' % REDIS_BASE_LOCATION,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient'
-        },
-        'KEY_PREFIX': 'mev'
-    }
-}
-
-
 # Import the logging config:
 from mev import base_logging_config as log_config
 
