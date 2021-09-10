@@ -116,6 +116,7 @@ resource "google_compute_health_check" "http-health-check" {
     port = "80"
     port_name = "http"
     request_path = "/api/"
+    host = "${var.domain}"
   }
 }
 
