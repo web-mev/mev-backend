@@ -326,6 +326,8 @@ export LANG=C.UTF-8
 # The location of the supervisor conf files will change once we have done that.
 cd /opt/software/mev-backend/deploy/mev/supervisor_conf_files
 cp cloud_sql_proxy.conf /etc/supervisor/conf.d/
+sed -e "s?__MEV_USER__?$MEV_USER?g" cloud_sql_proxy.conf > /etc/supervisor/conf.d/cloud_sql_proxy.conf
+sed -e "s?__MEV_USER__?$MEV_USER?g" redis.conf > /etc/supervisor/conf.d/redis.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
@@ -374,6 +376,8 @@ fi
 
   export CLOUD_SQL_MOUNT=/cloudsql
   export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
+  mkdir $CLOUD_SQL_MOUNT
+  chown -R $MEV_USER:$MEV_USER $CLOUD_SQL_MOUNT
 
 
 # Generate a set of keys for signing the download URL for bucket-based files.
@@ -417,7 +421,7 @@ mkdir -p $DATA_DIR/resource_cache
 mkdir -p $DATA_DIR/operation_staging
 mkdir -p $DATA_DIR/operations
 mkdir -p $DATA_DIR/operation_executions
-mkdir -p $DATA_DIR/publid_data
+mkdir -p $DATA_DIR/public_data
 
 # Change the ownership so we have write permissions.
 chown -R $MEV_USER:$MEV_USER $DATA_DIR
