@@ -288,6 +288,7 @@ CODENAME=$(/usr/bin/lsb_release -sc)
 
 # install and configure librarian-puppet
 /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+export HOME="/root"  # workaround: https://github.com/rodjek/librarian-puppet/issues/258
 /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
 /opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
 
