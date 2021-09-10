@@ -1,5 +1,5 @@
 resource "google_compute_instance" "mev_server" {
-  name                    = "webmev-backend-${var.environment}"
+  name                    = "webmev-api-${var.environment}"
   machine_type            = var.api_machine_config.machine_type
   tags                    = [
                               var.ssh_tag, 
