@@ -297,7 +297,7 @@ cd /opt/software && \
   cd mev-backend && \
   git checkout -q $GIT_COMMIT
 
-PATH="${PATH}:/opt/puppetlabs/bin" && \
+PATH="$PATH:/opt/puppetlabs/bin" && \
   cd /opt/software/mev-backend/deploy/puppet && \
   /opt/puppetlabs/puppet/bin/librarian-puppet install
 
