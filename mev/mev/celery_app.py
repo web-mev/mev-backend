@@ -8,6 +8,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mev.settings')
 app = Celery('mev')
 app.conf.update(
     broker_url='amqp://localhost',
+    result_backend='rpc://localhost',
     accept_content=['json'],
     task_serializer='json',
     result_serializer='json',
