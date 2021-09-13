@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # This script is used to pull the necessary files from a bucket to repopulate the state of a 
-# WebMeV instance which we are restarting. The database is restored from backup in the 
-# terraform script
+# WebMeV instance which we are restarting. The database is restored elsewhere.
 
 # The name of the bucket where the file are held. Include the gs:// prefix
 # Be sure to NOT have a trailing slash.
