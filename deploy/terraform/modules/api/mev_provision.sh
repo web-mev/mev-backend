@@ -309,7 +309,7 @@ usermod -aG docker $MEV_USER
 
 # Install redis
 cd /opt/software && \
-  wget https://download.redis.io/releases/redis-6.2.1.tar.gz
+  curl -s -O https://download.redis.io/releases/redis-6.2.1.tar.gz
   tar -xzf redis-6.2.1.tar.gz && \
   cd redis-6.2.1 && \
   make && \
@@ -319,7 +319,7 @@ cd /opt/software && \
 cd /opt/software && \
   mkdir solr && \
   cd solr && \
-  wget https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
+  curl -s -O https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
   tar -xzf solr-8.9.0.tgz solr-8.9.0/bin/install_solr_service.sh --strip-components=2
   ./install_solr_service.sh solr-8.9.0.tgz -i /opt/software/solr -u mev
 
@@ -379,7 +379,7 @@ fi
   # Download the cloud SQL proxy
   cd /opt/software && mkdir database && cd database
   CLOUD_SQL_PROXY_VERSION=v1.21.0
-  wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
+  curl -s -o cloud_sql_proxy "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64"
   chmod +x cloud_sql_proxy
 
   export CLOUD_SQL_MOUNT=/cloudsql
