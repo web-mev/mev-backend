@@ -293,15 +293,14 @@ CODENAME=$(/usr/bin/lsb_release -sc)
 /usr/bin/apt-get -qq -y install puppet-agent
 # install and configure librarian-puppet
 /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
-export HOME="/root"  # workaround: https://github.com/rodjek/librarian-puppet/issues/258
+export HOME="/root"  # workaround for https://github.com/rodjek/librarian-puppet/issues/258
 /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
 /opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
 # install Puppet modules
 PATH="$PATH:/opt/puppetlabs/bin" && \
   cd /opt/software/mev-backend/deploy/puppet && \
   /opt/puppetlabs/puppet/bin/librarian-puppet install
-
-/opt/puppetlabs/bin/puppet apply --debug /opt/software/mev-backend/deploy/puppet/manifests/site.pp
+/opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
 unset HOME  # for Cloud SQL Proxy
 
 usermod -aG docker $MEV_USER
