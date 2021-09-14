@@ -1,5 +1,5 @@
 #! /bin/bash
-printenv
+
 # https://serverfault.com/a/670688
 export DEBIAN_FRONTEND=noninteractive
 # Immediately fail if anything goes wrong
