@@ -279,29 +279,28 @@ set +o allexport
 # Create a directory where we will download/install our software
 mkdir /opt/software
 
-# install Puppet
-CODENAME=$(/usr/bin/lsb_release -sc)
-/usr/bin/curl -sO "https://apt.puppetlabs.com/puppet6-release-$CODENAME.deb"
-/usr/bin/dpkg -i "puppet6-release-$CODENAME.deb"
-/usr/bin/apt-get -qq update
-/usr/bin/apt-get -qq -y install puppet-agent
-
-# install and configure librarian-puppet
-/opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
-export HOME="/root"  # workaround: https://github.com/rodjek/librarian-puppet/issues/258
-/opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
-/opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
-
 # Get the MEV backend source
 cd /opt/software && \
   git clone https://github.com/web-mev/mev-backend.git && \
   cd mev-backend && \
   git checkout -q $GIT_COMMIT
 
+# install Puppet
+CODENAME=$(/usr/bin/lsb_release -sc)
+/usr/bin/curl -sO "https://apt.puppetlabs.com/puppet6-release-$CODENAME.deb"
+/usr/bin/dpkg -i "puppet6-release-$CODENAME.deb"
+/usr/bin/apt-get -qq update
+/usr/bin/apt-get -qq -y install puppet-agent
+# install and configure librarian-puppet
+/opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+export HOME="/root"  # workaround: https://github.com/rodjek/librarian-puppet/issues/258
+/opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
+/opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
+# install Puppet modules
 PATH="$PATH:/opt/puppetlabs/bin" && \
   cd /opt/software/mev-backend/deploy/puppet && \
   /opt/puppetlabs/puppet/bin/librarian-puppet install
-
+printenv
 /opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
 unset HOME  # for Cloud SQL Proxy
 

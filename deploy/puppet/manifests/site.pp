@@ -59,10 +59,11 @@ node /api/ {
     version => 'system',
   }
 
-  if $facts['virtual'] == 'gce' {
-    python::requirements { '/opt/software/mev-backend/mev/requirements.txt': }
-  }
-  else {
-    python::requirements { '/vagrant/mev/requirements.txt': }
-  }
+  python::requirements { '/opt/software/mev-backend/mev/requirements.txt': }
+  # if $facts['virtual'] == 'gce' {
+  #   python::requirements { '/opt/software/mev-backend/mev/requirements.txt': }
+  # }
+  # else {
+  #   python::requirements { '/vagrant/mev/requirements.txt': }
+  # }
 }
