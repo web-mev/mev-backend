@@ -60,9 +60,14 @@ node /api/ {
   }
 
   if $facts['virtual'] == 'gce' {
-    python::requirements { '/opt/software/mev-backend/mev/requirements.txt': }
+    $mev_requirements = '/opt/software/mev-backend/mev/requirements.txt'
   }
   else {
-    python::requirements { '/vagrant/mev/requirements.txt': }
+    $mev_requirements = '/vagrant/mev/requirements.txt'
+  }
+  python::requirements { $mev_requirements:
+    pip_provider           => 'pip3',
+    forceupdate            => true,
+    fix_requirements_owner => false,
   }
 }
