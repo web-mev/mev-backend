@@ -301,7 +301,7 @@ PATH="$PATH:/opt/puppetlabs/bin" && \
   cd /opt/software/mev-backend/deploy/puppet && \
   /opt/puppetlabs/puppet/bin/librarian-puppet install
 
-/opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
+/opt/puppetlabs/bin/puppet apply --debug /opt/software/mev-backend/deploy/puppet/manifests/site.pp
 unset HOME  # for Cloud SQL Proxy
 
 usermod -aG docker $MEV_USER
