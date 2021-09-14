@@ -1,5 +1,5 @@
 #! /bin/bash
-
+printenv
 # https://serverfault.com/a/670688
 export DEBIAN_FRONTEND=noninteractive
 # Immediately fail if anything goes wrong
@@ -300,7 +300,7 @@ export HOME="/root"  # workaround: https://github.com/rodjek/librarian-puppet/is
 PATH="$PATH:/opt/puppetlabs/bin" && \
   cd /opt/software/mev-backend/deploy/puppet && \
   /opt/puppetlabs/puppet/bin/librarian-puppet install
-printenv
+
 /opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
 unset HOME  # for Cloud SQL Proxy
 
