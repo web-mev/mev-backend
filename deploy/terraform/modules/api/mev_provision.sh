@@ -103,20 +103,6 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 
 
 
-####################### Redis-related parameters ###################################
-
-
-# Where is redis listening?
-# We assume that it is listening on the dfault port of 6379
-REDIS_HOST=localhost
-
-
-####################### END Redis-related parameters ###################################
-
-
-
-
-
 ###################### Start cloud env related parameters ###############################
 
 
@@ -305,14 +291,6 @@ unset HOME  # for Cloud SQL Proxy
 
 usermod -aG docker $MEV_USER
 
-# Install redis
-cd /opt/software && \
-  curl -s -O https://download.redis.io/releases/redis-6.2.1.tar.gz
-  tar -xzf redis-6.2.1.tar.gz && \
-  cd redis-6.2.1 && \
-  make && \
-  make install
-
 # Install solr for indexing public data sources
 cd /opt/software && \
   mkdir solr && \
@@ -332,7 +310,6 @@ export LANG=C.UTF-8
 # The location of the supervisor conf files will change once we have done that.
 cd /opt/software/mev-backend/deploy/mev/supervisor_conf_files
 sed -e "s?__MEV_USER__?$MEV_USER?g" cloud_sql_proxy.conf > /etc/supervisor/conf.d/cloud_sql_proxy.conf
-sed -e "s?__MEV_USER__?$MEV_USER?g" redis.conf > /etc/supervisor/conf.d/redis.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
@@ -352,8 +329,7 @@ mkdir -p /www
 touch /var/log/mev/celery_beat.log  \
   /var/log/mev/celery_worker.log  \
   /var/log/mev/cloud_sql.log  \
-  /var/log/mev/gunicorn.log  \
-  /var/log/mev/redis.log
+  /var/log/mev/gunicorn.log
 
 # Give the mev user ownership of the code directory and the logging directory
 chown -R $MEV_USER:$MEV_USER /opt/software /var/log/mev /www
@@ -460,15 +436,6 @@ fi
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
 /usr/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
-
-# Start and wait for Redis. Redis needs to be ready before
-# celery starts.
-supervisorctl start redis
-echo "Waiting for Redis..."
-while ! nc -z $REDIS_HOST 6379; do
-  sleep 1
-done
-echo "Redis started!"
 
 # Start celery:
 supervisorctl start mev_celery_beat

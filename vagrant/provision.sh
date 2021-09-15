@@ -25,17 +25,6 @@ set +o allexport
 # with the Docker daemon
 usermod -aG docker $MEV_USER
 
-# Create a directory where we will download/install our software
-mkdir /opt/software
-
-# Install redis
-cd /opt/software && \
-  wget https://download.redis.io/releases/redis-6.2.1.tar.gz
-  tar -xzf redis-6.2.1.tar.gz && \
-  cd redis-6.2.1 && \
-  make && \
-  make install
-
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1
@@ -44,11 +33,9 @@ export LANG=C.UTF-8
 
 # Copy the various supervisor conf files to the appropriate locations
 cd /vagrant/deploy/mev/supervisor_conf_files && \
-# cp redis.conf /etc/supervisor/conf.d/ && \
 # cp celery_worker.conf /etc/supervisor/conf.d/ && \
 # cp celery_beat.conf /etc/supervisor/conf.d/ && \
 # cp gunicorn.conf /etc/supervisor/conf.d/
-sed -e "s?__MEV_USER__?$MEV_USER?g" redis.conf > /etc/supervisor/conf.d/redis.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
 sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
@@ -69,8 +56,7 @@ mkdir -p /www
 touch /var/log/mev/celery_beat.log  \
   /var/log/mev/celery_worker.log  \
   /var/log/mev/cloud_sql.log  \
-  /var/log/mev/gunicorn.log  \
-  /var/log/mev/redis.log
+  /var/log/mev/gunicorn.log
 
 # Give the mev user ownership of the code directory and the logging directory
 chown -R $MEV_USER:$MEV_USER /var/log/mev /www
@@ -195,14 +181,6 @@ cp -r /vagrant/mev/static /www/static
 if [ "$ENVIRONMENT" != "dev" ]; then
   /usr/bin/python3 /vagrant/mev/manage.py add_static_operations
 fi
-# Start and wait for Redis. Redis needs to be ready before
-# celery starts.
-supervisorctl start redis
-echo "Waiting for Redis..."
-while ! nc -z $REDIS_HOST 6379; do
-  sleep 2
-done
-echo "Redis started!"
 
 # Start celery:
 supervisorctl start mev_celery_beat

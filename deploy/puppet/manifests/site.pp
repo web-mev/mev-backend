@@ -70,4 +70,6 @@ node /api/ {
     forceupdate            => true,
     fix_requirements_owner => false,
   }
+
+  include rabbitmq
 }
