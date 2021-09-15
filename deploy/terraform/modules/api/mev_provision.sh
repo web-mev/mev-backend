@@ -1,8 +1,9 @@
 #! /bin/bash
 
-# Immediately fail if anything goes wrong.
+# https://serverfault.com/a/670688
+export DEBIAN_FRONTEND=noninteractive
+# Immediately fail if anything goes wrong
 set -e
-
 # print commands and their expanded arguments
 set -x
 
@@ -275,46 +276,38 @@ set +o allexport
 
 #################### End ENV variables #################################
 
-
-# Install some dependencies
-apt-get update \
-    && apt-get install -y \
-    build-essential \
-    apt-transport-https \
-    ca-certificates \
-    gnupg2 \
-    software-properties-common \
-    zlib1g-dev \
-    libssl-dev \
-    libncurses5-dev \
-    libreadline-dev \
-    libbz2-dev \
-    libffi-dev \
-    liblzma-dev \
-    libsqlite3-dev \
-    libpq-dev \
-    wget \
-    supervisor \
-    nano \
-    git \
-    curl \
-    pkg-config \
-    netcat \
-    procps \
-    postgresql-12 \
-    python3-pip \
-    nginx \
-    docker.io \
-    default-jre
-
-usermod -aG docker $MEV_USER
-
 # Create a directory where we will download/install our software
 mkdir /opt/software
 
+# Get the MEV backend source
+cd /opt/software && \
+  git clone https://github.com/web-mev/mev-backend.git && \
+  cd mev-backend && \
+  git checkout -q $GIT_COMMIT
+
+# install Puppet
+CODENAME=$(/usr/bin/lsb_release -sc)
+/usr/bin/curl -sO "https://apt.puppetlabs.com/puppet6-release-$CODENAME.deb"
+/usr/bin/dpkg -i "puppet6-release-$CODENAME.deb"
+/usr/bin/apt-get -qq update
+/usr/bin/apt-get -qq -y install puppet-agent
+# install and configure librarian-puppet
+/opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+export HOME="/root"  # workaround for https://github.com/rodjek/librarian-puppet/issues/258
+/opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
+/opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
+# install Puppet modules
+PATH="$PATH:/opt/puppetlabs/bin" && \
+  cd /opt/software/mev-backend/deploy/puppet && \
+  /opt/puppetlabs/puppet/bin/librarian-puppet install
+/opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
+unset HOME  # for Cloud SQL Proxy
+
+usermod -aG docker $MEV_USER
+
 # Install redis
 cd /opt/software && \
-  wget https://download.redis.io/releases/redis-6.2.1.tar.gz
+  curl -s -O https://download.redis.io/releases/redis-6.2.1.tar.gz
   tar -xzf redis-6.2.1.tar.gz && \
   cd redis-6.2.1 && \
   make && \
@@ -324,18 +317,9 @@ cd /opt/software && \
 cd /opt/software && \
   mkdir solr && \
   cd solr && \
-  wget https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
+  curl -s -O https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
   tar -xzf solr-8.9.0.tgz solr-8.9.0/bin/install_solr_service.sh --strip-components=2
   ./install_solr_service.sh solr-8.9.0.tgz -i /opt/software/solr -u mev
-
-# Get the MEV backend source and install the python packages:
-cd /opt/software && \
-  git clone https://github.com/web-mev/mev-backend.git && \
-  cd mev-backend && \
-  git checkout -q $GIT_COMMIT && \
-  cd mev && \
-  /usr/bin/pip3 install -U pip && \
-  /usr/bin/pip3 install --no-cache-dir -r ./requirements.txt
 
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
@@ -393,7 +377,7 @@ fi
   # Download the cloud SQL proxy
   cd /opt/software && mkdir database && cd database
   CLOUD_SQL_PROXY_VERSION=v1.21.0
-  wget "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
+  curl -s -o cloud_sql_proxy "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64"
   chmod +x cloud_sql_proxy
 
   export CLOUD_SQL_MOUNT=/cloudsql

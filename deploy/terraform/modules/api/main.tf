@@ -1,5 +1,5 @@
 resource "google_compute_instance" "mev_server" {
-  name                    = "webmev-backend-${var.environment}"
+  name                    = "webmev-api-${var.environment}"
   machine_type            = var.api_machine_config.machine_type
   tags                    = [
                               var.ssh_tag, 
@@ -95,7 +95,8 @@ resource "google_compute_instance_group" "mev_api_ig" {
   description = "Instance group for the backend ${var.environment} server"
 
   instances = [
-    google_compute_instance.mev_server.id
+    # self_link to avoid invalid instance URL error: https://stackoverflow.com/a/65899240
+    google_compute_instance.mev_server.self_link
   ]
 
   named_port {
