@@ -24,8 +24,19 @@ DB_ID=$1
 # as the second arg:
 DB_NAME=$2
 
+# Change this as necessary. Older versions of the code may have persisted data
+# at a different directory root.
+DATA_DIR=/data
+
 #############################################################################
 
+
+# Create an "official" backup. This is distinct from the SQL dump that we are 
+# creating below. This will be used to restore the DB. The dump file is only 
+# used as a last resort.
+gcloud sql backups create --instance="$DB_ID"
+
+#############################################################################
 
 # Create a UUID to tag a bucket:
 DUMP_UUID=$(python3 -c 'import uuid; print(uuid.uuid4())')
@@ -55,10 +66,12 @@ docker image ls --format "table {{.Repository}}:{{.Tag}}" \
 gsutil cp docker_images.txt $BUCKET
 
 # We need to save the operations/ and operation_executions/ directories
-OPERATIONS_DIR=/data/operations
-EXECUTED_OPERATIONS_DIR=/data/operation_executions
+OPERATIONS_DIR=$DATA_DIR"/operations"
+EXECUTED_OPERATIONS_DIR=$DATA_DIR"/operation_executions"
+PUBLIC_DATA_DIR=$DATA_DIR"/public_data"
 gsutil -m cp -r $OPERATIONS_DIR $BUCKET
 gsutil -m cp -r $EXECUTED_OPERATIONS_DIR $BUCKET
+gsutil -m cp -r $PUBLIC_DATA_DIR $BUCKET
 
 echo "Files are at:"
 echo $BUCKET

@@ -59,7 +59,17 @@ node /api/ {
     version => 'system',
   }
 
-  python::requirements { '/vagrant/mev/requirements.txt': }
+  if $facts['virtual'] == 'gce' {
+    $mev_requirements = '/opt/software/mev-backend/mev/requirements.txt'
+  }
+  else {
+    $mev_requirements = '/vagrant/mev/requirements.txt'
+  }
+  python::requirements { $mev_requirements:
+    pip_provider           => 'pip3',
+    forceupdate            => true,
+    fix_requirements_owner => false,
+  }
 
   include rabbitmq
 }
