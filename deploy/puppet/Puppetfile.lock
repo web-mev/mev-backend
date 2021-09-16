@@ -19,8 +19,14 @@ FORGE
     puppetlabs-stdlib (7.1.0)
     puppetlabs-vcsrepo (5.0.0)
 
+PATH
+  remote: ./mevbackend
+  specs:
+    webmev-mevbackend (0.0.1)
+
 DEPENDENCIES
   puppet-python (= 6.1.0)
   puppet-rabbitmq (= 11.1.0)
   puppetlabs-vcsrepo (= 5.0.0)
+  webmev-mevbackend (= 0.0.1)
 
