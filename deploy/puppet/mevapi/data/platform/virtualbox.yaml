@@ -1,0 +1,3 @@
+mevapi::app_user: "vagrant"
+mevapi::project_root: "/vagrant"
+mevapi::conf_mode: "dev"

@@ -1,4 +1,6 @@
-class mevbackend (
+class mevapi (
+  # parameter values are assigned by Hiera if not set when class is declared
+  # https://puppet.com/docs/puppet/6/hiera_automatic.html#class_parameters
   String $app_user,
   String $project_root,
   String $conf_mode,

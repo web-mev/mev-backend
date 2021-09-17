@@ -1,5 +1,5 @@
 node /api/ {
-  class { 'mevbackend':
+  class { 'mevapi':
     app_user     => $facts['app_user'],
     project_root => $facts['project_root'],
     conf_mode    => $facts['conf_mode'],

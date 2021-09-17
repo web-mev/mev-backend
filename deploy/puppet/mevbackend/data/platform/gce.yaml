@@ -1,3 +1,0 @@
-mevbackend::app_user: "ubuntu"
-mevbackend::project_root: "/opt/software/mev-backend"
-mevbackend::conf_mode: "production"

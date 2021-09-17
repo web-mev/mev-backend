@@ -1,3 +1,0 @@
-mevbackend::app_user: "vagrant"
-mevbackend::project_root: "/vagrant"
-mevbackend::conf_mode: "dev"

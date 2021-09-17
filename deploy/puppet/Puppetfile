@@ -8,4 +8,4 @@ mod 'puppet-rabbitmq', '11.1.0'
 # mod 'puppetlabs-stdlib', '7.1.0'
 mod 'puppetlabs-vcsrepo', '5.0.0'
 
-mod 'webmev-mevbackend', '0.0.1', :path => './mevbackend'
+mod 'webmev-mevapi', '0.0.1', :path => './mevapi'
