@@ -12,8 +12,7 @@ terraform.tfvars
 
 /storage_credentials.json
 /vagrant/env.txt
-# env variables for running the test suite in Vagrant using PyCharm with EnvFile plugin
-/vagrant/default.env
+/.env
 
 /api/docs/site
 /example_data/

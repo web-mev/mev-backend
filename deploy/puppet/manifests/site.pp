@@ -1,8 +1,30 @@
 node /api/ {
   class { 'mevapi':
-    app_user     => $facts['app_user'],
-    project_root => $facts['project_root'],
-    conf_mode    => $facts['conf_mode'],
+    django_settings_module    => $facts['django_settings_module'],
+    app_user                  => $facts['app_user'],
+    project_root              => $facts['project_root'],
+    secret_key                => $facts['secret_key'],
+    superuser_password        => $facts['superuser_password'],
+    frontend_domain           => $facts['frontend_domain'],
+    backend_domain            => $facts['backend_domain'],
+    site_name                 => $facts['site_name'],
+    cloud_platform            => $facts['cloud_platform'],
+    enable_remote_job_runners => $facts['enable_remote_job_runners'],
+    storage_location          => $facts['storage_location'],
+    local_storage_dirname     => $facts['local_storage_dirname'],
+    max_download_size_bytes   => $facts['max_download_size_bytes'],
+    social_backends           => $facts['social_backends'],
+    sentry_url                => $facts['sentry_url'],
+    dockerhub_org             => $facts['dockerhub_org'],
+    dockerhub_username        => $facts['dockerhub_username'],
+    dockerhub_password        => $facts['dockerhub_password'],
+    database_name             => $facts['database_name'],
+    database_user             => $facts['database_user'],
+    database_password         => $facts['database_password'],
+    database_host_socket      => $facts['database_host_socket'],
+    database_port             => $facts['database_port'],
+    environment               => $facts['environment'],
+    data_dir                  => $facts['data_dir'],
   }
 }
 

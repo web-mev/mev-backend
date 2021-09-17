@@ -1,10 +1,34 @@
 class mevapi (
   # parameter values are assigned by Hiera if not set when class is declared
   # https://puppet.com/docs/puppet/6/hiera_automatic.html#class_parameters
+  String $django_settings_module,
   String $app_user,
   String $project_root,
-  String $conf_mode,
+  String $secret_key,
+  String $superuser_password,
+  String $frontend_domain,
+  String $backend_domain,
+  String $site_name,
+  String $cloud_platform,
+  String $enable_remote_job_runners,
+  String $storage_location,
+  String $local_storage_dirname,
+  String $max_download_size_bytes,
+  String $social_backends,
+  String $sentry_url,
+  String $dockerhub_org,
+  String $dockerhub_username,
+  String $dockerhub_password,
+  String $database_name,
+  String $database_user,
+  String $database_password,
+  String $database_host_socket,
+  String $database_port,
+  String $environment,
+  String $data_dir,
 ) {
+  $app_group = $app_user
+
   $mev_dependencies = [
     'build-essential',
     'apt-transport-https',
@@ -47,10 +71,10 @@ class mevapi (
 
   include rabbitmq
 
-  $django_settings_module = "mev.settings_${conf_mode}"
-
-  # file_line { 'django_settings_module':
-  #   path => "/home/${app_user}/.profile",
-  #   line => "export DJANGO_SETTINGS_MODULE=${django_settings_module}",
-  # }
+  file { "${project_root}/.env":
+    ensure => file,
+    content => epp('mevapi/.env.epp'),
+    owner => $app_user,
+    group => $app_group,
+  }
 }
