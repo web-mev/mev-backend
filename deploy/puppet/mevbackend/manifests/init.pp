@@ -1,4 +1,8 @@
-class mevbackend () {
+class mevbackend (
+  String $app_user,
+  String $project_root,
+  String $conf_mode,
+) {
   $mev_dependencies = [
     'build-essential',
     'apt-transport-https',
@@ -33,10 +37,6 @@ class mevbackend () {
     version => '3.8',
   }
 
-  $project_root = $facts['virtual'] ? {
-    'gce'        => '/opt/software/mev-backend',
-    'virtualbox' => '/vagrant',
-  }
   python::requirements { "${project_root}/mev/requirements.txt":
     pip_provider           => 'pip3',
     forceupdate            => true,
@@ -45,21 +45,10 @@ class mevbackend () {
 
   include rabbitmq
 
-  $app_user = $facts['virtual'] ? {
-    'gce'        => 'ubuntu',
-    'virtualbox' => 'vagrant',
-  }
-
-  $conf_mode = $facts['virtual'] ? {
-    'gce'        => 'production',
-    'virtualbox' => 'dev',
-  }
-
   $django_settings_module = "mev.settings_${conf_mode}"
 
   # file_line { 'django_settings_module':
   #   path => "/home/${app_user}/.profile",
   #   line => "export DJANGO_SETTINGS_MODULE=${django_settings_module}",
   # }
-
 }

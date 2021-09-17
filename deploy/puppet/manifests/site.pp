@@ -1,5 +1,9 @@
 node /api/ {
-  include mevbackend
+  class { 'mevbackend':
+    app_user     => $facts['app_user'],
+    project_root => $facts['project_root'],
+    conf_mode    => $facts['conf_mode'],
+  }
 }
 
 node /cromwell/ {
