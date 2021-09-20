@@ -14,7 +14,15 @@ set -x
 set -o allexport
 
 # dev or production status. Should be "dev" or "production"
-ENVIRONMENT=${environment}
+export FACTER_ENVIRONMENT=${environment}
+
+# Specify the appropriate settings file.
+# We do this here so it's prior to cycling the supervisor daemon
+if [ $FACTER_ENVIRONMENT = 'dev' ]; then
+    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_dev
+else
+    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
+fi
 
 ###################### Git-related parameters ###########################################
 
@@ -26,21 +34,23 @@ GIT_COMMIT=${commit_id}
 ###################### Database-related parameters ######################################
 
 # Postgres database params
-DB_NAME=${db_name}
-DB_USER=${db_user}
-DB_PASSWD=${db_passwd}
+export FACTER_DATABASE_NAME=${db_name}
+export FACTER_DATABASE_USER=${db_user}
+export FACTER_DATABASE_PASSWORD=${db_passwd}
 ROOT_DB_PASSWD=${root_db_passwd}
-DB_PORT=${db_port}
+export FACTER_DATABASE_PORT=${db_port}
 
 # Note that the db_host is given as <project>:<region>:<db name>
 # To use in Django, we eventually split this string to extract
 # what we need
 DB_HOST_FULL=${db_host}
 
+export CLOUD_SQL_MOUNT=/cloudsql
+export FACTER_DATABASE_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
+
 # Should we populate the database with dummy data (the same data we test with)?
 # Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
 POPULATE_DB=no
-
 
 ###################### END Database-related parameters ###################################
 
@@ -50,15 +60,10 @@ POPULATE_DB=no
 # The frontend can be located on a different server.
 # This is used for communications, etc. (such as verification emails)
 # which will direct the user to a link on the front-end
-FRONTEND_DOMAIN=${frontend_domain}
+export FACTER_FRONTEND_DOMAIN=${frontend_domain}
 
 # The domain of the API:
-BACKEND_DOMAIN=${domain}
-
-# This setting gives a "human readable" name to the site for contacts
-# For instance, could be "WebMEV" or other so that emails will have a subject
-# like "Registration details for WebMEV"
-SITE_NAME="WebMeV"
+export FACTER_BACKEND_DOMAIN=${domain}
 
 ########################## END Domain parameters #####################################
 
@@ -68,7 +73,7 @@ SITE_NAME="WebMeV"
 
 # The secret key is used to encrypt data when making tokens, etc.
 # Accordingly, make this appropriately long:
-DJANGO_SECRET_KEY=${django_secret}
+export FACTER_DJANGO_SECRET_KEY=${django_secret}
 
 # A comma-delimited list of the hosts.  Add hosts as necessary
 # e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
@@ -76,18 +81,18 @@ DJANGO_SECRET_KEY=${django_secret}
 INTERNAL_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
 
 LOAD_BALANCER_IP=${load_balancer_ip}
-DJANGO_ALLOWED_HOSTS=$BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
+DJANGO_ALLOWED_HOSTS=$FACTER_BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
 
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
 # at a different domain. Include protocol and ports
-DJANGO_CORS_ORIGINS=https://$FRONTEND_DOMAIN,${other_cors_origins}
+DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
 
 
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email
-DJANGO_SUPERUSER_PASSWORD=${django_superuser_passwd}
+export FACTER_DJANGO_SUPERUSER_PASSWORD=${django_superuser_passwd}
 DJANGO_SUPERUSER_EMAIL=${django_superuser_email}
 
 # Don't change this:
@@ -109,14 +114,10 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 # Here we setup some parameters relating to the cloud environment, including the location
 # of remote job runner services, etc.
 
-# The cloud platform determines which classes are used to hook up to 
-# storage buckets, etc.
-CLOUD_PLATFORM=GOOGLE
-
 # Will you be using one of the remote job runners?
 # Case-sensitive "yes" (without quotes) will enable. Otherwise we will
 # not enable remote job runs
-ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
+export FACTER_ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
 
 # Which remote job runners will be used?
 # Doesn't matter if the ENABLE_REMOTE_JOB_RUNNERS is "false"
@@ -147,25 +148,13 @@ STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
 # then you are REQUIRED to use bucket storage. You can only use local storage if all
 # your runners are local.
 # Options include "local" and "remote"
-STORAGE_LOCATION=${storage_location}
-
-# If using local storage for all files (not recommended since sequencing files
-# could consume large amount of disk space), set the following:
-# This directory is relative to the django BASE_DIR
-LOCAL_STORAGE_DIRNAME=user_resources
+export FACTER_STORAGE_LOCATION=${storage_location}
 
 # A bucket where MEV user's files will be stored (if using bucket storage). This
 # is independent of any buckets used as a storage location for remote job runners, etc.
 # DO NOT inlude the prefix, e.g. "gs://" or "s3://".
 # THIS BUCKET MUST ALREADY EXIST. 
 STORAGE_BUCKET_NAME=${mev_storage_bucket}
-
-# The maximum size (in bytes) to allow "direct" downloads from the API.
-# If the file exceeds this, we ask the user to download in another way. 
-# Most files are small and this will be fine. However, we don't want users
-# trying to download BAM or other large files. They can do that with other methods,
-# like via Dropbox.
-MAX_DOWNLOAD_SIZE_BYTES=5.12e8
 
 # For signing download URLs we need a credentials file. To create that, we need a
 # service account with appropriate privileges. This variable is the full name of that
@@ -197,22 +186,13 @@ GMAIL_CLIENT_SECRET=${gmail_client_secret}
 
 
 
-############################ Social auth-related parameters ######################################
-
-# a comma-delimited list giving the social auth providers to use.  Check the available
-# implementations in mev/api/base_settings.py
-SOCIAL_BACKENDS=GOOGLE
-
-########################## END Social-auth-related parameters #####################################
-
-
 ############################ Sentry parameters ######################################
 
 # After starting the sentry instance, tell it to configure for Django.  When you do 
 # that, it will give a code snippet.  Note the "dsn" it provides, which is a URL
 # that typically looks like http://<string>@<ip>:<port>/1
 # Copy that url below (including the http/https prefix)
-SENTRY_URL=${sentry_url}
+export FACTER_SENTRY_URL=${sentry_url}
 
 ########################## END Sentry parameters #####################################
 
@@ -225,12 +205,12 @@ SENTRY_URL=${sentry_url}
 # To push to the Dockerhub repository, we need to authenticate with `docker login`...
 # These credentials are used for that.
 
-DOCKERHUB_USERNAME=${dockerhub_username}
-DOCKERHUB_PASSWORD=${dockerhub_passwd}
+export FACTER_DOCKERHUB_USERNAME=${dockerhub_username}
+export FACTER_DOCKERHUB_PASSWORD=${dockerhub_passwd}
 
 # If we wish to associate the images with an organization account, specify this variable.
 # If not given (i.e. empty string), then images will be pushed to the username given above.
-DOCKERHUB_ORG=${dockerhub_org}
+export FACTER_DOCKERHUB_ORG=${dockerhub_org}
 
 ############################ END Dockerhub related parameters ######################################
 
@@ -255,7 +235,7 @@ CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 # set the directory where the MEV src will live. Used by the supervisor conf files
 MEV_HOME=/opt/software/mev-backend/mev
 
-DATA_DIR=/data
+export FACTER_DATA_DIR=/data
 MEV_USER=ubuntu
 
 set +o allexport
@@ -317,7 +297,7 @@ sed -e "s?__MEV_USER__?$MEV_USER?g" supervisord.conf > /etc/supervisor/superviso
 
 # Copy the nginx config file, filling out the host, and removing the existing default
 rm -f /etc/nginx/sites-enabled/default
-sed -e "s?__SERVER_NAME__?$BACKEND_DOMAIN?g" /opt/software/mev-backend/deploy/mev/nginx.conf > /etc/nginx/sites-enabled/nginx.conf
+sed -e "s?__SERVER_NAME__?$FACTER_BACKEND_DOMAIN?g" /opt/software/mev-backend/deploy/mev/nginx.conf > /etc/nginx/sites-enabled/nginx.conf
 
 # Create the log directory and the dir from which nginx will
 # eventually serve static files
@@ -334,14 +314,6 @@ touch /var/log/mev/celery_beat.log  \
 # Give the mev user ownership of the code directory and the logging directory
 chown -R $MEV_USER:$MEV_USER /opt/software /var/log/mev /www
 
-# Specify the appropriate settings file.
-# We do this here so it's prior to cycling the supervisor daemon
-if [ $ENVIRONMENT = 'dev' ]; then
-    export DJANGO_SETTINGS_MODULE=mev.settings_dev
-else
-    export DJANGO_SETTINGS_MODULE=mev.settings_production
-fi
-
   # Create the postgres database...
   # Extract the shorter database hostname from the full string. Django looks 
   # for this environment variable
@@ -356,8 +328,6 @@ fi
   curl -s -o cloud_sql_proxy "https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64"
   chmod +x cloud_sql_proxy
 
-  export CLOUD_SQL_MOUNT=/cloudsql
-  export DB_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
   mkdir $CLOUD_SQL_MOUNT
   chown -R $MEV_USER:$MEV_USER $CLOUD_SQL_MOUNT
 
@@ -382,31 +352,31 @@ sleep 10
 # Setup the database if it does not exist
 export PGPASSWORD=$ROOT_DB_PASSWD
 
-if psql -lqt --host=$DB_HOST_SOCKET --username "postgres" | cut -d \| -f1 | grep -qw $DB_NAME; then
+if psql -lqt --host=$FACTER_DATABASE_HOST_SOCKET --username "postgres" | cut -d \| -f1 | grep -qw $FACTER_DATABASE_NAME; then
   echo "Database already existed."
   export DB_EXISTED=1
 else
   echo "Create the database."
-psql -v ON_ERROR_STOP=1 --host=$DB_HOST_SOCKET --username "postgres" --dbname "postgres" <<-EOSQL
-    CREATE USER "$DB_USER" WITH PASSWORD '$DB_PASSWD';
-    CREATE DATABASE "$DB_NAME";
-    GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
-    ALTER USER "$DB_USER" CREATEDB;
+psql -v ON_ERROR_STOP=1 --host=$FACTER_DATABASE_HOST_SOCKET --username "postgres" --dbname "postgres" <<-EOSQL
+    CREATE USER "$FACTER_DATABASE_USER" WITH PASSWORD '$FACTER_DATABASE_PASSWORD';
+    CREATE DATABASE "$FACTER_DATABASE_NAME";
+    GRANT ALL PRIVILEGES ON DATABASE "$FACTER_DATABASE_NAME" TO "$FACTER_DATABASE_USER";
+    ALTER USER "$FACTER_DATABASE_USER" CREATEDB;
 EOSQL
   export DB_EXISTED=0
 fi
 
 # Some preliminaries before we start asking django to set things up:
-mkdir $DATA_DIR
-mkdir -p $DATA_DIR/pending_user_uploads
-mkdir -p $DATA_DIR/resource_cache
-mkdir -p $DATA_DIR/operation_staging
-mkdir -p $DATA_DIR/operations
-mkdir -p $DATA_DIR/operation_executions
-mkdir -p $DATA_DIR/public_data
+mkdir $FACTER_DATA_DIR
+mkdir -p $FACTER_DATA_DIR/pending_user_uploads
+mkdir -p $FACTER_DATA_DIR/resource_cache
+mkdir -p $FACTER_DATA_DIR/operation_staging
+mkdir -p $FACTER_DATA_DIR/operations
+mkdir -p $FACTER_DATA_DIR/operation_executions
+mkdir -p $FACTER_DATA_DIR/public_data
 
 # Change the ownership so we have write permissions.
-chown -R $MEV_USER:$MEV_USER $DATA_DIR
+chown -R $MEV_USER:$MEV_USER $FACTER_DATA_DIR
 chown -R $MEV_USER:$MEV_USER /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create
