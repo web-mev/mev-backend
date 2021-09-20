@@ -52,7 +52,7 @@ module "cromwell" {
 module "api" {
     source = "../modules/api"
     network = google_compute_network.mev_api_network.name
-    environment = terraform.workspace
+    environment = var.environment
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     cromwell_ip = module.cromwell.cromwell_ip
     api_machine_config = var.api_machine_config
