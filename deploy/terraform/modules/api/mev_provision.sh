@@ -73,7 +73,7 @@ export FACTER_BACKEND_DOMAIN=${domain}
 
 # The secret key is used to encrypt data when making tokens, etc.
 # Accordingly, make this appropriately long:
-export FACTER_DJANGO_SECRET_KEY=${django_secret}
+export FACTER_SECRET_KEY=${django_secret}
 
 # A comma-delimited list of the hosts.  Add hosts as necessary
 # e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
@@ -92,7 +92,7 @@ DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email
-export FACTER_DJANGO_SUPERUSER_PASSWORD=${django_superuser_passwd}
+export FACTER_SUPERUSER_PASSWORD=${django_superuser_passwd}
 DJANGO_SUPERUSER_EMAIL=${django_superuser_email}
 
 # Don't change this:
