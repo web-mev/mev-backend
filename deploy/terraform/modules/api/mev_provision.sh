@@ -138,11 +138,6 @@ REMOTE_JOB_RUNNERS=CROMWELL
 
 ###################### Storage-related parameters ######################################
 
-# the path to a JSON file containing the credentials to authenticate with the Google storage API.
-# The startup script will perform the authentication and place the credentials into this file.
-STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
-
-
 # the storage backend dictates where the "absolute" source of the files is. Of course,
 # to perform many operations we need to move files back and forth between local and
 # cloud storage. However, only one location serves as the "ground truth", and this is

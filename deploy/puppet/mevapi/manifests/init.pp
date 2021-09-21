@@ -12,6 +12,7 @@ class mevapi (
   String $cloud_platform,
   String $enable_remote_job_runners,
   String $storage_location,
+  String $storage_credentials,
   String $local_storage_dirname,
   String $max_download_size_bytes,
   String $social_backends,
