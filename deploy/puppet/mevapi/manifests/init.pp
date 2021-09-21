@@ -25,7 +25,7 @@ class mevapi (
   String $database_password,
   String $database_host_socket,
   String $database_port,
-  String $environment,
+  Enum['dev', 'production'] $environment,
   String $data_dir,
 ) {
   $app_group = $app_user
