@@ -330,6 +330,9 @@ chown -R $MEV_USER:$MEV_USER /opt/software /var/log/mev /www
   chown -R $MEV_USER:$MEV_USER $CLOUD_SQL_MOUNT
 
 
+# the path to a JSON file containing the credentials to authenticate with the Google storage API.
+# The startup script will perform the authentication and place the credentials into this file.
+STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
 # Generate a set of keys for signing the download URL for bucket-based files.
 gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
 chown $MEV_USER:$MEV_USER $STORAGE_CREDENTIALS
