@@ -64,3 +64,8 @@ variable "ssh_tag" {
 variable "service_account_email" {
   description = "The email-like identifier of the service account attached to the VM instance. Must have adequate permissions."
 }
+
+variable "resource_name_prefix" {
+  description = "Prefix added to resource names to avoid name collisions"
+  type        = string
+}

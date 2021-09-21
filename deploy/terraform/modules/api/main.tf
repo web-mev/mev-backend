@@ -1,10 +1,10 @@
 resource "google_compute_instance" "mev_server" {
-  name                    = "webmev-api-${var.environment}"
-  machine_type            = var.api_machine_config.machine_type
-  tags                    = [
-                              var.ssh_tag, 
-                              "backend-${var.environment}-allow-health-check"
-                            ]
+  name         = "${var.resource_name_prefix}-webmev-api"
+  machine_type = var.api_machine_config.machine_type
+  tags         = [
+    var.ssh_tag,
+    "${var.resource_name_prefix}-webmev-api-allow-health-check"
+  ]
 
   metadata_startup_script = templatefile("${path.module}/mev_provision.sh", 
     {
@@ -63,7 +63,7 @@ resource "google_compute_instance" "mev_server" {
 
 # allows the load balancer health check to reach the VM
 resource "google_compute_firewall" "allow_hc_firewall" {
-  name    = "webmev-backend-${var.environment}-healthcheck-firewall"
+  name    = "${var.resource_name_prefix}-webmev-api-healthcheck-firewall"
   network = var.network
 
   allow {
@@ -73,13 +73,12 @@ resource "google_compute_firewall" "allow_hc_firewall" {
 
   direction = "INGRESS"
   source_ranges = ["130.211.0.0/22","35.191.0.0/16"]
-  target_tags = ["backend-${var.environment}-allow-health-check"]
+  target_tags = ["${var.resource_name_prefix}-webmev-api-allow-health-check"]
 }
 
 resource "google_compute_global_address" "lb-static-ip" {
-  name = "webmev-backend-${var.environment}-lb-static-address"
+  name = "${var.resource_name_prefix}-webmev-api-lb-static-address"
 }
-
 
 resource "google_dns_record_set" "set" {
   name         = "${var.domain}."
@@ -89,9 +88,8 @@ resource "google_dns_record_set" "set" {
   rrdatas      = [google_compute_global_address.lb-static-ip.address]
 }
 
-
 resource "google_compute_instance_group" "mev_api_ig" {
-  name        = "mev-api-${var.environment}-ig"
+  name        = "${var.resource_name_prefix}-webmev-api-ig"
   description = "Instance group for the backend ${var.environment} server"
 
   instances = [
@@ -103,76 +101,71 @@ resource "google_compute_instance_group" "mev_api_ig" {
     name = "http"
     port = "80"
   }
-
 }
 
-
 resource "google_compute_health_check" "http-health-check" {
-  name = "backend-${var.environment}-health-check"
-
+  name               = "${var.resource_name_prefix}-webmev-api-health-check"
   timeout_sec        = 2
   check_interval_sec = 5
 
   http_health_check {
-    port = "80"
-    port_name = "http"
+    port         = "80"
+    port_name    = "http"
     request_path = "/api/"
-    host = "${var.domain}"
+    host         = var.domain
   }
 }
 
 resource "google_compute_backend_service" "backend_service" {
-  name          = "mev-backend-${var.environment}-service"
-  health_checks = [google_compute_health_check.http-health-check.id]
-  protocol = "HTTP"
-  port_name = "http"
+  name                  = "${var.resource_name_prefix}-webmev-api-service"
+  health_checks         = [google_compute_health_check.http-health-check.id]
+  protocol              = "HTTP"
+  port_name             = "http"
   load_balancing_scheme = "EXTERNAL"
+
   backend {
-    group = google_compute_instance_group.mev_api_ig.self_link
-    balancing_mode = "UTILIZATION"
+    group           = google_compute_instance_group.mev_api_ig.self_link
+    balancing_mode  = "UTILIZATION"
     capacity_scaler = 1.0
     max_utilization = 0.8
   }
 }
 
 resource "google_compute_url_map" "urlmap" {
-  name = "mev-backend-${var.environment}-urlmap"
-
+  name            = "${var.resource_name_prefix}-webmev-api-urlmap"
   default_service = google_compute_backend_service.backend_service.id
 
   host_rule {
-    hosts = [var.domain]
+    hosts        = [var.domain]
     path_matcher = "backend-pm"
   }
 
   path_matcher {
-    name = "backend-pm"
+    name            = "backend-pm"
     default_service = google_compute_backend_service.backend_service.id
 
     path_rule {
-      paths = ["/api"]
+      paths   = ["/api"]
       service = google_compute_backend_service.backend_service.id
     }
-
   }
 }
 
 resource "google_compute_target_https_proxy" "mev_backend_lb" {
-  name             = "backend-${var.environment}-https-proxy"
+  name             = "${var.resource_name_prefix}-webmev-api-https-proxy"
   url_map          = google_compute_url_map.urlmap.id
   ssl_certificates = [var.ssl_cert]
 }
 
 resource "google_compute_global_forwarding_rule" "https_fwd" {
-  name       = "mev-api-${var.environment}-forwarding-rule"
+  name       = "${var.resource_name_prefix}-webmev-api-forwarding-rule"
   target     = google_compute_target_https_proxy.mev_backend_lb.id
   port_range = 443
   ip_address = google_compute_global_address.lb-static-ip.address
 }
 
-  
 resource "google_compute_url_map" "https_redirect" {
-  name            = "${var.environment}-backend-https-redirect"
+  name = "${var.resource_name_prefix}-webmev-api-https-redirect"
 
   default_url_redirect {
     https_redirect         = true
@@ -182,15 +175,13 @@ resource "google_compute_url_map" "https_redirect" {
 }
 
 resource "google_compute_target_http_proxy" "https_redirect" {
-  name   = "backend-${var.environment}-http-proxy"
-  url_map          = google_compute_url_map.https_redirect.id
+  name    = "${var.resource_name_prefix}-webmev-api-http-proxy"
+  url_map = google_compute_url_map.https_redirect.id
 }
 
 resource "google_compute_global_forwarding_rule" "https_redirect" {
-  name   = "mev-api-${var.environment}-lb-http"
-
-  target = google_compute_target_http_proxy.https_redirect.id
+  name       = "${var.resource_name_prefix}-webmev-api-lb-http"
+  target     = google_compute_target_http_proxy.https_redirect.id
   port_range = "80"
   ip_address = google_compute_global_address.lb-static-ip.address
 }
-

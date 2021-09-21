@@ -149,3 +149,8 @@ variable "enable_remote_job_runners" {
 variable "storage_location" {
   description = "Where the data will be stored. One of remote or local"
 }
+
+variable "resource_name_prefix" {
+  description = "Prefix added to resource names to avoid name collisions"
+  type        = string
+}

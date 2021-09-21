@@ -47,6 +47,7 @@ module "cromwell" {
     commit_id = var.commit_id
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     service_account_email = var.service_account_email
+    resource_name_prefix = terraform.workspace
 }
 
 module "api" {
@@ -87,6 +88,7 @@ module "api" {
     ssl_cert = var.ssl_cert
     storage_location = var.storage_location
     enable_remote_job_runners = var.enable_remote_job_runners
+    resource_name_prefix = terraform.workspace
 }
 
 
