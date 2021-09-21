@@ -24,6 +24,9 @@ else
     export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
 
+# temp workaround required for Celery
+export DJANGO_SETTINGS_MODULE=$FACTER_DJANGO_SETTINGS_MODULE
+
 ###################### Git-related parameters ###########################################
 
 # The commit identifier which we will deploy
