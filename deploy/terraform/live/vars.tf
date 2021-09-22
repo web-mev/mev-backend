@@ -1,5 +1,5 @@
 variable "environment" {
-    description = ""
+    description = "Sets the django settings module. dev or prod"
     default = "dev"
 }
 
@@ -181,4 +181,8 @@ variable "ssl_cert" {
 
 variable "enable_remote_job_runners" {
   description = "Whether we will be using the remote job runners like Cromwell"
+}
+
+variable "remote_job_runners" {
+  description = "A comma-delimited string dictating which remote job runners should be used. See the Django settings for acceptable values."
 }

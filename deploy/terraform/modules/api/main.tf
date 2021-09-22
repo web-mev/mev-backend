@@ -38,6 +38,7 @@ resource "google_compute_instance" "mev_server" {
         dockerhub_passwd = var.dockerhub_passwd,
         dockerhub_org = var.dockerhub_org,
         enable_remote_job_runners = var.enable_remote_job_runners,
+        remote_job_runners = var.remote_job_runners,
         service_account_email = var.service_account_email
     }
 )

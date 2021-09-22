@@ -127,7 +127,7 @@ export FACTER_ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
 # This is a comma-delimited list of strings which have to match
 # the recognized keys (see AVAILABLE_REMOTE_JOB_RUNNERS in the
 # Django settings file(s)).
-REMOTE_JOB_RUNNERS=CROMWELL
+REMOTE_JOB_RUNNERS=${remote_job_runners}
 
 
 ###################### END cloud env related parameters #################################

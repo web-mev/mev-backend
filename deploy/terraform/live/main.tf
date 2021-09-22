@@ -88,6 +88,7 @@ module "api" {
     ssl_cert = var.ssl_cert
     storage_location = var.storage_location
     enable_remote_job_runners = var.enable_remote_job_runners
+    remote_job_runners = var.remote_job_runners
     resource_name_prefix = terraform.workspace
 }
 
