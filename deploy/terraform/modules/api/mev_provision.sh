@@ -14,18 +14,18 @@ set -x
 set -o allexport
 
 # dev or production status. Should be "dev" or "production"
-export FACTER_ENVIRONMENT=${environment}
+FACTER_ENVIRONMENT=${environment}
 
 # Specify the appropriate settings file.
 # We do this here so it's prior to cycling the supervisor daemon
 if [ $FACTER_ENVIRONMENT = 'dev' ]; then
-    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_dev
+    FACTER_DJANGO_SETTINGS_MODULE=mev.settings_dev
 else
-    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
+    FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
 fi
 
 # temp workaround required for Celery
-export DJANGO_SETTINGS_MODULE=$FACTER_DJANGO_SETTINGS_MODULE
+DJANGO_SETTINGS_MODULE=$FACTER_DJANGO_SETTINGS_MODULE
 
 ###################### Git-related parameters ###########################################
 
@@ -37,19 +37,19 @@ GIT_COMMIT=${commit_id}
 ###################### Database-related parameters ######################################
 
 # Postgres database params
-export FACTER_DATABASE_NAME=${db_name}
-export FACTER_DATABASE_USER=${db_user}
-export FACTER_DATABASE_PASSWORD=${db_passwd}
+FACTER_DATABASE_NAME=${db_name}
+FACTER_DATABASE_USER=${db_user}
+FACTER_DATABASE_PASSWORD=${db_passwd}
 ROOT_DB_PASSWD=${root_db_passwd}
-export FACTER_DATABASE_PORT=${db_port}
+FACTER_DATABASE_PORT=${db_port}
 
 # Note that the db_host is given as <project>:<region>:<db name>
 # To use in Django, we eventually split this string to extract
 # what we need
 DB_HOST_FULL=${db_host}
 
-export CLOUD_SQL_MOUNT=/cloudsql
-export FACTER_DATABASE_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
+CLOUD_SQL_MOUNT=/cloudsql
+FACTER_DATABASE_HOST_SOCKET=$CLOUD_SQL_MOUNT/$DB_HOST_FULL
 
 # Should we populate the database with dummy data (the same data we test with)?
 # Enter "yes" (case-sensitive, without quotes) if so.  Otherwise, it will NOT populate the db
@@ -63,10 +63,10 @@ POPULATE_DB=no
 # The frontend can be located on a different server.
 # This is used for communications, etc. (such as verification emails)
 # which will direct the user to a link on the front-end
-export FACTER_FRONTEND_DOMAIN=${frontend_domain}
+FACTER_FRONTEND_DOMAIN=${frontend_domain}
 
 # The domain of the API:
-export FACTER_BACKEND_DOMAIN=${domain}
+FACTER_BACKEND_DOMAIN=${domain}
 
 ########################## END Domain parameters #####################################
 
@@ -76,7 +76,7 @@ export FACTER_BACKEND_DOMAIN=${domain}
 
 # The secret key is used to encrypt data when making tokens, etc.
 # Accordingly, make this appropriately long:
-export FACTER_SECRET_KEY=${django_secret}
+FACTER_SECRET_KEY=${django_secret}
 
 # A comma-delimited list of the hosts.  Add hosts as necessary
 # e.g. 127.0.0.1,localhost,xx.xxx.xx.xx,mydomain.com
@@ -95,7 +95,7 @@ DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email
-export FACTER_SUPERUSER_PASSWORD=${django_superuser_passwd}
+FACTER_SUPERUSER_PASSWORD=${django_superuser_passwd}
 DJANGO_SUPERUSER_EMAIL=${django_superuser_email}
 
 # Don't change this:
@@ -120,7 +120,7 @@ DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_EMAIL
 # Will you be using one of the remote job runners?
 # Case-sensitive "yes" (without quotes) will enable. Otherwise we will
 # not enable remote job runs
-export FACTER_ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
+FACTER_ENABLE_REMOTE_JOB_RUNNERS=${enable_remote_job_runners}
 
 # Which remote job runners will be used?
 # Doesn't matter if the ENABLE_REMOTE_JOB_RUNNERS is "false"
@@ -146,7 +146,7 @@ FACTER_REMOTE_JOB_RUNNERS=${remote_job_runners}
 # then you are REQUIRED to use bucket storage. You can only use local storage if all
 # your runners are local.
 # Options include "local" and "remote"
-export FACTER_STORAGE_LOCATION=${storage_location}
+FACTER_STORAGE_LOCATION=${storage_location}
 
 # A bucket where MEV user's files will be stored (if using bucket storage). This
 # is independent of any buckets used as a storage location for remote job runners, etc.
@@ -190,7 +190,7 @@ GMAIL_CLIENT_SECRET=${gmail_client_secret}
 # that, it will give a code snippet.  Note the "dsn" it provides, which is a URL
 # that typically looks like http://<string>@<ip>:<port>/1
 # Copy that url below (including the http/https prefix)
-export FACTER_SENTRY_URL=${sentry_url}
+FACTER_SENTRY_URL=${sentry_url}
 
 ########################## END Sentry parameters #####################################
 
@@ -203,12 +203,12 @@ export FACTER_SENTRY_URL=${sentry_url}
 # To push to the Dockerhub repository, we need to authenticate with `docker login`...
 # These credentials are used for that.
 
-export FACTER_DOCKERHUB_USERNAME=${dockerhub_username}
-export FACTER_DOCKERHUB_PASSWORD=${dockerhub_passwd}
+FACTER_DOCKERHUB_USERNAME=${dockerhub_username}
+FACTER_DOCKERHUB_PASSWORD=${dockerhub_passwd}
 
 # If we wish to associate the images with an organization account, specify this variable.
 # If not given (i.e. empty string), then images will be pushed to the username given above.
-export FACTER_DOCKERHUB_ORG=${dockerhub_org}
+FACTER_DOCKERHUB_ORG=${dockerhub_org}
 
 ############################ END Dockerhub related parameters ######################################
 
@@ -233,7 +233,7 @@ CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 # set the directory where the MEV src will live. Used by the supervisor conf files
 MEV_HOME=/opt/software/mev-backend/mev
 
-export FACTER_DATA_DIR=/data
+FACTER_DATA_DIR=/data
 MEV_USER=ubuntu
 
 set +o allexport
