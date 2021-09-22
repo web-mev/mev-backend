@@ -10,6 +10,7 @@ node /api/ {
     site_name                 => $facts['site_name'],
     cloud_platform            => $facts['cloud_platform'],
     enable_remote_job_runners => $facts['enable_remote_job_runners'],
+    remote_job_runners        => $facts['remote_job_runners'],
     storage_location          => $facts['storage_location'],
     local_storage_dirname     => $facts['local_storage_dirname'],
     max_download_size_bytes   => $facts['max_download_size_bytes'],

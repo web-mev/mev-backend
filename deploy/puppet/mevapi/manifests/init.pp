@@ -11,6 +11,7 @@ class mevapi (
   String $site_name,
   String $cloud_platform,
   String $enable_remote_job_runners,
+  String $remote_job_runners,
   Enum['local', 'remote'] $storage_location,
   String $storage_credentials,
   String $local_storage_dirname,
