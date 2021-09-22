@@ -188,7 +188,3 @@ supervisorctl start mev_celery_worker
 
 # Restart nginx so it loads the new config:
 service nginx restart
-
-# Add to the vagrant and ubuntu user's ~/.profile so that the environment variables
-# are "ready" after you SSH into the VM
-echo "source /vagrant/vagrant/final_setup.sh /vagrant/"$1 >> /home/vagrant/.profile

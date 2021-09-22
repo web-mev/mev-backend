@@ -1,3 +1,34 @@
+node /api/ {
+  class { 'mevapi':
+    django_settings_module    => $facts['django_settings_module'],
+    app_user                  => $facts['app_user'],
+    project_root              => $facts['project_root'],
+    secret_key                => $facts['secret_key'],
+    superuser_password        => $facts['superuser_password'],
+    frontend_domain           => $facts['frontend_domain'],
+    backend_domain            => $facts['backend_domain'],
+    site_name                 => $facts['site_name'],
+    cloud_platform            => $facts['cloud_platform'],
+    enable_remote_job_runners => $facts['enable_remote_job_runners'],
+    remote_job_runners        => $facts['remote_job_runners'],
+    storage_location          => $facts['storage_location'],
+    local_storage_dirname     => $facts['local_storage_dirname'],
+    max_download_size_bytes   => $facts['max_download_size_bytes'],
+    social_backends           => $facts['social_backends'],
+    sentry_url                => $facts['sentry_url'],
+    dockerhub_org             => $facts['dockerhub_org'],
+    dockerhub_username        => $facts['dockerhub_username'],
+    dockerhub_password        => $facts['dockerhub_password'],
+    database_name             => $facts['database_name'],
+    database_user             => $facts['database_user'],
+    database_password         => $facts['database_password'],
+    database_host_socket      => $facts['database_host_socket'],
+    database_port             => $facts['database_port'],
+    environment               => $facts['environment'],
+    data_dir                  => $facts['data_dir'],
+  }
+}
+
 node /cromwell/ {
   package { 'default-jre': }
 
@@ -22,54 +53,4 @@ node /cromwell/ {
     provider => git,
     source   => 'https://github.com/web-mev/mev-backend.git',
   }
-}
-
-node /api/ {
-  $mev_dependencies = [
-    'build-essential',
-    'apt-transport-https',
-    'ca-certificates',
-    'gnupg2',
-    'software-properties-common',
-    'zlib1g-dev',
-    'libssl-dev',
-    'libncurses5-dev',
-    'libreadline-dev',
-    'libbz2-dev',
-    'libffi-dev',
-    'liblzma-dev',
-    'libsqlite3-dev',
-    'libpq-dev',
-    'wget',
-    'supervisor',
-    'nano',
-    'git',
-    'curl',
-    'pkg-config',
-    'netcat',
-    'procps',
-    'postgresql-12',
-    'nginx',
-    'docker.io',
-    'default-jre'
-  ]
-  package { $mev_dependencies: }
-
-  class { 'python':
-    version => 'system',
-  }
-
-  if $facts['virtual'] == 'gce' {
-    $mev_requirements = '/opt/software/mev-backend/mev/requirements.txt'
-  }
-  else {
-    $mev_requirements = '/vagrant/mev/requirements.txt'
-  }
-  python::requirements { $mev_requirements:
-    pip_provider           => 'pip3',
-    forceupdate            => true,
-    fix_requirements_owner => false,
-  }
-
-  include rabbitmq
 }

@@ -1,21 +1,25 @@
 project_id = ""
 credentials_file = ""
+service_account_email = ""
+
 cromwell_machine_config = {
     machine_type = ""
     disk_size_gb = <integer>
 }
+
 api_machine_config = {
     machine_type = ""
     disk_size_gb = <integer>
 }
 
-enable_remote_job_runners=""
+enable_remote_job_runners="yes"
+remote_job_runners="CROMWELL"
+
 cromwell_bucket = ""
 cromwell_db_name = ""
 cromwell_db_user = ""
 cromwell_db_password = ""
 
-service_account_email = ""
 managed_dns_zone = ""
 ssl_cert = ""
 
@@ -33,7 +37,7 @@ django_superuser_email = ""
 django_superuser_passwd = ""
 
 mev_storage_bucket = ""
-storage_location = ""
+storage_location = "remote"
 
 email_backend = "GMAIL"
 from_email = ""

@@ -146,6 +146,15 @@ variable "enable_remote_job_runners" {
   description = "Whether we will be using the remote job runners like Cromwell"
 }
 
+variable "remote_job_runners" {
+  description = "A comma-delimited string dictating which remote job runners should be used. See the Django settings for acceptable values."
+}
+
 variable "storage_location" {
   description = "Where the data will be stored. One of remote or local"
+}
+
+variable "resource_name_prefix" {
+  description = "Prefix added to resource names to avoid name collisions"
+  type        = string
 }

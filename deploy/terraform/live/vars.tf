@@ -1,5 +1,5 @@
 variable "environment" {
-    description = ""
+    description = "Sets the django settings module. dev or prod"
     default = "dev"
 }
 
@@ -72,7 +72,8 @@ variable "managed_dns_zone" {
 }
 
 variable "db_user" {
-    description = "Username for the postgres database that will be used by WebMEV"
+  default = "mevdbuser"
+  description = "Username for the postgres database that will be used by WebMEV"
 }
 
 variable "root_db_passwd" {
@@ -84,6 +85,7 @@ variable "db_passwd" {
 }
 
 variable "db_name" {
+  default     = "mevdb"
   description = "The name of the postgres database that will be used by WebMEV"
 }
 
@@ -146,20 +148,23 @@ variable "gmail_client_secret" {
 }
 
 variable "sentry_url" {
+  default     = ""
   description = "The URL of the Sentry tracker. Include protocol, port"
 }
 
 variable "dockerhub_username" {
+  default     = "mev"
   description = "The username for your Dockerhub account"
 }
 
 variable "dockerhub_passwd" {
+  default     = "pass"
   description = "The password for your Dockerhub account"
 }
 
 variable "dockerhub_org" {
+  default     = "org"
   description = "The organization of your Dockerhub user, which determines where any Docker images will be stored. If not supplied, images will be pushed to the user account."
-  default = ""
 }
 
 variable "other_cors_origins" {
@@ -176,4 +181,8 @@ variable "ssl_cert" {
 
 variable "enable_remote_job_runners" {
   description = "Whether we will be using the remote job runners like Cromwell"
+}
+
+variable "remote_job_runners" {
+  description = "A comma-delimited string dictating which remote job runners should be used. See the Django settings for acceptable values."
 }

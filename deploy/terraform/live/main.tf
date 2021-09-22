@@ -47,12 +47,13 @@ module "cromwell" {
     commit_id = var.commit_id
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     service_account_email = var.service_account_email
+    resource_name_prefix = terraform.workspace
 }
 
 module "api" {
     source = "../modules/api"
     network = google_compute_network.mev_api_network.name
-    environment = terraform.workspace
+    environment = var.environment
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     cromwell_ip = module.cromwell.cromwell_ip
     api_machine_config = var.api_machine_config
@@ -87,6 +88,8 @@ module "api" {
     ssl_cert = var.ssl_cert
     storage_location = var.storage_location
     enable_remote_job_runners = var.enable_remote_job_runners
+    remote_job_runners = var.remote_job_runners
+    resource_name_prefix = terraform.workspace
 }
 
 

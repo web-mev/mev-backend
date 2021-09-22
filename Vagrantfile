@@ -34,7 +34,8 @@ Vagrant.configure("2") do |config|
   config.vm.define "api", primary: true do |api|
     api.vm.hostname = "mev-api"
 
-    api.vm.network "forwarded_port", guest: 80, host: 8080
+    api.vm.network "forwarded_port", guest: 80, host: 8080  # Gunicorn
+    api.vm.network "forwarded_port", guest: 8000, host: 8000  # Django dev server
 
     api.vm.provider "virtualbox" do |vb|
       vb.memory = 4096

@@ -1,15 +1,18 @@
 import os
 import logging
-import operator
 from datetime import timedelta
-
-logger = logging.getLogger(__name__)
 
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import global_settings
 from django.utils.module_loading import import_string
 
+from dotenv import load_dotenv
+
 from .settings_helpers import get_env
+
+logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
