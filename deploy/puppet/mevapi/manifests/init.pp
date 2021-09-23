@@ -56,7 +56,6 @@ class mevapi (
     'procps',
     'postgresql-12',
     'nginx',
-    'docker.io',
     'default-jre'
   ]
   package { $mev_dependencies: }
@@ -78,5 +77,9 @@ class mevapi (
     content => epp('mevapi/.env.epp'),
     owner => $app_user,
     group => $app_group,
+  }
+
+  class { 'docker':
+    docker_users => [$app_user],
   }
 }
