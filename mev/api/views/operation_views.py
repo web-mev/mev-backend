@@ -205,7 +205,36 @@ class ExecutedOperationList(APIView):
             status=status.HTTP_200_OK
         )
 
+class NonWorkspaceExecutedOperationList(APIView):
+    '''
+    Lists all the ExecutedOperations not associated with a workspace
 
+    Admins can list all, while other users can only see ExecutedOperations
+    that they own
+    '''
+    permission_classes = [ 
+        framework_permissions.IsAuthenticated
+    ]
+
+    def get(self, request, *args, **kwargs):
+
+        user = request.user
+        if user.is_staff:
+            all_executed_operations = ExecutedOperation.objects.all()
+        else:
+            all_executed_operations = ExecutedOperation.objects.filter(owner=user)
+
+
+        # have to now segregate them out. Can't just iterate through all_executed_operations
+        # since those are all of type ExecutedOperation (and hence don't have the workspace attr)
+        response_payload = []
+        for exec_op in all_executed_operations:
+            op = exec_op.operation
+            if not op.workspace_operation:
+                response_payload.append(ExecutedOperationSerializer(exec_op).data)
+        return Response(response_payload, 
+            status=status.HTTP_200_OK
+        )
 
 class WorkspaceExecutedOperationList(APIView):
     '''

@@ -32,47 +32,58 @@ TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 @mock.patch('api.utilities.ingest_operation.check_required_files')
 @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
 @mock.patch('api.utilities.ingest_operation.clone_repository')
-def setup_db_elements(self, mock_clone_repository, \
+def setup_db_elements(self, op_file, op_dirname, mock_clone_repository, \
     mock_retrieve_commit_hash, \
     mock_check_required_files,
     mock_retrieve_repo_name,
     mock_prepare_operation):
 
     # make a dummy git repo and copy the valid spec file there:
-    self.dummy_src_path = os.path.join('/tmp', 'test_dummy_dir')
-    os.mkdir(self.dummy_src_path)
+    dummy_src_path = os.path.join('/tmp', op_dirname)
+    os.mkdir(dummy_src_path)
     copy_local_resource(
-        os.path.join(TESTDIR, 'valid_workspace_operation.json'), 
-        os.path.join(self.dummy_src_path, settings.OPERATION_SPEC_FILENAME)
+        os.path.join(TESTDIR, op_file), 
+        os.path.join(dummy_src_path, settings.OPERATION_SPEC_FILENAME)
     )
 
-    mock_clone_repository.return_value = self.dummy_src_path
+    mock_clone_repository.return_value = dummy_src_path
     mock_retrieve_commit_hash.return_value = 'abcde'
     mock_retrieve_repo_name.return_value = 'my-repo'
 
     # create a valid operation folder and database object:
-    self.op_uuid = uuid.uuid4()
-    self.op = OperationDbModel.objects.create(id=str(self.op_uuid))
+    op_uuid = uuid.uuid4()
+    op = OperationDbModel.objects.create(id=str(op_uuid))
     perform_operation_ingestion(
         'http://github.com/some-dummy-repo/', 
-        str(self.op_uuid)
+        str(op_uuid)
     )
+    return op
 
 def tear_down_db_elements(self):
 
     # this is the location where the ingestion will dump the data
     dest_dir = os.path.join(
         settings.OPERATION_LIBRARY_DIR,
-        str(self.op_uuid)
+        str(self.op.id)
     )
     shutil.rmtree(dest_dir)
+
+    try:
+        dest_dir = os.path.join(
+            settings.OPERATION_LIBRARY_DIR,
+            str(self.non_workspace_op.id)
+        )
+        shutil.rmtree(dest_dir)
+    except Exception as ex:
+        pass
 
 class ExecutedOperationListTests(BaseAPITestCase):
     '''
     Tests where we list the ExecutedOperations within a Workspace
     '''
     def setUp(self):
-        setup_db_elements(self) # creates an Operation to use
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_op = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
         self.establish_clients()
 
         # need a user's workspace to create an ExecutedOperation
@@ -99,7 +110,7 @@ class ExecutedOperationListTests(BaseAPITestCase):
         self.exec_op = ExecutedOperation.objects.create(
             id = self.exec_op_uuid,
             owner = self.regular_user_1,
-            operation = self.op,
+            operation = self.non_workspace_op,
             job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -194,10 +205,93 @@ class ExecutedOperationListTests(BaseAPITestCase):
         self.assertEqual(len(all_ops), len(j))
 
 
+class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
+    '''
+    Tests where we list the ExecutedOperations not-associated with a Workspace
+    '''
+
+    def setUp(self):
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_op = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
+        self.establish_clients()
+
+        # need a user's workspace to create an ExecutedOperation
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Workspace for user {user}.
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+        self.workspace = user_workspaces[0]
+
+        # create a mock ExecutedOperation
+        self.workspace_exec_op_uuid = uuid.uuid4()
+        self.workspace_exec_op = WorkspaceExecutedOperation.objects.create(
+            id = self.workspace_exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            operation = self.op,
+            job_id = self.workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+
+        # create a mock ExecutedOperation which is NOT assoc. with a workspace
+        self.exec_op_uuid = uuid.uuid4()
+        self.exec_op = ExecutedOperation.objects.create(
+            id = self.exec_op_uuid,
+            owner = self.regular_user_1,
+            operation = self.non_workspace_op,
+            job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+
+    def tearDown(self):
+        tear_down_db_elements(self)
+
+    def test_only_one_exec_op_reported(self):
+        '''
+        In our setup, we only have one ExecutedOperation associated
+        with a Workspace. Test that our query to the non-workspace endpoint
+        only returns that executed op, NOt the workspace-associated one.
+        ''' 
+        url = reverse('non-workspace-executed-operation-list')
+        all_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_1)
+        all_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(owner=self.regular_user_1)
+        # check that the test is not trivial (i.e. we should be excluding an 
+        # ExecutedOperation that is NOT part of this workspace)
+        self.assertTrue((len(all_exec_ops)-len(all_workspace_exec_ops)) > 0)
+        all_workspace_op_uuids = [x.id for x in all_workspace_exec_ops]
+        non_workspace_ops = [x for x in all_exec_ops if not x.id in all_workspace_op_uuids]
+        self.assertTrue(len(non_workspace_ops) > 0)
+        self.assertFalse(any([x.operation.workspace_operation for x in non_workspace_ops]))
+        response = self.authenticated_regular_client.get(url)
+        j = response.json()
+        self.assertTrue(len(j)==len(non_workspace_ops))
+        print(j)
+        self.assertCountEqual([x['id'] for x in j], [str(x.id) for x in non_workspace_ops])
+
+    def test_other_user_request(self):
+        '''
+        Tests that requests made by another user don't return any records
+        (since the test was setup such that the "other user" does not have
+        any executed operations)
+        '''
+
+        # test for an empty list response
+        url = reverse('non-workspace-executed-operation-list')
+        reg_user_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_1) 
+        other_user_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_2)
+        self.assertTrue(len(other_user_exec_ops) == 0)
+        response = self.authenticated_other_client.get(url)
+        j = response.json()
+        self.assertCountEqual(j, [])
+
 class ExecutedOperationTests(BaseAPITestCase):
 
     def setUp(self):
-        setup_db_elements(self) # creates an Operation to use
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_op = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
         self.establish_clients()
 
         # need a user's workspace to create an ExecutedOperation
@@ -224,7 +318,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         self.exec_op = ExecutedOperation.objects.create(
             id = self.exec_op_uuid,
             owner = self.regular_user_1,
-            operation = self.op,
+            operation = self.non_workspace_op,
             job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -503,7 +597,7 @@ class OperationListTests(BaseAPITestCase):
 
     def setUp(self):
 
-        setup_db_elements(self)
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.url = reverse('operation-list')
         self.establish_clients()
 
@@ -556,9 +650,9 @@ class OperationDetailTests(BaseAPITestCase):
 
     def setUp(self):
 
-        setup_db_elements(self)
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.url = reverse('operation-detail', kwargs={
-            'operation_uuid': str(self.op_uuid)
+            'operation_uuid': str(self.op.id)
         })
         self.establish_clients()
 
@@ -669,7 +763,7 @@ class OperationAddTests(BaseAPITestCase):
 class OperationRunTests(BaseAPITestCase):
 
     def setUp(self):
-        setup_db_elements(self)
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.url = reverse('operation-run')
         self.establish_clients()
 
@@ -1253,7 +1347,7 @@ class OperationRunTests(BaseAPITestCase):
 class OperationUpdateTests(BaseAPITestCase):
 
     def setUp(self):
-        setup_db_elements(self)
+        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.establish_clients()
 
     def test_admin_only(self):
@@ -1261,7 +1355,7 @@ class OperationUpdateTests(BaseAPITestCase):
         Tests that regular users can't use this endpoint
         '''
         url = reverse('operation-update', kwargs={
-            'pk': str(self.op_uuid)
+            'pk': str(self.op.id)
         })
         response = self.authenticated_regular_client.get(url)
         self.assertTrue(response.status_code == 403)
@@ -1272,14 +1366,14 @@ class OperationUpdateTests(BaseAPITestCase):
         '''
         self.op.active = True
         self.op.save()
-        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        op = OperationDbModel.objects.get(pk=self.op.id)
         self.assertTrue(op.active)
         url = reverse('operation-update', kwargs={
-            'pk': str(self.op_uuid)
+            'pk': str(self.op.id)
         })
         response = self.authenticated_admin_client.patch(url, {'active': False})
         self.assertTrue(response.status_code == 200)
-        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        op = OperationDbModel.objects.get(pk=self.op.id)
         self.assertFalse(op.active)
 
     def test_bad_update_field_triggers_400(self):
@@ -1289,15 +1383,15 @@ class OperationUpdateTests(BaseAPITestCase):
         '''
         self.op.active = True
         self.op.save()
-        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        op = OperationDbModel.objects.get(pk=self.op.id)
         self.assertTrue(op.active)
         url = reverse('operation-update', kwargs={
-            'pk': str(self.op_uuid)
+            'pk': str(self.op.id)
         })
         response = self.authenticated_admin_client.patch(url, 
             {'active': False, 'foo': 'xyz'})
         self.assertTrue(response.status_code == 400)
-        op = OperationDbModel.objects.get(pk=self.op_uuid)
+        op = OperationDbModel.objects.get(pk=self.op.id)
 
         # Check that the active field as NOT updated
         self.assertTrue(op.active)

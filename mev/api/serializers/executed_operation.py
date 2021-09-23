@@ -1,10 +1,17 @@
 from rest_framework import serializers, exceptions
 
-from api.models import ExecutedOperation, Operation
+from api.models import ExecutedOperation, Operation, OperationCategory
+
 
 class OperationField(serializers.RelatedField):
     def to_representation(self, value):
-        return value.name
+        OpCategories = OperationCategory.objects.filter(operation=value)
+        categories = list(set([x.category for x in OpCategories]))
+        return {
+            'operation_id': str(value.id),
+            'operation_name': value.name,
+            'categories': categories
+        }
 
 class ExecutedOperationSerializer(serializers.ModelSerializer):
     operation = OperationField(many=False, read_only=True)
