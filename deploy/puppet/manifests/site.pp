@@ -12,7 +12,9 @@ node /api/ {
     enable_remote_job_runners => $facts['enable_remote_job_runners'],
     remote_job_runners        => $facts['remote_job_runners'],
     storage_location          => $facts['storage_location'],
+    storage_credentials       => $facts['storage_credentials'],
     local_storage_dirname     => $facts['local_storage_dirname'],
+    storage_bucket_name       => $facts['storage_bucket_name'],
     max_download_size_bytes   => $facts['max_download_size_bytes'],
     social_backends           => $facts['social_backends'],
     sentry_url                => $facts['sentry_url'],
@@ -26,6 +28,8 @@ node /api/ {
     database_port             => $facts['database_port'],
     environment               => $facts['environment'],
     data_dir                  => $facts['data_dir'],
+    cromwell_server_url       => $facts['cromwell_server_url'],
+    cromwell_bucket           => $facts['cromwell_bucket'],
   }
 }
 
