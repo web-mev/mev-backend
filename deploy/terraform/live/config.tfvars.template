@@ -15,7 +15,6 @@ api_machine_config = {
 enable_remote_job_runners="yes"
 remote_job_runners="CROMWELL"
 
-cromwell_bucket = ""
 cromwell_db_name = ""
 cromwell_db_user = ""
 cromwell_db_password = ""
@@ -36,7 +35,6 @@ django_secret = ""
 django_superuser_email = ""
 django_superuser_passwd = ""
 
-mev_storage_bucket = ""
 storage_location = "remote"
 
 email_backend = "GMAIL"
