@@ -21,10 +21,6 @@ set +o allexport
 
 #################### End ENV variables #################################
 
-# Add the ubuntu user to the docker group so it can interact
-# with the Docker daemon
-usermod -aG docker $MEV_USER
-
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1

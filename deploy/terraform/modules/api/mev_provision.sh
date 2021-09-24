@@ -267,8 +267,6 @@ PATH="$PATH:/opt/puppetlabs/bin" && \
 /opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
 unset HOME  # for Cloud SQL Proxy
 
-usermod -aG docker $MEV_USER
-
 # Install solr for indexing public data sources
 cd /opt/software && \
   mkdir solr && \
