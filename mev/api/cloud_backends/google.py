@@ -10,7 +10,7 @@ from api.utilities.basic_utils import get_with_retry
 logger = logging.getLogger(__name__)
 
 try:
-    GOOGLE_BUCKET_NAME = os.environ['BUCKET_NAME']
+    GOOGLE_BUCKET_NAME = os.environ['STORAGE_BUCKET_NAME']
 except KeyError as ex:
     raise ImproperlyConfigured('Need to supply the following environment'
         ' variable: {k}'.format(k=ex))
