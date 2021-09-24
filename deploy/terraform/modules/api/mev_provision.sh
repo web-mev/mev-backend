@@ -95,7 +95,7 @@ DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email
-FACTER_SUPERUSER_PASSWORD=${django_superuser_passwd}
+DJANGO_SUPERUSER_PASSWORD=${django_superuser_passwd}
 DJANGO_SUPERUSER_EMAIL=${django_superuser_email}
 
 # Don't change this:
