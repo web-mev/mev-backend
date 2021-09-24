@@ -1,29 +1,29 @@
-; ==================================
-;  celery worker
-; ==================================
+; ================================
+;  celery beat supervisor file
+; ================================
 
 ; the name of your supervisord program
-[program:mev_celery_worker]
+[program:mev_celery_beat]
 
 ; Set full path to celery program if using virtualenv
-command=/usr/local/bin/celery -A mev worker --loglevel=INFO
+command=/usr/local/bin/celery -A mev beat --loglevel=INFO --pidfile /tmp/celerybeat.pid -s /tmp/celerybeat-schedule
 
-; The directory to your Django project (the directory where manage.py lives)
+; The directory of the Django project
 directory=%(ENV_MEV_HOME)s
 
 ; If supervisord is run as the root user, switch users to this UNIX user account
 ; before doing any processing.
-user=__MEV_USER__
-environment=HOME="/home/__MEV_USER__",USER="__MEV_USER__"
+user=<%= $mevapi::app_user %>
+environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>"
 
 ; Supervisor will start as many instances of this program as named by numprocs
 numprocs=1
 
 ; Put process stdout output in this file
-stdout_logfile=/var/log/mev/celery_worker.log
+stdout_logfile=/var/log/mev/celery_beat.log
 
 ; Put process stderr output in this file
-stderr_logfile=/var/log/mev/celery_worker.log
+stderr_logfile=/var/log/mev/celery_beat.log
 
 ; If true, this program will start automatically when supervisord is started
 autostart=false
@@ -39,15 +39,6 @@ autorestart=true
 ; a startup to consider the start successful.
 startsecs=10
 
-; Need to wait for currently executing tasks to finish at shutdown.
-; Increase this if you have very long running tasks.
-stopwaitsecs = 600
-
-; When resorting to send SIGKILL to the program to terminate it
-; send SIGKILL to its whole process group instead,
-; taking care of its children as well.
-killasgroup=true
-
 ; if your broker is supervised, set its priority higher
 ; so it starts first
-priority=998
+priority=999

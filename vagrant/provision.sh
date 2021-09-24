@@ -27,16 +27,6 @@ export PYTHONUNBUFFERED=1
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# Copy the various supervisor conf files to the appropriate locations
-cd /vagrant/deploy/mev/supervisor_conf_files && \
-# cp celery_worker.conf /etc/supervisor/conf.d/ && \
-# cp celery_beat.conf /etc/supervisor/conf.d/ && \
-# cp gunicorn.conf /etc/supervisor/conf.d/
-sed -e "s?__MEV_USER__?$MEV_USER?g" celery_worker.conf > /etc/supervisor/conf.d/celery_worker.conf
-sed -e "s?__MEV_USER__?$MEV_USER?g" celery_beat.conf > /etc/supervisor/conf.d/celery_beat.conf
-sed -e "s?__MEV_USER__?$MEV_USER?g" gunicorn.conf > /etc/supervisor/conf.d/gunicorn.conf
-sed -e "s?__MEV_USER__?$MEV_USER?g" supervisord.conf > /etc/supervisor/supervisord.conf
-
 # Copy the nginx config file, filling out the host, and removing the existing default
 rm -f /etc/nginx/sites-enabled/default
 cd /vagrant/deploy/mev

@@ -1,7 +1,6 @@
 ; supervisor config file
 
 [unix_http_server]
-;file=/home/mev/supervisor.sock   ; (the path to the socket file)
 file=/tmp/supervisor.sock   ; (the path to the socket file)
 chmod=0770                       ; socket file mode (default 0700)
 
@@ -9,7 +8,7 @@ chmod=0770                       ; socket file mode (default 0700)
 logfile=/tmp/supervisord.log ; (main log file;default $CWD/supervisord.log)
 pidfile=/tmp/supervisord.pid ; (supervisord pidfile;default supervisord.pid)
 childlogdir=/tmp/supervisor            ; ('AUTO' child log dir, default $TEMP)
-user=__MEV_USER__
+user=<%= $mevapi::app_user %>
 
 ; the below section must remain in the config file for RPC
 ; (supervisorctl/web interface) to work, additional interfaces may be
@@ -19,7 +18,7 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
 serverurl=unix:///tmp/supervisor.sock ; use a unix:// URL  for a unix socket
-username=__MEV_USER__
+username=<%= $mevapi::app_user %>
 
 ; The [include] section can just contain the "files" setting.  This
 ; setting can list multiple files (separated by whitespace or
