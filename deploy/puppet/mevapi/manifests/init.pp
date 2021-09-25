@@ -5,7 +5,6 @@ class mevapi (
   String $app_user,
   String $project_root,
   String $secret_key,
-  String $superuser_password,
   String $frontend_domain,
   String $backend_domain,
   String $site_name,

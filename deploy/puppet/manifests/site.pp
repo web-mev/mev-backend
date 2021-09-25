@@ -4,7 +4,6 @@ node /api/ {
     app_user                  => $facts['app_user'],
     project_root              => $facts['project_root'],
     secret_key                => $facts['secret_key'],
-    superuser_password        => $facts['superuser_password'],
     frontend_domain           => $facts['frontend_domain'],
     backend_domain            => $facts['backend_domain'],
     site_name                 => $facts['site_name'],
