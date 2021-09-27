@@ -11,9 +11,6 @@ variable "network"{
 
 }
 
-variable "region" {
-  default = "us-east4"
-}
 
 variable "zone" {
   default = "us-east4-c"
@@ -28,10 +25,6 @@ variable "cromwell_machine_config" {
 
 variable "cromwell_os_image" {
     default = "ubuntu-2004-focal-v20210325"
-}
-
-variable "cromwell_bucket" {
-  description = "Name of the bucket where Cromwell will place its files. Do NOT include the gs prefix."
 }
 
 variable "cromwell_db_name" {
@@ -67,5 +60,10 @@ variable "service_account_email" {
 
 variable "resource_name_prefix" {
   description = "Prefix added to resource names to avoid name collisions"
+  type        = string
+}
+
+variable "region" {
+  description = "GCP region"
   type        = string
 }

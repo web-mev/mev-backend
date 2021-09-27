@@ -148,11 +148,11 @@ FACTER_REMOTE_JOB_RUNNERS=${remote_job_runners}
 # Options include "local" and "remote"
 FACTER_STORAGE_LOCATION=${storage_location}
 
-# A bucket where MEV user's files will be stored (if using bucket storage). This
-# is independent of any buckets used as a storage location for remote job runners, etc.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://".
-# THIS BUCKET MUST ALREADY EXIST. 
-FACTER_STORAGE_BUCKET_NAME=${mev_storage_bucket}
+# A bucket where MEV user's files will be stored (if using bucket storage). 
+# The variable passed has the prefix since it was created by terraform.
+# ultimately, we DO NOT inlude the prefix, e.g. "gs://" or "s3://".
+STORAGE_BUCKET_NAME_W_PREFIX=${mev_storage_bucket}
+FACTER_STORAGE_BUCKET_NAME=$(python3 -c "import os,sys; x=os.environ['STORAGE_BUCKET_NAME_W_PREFIX'];sys.stdout.write(x[5:])")
 
 # For signing download URLs we need a credentials file. To create that, we need a
 # service account with appropriate privileges. This variable is the full name of that
@@ -220,9 +220,9 @@ FACTER_DOCKERHUB_ORG=${dockerhub_org}
 
 # If using the Cromwell engine to run remote jobs, we need to know the bucket where it will
 # write files. If NOT using Cromwell, then this does not have to be filled.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
-FACTER_CROMWELL_BUCKET=${cromwell_bucket}
-
+CROMWELL_BUCKET_W_PREFIX=${cromwell_bucket}
+FACTER_CROMWELL_BUCKET=$(python3 -c "import os,sys; x=os.environ['CROMWELL_BUCKET_W_PREFIX'];sys.stdout.write(x[5:])")
+ 
 # The address (including http/s protocol and any port) of the Cromwell server
 # Only needed if using the remote Cromwell job engine.
 # Should be the INTERNAL IP address in the same vpc network

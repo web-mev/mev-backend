@@ -41,10 +41,6 @@ variable "api_os_image" {
     default = "ubuntu-2004-focal-v20210325"
 }
 
-variable "cromwell_bucket" {
-  description = "Name of the bucket where Cromwell will place its files. Do NOT include the gs prefix."
-}
-
 variable "cromwell_db_name" {
   description = "The name of the database."
   type        = string
@@ -112,10 +108,6 @@ variable "django_superuser_passwd" {
 
 variable "django_superuser_email" {
   description = "The email of the Django admin"
-}
-
-variable "mev_storage_bucket" {
-  description = "Name of the bucket. No gs:// prefix"
 }
 
 variable "storage_location" {

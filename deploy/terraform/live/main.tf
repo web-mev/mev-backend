@@ -40,7 +40,6 @@ module "cromwell" {
     network = google_compute_network.mev_api_network.name
     cromwell_machine_config = var.cromwell_machine_config
     cromwell_os_image = var.cromwell_os_image
-    cromwell_bucket = var.cromwell_bucket
     cromwell_db_name = var.cromwell_db_name
     cromwell_db_user = var.cromwell_db_user
     cromwell_db_password = var.cromwell_db_password
@@ -48,6 +47,7 @@ module "cromwell" {
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     service_account_email = var.service_account_email
     resource_name_prefix = terraform.workspace
+    region = var.region
 }
 
 module "api" {
@@ -67,13 +67,12 @@ module "api" {
     db_port = var.db_port
     db_host = google_sql_database_instance.mev_db_instance.connection_name
     commit_id = var.commit_id
-    cromwell_bucket = var.cromwell_bucket
+    cromwell_bucket = module.cromwell.cromwell_bucket
     django_secret = var.django_secret
     frontend_domain = var.frontend_domain
     other_cors_origins = var.other_cors_origins
     django_superuser_email = var.django_superuser_email
     django_superuser_passwd = var.django_superuser_passwd
-    mev_storage_bucket = var.mev_storage_bucket
     email_backend = var.email_backend
     from_email = var.from_email
     gmail_access_token = var.gmail_access_token
@@ -90,6 +89,7 @@ module "api" {
     enable_remote_job_runners = var.enable_remote_job_runners
     remote_job_runners = var.remote_job_runners
     resource_name_prefix = terraform.workspace
+    region = var.region
 }
 
 

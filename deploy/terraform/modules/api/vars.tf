@@ -80,10 +80,6 @@ variable "django_superuser_email" {
   description = "The email of the Django admin"
 }
 
-variable "mev_storage_bucket" {
-  description = "Name of the bucket. No gs:// prefix"
-}
-
 variable "email_backend" {
   description = "The backend email service we use to send emails."
   default = "GMAIL"
@@ -156,5 +152,10 @@ variable "storage_location" {
 
 variable "resource_name_prefix" {
   description = "Prefix added to resource names to avoid name collisions"
+  type        = string
+}
+
+variable "region" {
+  description = "GCP region"
   type        = string
 }

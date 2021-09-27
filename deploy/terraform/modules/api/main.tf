@@ -25,7 +25,7 @@ resource "google_compute_instance" "mev_server" {
         other_cors_origins = var.other_cors_origins,
         django_superuser_email = var.django_superuser_email,
         django_superuser_passwd = var.django_superuser_passwd,
-        mev_storage_bucket = var.mev_storage_bucket,
+        mev_storage_bucket = google_storage_bucket.api_bucket.url
         storage_location = var.storage_location,
         email_backend = var.email_backend,
         from_email = var.from_email,
@@ -59,6 +59,18 @@ resource "google_compute_instance" "mev_server" {
   service_account {
       email = var.service_account_email
       scopes = ["cloud-platform"]
+  }
+}
+
+resource "google_storage_bucket" "api_bucket" {
+  name = "webmev-storage-${var.resource_name_prefix}"
+  location = upper(var.region)
+
+  cors {
+    origin = ["*"]
+    method = ["GET", "OPTIONS"]
+    response_header = ["*"]
+    max_age_seconds = 3600
   }
 }
 
