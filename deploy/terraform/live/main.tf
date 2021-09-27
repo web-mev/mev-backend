@@ -33,11 +33,6 @@ resource "google_compute_firewall" "mev_firewall" {
 
 }
 
-resource "google_storage_bucket" "cromwell_bucket" {
-  name = "webmev-cromwell-${terraform.workspace}"
-  location = upper(var.region)
-}
-
 module "cromwell" {
     source = "../modules/cromwell"
     project_id = var.project_id
@@ -45,7 +40,6 @@ module "cromwell" {
     network = google_compute_network.mev_api_network.name
     cromwell_machine_config = var.cromwell_machine_config
     cromwell_os_image = var.cromwell_os_image
-    cromwell_bucket = google_storage_bucket.cromwell_bucket.url
     cromwell_db_name = var.cromwell_db_name
     cromwell_db_user = var.cromwell_db_user
     cromwell_db_password = var.cromwell_db_password
@@ -53,6 +47,7 @@ module "cromwell" {
     ssh_tag = "webmev-backend-allow-ssh-${terraform.workspace}"
     service_account_email = var.service_account_email
     resource_name_prefix = terraform.workspace
+    region = var.region
 }
 
 module "api" {
@@ -72,7 +67,7 @@ module "api" {
     db_port = var.db_port
     db_host = google_sql_database_instance.mev_db_instance.connection_name
     commit_id = var.commit_id
-    cromwell_bucket = google_storage_bucket.cromwell_bucket.url
+    cromwell_bucket = module.cromwell.cromwell_bucket
     django_secret = var.django_secret
     frontend_domain = var.frontend_domain
     other_cors_origins = var.other_cors_origins

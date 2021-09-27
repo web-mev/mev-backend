@@ -10,6 +10,11 @@ resource "google_compute_firewall" "cromwell_http" {
   target_tags = ["cromwell-8000"]
 }
 
+resource "google_storage_bucket" "cromwell_bucket" {
+  name = "webmev-cromwell-${terraform.workspace}"
+  location = upper(var.region)
+}
+
 resource "google_compute_instance" "cromwell" {
   name                    = "${var.resource_name_prefix}-cromwell"
   machine_type            = var.cromwell_machine_config.machine_type
@@ -22,7 +27,7 @@ resource "google_compute_instance" "cromwell" {
   "${path.module}/cromwell_provision.sh",
   {
     project_id           = var.project_id,
-    cromwell_bucket      = "gs://${var.cromwell_bucket}",
+    cromwell_bucket      = google_storage_bucket.cromwell_bucket.url
     cromwell_db_name     = var.cromwell_db_name,
     cromwell_db_user     = var.cromwell_db_user,
     cromwell_db_password = var.cromwell_db_password,
