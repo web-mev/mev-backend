@@ -2,7 +2,7 @@
 
 command=/opt/software/database/cloud_sql_proxy -instances=%(ENV_DB_HOST_FULL)s -dir=%(ENV_CLOUD_SQL_MOUNT)s
 
-user=__MEV_USER__
+user=<%= $mevapi::app_user %>
 
 ; Put process stdout output in this file
 stdout_logfile=/var/log/mev/cloud_sql.log

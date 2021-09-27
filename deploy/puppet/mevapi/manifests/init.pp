@@ -76,13 +76,40 @@ class mevapi (
   include rabbitmq
 
   file { "${project_root}/.env":
-    ensure => file,
+    ensure  => file,
     content => epp('mevapi/.env.epp'),
-    owner => $app_user,
-    group => $app_group,
+    owner   => $app_user,
+    group   => $app_group,
   }
 
   class { 'docker':
     docker_users => [$app_user],
+  }
+
+  file { '/etc/supervisor/supervisord.conf':
+    ensure  => file,
+    content => epp('mevapi/supervisor/supervisord.conf.epp'),
+  }
+
+  file { '/etc/supervisor/conf.d/gunicorn.conf':
+    ensure  => file,
+    content => epp('mevapi/supervisor/gunicorn.conf.epp'),
+  }
+
+  file { '/etc/supervisor/conf.d/celery_beat.conf':
+    ensure  => file,
+    content => epp('mevapi/supervisor/celery_beat.conf.epp'),
+  }
+
+  file { '/etc/supervisor/conf.d/celery_worker.conf':
+    ensure  => file,
+    content => epp('mevapi/supervisor/celery_worker.conf.epp'),
+  }
+
+  if $facts['virtual'] == 'gce' {
+    file { '/etc/supervisor/conf.d/cloud_sql_proxy.conf':
+      ensure  => file,
+      content => epp('mevapi/supervisor/cloud_sql_proxy.conf.epp'),
+    }
   }
 }

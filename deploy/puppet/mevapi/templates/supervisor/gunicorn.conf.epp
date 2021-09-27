@@ -10,8 +10,8 @@ command=/usr/local/bin/gunicorn mev.wsgi:application
 
 ; If supervisord is run as the root user, switch users to this UNIX user account
 ; before doing any processing.
-user=__MEV_USER__
-environment=HOME="/home/__MEV_USER__",USER="__MEV_USER__"
+user=<%= $mevapi::app_user %>
+environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>"
 
 ; Location of Django project
 directory=%(ENV_MEV_HOME)s
