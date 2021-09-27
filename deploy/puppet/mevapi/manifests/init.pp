@@ -5,7 +5,6 @@ class mevapi (
   String $app_user,
   String $project_root,
   String $secret_key,
-  String $superuser_password,
   String $frontend_domain,
   String $backend_domain,
   String $site_name,
@@ -15,6 +14,7 @@ class mevapi (
   Enum['local', 'remote'] $storage_location,
   String $storage_credentials,
   String $local_storage_dirname,
+  String $storage_bucket_name,
   String $max_download_size_bytes,
   String $social_backends,
   String $sentry_url,
@@ -28,6 +28,9 @@ class mevapi (
   String $database_port,
   Enum['dev', 'production'] $environment,
   String $data_dir,
+  String $cromwell_server_url,
+  String $cromwell_bucket,
+
 ) {
   $app_group = $app_user
 

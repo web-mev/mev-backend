@@ -95,7 +95,7 @@ DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
 # For automatically creating an admin, supply the following:
 # username is required, but the user model uses the email field 
 # as the username.  Therefore, we auto-fill that based on the email
-FACTER_SUPERUSER_PASSWORD=${django_superuser_passwd}
+DJANGO_SUPERUSER_PASSWORD=${django_superuser_passwd}
 DJANGO_SUPERUSER_EMAIL=${django_superuser_email}
 
 # Don't change this:
@@ -148,11 +148,11 @@ FACTER_REMOTE_JOB_RUNNERS=${remote_job_runners}
 # Options include "local" and "remote"
 FACTER_STORAGE_LOCATION=${storage_location}
 
-# A bucket where MEV user's files will be stored (if using bucket storage). This
-# is independent of any buckets used as a storage location for remote job runners, etc.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://".
-# THIS BUCKET MUST ALREADY EXIST. 
-STORAGE_BUCKET_NAME=${mev_storage_bucket}
+# A bucket where MEV user's files will be stored (if using bucket storage). 
+# The variable passed has the prefix since it was created by terraform.
+# ultimately, we DO NOT inlude the prefix, e.g. "gs://" or "s3://".
+STORAGE_BUCKET_NAME_W_PREFIX=${mev_storage_bucket}
+FACTER_STORAGE_BUCKET_NAME=$(python3 -c "import os,sys; x=os.environ['STORAGE_BUCKET_NAME_W_PREFIX'];sys.stdout.write(x[5:])")
 
 # For signing download URLs we need a credentials file. To create that, we need a
 # service account with appropriate privileges. This variable is the full name of that
@@ -220,13 +220,13 @@ FACTER_DOCKERHUB_ORG=${dockerhub_org}
 
 # If using the Cromwell engine to run remote jobs, we need to know the bucket where it will
 # write files. If NOT using Cromwell, then this does not have to be filled.
-# DO NOT inlude the prefix, e.g. "gs://" or "s3://"
-CROMWELL_BUCKET=${cromwell_bucket}
-
+CROMWELL_BUCKET_W_PREFIX=${cromwell_bucket}
+FACTER_CROMWELL_BUCKET=$(python3 -c "import os,sys; x=os.environ['CROMWELL_BUCKET_W_PREFIX'];sys.stdout.write(x[5:])")
+ 
 # The address (including http/s protocol and any port) of the Cromwell server
 # Only needed if using the remote Cromwell job engine.
 # Should be the INTERNAL IP address in the same vpc network
-CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
+FACTER_CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 
 ########################## END Cromwell parameters #########################################
 
@@ -320,10 +320,10 @@ chown -R $MEV_USER:$MEV_USER /opt/software /var/log/mev /www
 
 # the path to a JSON file containing the credentials to authenticate with the Google storage API.
 # The startup script will perform the authentication and place the credentials into this file.
-STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
+FACTER_STORAGE_CREDENTIALS="/opt/software/mev-backend/storage_credentials.json"
 # Generate a set of keys for signing the download URL for bucket-based files.
-gcloud iam service-accounts keys create $STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
-chown $MEV_USER:$MEV_USER $STORAGE_CREDENTIALS
+gcloud iam service-accounts keys create $FACTER_STORAGE_CREDENTIALS --iam-account=$SERVICE_ACCOUNT
+chown $MEV_USER:$MEV_USER $FACTER_STORAGE_CREDENTIALS
 
 # First restart supervisor since it needs access to the
 # environment variables (can only read those that are defined
