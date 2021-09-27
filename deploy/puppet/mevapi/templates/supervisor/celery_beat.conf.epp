@@ -9,7 +9,7 @@
 command=/usr/local/bin/celery -A mev beat --loglevel=INFO --pidfile /tmp/celerybeat.pid -s /tmp/celerybeat-schedule
 
 ; The directory of the Django project
-directory=%(ENV_MEV_HOME)s
+directory=<%= $mevapi::django_root %>
 
 ; If supervisord is run as the root user, switch users to this UNIX user account
 ; before doing any processing.

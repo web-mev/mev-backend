@@ -9,7 +9,7 @@
 command=/usr/local/bin/celery -A mev worker --loglevel=INFO
 
 ; The directory to your Django project (the directory where manage.py lives)
-directory=%(ENV_MEV_HOME)s
+directory=<%= $mevapi::django_root %>
 
 ; If supervisord is run as the root user, switch users to this UNIX user account
 ; before doing any processing.

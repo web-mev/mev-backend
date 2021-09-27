@@ -230,9 +230,6 @@ FACTER_CROMWELL_SERVER_URL=http://${cromwell_ip}:8000
 
 ########################## END Cromwell parameters #########################################
 
-# set the directory where the MEV src will live. Used by the supervisor conf files
-MEV_HOME=/opt/software/mev-backend/mev
-
 FACTER_DATA_DIR=/data
 MEV_USER=ubuntu
 
