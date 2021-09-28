@@ -1,4 +1,4 @@
-# Install and configure WebMeV API
+# @summary Install and configure WebMeV API
 class mevapi (
   # parameter values are assigned by Hiera if not set when class is declared
   # https://puppet.com/docs/puppet/6/hiera_automatic.html#class_parameters
@@ -57,7 +57,6 @@ class mevapi (
     'netcat',
     'procps',
     'postgresql-12',
-    'nginx',
     'default-jre'
   ]
   package { $mev_dependencies: }
@@ -66,7 +65,7 @@ class mevapi (
     version => '3.8',
   }
 
-  python::requirements { "${project_root}/mev/requirements.txt":
+  python::requirements { "${django_root}/requirements.txt":
     pip_provider           => 'pip3',
     forceupdate            => true,
     fix_requirements_owner => false,
@@ -107,6 +106,71 @@ class mevapi (
     file { '/etc/supervisor/conf.d/cloud_sql_proxy.conf':
       ensure  => file,
       content => epp('mevapi/supervisor/cloud_sql_proxy.conf.epp'),
+    }
+  }
+
+  # Nginx configuration
+  class { 'nginx':
+    confd_purge => true,  # remove default config
+  }
+  nginx::resource::upstream { 'mev_app':
+    members => {
+      'gunicorn' => {
+        server       => 'unix:/tmp/gunicorn.sock',
+        fail_timeout => '0s',
+      }
+    }
+  }
+  # This map helps in situations where the request doesn't reach the
+  # gunicorn application server. An example is when the payload
+  # exceeds the client_max_body_size. In that case, nginx immediately
+  # responds with a 413, and the frontend is unable to
+  # see the response since it was lacking the 'Access-Control-Allow-Origin'
+  # header. This map skips editing in the case where this header exists and
+  # adds it in the case where it does not.
+  nginx::resource::map { 'cors_origin':
+    string   => '$upstream_http_access_control_allow_origin',
+    default  => "''",
+    mappings => {
+      "''" => '$http_origin'
+    },
+  }
+  nginx::resource::server { $backend_domain:
+    listen_port          => 80,
+    client_max_body_size => '256m',
+    use_default_location => false,
+    index_files          => [],
+    locations            => {
+      'root'   => {
+        location         => '/',
+        add_header       => {
+          'Access-Control-Allow-Origin' => { '$cors_origin' => 'always' },
+        },
+        proxy            => 'http://mev_app',
+        proxy_redirect   => 'off',
+        proxy_set_header => [
+          'Host              $host',
+          'X-Forwarded-For   $proxy_add_x_forwarded_for',
+          'X-Forwarded-Proto $scheme',
+          'X-Forwarded-Host  $host',
+          'X-Forwarded-Port  $server_port',
+        ],
+      },
+      'static' => {
+        location       => '/static/',
+        location_alias => '/www/static/',
+        index_files    => [],
+      },
+    },
+  }
+  nginx::resource::server { 'default':
+    server_name         => ['""'],
+    listen_port         => 80,
+    index_files         => [],
+    access_log          => 'absent',
+    error_log           => 'absent',
+    location_custom_cfg => {
+      'return' => 444,
     }
   }
 }

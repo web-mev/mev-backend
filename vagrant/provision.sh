@@ -27,11 +27,6 @@ export PYTHONUNBUFFERED=1
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# Copy the nginx config file, filling out the host, and removing the existing default
-rm -f /etc/nginx/sites-enabled/default
-cd /vagrant/deploy/mev
-sed -e "s?__SERVER_NAME__?$BACKEND_DOMAIN?g" nginx.conf > /etc/nginx/sites-enabled/nginx.conf
-
 # Create the log directory and the dir from which nginx will
 # eventually serve static files
 mkdir -p /var/log/mev

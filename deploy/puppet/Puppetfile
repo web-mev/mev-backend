@@ -4,6 +4,7 @@
 forge "https://forgeapi.puppetlabs.com"
 
 mod 'landcareresearch-solr', '6.0.7'
+mod 'puppet-nginx', '3.2.0'
 mod 'puppet-python', '6.1.0'
 mod 'puppet-rabbitmq', '11.1.0'
 mod 'puppetlabs-docker', '4.1.0'
