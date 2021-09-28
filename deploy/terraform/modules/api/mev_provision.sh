@@ -264,14 +264,6 @@ PATH="$PATH:/opt/puppetlabs/bin" && \
 /opt/puppetlabs/bin/puppet apply /opt/software/mev-backend/deploy/puppet/manifests/site.pp
 unset HOME  # for Cloud SQL Proxy
 
-# Install solr for indexing public data sources
-cd /opt/software && \
-  mkdir solr && \
-  cd solr && \
-  curl -s -O https://mirrors.advancedhosters.com/apache/lucene/solr/8.9.0/solr-8.9.0.tgz
-  tar -xzf solr-8.9.0.tgz solr-8.9.0/bin/install_solr_service.sh --strip-components=2
-  ./install_solr_service.sh solr-8.9.0.tgz -i /opt/software/solr -u mev
-
 # setup some static environment variables
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1

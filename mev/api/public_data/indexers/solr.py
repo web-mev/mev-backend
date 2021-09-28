@@ -8,16 +8,16 @@ from api.public_data.indexers.base import BaseIndexer
 
 logger = logging.getLogger(__name__)
 
+
 class SolrIndexer(BaseIndexer):
-    '''
+    """
     This class implements our interface to the solr service
-    '''
-
+    """
     # TODO: extract this to settings or otherwise
-    SOLR_BIN_DIR = '/opt/software/solr/solr-8.9.0/bin'
+    SOLR_BIN_DIR = '/opt/solr/bin'
 
-    SOLR_POST_CMD = '{bin_dir}/post'.format(bin_dir = SOLR_BIN_DIR)
-    SOLR_CMD = '{bin_dir}/solr'.format(bin_dir = SOLR_BIN_DIR)
+    SOLR_POST_CMD = '{bin_dir}/post'.format(bin_dir=SOLR_BIN_DIR)
+    SOLR_CMD = '{bin_dir}/solr'.format(bin_dir=SOLR_BIN_DIR)
 
     # TODO: extract this to settings or otherwise
     SOLR_SERVER = 'http://localhost:8983/solr'
