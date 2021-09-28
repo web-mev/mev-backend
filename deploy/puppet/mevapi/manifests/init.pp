@@ -40,7 +40,6 @@ class mevapi (
     'apt-transport-https',
     'ca-certificates',
     'gnupg2',
-    'software-properties-common',
     'zlib1g-dev',
     'libssl-dev',
     'libncurses5-dev',
@@ -50,7 +49,6 @@ class mevapi (
     'liblzma-dev',
     'libsqlite3-dev',
     'libpq-dev',
-    'wget',
     'supervisor',
     'nano',
     'git',
@@ -75,6 +73,11 @@ class mevapi (
   }
 
   include rabbitmq
+
+  class { 'solr':
+    version => '8.9.0',
+    url     => 'https://dlcdn.apache.org/lucene/solr',
+  }
 
   file { "${project_root}/.env":
     ensure  => file,

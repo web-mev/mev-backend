@@ -1,13 +1,13 @@
 After installing solr, create a core. This is run as the vagrant user:
 
 ```
-/opt/software/solr/solr-8.9.0/bin/solr create_core -c tcga-rnaseq -d /vagrant/mev/api/public_data/gdc/solr/tcga_rnaseq
+/opt/solr/bin/solr create_core -c tcga-rnaseq -d /vagrant/mev/api/public_data/gdc/solr/tcga_rnaseq
 ```
 
 Next, created an example annotation file using the test script. Index that:
 
 ```
-/opt/software/solr/solr-8.9.0/bin/post -c tcga-rnaseq /vagrant/mev/public_data/tcga/ann.csv
+/opt/solr/bin/post -c tcga-rnaseq /vagrant/mev/public_data/tcga/ann.csv
 ```
 
 Then, to query, we can use the requests library.
