@@ -1,38 +1,39 @@
+# Install and configure WebMeV API
 class mevapi (
   # parameter values are assigned by Hiera if not set when class is declared
   # https://puppet.com/docs/puppet/6/hiera_automatic.html#class_parameters
-  String $django_settings_module,
-  String $app_user,
-  String $project_root,
-  String $secret_key,
-  String $frontend_domain,
-  String $backend_domain,
-  String $site_name,
-  String $cloud_platform,
-  String $enable_remote_job_runners,
-  Enum['CROMWELL'] $remote_job_runners,
-  Enum['local', 'remote'] $storage_location,
-  String $storage_credentials,
-  String $local_storage_dirname,
-  String $storage_bucket_name,
-  String $max_download_size_bytes,
-  String $social_backends,
-  String $sentry_url,
-  String $dockerhub_org,
-  String $dockerhub_username,
-  String $dockerhub_password,
-  String $database_name,
-  String $database_user,
-  String $database_password,
-  String $database_host_socket,
-  String $database_port,
+  String                    $django_settings_module,
+  String                    $app_user,
+  String                    $project_root,
+  String                    $secret_key,
+  String                    $frontend_domain,
+  String                    $backend_domain,
+  String                    $site_name,
+  String                    $cloud_platform,
+  String                    $enable_remote_job_runners,
+  Enum['CROMWELL']          $remote_job_runners,
+  Enum['local', 'remote']   $storage_location,
+  String                    $storage_credentials,
+  String                    $local_storage_dirname,
+  String                    $storage_bucket_name,
+  String                    $max_download_size_bytes,
+  String                    $social_backends,
+  String                    $sentry_url,
+  String                    $dockerhub_org,
+  String                    $dockerhub_username,
+  String                    $dockerhub_password,
+  String                    $database_name,
+  String                    $database_user,
+  String                    $database_password,
+  String                    $database_host_socket,
+  String                    $database_port,
   Enum['dev', 'production'] $environment,
-  String $data_dir,
-  String $cromwell_server_url,
-  String $cromwell_bucket,
-
+  String                    $data_dir,
+  String                    $cromwell_server_url,
+  String                    $cromwell_bucket,
 ) {
   $app_group = $app_user
+  $django_root = "${project_root}/mev"
 
   $mev_dependencies = [
     'build-essential',
@@ -86,26 +87,19 @@ class mevapi (
     docker_users => [$app_user],
   }
 
-  file { '/etc/supervisor/supervisord.conf':
-    ensure  => file,
-    content => epp('mevapi/supervisor/supervisord.conf.epp'),
+  # Supervisor configuration
+  file {
+    default:
+      ensure => file,;
+    '/etc/supervisor/supervisord.conf':
+      content => epp('mevapi/supervisor/supervisord.conf.epp'),;
+    '/etc/supervisor/conf.d/gunicorn.conf':
+      content => epp('mevapi/supervisor/gunicorn.conf.epp'),;
+    '/etc/supervisor/conf.d/celery_beat.conf':
+      content => epp('mevapi/supervisor/celery_beat.conf.epp'),;
+    '/etc/supervisor/conf.d/celery_worker.conf':
+      content => epp('mevapi/supervisor/celery_worker.conf.epp'),;
   }
-
-  file { '/etc/supervisor/conf.d/gunicorn.conf':
-    ensure  => file,
-    content => epp('mevapi/supervisor/gunicorn.conf.epp'),
-  }
-
-  file { '/etc/supervisor/conf.d/celery_beat.conf':
-    ensure  => file,
-    content => epp('mevapi/supervisor/celery_beat.conf.epp'),
-  }
-
-  file { '/etc/supervisor/conf.d/celery_worker.conf':
-    ensure  => file,
-    content => epp('mevapi/supervisor/celery_worker.conf.epp'),
-  }
-
   if $facts['virtual'] == 'gce' {
     file { '/etc/supervisor/conf.d/cloud_sql_proxy.conf':
       ensure  => file,

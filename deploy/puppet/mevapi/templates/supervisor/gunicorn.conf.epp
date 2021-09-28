@@ -14,7 +14,7 @@ user=<%= $mevapi::app_user %>
 environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>"
 
 ; Location of Django project
-directory=%(ENV_MEV_HOME)s
+directory=<%= $mevapi::django_root %>
 
 ; Put process stdout output in this file
 stdout_logfile=/var/log/mev/gunicorn.log
