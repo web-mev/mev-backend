@@ -62,47 +62,40 @@ These items are obviously not *required*, but you would need to modify the terra
 
 - Install [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) and [Terraform](https://www.terraform.io/downloads.html)
 - Create a service account with the appropriate roles and obtain a JSON-format service account key file. You can do this via the [gcloud commandline tool](#gcloud-svc-acct) or using the [web console](#gcp-svc-acct). Keep the key file safe.
-- To allow https, we need a SSL certificate. The `gcloud` commandline tool provides a convenient way to provision one:
-```
+- To allow https, we need an SSL certificate. The `gcloud` commandline tool provides a convenient way to provision one:
+```shell
 gcloud beta compute ssl-certificates create <CERTIFICATE NAME>
 --description="SSL certificate for WebMeV dev server"
---domains=mydomain1-dev.tm4.org,mydomain2-dev.tm4.org
+--domains="mev-api.example.org"
 ```
-Note: until the full stack is up and the load balancer is active, this will remain in a "provisioning" state.
+Note: until the full stack is up and the load balancer is active, this will remain in a "provisioning" state; specify only the backend domain in the above command.
 
-  - `cd deploy/terraform/live`
-  - `terraform init`
-  - `cp config.tfvars.template terraform.tfvars`
-  - Edit `terraform.tfvars` to assign required configuration values. You can refer to the `vars.tf` file for explanations of these variables and what they do. These are obviously the same environment variables used in the local, Vagrant-based deployment, so further information may be available in the comments of the `vagrant/env.tmpl` file at the root of this repository.
+- `cd deploy/terraform/live`
+- `terraform init`
+- `cp config.tfvars.template terraform.tfvars`
+- Edit `terraform.tfvars` to assign required configuration values. You can refer to the `vars.tf` file for explanations of these variables and what they do. These are obviously the same environment variables used in the local, Vagrant-based deployment, so further information may be available in the comments of the `vagrant/env.tmpl` file at the root of this repository.
 
-    **Special notes:**
-
-    - The `ssl_cert` variable refers to the SSL certificate you created above. It is a resource string like: `projects/<GCP PROJECT>/global/sslCertificates/<CERTIFICATE NAME>`
-    - The `credentials_file` variable is the JSON-format key file you obtained for your service account. Assuming you saved this file in your `deploy/terraform/live/` directory, then you can simply write the file name.
-    - The `service_account_email` variable is the email-like name of the service account you created. For example, `abc123@<GCP PROJECT>.iam.gserviceaccount.com`
+  **Special notes:**
+  - The `ssl_cert` variable refers to the SSL certificate you created above. It is a resource string like: `projects/<GCP PROJECT>/global/sslCertificates/<CERTIFICATE NAME>`
+  - The `credentials_file` variable is the JSON-format key file you obtained for your service account. Assuming you saved this file in your `deploy/terraform/live/` directory, then you can simply write the file name.
+  - The `service_account_email` variable is the email-like name of the service account you created. For example, `abc123@<GCP PROJECT>.iam.gserviceaccount.com`
 
 - Create and set your terraform workspace.
-
-    Note that we make use of [terraform workspaces](https://www.terraform.io/docs/language/state/workspaces.html) which allow independent deployments using the same scripts. The *name* of the workspace is typically used when naming the cloud-based resources created (e.g. `backend-<WORKSPACE NAME>`) to make them more obvious when interacting with the GCP console or gcloud tool. By default, the workspace name is, appropriately enough, `default`. You can create a new workspace with:
+  Note that we make use of [terraform workspaces](https://www.terraform.io/docs/language/state/workspaces.html) which allow independent deployments using the same scripts. The *name* of the workspace is typically used when naming the cloud-based resources created (e.g. `backend-<WORKSPACE NAME>`) to make them more obvious when interacting with the GCP console or gcloud tool. By default, the workspace name is, appropriately enough, `default`. You can create a new workspace with:
 ```
 terraform workspace new <WORKSPACE NAME>
 ```
-
 and you can switch between workspaces with:
 ```
 terraform workspace select <WORKSPACE NAME>
 ```
 
 - Once you have set a workspace, you can build it with
-
 ```
 terraform apply
 ```
-
 This will prompt for any configuration variables that were not included in `terraform.tfvars`. Often, variables like these are intentionally left out to force the user to take a moment and think about what they are doing. One example is the git commit ID. This will tell terraform which git commit should be deployed. We intentionally prompt for this so that the developer is forced to examine the *exact* version of the application they wish to deploy.
-
 - To delete your resources:
-
 ```
 terraform destroy
 ```
