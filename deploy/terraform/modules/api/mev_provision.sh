@@ -395,6 +395,7 @@ fi
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
 /usr/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
+chown -R $MEV_USER:$MEV_USER $FACTER_DATA_DIR/operations
 
 # Start celery:
 supervisorctl start mev_celery_beat
