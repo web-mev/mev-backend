@@ -117,6 +117,7 @@ class mevapi (
     members => {
       'gunicorn' => {
         server       => 'unix:/tmp/gunicorn.sock',
+        # always retry an upstream even if it failed to return a good HTTP response
         fail_timeout => '0s',
       }
     }
