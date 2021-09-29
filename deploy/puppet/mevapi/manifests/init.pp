@@ -74,7 +74,7 @@ class mevapi (
   include rabbitmq
 
   class { 'solr':
-    version => '8.9.0',
+    version => '8.10.0',
     url     => 'https://dlcdn.apache.org/lucene/solr',
   }
 
