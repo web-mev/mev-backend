@@ -5,6 +5,14 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 3.60.0"
     }
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.1.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.1.0"
+    }
   }
 }
 
@@ -15,6 +23,9 @@ provider "google" {
   zone        = var.zone
 }
 
+data "external" "git" {
+  program = ["/bin/bash", "-c", "echo '{\"branch\": \"'$(git branch --show-current)'\"}'"]
+}
 
 resource "google_compute_network" "mev_api_network" {
     name           = "webmev-backend-${terraform.workspace}-network"    
@@ -66,7 +77,7 @@ module "api" {
     db_name = var.db_name
     db_port = var.db_port
     db_host = google_sql_database_instance.mev_db_instance.connection_name
-    commit_id = var.commit_id
+    commit_id = var.commit_id == "" ? data.external.git.result["branch"] : var.commit_id
     cromwell_bucket = module.cromwell.cromwell_bucket
     django_secret = var.django_secret
     frontend_domain = var.frontend_domain
