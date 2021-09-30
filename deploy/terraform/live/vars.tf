@@ -34,11 +34,11 @@ variable "api_machine_config" {
 }
 
 variable "cromwell_os_image" {
-    default = "ubuntu-2004-focal-v20210325"
+  default = "ubuntu-2004-focal-v20210927"
 }
 
 variable "api_os_image" {
-    default = "ubuntu-2004-focal-v20210325"
+  default = "ubuntu-2004-focal-v20210927"
 }
 
 variable "cromwell_db_name" {
