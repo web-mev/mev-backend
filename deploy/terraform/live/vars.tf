@@ -91,7 +91,8 @@ variable "db_port" {
 }
 
 variable "commit_id" {
-  description = "The github commit to use for deployment."
+  default     = ""
+  description = "The GitHub commit or branch to use for deployment"
 }
 
 variable "django_secret" {
