@@ -2,16 +2,6 @@ project_id = ""
 credentials_file = ""
 service_account_email = ""
 
-cromwell_machine_config = {
-    machine_type = ""
-    disk_size_gb = <integer>
-}
-
-api_machine_config = {
-    machine_type = ""
-    disk_size_gb = <integer>
-}
-
 enable_remote_job_runners="yes"
 remote_job_runners="CROMWELL"
 
