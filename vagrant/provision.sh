@@ -27,20 +27,11 @@ export PYTHONUNBUFFERED=1
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# Create the log directory and the dir from which nginx will
-# eventually serve static files
-mkdir -p /var/log/mev
+# Create the dir from which nginx will eventually serve static files
 mkdir -p /www
 
-# touch some log files which will then be transferred to the mev 
-# user.
-touch /var/log/mev/celery_beat.log  \
-  /var/log/mev/celery_worker.log  \
-  /var/log/mev/cloud_sql.log  \
-  /var/log/mev/gunicorn.log
-
-# Give the mev user ownership of the code directory and the logging directory
-chown -R $MEV_USER:$MEV_USER /var/log/mev /www
+# Give the mev user ownership of the code directory and the static file directory
+chown -R $MEV_USER:$MEV_USER /www
  
 # use localhost when we're in dev. the postgres server is local
 export DB_HOST_SOCKET=$DB_HOST_FULL

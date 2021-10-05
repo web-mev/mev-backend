@@ -34,6 +34,7 @@ class mevapi (
 ) {
   $app_group = $app_user
   $django_root = "${project_root}/mev"
+  $log_dir = '/var/log/mev'
 
   $mev_dependencies = [
     'build-essential',
@@ -173,5 +174,11 @@ class mevapi (
     location_custom_cfg => {
       'return' => 444,
     }
+  }
+
+  file { $log_dir:
+    ensure => directory,
+    owner => $app_user,
+    group => $app_group,
   }
 }

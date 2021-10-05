@@ -20,10 +20,10 @@ environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>
 numprocs=1
 
 ; Put process stdout output in this file
-stdout_logfile=/var/log/mev/celery_beat.log
+stdout_logfile = <%= $mevapi::log_dir %>/celery_beat.log
 
-; Put process stderr output in this file
-stderr_logfile=/var/log/mev/celery_beat.log
+; Put process stderr output in stdout file
+redirect_stderr = true
 
 ; If true, this program will start automatically when supervisord is started
 autostart=false

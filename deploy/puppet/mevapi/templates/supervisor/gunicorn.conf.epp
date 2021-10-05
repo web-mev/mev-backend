@@ -3,9 +3,6 @@
 command=/usr/local/bin/gunicorn mev.wsgi:application
     --bind=unix:///tmp/gunicorn.sock
     --workers 3
-    --error-logfile /var/log/mev/gunicorn.log
-    --log-file /var/log/mev/gunicorn.log
-    --capture-output
     --timeout 120
 
 ; If supervisord is run as the root user, switch users to this UNIX user account
@@ -17,10 +14,10 @@ environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>
 directory=<%= $mevapi::django_root %>
 
 ; Put process stdout output in this file
-stdout_logfile=/var/log/mev/gunicorn.log
+stdout_logfile = <%= $mevapi::log_dir %>/gunicorn.log
 
-; Put process stderr output in this file
-stderr_logfile=/var/log/mev/gunicorn.log
+; Put process stderr output in stdout file
+redirect_stderr = true
 
 autostart=false
 autorestart=true
