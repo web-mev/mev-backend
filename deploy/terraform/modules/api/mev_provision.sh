@@ -374,8 +374,8 @@ fi
 chown -R $MEV_USER:$MEV_USER $FACTER_DATA_DIR/operations
 
 # Start celery:
-supervisorctl start mev_celery_beat
-supervisorctl start mev_celery_worker
+supervisorctl start celery_beat
+supervisorctl start celery_worker
 
 # Restart nginx so it loads the new config:
 service nginx restart

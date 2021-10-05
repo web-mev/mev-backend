@@ -14,7 +14,7 @@ environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>
 directory=<%= $mevapi::django_root %>
 
 ; Put process stdout output in this file
-stdout_logfile = <%= $mevapi::log_dir %>/gunicorn.log
+stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
 
 ; Put process stderr output in stdout file
 redirect_stderr = true

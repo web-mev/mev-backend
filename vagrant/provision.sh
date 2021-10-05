@@ -155,8 +155,8 @@ if [ "$ENVIRONMENT" != "dev" ]; then
 fi
 
 # Start celery:
-supervisorctl start mev_celery_beat
-supervisorctl start mev_celery_worker
+supervisorctl start celery_beat
+supervisorctl start celery_worker
 
 # Restart nginx so it loads the new config:
 service nginx restart

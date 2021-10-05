@@ -5,7 +5,7 @@ command=/opt/software/database/cloud_sql_proxy -instances=%(ENV_DB_HOST_FULL)s -
 user=<%= $mevapi::app_user %>
 
 ; Put process stdout output in this file
-stdout_logfile = <%= $mevapi::log_dir %>/cloud_sql.log
+stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
 
 ; Put process stderr output in stdout file
 redirect_stderr = true

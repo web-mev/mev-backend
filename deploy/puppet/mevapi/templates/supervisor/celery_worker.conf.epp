@@ -3,7 +3,7 @@
 ; ==================================
 
 ; the name of your supervisord program
-[program:mev_celery_worker]
+[program:celery_worker]
 
 ; Set full path to celery program if using virtualenv
 command=/usr/local/bin/celery -A mev worker --loglevel=INFO
@@ -20,7 +20,7 @@ environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>
 numprocs=1
 
 ; Put process stdout output in this file
-stdout_logfile = <%= $mevapi::log_dir %>/celery_worker.log
+stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
 
 ; Put process stderr output in stdout file
 redirect_stderr = true
