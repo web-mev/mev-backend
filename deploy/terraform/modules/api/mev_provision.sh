@@ -270,20 +270,11 @@ export PYTHONUNBUFFERED=1
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# Create the log directory and the dir from which nginx will
-# eventually serve static files
-mkdir -p /var/log/mev
+# Create the dir from which nginx will eventually serve static files
 mkdir -p /www
 
-# touch some log files which will then be transferred to the mev 
-# user.
-touch /var/log/mev/celery_beat.log  \
-  /var/log/mev/celery_worker.log  \
-  /var/log/mev/cloud_sql.log  \
-  /var/log/mev/gunicorn.log
-
-# Give the mev user ownership of the code directory and the logging directory
-chown -R $MEV_USER:$MEV_USER /opt/software /var/log/mev /www
+# Give the mev user ownership of the code directory and the static file directory
+chown -R $MEV_USER:$MEV_USER /opt/software /www
 
   # Create the postgres database...
   # Extract the shorter database hostname from the full string. Django looks 
@@ -383,8 +374,8 @@ fi
 chown -R $MEV_USER:$MEV_USER $FACTER_DATA_DIR/operations
 
 # Start celery:
-supervisorctl start mev_celery_beat
-supervisorctl start mev_celery_worker
+supervisorctl start celery_beat
+supervisorctl start celery_worker
 
 # Restart nginx so it loads the new config:
 service nginx restart

@@ -5,10 +5,10 @@ command=/opt/software/database/cloud_sql_proxy -instances=%(ENV_DB_HOST_FULL)s -
 user=<%= $mevapi::app_user %>
 
 ; Put process stdout output in this file
-stdout_logfile=/var/log/mev/cloud_sql.log
+stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
 
-; Put process stderr output in this file
-stderr_logfile=/var/log/mev/cloud_sql.log
+; Put process stderr output in stdout file
+redirect_stderr = true
 
 autostart=false
 autorestart=true
