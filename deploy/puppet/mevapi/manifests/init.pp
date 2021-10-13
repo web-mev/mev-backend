@@ -89,15 +89,16 @@ class mevapi (
     group  => $app_group,
   }
 
-  file { $solr_data_dir:
-    ensure => directory,
-    owner  => 'solr',
-    group  => 'solr',
-  }
   class { 'solr':
     version   => '8.10.0',
     url       => 'https://dlcdn.apache.org/lucene/solr',
     solr_home => "${project_root}/solr",
+  }
+  file { $solr_data_dir:
+    ensure => directory,
+    owner  => 'solr',
+    group  => 'solr',
+    notify => Class['Solr::service'],
   }
 
   file { "${project_root}/.env":
