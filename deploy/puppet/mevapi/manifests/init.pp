@@ -28,13 +28,22 @@ class mevapi (
   String                    $database_host_socket,
   String                    $database_port,
   Enum['dev', 'production'] $environment,
-  String                    $data_dir,
   String                    $cromwell_server_url,
   String                    $cromwell_bucket,
 ) {
   $app_group = $app_user
   $django_root = "${project_root}/mev"
   $log_dir = '/var/log/mev'
+  $data_dir = '/data'
+  $django_data_dirs = [
+    "${data_dir}/pending_user_uploads",
+    "${data_dir}/resource_cache",
+    "${data_dir}/operation_staging",
+    "${data_dir}/operations",
+    "${data_dir}/operation_executions",
+    "${data_dir}/public_data",
+  ]
+  $solr_data_dir = "${data_dir}/solr"
 
   $mev_dependencies = [
     'build-essential',
@@ -74,6 +83,17 @@ class mevapi (
 
   include rabbitmq
 
+  file { concat([$data_dir], $django_data_dirs):
+    ensure => directory,
+    owner  => $app_user,
+    group  => $app_group,
+  }
+
+  file { $solr_data_dir:
+    ensure => directory,
+    owner  => 'solr',
+    group  => 'solr',
+  }
   class { 'solr':
     version   => '8.10.0',
     url       => 'https://dlcdn.apache.org/lucene/solr',
@@ -179,7 +199,7 @@ class mevapi (
 
   file { $log_dir:
     ensure => directory,
-    owner => $app_user,
-    group => $app_group,
+    owner  => $app_user,
+    group  => $app_group,
   }
 }
