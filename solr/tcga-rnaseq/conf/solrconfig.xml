@@ -35,7 +35,7 @@
        that you fully re-index after changing this setting as it can
        affect both how text is indexed and queried.
   -->
-  <luceneMatchVersion>8.8.2</luceneMatchVersion>
+  <luceneMatchVersion>8.10.0</luceneMatchVersion>
 
   <!-- <lib/> directives can be used to instruct Solr to load any Jars
        identified and use them to resolve any "plugins" specified in
@@ -89,9 +89,15 @@
        replication is in use, this should match the replication
        configuration.
     -->
-  <dataDir>${solr.data.dir:}</dataDir>
+  <dataDir>/data/solr/${solr.core.name}</dataDir>
 
+  <!-- Schema Factory
+
+       ClassicIndexSchemaFactory requires the use of a schema.xml configuration file
+       and disallows any programatic changes to the Schema at run time
+  -->
   <schemaFactory class="ClassicIndexSchemaFactory"/>
+
   <!-- The DirectoryFactory to use for indexes.
 
        solr.StandardDirectoryFactory is filesystem
@@ -1178,7 +1184,7 @@
   </updateProcessor>
 
   <!-- The update.autoCreateFields property can be turned to false to disable schemaless mode -->
-  <updateRequestProcessorChain name="add-unknown-fields-to-the-schema" default="${update.autoCreateFields:false}"
+  <updateRequestProcessorChain name="add-unknown-fields-to-the-schema" default="${update.autoCreateFields:true}"
            processor="uuid,remove-blank,field-name-mutating,parse-boolean,parse-long,parse-double,parse-date,add-schema-fields">
     <processor class="solr.LogUpdateProcessorFactory"/>
     <processor class="solr.DistributedUpdateProcessorFactory"/>
@@ -1199,7 +1205,6 @@
        <processor class="solr.processor.SignatureUpdateProcessorFactory">
          <bool name="enabled">true</bool>
          <str name="signatureField">id</str>
-         <bool name="overwriteDupes">false</bool>
          <str name="fields">name,features,cat</str>
          <str name="signatureClass">solr.processor.Lookup3Signature</str>
        </processor>
