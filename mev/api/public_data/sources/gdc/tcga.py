@@ -79,7 +79,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
     TAG = 'tcga-rnaseq'
 
     # A format-string for the annotation file
-    ANNOTATION_OUTPUT_FILE = 'annotations.{tag}.{ds}.tsv'
+    ANNOTATION_OUTPUT_FILE = 'annotations.{tag}.{ds}.csv'
 
     # A format-string for the count file
     COUNT_OUTPUT_FILE = 'counts.{tag}.{ds}.tsv'
