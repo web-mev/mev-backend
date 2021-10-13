@@ -93,53 +93,7 @@ class TestSolrIndexer(unittest.TestCase):
         mock_requests.get.return_value = mock_response
         self.assertFalse(self.indexer._check_if_core_exists('junk'))
 
-    @mock.patch('api.public_data.indexers.solr.run_shell_command')
-    def test_index_call_with_create_core(self, mock_run_shell_command):
-        '''
-        Tests that the index command is properly formatted
-        '''
-        index_name = 'foo-{s}'.format(s=str(uuid.uuid4()))
-        mock_path = '/some/fake/path.csv'
-        expected_command = '{bin_dir}/post -c {idx} {path}'.format(
-            idx = index_name,
-            bin_dir = self.indexer.SOLR_BIN_DIR,
-            path = mock_path
-        )
-        mock_run_shell_command.return_value = ('','')
-        mock_check_if_core_exists = mock.MagicMock()
-        mock_check_if_core_exists.return_value = False
-        self.indexer._check_if_core_exists = mock_check_if_core_exists
-        mock_create_core = mock.MagicMock()
-        self.indexer._create_core = mock_create_core
-
-        self.indexer.index(index_name, mock_path)
-
-        mock_run_shell_command.assert_called_with(expected_command)
-        mock_create_core.assert_called_once_with(index_name)
-
-    @mock.patch('api.public_data.indexers.solr.run_shell_command')
-    def test_index_call_with_existing_core(self, mock_run_shell_command):
-        '''
-        Tests that the index command is properly formatted
-        '''
-        index_name = 'foo-{s}'.format(s=str(uuid.uuid4()))
-        mock_path = '/some/fake/path.csv'
-        expected_command = '{post_cmd} -c {idx} {path}'.format(
-            idx = index_name,
-            post_cmd = self.indexer.SOLR_POST_CMD,
-            path = mock_path
-        )
-        mock_run_shell_command.return_value = ('','')
-        mock_check_if_core_exists = mock.MagicMock()
-        mock_check_if_core_exists.return_value = True
-        self.indexer._check_if_core_exists = mock_check_if_core_exists
-        mock_create_core = mock.MagicMock()
-        self.indexer._create_core = mock_create_core
-
-        self.indexer.index(index_name, mock_path)
-
-        mock_run_shell_command.assert_called_with(expected_command)
-        mock_create_core.assert_not_called()
+    
 
     @mock.patch('api.public_data.indexers.solr.run_shell_command')
     @mock.patch('api.public_data.indexers.solr.os.path.dirname')
@@ -166,41 +120,4 @@ class TestSolrIndexer(unittest.TestCase):
         )
         mock_run_shell_command.return_value = ('','')
         self.indexer._create_core(index_name)
-        mock_run_shell_command.assert_called_with(expected_command)
-
-    @mock.patch('api.public_data.indexers.solr.run_shell_command')
-    @mock.patch('api.public_data.indexers.solr.os.path.dirname')
-    @mock.patch('api.public_data.indexers.solr.os.path.abspath')
-    @mock.patch('api.public_data.indexers.solr.os.path.exists')
-    def test_core_creation_fails_when_missing_schema_dir(self, 
-        mock_exists, 
-        mock_abspath,
-        mock_dirname,
-        mock_run_shell_command):
-        '''
-        Check that we make the proper call to create a core
-        '''
-        mock_dir = 'some/dir'
-        mock_dirname.return_value = mock_dir
-        mock_abspath.return_value = ''
-        mock_exists.return_value = False
-        index_name = 'foo-{s}'.format(s=str(uuid.uuid4()))
-        
-        with self.assertRaises(Exception):
-            self.indexer._create_core(index_name)
-        mock_run_shell_command.assert_not_called()
-      
-    @mock.patch('api.public_data.indexers.solr.run_shell_command')
-
-    def test_delete_core_called_correctly(self, mock_run_shell_command):
-        '''
-        Check that we make the proper call to delete a core
-        '''
-        index_name = 'foo-{s}'.format(s=str(uuid.uuid4()))
-        expected_command = '{solr} delete -c {idx}'.format(
-            idx = index_name,
-            solr = self.indexer.SOLR_CMD
-        )
-        mock_run_shell_command.return_value = ('','')
-        self.indexer._delete_core(index_name)
         mock_run_shell_command.assert_called_with(expected_command)

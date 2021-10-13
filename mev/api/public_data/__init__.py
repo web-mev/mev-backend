@@ -35,25 +35,51 @@ def check_if_valid_public_dataset_name(dataset_id):
     '''
     return dataset_id in DATASETS
 
-def add_dataset(dataset_db_instance):
+def get_implementing_class(index_name):
+    implementing_class = DATASET_MAPPING[index_name]
+    return implementing_class()
+
+def prepare_dataset(dataset_id):
     '''
     This is the main entrypoint for all public datasets to be created or updated
 
     Calls to this function should have already checked that the requested
     dataset name is "valid" using the check_if_valid_public_dataset_name
     function in this module.
+
+    Note that this only downloads and prepares the dataset. Does NOT index!
     '''
 
     # Get the class which will do all the work and instantiate it
-    implementing_class = DATASET_MAPPING[dataset_db_instance.index_name]
-    dataset = implementing_class()
-
-    # If an exception is raised during this call, the calling function (
-    # a celery task) will catch and handle it.
+    dataset = get_implementing_class(dataset_id)
     dataset.prepare()
 
-    # Once the data load and index process has successfully completed,
+def index_dataset(dataset_db_instance, filelist):
+    '''
+    Indexes the files provided as a list in the second arg.
+    Specifics of the indexing are left to the implementing class and
+    may affect which changes are committed
+    '''
+    # the unique dataset ID
+    index_name = dataset_db_instance.index_name
+
+    # get the implementation for the indexing tool
+    indexer_impl = get_indexer()
+    if type filelist is list:
+        for f in filelist:
+            try:
+                indexer_impl.index(index_name, f)
+            except Exception as ex:
+                return
+    else:
+        logger.info('You must pass a list of file paths for the files'
+            ' you want to index. Aborting.'
+        )
+        return
+
+    # Once the index process has successfully completed,
     # update the database model and save:
+    dataset = get_implementing_class(index_name)
     dataset_db_instance.public_name = dataset.PUBLIC_NAME
     dataset_db_instance.description = dataset.DESCRIPTION
     dataset_db_instance.timestamp = datetime.datetime.today()

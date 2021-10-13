@@ -14,7 +14,6 @@ from django.conf import settings
 
 from api.utilities.basic_utils import get_with_retry, make_local_directory
 from .gdc import GDCDataSource
-from api.public_data.indexers import get_indexer
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +150,9 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
     def download_and_prep_dataset(self):
         '''
-        Implementation of the RNA-seq data download
+        Implementation of the RNA-seq data download and prep. At the end, we will have
+        flat files that are ready to be indexed. However, this method does NOT perform
+        that indexing.
         '''
 
         # Get the data dictionary, which will tell us the universe of available
@@ -335,14 +336,16 @@ class TCGARnaSeqDataSource(TCGADataSource):
                 finished = True
 
         # Write all the metadata to a file
+        ann_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
+        )
         annotation_df.to_csv(
-            os.path.join(
-                self.ROOT_DIR,
-                self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
-            ), 
+            ann_output_path, 
             sep=',', 
             index_label = 'id'
         )
+        logger.info('Wrote TCGA RNA-seq annotation file to {p}'.format(p=ann_output_path))
 
         # Merge and write the count files
         self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
@@ -350,11 +353,14 @@ class TCGARnaSeqDataSource(TCGADataSource):
         # Cleanup the downloads
         [os.remove(x) for x in downloaded_archives]
 
+        return ann_output_path
+
 
     def _merge_downloaded_archives(self, downloaded_archives, file_to_aliquot_mapping):
         '''
         Given a list of the downloaded archives, extract and merge them into a single count matrix
         '''
+        logger.info('Begin merging the individual count matrix archives into a single count matrix')
         count_df = pd.DataFrame()
         tmpdir = os.path.join(self.ROOT_DIR, 'tmparchive')
         for f in downloaded_archives:
@@ -372,31 +378,43 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
-        count_df.to_csv(
-            os.path.join(
-                self.ROOT_DIR,
-                self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=self.date_str)
-            ), 
-            sep='\t'
+        counts_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=self.date_str)
         )
+        count_df.to_csv(counts_output_path, sep='\t')
+        logger.info('Writing final counts to {p}'.format(p=counts_output_path))
 
         # Clean up:
         shutil.rmtree(tmpdir)
 
-    def _index_data(self, path):
-        '''
-        Uses the indexer to index the file located at `path`
-        '''
-        indexer_cls = get_indexer()
-        indexer = indexer_cls()
-        indexer.index(self.TAG, path)
 
     def prepare(self):
+        '''
+        Entry method for downloading and munging the TCGA RNA-seq dataset
+        to a flat file.
+        '''
+        annotation_path = self.download_and_prep_dataset()
+        logger.info('The metadata/annnotation file for your TCGA RNA-seq data'
+            'is available at {p}'.format(p=annotation_path))
         
-        self.download_and_prep_dataset()
 
-        annotation_path = os.path.join(
-            self.ROOT_DIR,
-            self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
-        )
-        self._index_data(annotation_path)
+class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):
+    '''
+    A subset of the TCGARnaSeqDataSource for only TCGA-UVM
+    and TCGA-MESO. 
+    '''
+
+    # a string which will make it obvious where the data has come from. For example, we can use
+    # this tag to name an output file produced by this class (e.g. the count matrix).
+    # We also use this tag
+    TAG = 'mini-tcga-rnaseq'
+
+    FILTER_LIST = [
+    {
+        "op": "in",
+        "content":{
+            "field": "files.cases.project.project_id",
+            "value": ["TCGA-UVM", "TCGA-MESO"]
+            }
+    }

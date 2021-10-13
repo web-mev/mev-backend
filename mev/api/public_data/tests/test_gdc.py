@@ -82,7 +82,6 @@ class TestTCGARnaSeq(unittest.TestCase):
                 ds = now.strftime('%m%d%Y')
             )
         )
-        print(expected_output_annotation_file)
         self.assertTrue(os.path.exists(expected_output_annotation_file))
         self.assertTrue(os.path.exists(expected_output_count_file))
         
