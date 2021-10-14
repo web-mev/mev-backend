@@ -14,7 +14,6 @@ set -o allexport
 
 source /vagrant/$1
 
-DATA_DIR=/data
 MEV_USER=vagrant
 
 set +o allexport
@@ -65,22 +64,6 @@ runuser -m postgres -c "psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "
     GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
     ALTER USER $DB_USER CREATEDB;
 EOSQL"
-
-# Some preliminaries before we start asking django to set things up:
-mkdir $DATA_DIR
-mkdir -p $DATA_DIR/pending_user_uploads
-mkdir -p $DATA_DIR/resource_cache
-mkdir -p $DATA_DIR/operation_staging
-mkdir -p $DATA_DIR/operations
-mkdir -p $DATA_DIR/operation_executions
-mkdir -p $DATA_DIR/public_data
-
-# Change the ownership so we have write permissions.
-chown -R $MEV_USER:$MEV_USER $DATA_DIR
-
-# Workaround to allow vagrant to write to /data. This is needed
-# when running unit tests
-chmod -R o+w $DATA_DIR
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
