@@ -92,32 +92,3 @@ class TestSolrIndexer(unittest.TestCase):
         mock_response.status_code = 404
         mock_requests.get.return_value = mock_response
         self.assertFalse(self.indexer._check_if_core_exists('junk'))
-
-    
-
-    @mock.patch('api.public_data.indexers.solr.run_shell_command')
-    @mock.patch('api.public_data.indexers.solr.os.path.dirname')
-    @mock.patch('api.public_data.indexers.solr.os.path.abspath')
-    @mock.patch('api.public_data.indexers.solr.os.path.exists')
-    def test_core_creation_called_correctly(self, 
-        mock_exists, 
-        mock_abspath,
-        mock_dirname,
-        mock_run_shell_command):
-        '''
-        Check that we make the proper call to create a core
-        '''
-        mock_dir = 'some/dir'
-        mock_dirname.return_value = mock_dir
-        mock_abspath.return_value = ''
-        mock_exists.return_value = True
-        index_name = 'foo-{s}'.format(s=str(uuid.uuid4()))
-        mock_schema_dir = os.path.join(mock_dir, 'solr', index_name)
-        expected_command = '{solr} create_core -c {idx} -d {dir}'.format(
-            idx = index_name,
-            solr = self.indexer.SOLR_CMD,
-            dir = mock_schema_dir
-        )
-        mock_run_shell_command.return_value = ('','')
-        self.indexer._create_core(index_name)
-        mock_run_shell_command.assert_called_with(expected_command)
