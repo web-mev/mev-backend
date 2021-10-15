@@ -92,3 +92,37 @@ class TestSolrIndexer(unittest.TestCase):
         mock_response.status_code = 404
         mock_requests.get.return_value = mock_response
         self.assertFalse(self.indexer._check_if_core_exists('junk'))
+
+    @mock.patch('api.public_data.indexers.solr.requests.post')
+    @mock.patch('api.public_data.indexers.solr.SolrIndexer._check_if_core_exists')
+    @mock.patch('api.public_data.indexers.solr.mimetypes')
+    def test_index_call_correctly_made(self, mock_mimetypes,
+        mock_check_core, 
+        mock_post):
+        '''
+        Tests that we are issuing the proper request to index a file with solr
+        '''
+        mock_check_core.return_value = True
+        mock_content_type = 'text/csv'
+        mock_mimetypes.guess_type.return_value = (mock_content_type,None)
+        ann_filepath = os.path.join(THIS_DIR, 'test_files', 'test_annotation_data.csv')
+        mock_core_name = 'foo'
+
+        class MockResponse(object):
+            def __init__(self):
+                self.status_code = 200
+            def json(self):
+                return 'something'
+
+        mock_response_obj = MockResponse()
+        print('mock_resp_obj: ', mock_response_obj)
+        mock_post.return_value = mock_response_obj
+        self.indexer.index(mock_core_name, ann_filepath)
+        expected_url ='{host}/{core}/update/'.format(
+            host=self.indexer.SOLR_SERVER, core=mock_core_name)
+        mock_post.assert_called_with(expected_url,
+            data=open(ann_filepath, 'r').read(),
+            params={'commit': 'true'},
+            headers={'content-type': mock_content_type}
+        )
+

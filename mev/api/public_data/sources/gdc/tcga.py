@@ -325,9 +325,10 @@ class TCGARnaSeqDataSource(TCGADataSource):
             )
             response_head_cd = download_response.headers["Content-Disposition"]
             file_name = re.findall("filename=(.+)", response_head_cd)[0]
-            with open(file_name, "wb") as output_file:
+            fout = os.path.join('/tmp', file_name)
+            with open(fout, "wb") as output_file:
                 output_file.write(download_response.content)
-            downloaded_archives.append(file_name)
+            downloaded_archives.append(fout)
 
             i += 1
 
@@ -368,6 +369,8 @@ class TCGARnaSeqDataSource(TCGADataSource):
                 tf.extractall(path=tmpdir)
                 for t in tf.getmembers():
                     if t.name.endswith(self.HTSEQ_SUFFIX):
+                        # the folder has the name of the file.
+                        # The prefix UUID on the basename is not useful to us.
                         file_id = t.name.split('/')[0]
                         df = pd.read_table(
                             os.path.join(tmpdir, t.path), 
