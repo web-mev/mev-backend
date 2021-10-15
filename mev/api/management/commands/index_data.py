@@ -20,6 +20,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '-d',
             '--dataset_id',
+            required=True,
             help='The unique identifier of the public dataset to prepare.'
         )
 
@@ -33,6 +34,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         dataset_id = options['dataset_id']
+        filelist = options['filepaths']
+
         is_valid = check_if_valid_public_dataset_name(dataset_id)
 
         if is_valid:
@@ -62,7 +65,7 @@ class Command(BaseCommand):
                 )
                 dataset_db_model = PublicDataset.objects.create(index_name = dataset_id)
             
-            index_dataset(dataset_db_model)
+            index_dataset(dataset_db_model, filelist)
         else:
             logger.info('The requested datase was not valid. Check that you have'
                 ' typed the name correctly.'

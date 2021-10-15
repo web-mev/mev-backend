@@ -10,8 +10,6 @@ from api.serializers.public_dataset import PublicDatasetSerializer
 from api.models import PublicDataset
 from api.public_data import query_dataset
 
-from api.async_tasks.public_data_tasks import prepare_dataset
-
 logger = logging.getLogger(__name__)
 
 

@@ -411,10 +411,11 @@ class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):
     TAG = 'mini-tcga-rnaseq'
 
     FILTER_LIST = [
-    {
-        "op": "in",
-        "content":{
-            "field": "files.cases.project.project_id",
-            "value": ["TCGA-UVM", "TCGA-MESO"]
-            }
-    }
+        {
+            "op": "in",
+            "content":{
+                "field": "files.cases.project.project_id",
+                "value": ["TCGA-UVM", "TCGA-MESO"]
+                }
+        }
+    ]

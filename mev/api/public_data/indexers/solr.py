@@ -33,10 +33,12 @@ class SolrIndexer(BaseIndexer):
         not an all-or-nothing if the calling function is attempting
         to index a bunch of documents.
         '''
+        logger.info('Using solr to index the following file: {f}'.format(f=filepath))
+
         # Check if the core exists. If not, we exit
-        if not self._check_if_core_exists(index_name):
+        if not self._check_if_core_exists(core_name):
             logger.info('The core ({idx}) must already exist.'.format(
-                idx = index_name
+                idx = core_name
             ))
             return
 

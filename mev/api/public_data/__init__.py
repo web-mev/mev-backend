@@ -1,4 +1,5 @@
 import datetime
+import os
 import logging
 
 from api.models import PublicDataset
@@ -63,12 +64,18 @@ def index_dataset(dataset_db_instance, filelist):
     # the unique dataset ID
     index_name = dataset_db_instance.index_name
 
-    # get the implementation for the indexing tool
+    # get the implementation for the indexing tool and instantiate
     indexer_impl = get_indexer()
-    if type filelist is list:
+    indexer = indexer_impl()
+    if type(filelist) is list:
         for f in filelist:
+            if not os.path.exists(f):
+                logger.info('The file {f} did not exist. Check the path. Exiting.'.format(
+                    f = f
+                ))
+                return
             try:
-                indexer_impl.index(index_name, f)
+                indexer.index(index_name, f)
             except Exception as ex:
                 return
     else:

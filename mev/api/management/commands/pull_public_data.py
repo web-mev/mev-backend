@@ -20,6 +20,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '-d',
             '--dataset_id',
+            required=True,
             help='The unique identifier of the public dataset to prepare.'
         )
 
