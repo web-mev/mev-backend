@@ -121,6 +121,10 @@
                     <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
                     </li>
                 </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
+                    </li>
+                </ul>
       </div>
     </div>
     </nav>
@@ -177,9 +181,6 @@
 <p><code>enable_remote_job_runners</code>: The value "yes" enables the remote job runners like Cromwell. If any other value, then we will not allow remote jobs to be executed, which limits the types of analyses that can be run.</p>
 </li>
 <li>
-<p><code>cromwell_bucket</code>: The name (no <code>gs://</code> prefix!) of the storage bucket used by Cromwell. Ideally, this is in the same region/zone you are deploying in.</p>
-</li>
-<li>
 <p><code>cromwell_db_*</code>: Database params, so make these appropriately secure.</p>
 </li>
 <li>
@@ -199,9 +200,6 @@
 </li>
 <li>
 <p><code>other_cors_origins</code>: This will allow additional frontend applications to connect. For instance, if you would like your local development frontend (accessible at localhost:4200) to connect to this deployment, you can add "http://localhost:4200". This is a comma-delimited string, so you can have multiple values. Be sure to include the http protocol, as shown.</p>
-</li>
-<li>
-<p><code>mev_storage_bucket</code>: The name (no <code>gs://</code> prefix!) of the storage bucket used by WebMeV. This is where user's files are stored. Ideally, this is in the same region/zone you are deploying in.</p>
 </li>
 <li>
 <p><code>storage_location</code>: This is either "remote" or "local". Using "remote" makes use of the Google storage bucket named above. The "local" setting stores files on the server, which can be inappropriate for working with larger files since it requires larger hard disk space. <strong>For cloud deployments, just set this to "remote".</strong></p>

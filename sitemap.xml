@@ -81,6 +81,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://webmev.tm4.org/public_data/</loc>
+         <lastmod>2021-10-18</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://webmev.tm4.org/resource_metadata/</loc>
          <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
