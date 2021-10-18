@@ -14,8 +14,6 @@ For a cloud-based deployment with terraform, you similarly need to copy the `con
 
 - `enable_remote_job_runners`: The value "yes" enables the remote job runners like Cromwell. If any other value, then we will not allow remote jobs to be executed, which limits the types of analyses that can be run.
 
-- `cromwell_bucket`: The name (no `gs://` prefix!) of the storage bucket used by Cromwell. Ideally, this is in the same region/zone you are deploying in.
-
 - `cromwell_db_*`: Database params, so make these appropriately secure.
 
 - `service_account_email`: The full, email-like name for the service account you created for installation. See instructions there. Something like "abc123@myproject.iam.gserviceaccount.com".
@@ -29,8 +27,6 @@ For a cloud-based deployment with terraform, you similarly need to copy the `con
 - `frontend_domain`: This is not strictly necessary, but will allow a frontend application located on another domain to interact with the API. Otherwise, Django will reject the request due to same-origin CORS policies.
 
 - `other_cors_origins`: This will allow additional frontend applications to connect. For instance, if you would like your local development frontend (accessible at localhost:4200) to connect to this deployment, you can add "http://localhost:4200". This is a comma-delimited string, so you can have multiple values. Be sure to include the http protocol, as shown.
-
-- `mev_storage_bucket`: The name (no `gs://` prefix!) of the storage bucket used by WebMeV. This is where user's files are stored. Ideally, this is in the same region/zone you are deploying in.
 
 - `storage_location`: This is either "remote" or "local". Using "remote" makes use of the Google storage bucket named above. The "local" setting stores files on the server, which can be inappropriate for working with larger files since it requires larger hard disk space. **For cloud deployments, just set this to "remote".**
 

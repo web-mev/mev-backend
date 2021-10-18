@@ -1,4 +1,5 @@
 site_name: WebMeV REST API
+site_url: 'https://webmev.tm4.org'
 site_description: Documentation for the WebMeV RESTful API
 
 repo_url: https://github.com/web-mev/mev-backend
@@ -20,6 +21,7 @@ nav:
    - Preliminaries: 'install.md'
    - Installation and setup: 'mev_cluster_setup.md'
    - Configuration: 'setup_configuration.md'
+   - Management commands: 'management_commands.md'
    - Mock data server: 'data_server.md'
  - API: 
    - Intro and core concepts: 'api.md'
@@ -38,4 +40,5 @@ nav:
  - Operation concepts: 'operations.md'
  - Creating new analyses/operations: 'creating_analyses.md'
  - Workflow and analysis concepts: 'example_workflow.md'
+ - Creating and managing public data: 'public_data.md'
 
