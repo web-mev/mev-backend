@@ -89,7 +89,7 @@
        replication is in use, this should match the replication
        configuration.
     -->
-  <dataDir>/data/solr/${solr.core.name}</dataDir>
+  <dataDir>${solr.data.dir:}</dataDir>
 
   <!-- Schema Factory
 
