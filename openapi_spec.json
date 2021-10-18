@@ -1273,6 +1273,29 @@
         ]
       }
     },
+    "/api/non-workspace-executed-operations/": {
+      "get": {
+        "operationId": "listNonWorkspaceExecutedOperations",
+        "description": "Lists all the ExecutedOperations not associated with a workspace\n\nAdmins can list all, while other users can only see ExecutedOperations\nthat they own",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/executed-operations/workspace/{workspace_pk}/": {
       "get": {
         "operationId": "retrieveWorkspaceExecutedOperationList",
@@ -1446,6 +1469,61 @@
                 "schema": {
                   "$ref": "#/components/schemas/Operation"
                 }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/public-datasets/": {
+      "get": {
+        "operationId": "listPublicDatasets",
+        "description": "This allows listing of the available public datasets.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicDataset"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/public-datasets/query/{dataset_id}/": {
+      "get": {
+        "operationId": "retrievePublicDatasetQuery",
+        "description": "",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             },
             "description": ""
@@ -2822,6 +2900,39 @@
             "readOnly": true
           }
         }
+      },
+      "PublicDataset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "public_name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "index_name": {
+            "type": "string",
+            "maxLength": 30
+          }
+        },
+        "required": [
+          "public_name",
+          "index_name"
+        ]
       },
       "AuthToken": {
         "type": "object",

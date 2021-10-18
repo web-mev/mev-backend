@@ -1,103 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/api/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/attributes/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/auth/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/creating_analyses/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/data_server/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/elements/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/example_workflow/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/general_architecture/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/install/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/management_commands/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/metadata/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/mev_cluster_setup/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/observation_and_feature_sets/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/operation_resources/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/operations/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/resource_metadata/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/resource_types/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/resources/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>None</loc>
-         <lastmod>2021-07-12</lastmod>
+         <loc>https://webmev.tm4.org/setup_configuration/</loc>
+         <lastmod>2021-10-18</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://webmev.tm4.org/workspaces/</loc>
+         <lastmod>2021-10-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

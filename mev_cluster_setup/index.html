@@ -7,25 +7,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   
-  
-  <link rel="shortcut icon" href="img/favicon.ico">
+  <link rel="canonical" href="https://webmev.tm4.org/mev_cluster_setup/">
+  <link rel="shortcut icon" href="../img/favicon.ico">
   <title>Installation and setup - WebMeV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
-  <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="style.css" rel="stylesheet" />
+  <link href="../style.css" rel="stylesheet" />
   
   <script>
     // Current page data
     var mkdocs_page_name = "Installation and setup";
     var mkdocs_page_input_path = "mev_cluster_setup.md";
-    var mkdocs_page_url = null;
+    var mkdocs_page_url = "/mev_cluster_setup/";
   </script>
   
-  <script src="js/jquery-2.1.1.min.js" defer></script>
-  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
   <script>hljs.initHighlightingOnLoad();</script> 
 </head>
@@ -38,9 +38,9 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href="index.html" class="icon icon-home"> WebMeV REST API</a>
+        <a href=".." class="icon icon-home"> WebMeV REST API</a>
         <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
@@ -48,18 +48,18 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="index.html">Home</a>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="general_architecture.html">Architecture</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">Installation and Setup</span></p>
                 <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="install.html">Preliminaries</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
                     </li>
-                    <li class="toctree-l1 current"><a class="reference internal current" href="mev_cluster_setup.html">Installation and setup</a>
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Installation and setup</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#local-development-using-vagrant">Local development using Vagrant</a>
     </li>
@@ -67,56 +67,58 @@
     </li>
     </ul>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration.html">Configuration</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="data_server.html">Mock data server</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
-                <li class="toctree-l3"><a class="reference internal" href="resources.html">General info</a>
+                <li class="toctree-l3"><a class="reference internal" href="../resources/">General info</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="resource_types.html">Resource types</a>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_types/">Resource types</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="resource_metadata.html">Resource metadata</a>
+                <li class="toctree-l3"><a class="reference internal" href="../resource_metadata/">Resource metadata</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="operation_resources.html">Operation-associated resources</a>
-                </li>
-    </ul>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="attributes.html">Attributes</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="elements.html">Observations and Features</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets.html">ObservationSet and FeatureSets</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="workspaces.html">Workspaces</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="metadata.html">Workspace metadata</a>
+                <li class="toctree-l3"><a class="reference internal" href="../operation_resources/">Operation-associated resources</a>
                 </li>
     </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../attributes/">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../elements/">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../observation_and_feature_sets/">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../workspaces/">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
+                </li>
+    </ul>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="operations.html">Operation concepts</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses.html">Creating new analyses/operations</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="example_workflow.html">Workflow and analysis concepts</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
                     </li>
                 </ul>
       </div>
@@ -128,7 +130,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">WebMeV REST API</a>
+        <a href="..">WebMeV REST API</a>
       </nav>
 
       
@@ -136,7 +138,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
+    <li><a href="..">Docs</a> &raquo;</li>
     
       
         
@@ -168,7 +170,7 @@
 <hr />
 <p>As described in the general architecture section, WebMEV consists of two servers: the main Django-based application server and the remote job scheduler (Cromwell). </p>
 <p>The application server consists of a production web server (nginx), an application server (gunicorn), the Django-based application, and a database. The database can be implemented locally (when in the local, Vagrant-based build) or with a cloud-based instance (when deploying on a cloud platform). Regardless of the implementation of the database server, Django communicates with the database via a unix socket on the VM.</p>
-<p><img alt="" src="arch.svg" /></p>
+<p><img alt="" src="../arch.svg" /></p>
 <hr />
 <h3 id="local-development-using-vagrant"><a class="toclink" href="#local-development-using-vagrant">Local development using Vagrant</a></h3>
 <ul>
@@ -208,31 +210,27 @@ By default, the provisioning script does not start the gunicorn application serv
 <ul>
 <li>Install <a href="https://cloud.google.com/sdk/docs/install">Google Cloud SDK</a> and <a href="https://www.terraform.io/downloads.html">Terraform</a></li>
 <li>Create a service account with the appropriate roles and obtain a JSON-format service account key file. You can do this via the <a href="#gcloud-svc-acct">gcloud commandline tool</a> or using the <a href="#gcp-svc-acct">web console</a>. Keep the key file safe.</li>
-<li>To allow https, we need a SSL certificate. The <code>gcloud</code> commandline tool provides a convenient way to provision one:</li>
+<li>To allow https, we need an SSL certificate. The <code>gcloud</code> commandline tool provides a convenient way to provision one:</li>
 </ul>
-<pre class="codehilite"><code>gcloud beta compute ssl-certificates create &lt;CERTIFICATE NAME&gt;
+<pre class="codehilite"><code class="language-shell">gcloud beta compute ssl-certificates create &lt;CERTIFICATE NAME&gt;
 --description=&quot;SSL certificate for WebMeV dev server&quot;
---domains=mydomain1-dev.tm4.org,mydomain2-dev.tm4.org
+--domains=&quot;mev-api.example.org&quot;
 </code></pre>
 
-<p>Note: until the full stack is up and the load balancer is active, this will remain in a "provisioning" state.</p>
+<p>Note: until the full stack is up and the load balancer is active, this will remain in a "provisioning" state; specify only the backend domain in the above command.</p>
 <ul>
 <li><code>cd deploy/terraform/live</code></li>
 <li><code>terraform init</code></li>
 <li><code>cp config.tfvars.template terraform.tfvars</code></li>
-<li>
-<p>Edit <code>terraform.tfvars</code> to assign required configuration values. You can refer to the <code>vars.tf</code> file for explanations of these variables and what they do. These are obviously the same environment variables used in the local, Vagrant-based deployment, so further information may be available in the comments of the <code>vagrant/env.tmpl</code> file at the root of this repository.</p>
-<p><strong>Special notes:</strong></p>
-<ul>
-<li>The <code>ssl_cert</code> variable refers to the SSL certificate you created above. It is a resource string like: <code>projects/&lt;GCP PROJECT&gt;/global/sslCertificates/&lt;CERTIFICATE NAME&gt;</code></li>
-<li>The <code>credentials_file</code> variable is the JSON-format key file you obtained for your service account. Assuming you saved this file in your <code>deploy/terraform/live/</code> directory, then you can simply write the file name.</li>
-<li>The <code>service_account_email</code> variable is the email-like name of the service account you created. For example, <code>abc123@&lt;GCP PROJECT&gt;.iam.gserviceaccount.com</code></li>
+<li>Edit <code>terraform.tfvars</code> to assign required configuration values. You can refer to the <code>vars.tf</code> file for explanations of these variables and what they do. These are obviously the same environment variables used in the local, Vagrant-based deployment, so further information may be available in the comments of the <code>vagrant/env.tmpl</code> file at the root of this repository.</li>
 </ul>
-</li>
-<li>
-<p>Create and set your terraform workspace.</p>
-<p>Note that we make use of <a href="https://www.terraform.io/docs/language/state/workspaces.html">terraform workspaces</a> which allow independent deployments using the same scripts. The <em>name</em> of the workspace is typically used when naming the cloud-based resources created (e.g. <code>backend-&lt;WORKSPACE NAME&gt;</code>) to make them more obvious when interacting with the GCP console or gcloud tool. By default, the workspace name is, appropriately enough, <code>default</code>. You can create a new workspace with:</p>
-</li>
+<p><strong>Special notes:</strong>
+  - The <code>ssl_cert</code> variable refers to the SSL certificate you created above. It is a resource string like: <code>projects/&lt;GCP PROJECT&gt;/global/sslCertificates/&lt;CERTIFICATE NAME&gt;</code>
+  - The <code>credentials_file</code> variable is the JSON-format key file you obtained for your service account. Assuming you saved this file in your <code>deploy/terraform/live/</code> directory, then you can simply write the file name.
+  - The <code>service_account_email</code> variable is the email-like name of the service account you created. For example, <code>abc123@&lt;GCP PROJECT&gt;.iam.gserviceaccount.com</code></p>
+<ul>
+<li>Create and set your terraform workspace.
+  Note that we make use of <a href="https://www.terraform.io/docs/language/state/workspaces.html">terraform workspaces</a> which allow independent deployments using the same scripts. The <em>name</em> of the workspace is typically used when naming the cloud-based resources created (e.g. <code>backend-&lt;WORKSPACE NAME&gt;</code>) to make them more obvious when interacting with the GCP console or gcloud tool. By default, the workspace name is, appropriately enough, <code>default</code>. You can create a new workspace with:</li>
 </ul>
 <pre class="codehilite"><code>terraform workspace new &lt;WORKSPACE NAME&gt;
 </code></pre>
@@ -247,10 +245,8 @@ By default, the provisioning script does not start the gunicorn application serv
 <pre class="codehilite"><code>terraform apply
 </code></pre>
 
-<p>This will prompt for any configuration variables that were not included in <code>terraform.tfvars</code>. Often, variables like these are intentionally left out to force the user to take a moment and think about what they are doing. One example is the git commit ID. This will tell terraform which git commit should be deployed. We intentionally prompt for this so that the developer is forced to examine the <em>exact</em> version of the application they wish to deploy.</p>
-<ul>
-<li>To delete your resources:</li>
-</ul>
+<p>This will prompt for any configuration variables that were not included in <code>terraform.tfvars</code>. Often, variables like these are intentionally left out to force the user to take a moment and think about what they are doing. One example is the git commit ID. This will tell terraform which git commit should be deployed. We intentionally prompt for this so that the developer is forced to examine the <em>exact</em> version of the application they wish to deploy.
+- To delete your resources:</p>
 <pre class="codehilite"><code>terraform destroy
 </code></pre>
 
@@ -259,17 +255,17 @@ By default, the provisioning script does not start the gunicorn application serv
 <ul>
 <li>
 <p>Navigate to "IAM &amp; Admin" --&gt; "Service Accounts":
-<a href="gcp_service_account_1.png"><img src="gcp_service_account_1.png" width="300"></a></p>
+<a href="../gcp_service_account_1.png"><img src="gcp_service_account_1.png" width="300"></a></p>
 </li>
 <li>
 <p>Click the "create service account" button at the top:</p>
 </li>
 </ul>
-<p><a href="gcp_service_account_2.png"><img src="gcp_service_account_2.png" width="200"></a></p>
+<p><a href="../gcp_service_account_2.png"><img src="gcp_service_account_2.png" width="200"></a></p>
 <ul>
 <li>
 <p>Give the account a name:
-<a href="gcp_service_account_3.png"><img src="gcp_service_account_3.png" width="300"></a></p>
+<a href="../gcp_service_account_3.png"><img src="gcp_service_account_3.png" width="300"></a></p>
 </li>
 <li>
 <p>Add "roles" to this service account. To work with the deployment, you will need:</p>
@@ -279,16 +275,16 @@ By default, the provisioning script does not start the gunicorn application serv
 </ul>
 </li>
 </ul>
-<p><a href="gcp_service_account_4.png"><img src="gcp_service_account_4.png" width="300"></a></p>
+<p><a href="../gcp_service_account_4.png"><img src="gcp_service_account_4.png" width="300"></a></p>
 <ul>
 <li>
 <p>After the account is created, you will be directed to the page with all the service accounts for your your GCP project. Click on the one you  just created:
-<a href="gcp_service_account_5.png"><img src="gcp_service_account_5.png" width="300"></a></p>
+<a href="../gcp_service_account_5.png"><img src="gcp_service_account_5.png" width="300"></a></p>
 </li>
 <li>
 <p>Go to the "keys" tab and create a new JSON key:
-<a href="gcp_service_account_6.png"><img src="gcp_service_account_6.png" width="300"></a>
-<a href="gcp_service_account_7.png"><img src="gcp_service_account_7.png" width="300"></a></p>
+<a href="../gcp_service_account_6.png"><img src="gcp_service_account_6.png" width="300"></a>
+<a href="../gcp_service_account_7.png"><img src="gcp_service_account_7.png" width="300"></a></p>
 </li>
 <li>
 <p>Save this key in your <code>deploy/terraform/live/</code> folder. Then the <code>terraform.tfvars</code> file can reference this file easily.</p>
@@ -329,10 +325,10 @@ gcloud projects add-iam-policy-binding myproject \
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="setup_configuration.html" class="btn btn-neutral float-right" title="Configuration">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../setup_configuration/" class="btn btn-neutral float-right" title="Configuration">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="install.html" class="btn btn-neutral" title="Preliminaries"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../install/" class="btn btn-neutral" title="Preliminaries"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -362,17 +358,17 @@ gcloud projects add-iam-policy-binding myproject \
         </span>
     
     
-      <span><a href="install.html" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../install/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="setup_configuration.html" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../setup_configuration/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
-    <script>var base_url = '.';</script>
-    <script src="js/theme_extra.js" defer></script>
-    <script src="js/theme.js" defer></script>
-      <script src="search/main.js" defer></script>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
     <script defer>
         window.onload = function () {
             SphinxRtdTheme.Navigation.enable(true);

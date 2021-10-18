@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Documentation for the WebMeV RESTful API">
   
-  
+  <link rel="canonical" href="https://webmev.tm4.org/">
   <link rel="shortcut icon" href="img/favicon.ico">
   <title>WebMeV REST API</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
@@ -21,7 +21,7 @@
     // Current page data
     var mkdocs_page_name = "Home";
     var mkdocs_page_input_path = "index.md";
-    var mkdocs_page_url = null;
+    var mkdocs_page_url = "/";
   </script>
   
   <script src="js/jquery-2.1.1.min.js" defer></script>
@@ -38,7 +38,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href="index.html" class="icon icon-home"> WebMeV REST API</a>
+        <a href="." class="icon icon-home"> WebMeV REST API</a>
         <div role="search">
   <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
@@ -48,71 +48,73 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
                 <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="index.html">Home</a>
+                    <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
     <ul class="current">
     </ul>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="general_architecture.html">Architecture</a>
+                    <li class="toctree-l1"><a class="reference internal" href="general_architecture/">Architecture</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">Installation and Setup</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="install.html">Preliminaries</a>
+                    <li class="toctree-l1"><a class="reference internal" href="install/">Preliminaries</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="mev_cluster_setup.html">Installation and setup</a>
+                    <li class="toctree-l1"><a class="reference internal" href="mev_cluster_setup/">Installation and setup</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration.html">Configuration</a>
+                    <li class="toctree-l1"><a class="reference internal" href="setup_configuration/">Configuration</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="data_server.html">Mock data server</a>
+                    <li class="toctree-l1"><a class="reference internal" href="management_commands/">Management commands</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="data_server/">Mock data server</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">API</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="api.html">Intro and core concepts</a>
+                    <li class="toctree-l1"><a class="reference internal" href="api/">Intro and core concepts</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
-                <li class="toctree-l3"><a class="reference internal" href="resources.html">General info</a>
+                <li class="toctree-l3"><a class="reference internal" href="resources/">General info</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="resource_types.html">Resource types</a>
+                <li class="toctree-l3"><a class="reference internal" href="resource_types/">Resource types</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="resource_metadata.html">Resource metadata</a>
+                <li class="toctree-l3"><a class="reference internal" href="resource_metadata/">Resource metadata</a>
                 </li>
-                <li class="toctree-l3"><a class="reference internal" href="operation_resources.html">Operation-associated resources</a>
-                </li>
-    </ul>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="attributes.html">Attributes</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="elements.html">Observations and Features</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets.html">ObservationSet and FeatureSets</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="workspaces.html">Workspaces</a>
-                </li>
-                <li class="toctree-l2"><a class="reference internal" href="metadata.html">Workspace metadata</a>
+                <li class="toctree-l3"><a class="reference internal" href="operation_resources/">Operation-associated resources</a>
                 </li>
     </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="attributes/">Attributes</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="elements/">Observations and Features</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="observation_and_feature_sets/">ObservationSet and FeatureSets</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="workspaces/">Workspaces</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="metadata/">Workspace metadata</a>
+                </li>
+    </ul>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a>
+                    <li class="toctree-l1"><a class="reference internal" href="auth/">Authentication</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="operations.html">Operation concepts</a>
+                    <li class="toctree-l1"><a class="reference internal" href="operations/">Operation concepts</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses.html">Creating new analyses/operations</a>
+                    <li class="toctree-l1"><a class="reference internal" href="creating_analyses/">Creating new analyses/operations</a>
                     </li>
                 </ul>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="example_workflow.html">Workflow and analysis concepts</a>
+                    <li class="toctree-l1"><a class="reference internal" href="example_workflow/">Workflow and analysis concepts</a>
                     </li>
                 </ul>
       </div>
@@ -124,7 +126,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">WebMeV REST API</a>
+        <a href=".">WebMeV REST API</a>
       </nav>
 
       
@@ -132,7 +134,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
+    <li><a href=".">Docs</a> &raquo;</li>
     
       
     
@@ -161,7 +163,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="general_architecture.html" class="btn btn-neutral float-right" title="Architecture">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="general_architecture/" class="btn btn-neutral float-right" title="Architecture">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
     </div>
@@ -193,7 +195,7 @@
     
     
     
-      <span><a href="general_architecture.html" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="general_architecture/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
@@ -212,5 +214,5 @@
 
 <!--
 MkDocs version : 1.2.1
-Build Date UTC : 2021-07-12 18:42:32.654605+00:00
+Build Date UTC : 2021-10-18 15:08:36.409317+00:00
 -->
