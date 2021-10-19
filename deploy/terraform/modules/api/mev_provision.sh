@@ -331,17 +331,7 @@ EOSQL
   export DB_EXISTED=0
 fi
 
-# Some preliminaries before we start asking django to set things up:
-mkdir $FACTER_DATA_DIR
-mkdir -p $FACTER_DATA_DIR/pending_user_uploads
-mkdir -p $FACTER_DATA_DIR/resource_cache
-mkdir -p $FACTER_DATA_DIR/operation_staging
-mkdir -p $FACTER_DATA_DIR/operations
-mkdir -p $FACTER_DATA_DIR/operation_executions
-mkdir -p $FACTER_DATA_DIR/public_data
-
 # Change the ownership so we have write permissions.
-chown -R $MEV_USER:$MEV_USER $FACTER_DATA_DIR
 chown -R $MEV_USER:$MEV_USER /opt/software/mev-backend/mev
 
 # Apply database migrations, collect the static files to server, and create

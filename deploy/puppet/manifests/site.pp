@@ -26,7 +26,6 @@ node /api/ {
     database_host_socket      => $facts['database_host_socket'],
     database_port             => $facts['database_port'],
     environment               => $facts['environment'],
-    data_dir                  => $facts['data_dir'],
     cromwell_server_url       => $facts['cromwell_server_url'],
     cromwell_bucket           => $facts['cromwell_bucket'],
   }

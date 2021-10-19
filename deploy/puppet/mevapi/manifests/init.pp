@@ -28,13 +28,22 @@ class mevapi (
   String                    $database_host_socket,
   String                    $database_port,
   Enum['dev', 'production'] $environment,
-  String                    $data_dir,
   String                    $cromwell_server_url,
   String                    $cromwell_bucket,
 ) {
   $app_group = $app_user
   $django_root = "${project_root}/mev"
   $log_dir = '/var/log/mev'
+  $data_root = '/data'
+  $data_dirs = [
+    "${data_root}/pending_user_uploads",
+    "${data_root}/resource_cache",
+    "${data_root}/operation_staging",
+    "${data_root}/operations",
+    "${data_root}/operation_executions",
+    "${data_root}/public_data",
+  ]
+  $solr_home = "${data_root}/solr"
 
   $mev_dependencies = [
     'build-essential',
@@ -74,9 +83,27 @@ class mevapi (
 
   include rabbitmq
 
+  file { concat([$data_root], $data_dirs):
+    ensure => directory,
+    owner  => $app_user,
+    group  => $app_group,
+  }
+
   class { 'solr':
-    version => '8.10.0',
-    url     => 'https://dlcdn.apache.org/lucene/solr',
+    version     => '8.10.0',  # make sure luceneMatchVersion in all solrconfig.xml files matches this version
+    url         => 'https://dlcdn.apache.org/lucene/solr',
+    solr_home   => $solr_home,
+    schema_name => 'schema.xml',  # classic schema
+  }
+  file { "${solr_home}/solr.xml":
+    ensure => file,
+    source => "${project_root}/solr/solr.xml",
+    owner  => $::solr::solr_user,
+    group  => $::solr::solr_user,
+  }
+  solr::core { 'tcga-rnaseq':
+    schema_src_file     => "${project_root}/solr/tcga-rnaseq/schema.xml",
+    solrconfig_src_file => "${project_root}/solr/tcga-rnaseq/solrconfig.xml",
   }
 
   file { "${project_root}/.env":
@@ -178,7 +205,7 @@ class mevapi (
 
   file { $log_dir:
     ensure => directory,
-    owner => $app_user,
-    group => $app_group,
+    owner  => $app_user,
+    group  => $app_group,
   }
 }
