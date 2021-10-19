@@ -127,6 +127,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # use an alternate user model which has the email as the username
 AUTH_USER_MODEL = 'api.CustomUser'
 
+# This suppresses warnings for models where an explicit
+# primary key is not defined.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # The location where we will dump the testing database
 TESTING_DB_DUMP = os.path.join(BASE_DIR, 'api', 'tests', 'test_db.json')
@@ -137,7 +140,8 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
-    'PAGE_SIZE': 50
+    'PAGE_SIZE': 50,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination'
 }
 
 # settings for the DRF JWT app:
