@@ -6,6 +6,27 @@ Given that each data repository has different formats and content, this function
 
 In this guide, we will often refer to the TCGA RNA-seq as a prototypical example. This dataset contains count-based RNA-seq data downloaded from the NCI's genomic data commons (GDC) repository under the TCGA project.
 
+### The quick way:
+
+For convenience, there is a management command that handles most of the steps. Be sure to pay attention to the log messages, as they will direct you to change various things. If that script fails for whatever reason, we provide all the atomic details below.
+
+Run the following in your Vagrant build:
+```
+python3 manage.py create_new_public_dataset \
+    -d <core name>
+    -f <path to an example file you want to index>
+```
+
+The core name (`-d`) should be relatively short/simple (e.g. `ccle-data`) and the the file (`-f`) should be an example of the data you wish to index. It can be a row subset (not ALL the data), but should have all the potential fields.
+
+Note that the script will still require you to fill out the stubbed-out python module for the new dataset AND also require you to add some content to the Puppet manifests to fully integrate this new core.
+
+You will also need to commit the solr files (`solr/<core>/schema.xml`  and `solr/<core>/solrconfig.xml`) when everything is fully ready.
+
+---
+### The longer way (or the way if the script above does not work!)
+
+
 #### Step 1: Defining and creating the data
 
 To create a new public dataset, we need to define how the data is collected and prepared. This section describes how to write the proper hooks for data ingestion and preparation.
@@ -56,49 +77,54 @@ More generally, the `prepare` method is the entry function for potentially many 
 
 To allow WebMeV to "see" this new implementation, we have to add it to the `IMPLEMENTING_CLASSES` list in `api/public_data/__init__.py`. If this is not done, you will receive errors that will warn you of an unknown dataset.
 
-#### Step 2: Define and create the solr core
+#### Step 2: Define your solr core
 
-Instead of dynamically creating Solr cores during machine provisioning, we instead create all the necessary files up front so that they are included with the WebMeV repository. This consists of two steps:
+The process of adding new cores for additional datasets is handled during provisioning and requires changes to the Puppet scripts. However, prior to that point, we need to create the proper files that will be used to create this new core. This section covers details of how to create these files.
 
-- create a basic core config
-- replace the auto-generated schema with a dataset-specific schema.xml
+To do this, below we will perform the following:
 
-**2.1 Creating the core (temporary workaround)**
+- Create a new (but ephemeral) Solr core
+- Index an example file from your dataset using Solr's auto-detection functionality
+- Query the auto-generated schema and edit it to ensure the inferred field types are correct. 
 
-Due to various interactions of the `root`, `solr`, and system user (`vagrant`), you need to use the following steps to create the proper files for a new solr core. The steps below were performed on a local Vagrant-based machine.
+After these steps, we will have the necessary files which we can add to the WebMeV repository.  The provisioning process will then use those files to add the new core.
+
+**2.1 Creating the core**
+
+This step assumes you have a Vagrant-based system up and have SSH'd in. By default, you are the `vagrant` user.
 
 **Important: the name of the Solr core you create MUST match the `TAG` attribute of your implementing class**. This is how the implementing class knows which Solr core to query.
 
-- Open `/etc/default/solr` and edit `SOLR_HOME=/var/solr/data`
+Run:
 
-- Restart the solr service with `sudo systemctl restart solr`
+`sudo -u solr /opt/solr/bin/solr create_core -c <core name>`
 
-- Create the core: `sudo -u solr /opt/solr/bin/solr create_core -c <core name>`
+Solr should report that the new core was created.
 
 #### Step 3: Obtaining and modifying the data schema
 
 **3.1 Index an example file**
 
-Above, Solr will create a default/schemaless core to index general data. For our purposes, the data is more structured and we typically have some notion of data structures and types in a given dataset. Furthermore, we don't want to necessarily rely on Solr to properly guess the types of various fields.
+Above, Solr will create a default/schemaless core. For our purposes in WebMeV, the data is typically more structured and we have some notion of data structures and types in a given dataset (e.g. age as an integer type). Furthermore, we don't want to necessarily rely on Solr to properly guess the types of various fields.
 
-Hence, we will first use Solr to auto-index an example file. Following this, we will request a "dump" of the current schema which we will subsequently edit to fit our needs. Ideally, the example file you use below is very close to the final data you are hoping to index (or *is* the data you want to expose). 
+Hence, we will first use Solr to auto-index an example file. Following this, we will request a "dump" of the current schema which we will subsequently edit to fit our needs. Ideally, the example file you use below is very close to the final data you are hoping to index (or *is* the data you want to expose). Mismatches between the schema and the data files will cause failures. 
 
 To index the example file:
 ```
-/opt/solr/bin/solr post -c <core name> <file path>
+/opt/solr/bin/post -c <core name> <file path>
 ```
 
 **3.2 Query for the current schema and edit**
-Now, we will query for the current/inferred schema. Here, we put this in the `/vagrant/solr` directory, but it does not really matter where it goes, as long as you remember.
+Now, we will query for the current/inferred schema that was just created. Here, we put this in the `/vagrant/solr` directory, but it does not really matter where it goes, as long as you remember.
 
 ```
 curl http://localhost:8983/solr/<core name>/schema?wt=schema.xml >/vagrant/solr/current_schema.xml
 ```
 This `curl` request will provide the structured XML schema that is currently supporting the core.
 
-At the top of the `current_schema.xml` file you will see many field type (`<fieldType>`) entries, which can be left as-is. You may, however, wish to remove those that are (likely) unnecessary. Examples include various tokenizer classes and filters corresponding to free-text analyzers and considerations for foreign language support. Those fields are not likely to be too relevant for most biomedical data we are analyzing within WebMeV. However, it is fine to leave those all.
+At the top of the `current_schema.xml` file you will see many field type (`<fieldType>`) entries, which can be left as-is. You may, however, wish to remove those that are (likely) unnecessary. Examples include various tokenizer classes and filters corresponding to free-text analyzers and considerations for foreign language support. Those fields are not likely to be too relevant for most biomedical data we are analyzing within WebMeV. However, it is also fine to leave those all as-is.
 
-You **will**, however, want to make edits to the `<field>` entities located towards the tail of the schema. You should see field names corresponding to the columns/fields of the example file you indexed before. Depending on your data, you may choose to edit the `type` attributes. For instance, the default may be something like:
+You **will**, however, want to review and potentially make edits to the `<field>` entities located towards the tail of the schema. You should see field names corresponding to the columns/fields of the example file you indexed before. Depending on your data, you may choose to edit the `type` attributes. For instance, the default may be something like:
 ```
 <field name="year_of_birth" type="pdoubles"/>
 ```
@@ -106,7 +132,7 @@ but we may wish to change that to integers:
 ```
 <field name="year_of_birth" type="pint"/>
 ```
-Similarly, many string-based fields are given a type of `text_general` which causes solr to initiate various NLP methods on these fields. In most cases of biomedical data, these fields can better be indexed using a `string` type, which avoids unnecessary text processing. Instead, the values in `string` types are treated like enumerables instead of a free text field that requires analysis. For example, in the TCGA dataset, we have a finite number of defined cancer types (e.g. TCGA-BRCA) that appear in the `project_id` field, thus, we can edit:
+Similarly, many string-based fields default to a type of `text_general` which causes solr to initiate various NLP methods on these fields upon query. In most cases of biomedical data, these fields can better be indexed using a `string` type, which avoids unnecessary text processing. Values in `string` types are treated like enumerables (i.e. a finite set of strings) instead of a free text field that requires analysis. For example, in the TCGA dataset, we have a finite number of defined cancer types (e.g. TCGA-BRCA) that appear in the `project_id` field, thus, we can edit:
 
 ```
 <field name="project_id" type="text_general"/>
@@ -116,9 +142,9 @@ to
 <field name="project_id" type="string"/>
 ```
 
-Similarly, there will likely be many `<dynamicField>` entries which can be removed.
+Similarly, there will likely be many `<dynamicField>` and `<copyField>` entries which can be removed. These are added to enable further text processing that (usually) is not necessary and only increases the size of the index.
 
-In the end, you should be able to have a simple, human-interpretable list of fields that correspond to data types you recognize in the dataset. You *could* have created this all yourself, but Solr typically does a good job of guessing for most things.
+In the end, you should have a simple, human-interpretable list of fields that correspond to data types you recognize in the dataset. You *could* have created this all yourself, but Solr typically does a good job of guessing for most things.
 
 
 #### Step 4: Copy the core files to the repository and commit
@@ -128,16 +154,26 @@ Recall that to create your core, we had to do a bit of a workaround above. The f
 ```
 cd /vagrant/solr
 mkdir <core name>
-sudo cp /var/solr/data/blah/core.properties <core name>/
-sudo cp -r /var/solr/data/blah/conf <core name>/
-rm <core name>/conf/managed-schema
-cp /vagrant/solr/current_schema.xml <core name>/conf/schema.xml
+cp /vagrant/solr/edited_schema.xml <core name>/schema.xml
+cp /vagrant/solr/basic_solrconfig.xml <core name>/solrconfig.xml
 ```
 
 At this point, the core files should be ready. You can commit these files to the repository.
 
+#### Step 5: Add the core to your Puppet manifest
 
-#### Step 5: Verify
+By adding the following snippet to your Puppet manifest at `deploy/puppet/mevapi/manifests/init.pp`, the provisioning step will create the necessary elements so that
+your new core will be ready-to-go on the next round of provisioning:
+
+Replace `<CORE>` below:
+```
+  solr::core { '<CORE>':
+    schema_src_file     => "${project_root}/solr/<CORE>/schema.xml",
+    solrconfig_src_file => "${project_root}/solr/<CORE>/solrconfig.xml",
+  }
+```
+
+#### Step 6: Verify
 
 To be sure that everything works, it's best to start a fresh local build. Since we manually created a new core and modified some of Solr's configuration files, we need to ensure our new dataset files work out of the box.
 
