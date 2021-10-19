@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                 ('creation_datetime', models.DateTimeField(auto_now_add=True)),
                 ('status', models.CharField(blank=True, default='', max_length=2000, null=True)),
                 ('owner', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='resources', to=settings.AUTH_USER_MODEL)),
-                ('workspaces', models.ManyToManyField(blank=True, null=True, related_name='resources', to='api.Workspace')),
+                ('workspaces', models.ManyToManyField(blank=True, related_name='resources', to='api.Workspace')),
             ],
             options={
                 'abstract': False,

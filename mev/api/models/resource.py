@@ -76,8 +76,7 @@ class Resource(AbstractResource):
     workspaces = models.ManyToManyField(
         Workspace,
         related_name = 'resources',
-        blank = True,
-        null = True
+        blank = True
     )
 
     # A human-readable status (e.g. uploaded, processing, etc.)
