@@ -57,9 +57,9 @@ class Command(BaseCommand):
         '''
 
         module_template = '''
-        from api.public_data.sources.base import PublicDataset
+        from api.public_data.sources.base import PublicDataSource
 
-        class {camelizedTag}Dataset(PublicDataset):
+        class {camelizedTag}Dataset(PublicDataSource):
 
             TAG = '{tag}'
             PUBLIC_NAME = ''

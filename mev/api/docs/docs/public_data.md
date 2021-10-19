@@ -142,7 +142,12 @@ to
 <field name="project_id" type="string"/>
 ```
 
-Similarly, there will likely be many `<dynamicField>` and `<copyField>` entries which can be removed. These are added to enable further text processing that (usually) is not necessary and only increases the size of the index.
+**Important:** Do NOT remove this field, as this causes a failure to build the core on provisioning:
+```
+<field name="_version_" type="plong" indexed="false" stored="false"/>
+```
+
+There will likely be many `<dynamicField>` and `<copyField>` entries which can be removed. These are added to enable further text processing that (usually) is not necessary and only increases the size of the index.
 
 In the end, you should have a simple, human-interpretable list of fields that correspond to data types you recognize in the dataset. You *could* have created this all yourself, but Solr typically does a good job of guessing for most things.
 
@@ -187,5 +192,6 @@ python3 manage.py pull_public_data -d <core name>
 Then, to index a file into this core:
 ```
 python3 manage.py index_data -d <core name> <path> [<path> ...]
-
 ```
+
+Finally, note that if you core expected core does not exist, you can always check by visiting the Solr admin interface at http://localhost:8983/solr/ on the host machine. The "core admin" tab will typically report error messages that occurred.
