@@ -117,6 +117,10 @@ class GDCDataSource(PublicDataSource):
             a2   NaN   NaN   NaN   NaN NaN
             a3  31.0  33.0  32.0  34.0 NaN
 
+        So you can see that even though the first record only contained info about
+        'a' and 'c', we end up  with a full row with blanks for the missing fields
+        'b', 'd', and 'e'.
+
         Note that the `extra_fields` kwarg allows us to add more info
         that is NOT in the data dict. For instance, the data dictionary
         for the 'project' attribute (available from 

@@ -3,12 +3,15 @@ import unittest.mock as mock
 import json
 import os
 import datetime
+import pandas as pd
 
 from django.conf import settings
 
 from api.public_data.sources.gdc.gdc import GDCDataSource
 from api.public_data.sources.gdc.tcga import TCGADataSource, TCGARnaSeqDataSource
 
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class TestGDC(unittest.TestCase): 
     def test_dummy(self):
@@ -82,7 +85,6 @@ class TestTCGARnaSeq(unittest.TestCase):
                 ds = now.strftime('%m%d%Y')
             )
         )
-        print(expected_output_annotation_file)
         self.assertTrue(os.path.exists(expected_output_annotation_file))
         self.assertTrue(os.path.exists(expected_output_count_file))
         
@@ -90,3 +92,40 @@ class TestTCGARnaSeq(unittest.TestCase):
         os.remove(expected_output_count_file)
         os.remove(expected_output_annotation_file)
       
+
+    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.ROOT_DIR', '/tmp')
+    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.COUNT_OUTPUT_FILE', '__TEST__counts.{tag}.{ds}.tsv')
+    @mock.patch('api.public_data.sources.gdc.tcga.datetime')
+    def test_counts_merged_correctly(self, mock_datetime):
+        file_to_aliquot_mapping = {
+            's1': 'x1',
+            's2': 'x2',
+            's3': 'x3'
+        }
+        expected_matrix = pd.DataFrame(
+            [[509, 1446, 2023],[0,2,22],[1768, 2356, 1768]],
+            index=['ENSG00000000003.13','ENSG00000000005.5','ENSG00000000419.11'],
+            columns = ['x1', 'x2', 'x3']
+        )
+        expected_matrix.index.name = 'gene'
+
+        now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = now
+        archives = [
+            os.path.join(THIS_DIR, 'test_files', 'archive1.tar.gz'),
+            os.path.join(THIS_DIR, 'test_files', 'archive2.tar.gz')
+        ]
+
+        data_src = TCGARnaSeqDataSource()
+        data_src._merge_downloaded_archives(archives, file_to_aliquot_mapping)
+
+        # read the file that was written:
+        expected_output_count_file = os.path.join(
+            TCGARnaSeqDataSource.ROOT_DIR,
+            TCGARnaSeqDataSource.COUNT_OUTPUT_FILE.format(
+                tag = TCGARnaSeqDataSource.TAG,
+                ds = now.strftime('%m%d%Y')
+            )
+        )
+        actual_df = pd.read_table(expected_output_count_file, index_col=0)
+        self.assertTrue(expected_matrix.equals(actual_df))

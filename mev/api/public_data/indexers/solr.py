@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import logging
+import mimetypes
 
 from api.utilities.basic_utils import run_shell_command
 from api.public_data.indexers.base import BaseIndexer
@@ -25,31 +26,44 @@ class SolrIndexer(BaseIndexer):
     # relative to the SOLR_SERVER url
     CORES_URL = 'solr/admin/cores'
 
-    def index(self, index_name, path):
+    def index(self, core_name, filepath):
         '''
-        Given a local path, index the data in that file.
+        Indexes/commits a file by a POST request
+        Note that the file is committed automatically, so it's
+        not an all-or-nothing if the calling function is attempting
+        to index a bunch of documents.
         '''
-        
-        # Check if the core exists. If not, we have to create it
-        if not self._check_if_core_exists(index_name):
-            self._create_core(index_name)
+        logger.info('Using solr to index the following file: {f}'.format(f=filepath))
 
-        # index the file:
-        cmd = '{post_cmd} -c {index_name} {path}'.format(
-            post_cmd = self.SOLR_POST_CMD,
-            index_name = index_name,
-            path = path
-        )
-        try:
-            stdout, stderr = run_shell_command(cmd)
-        except Exception as ex:
-            logger.info('Failed to index the file at {p}'
-                ' in the collection {idx}.'.format(
-                    p = path,
-                    idx = index_name
+        # Check if the core exists. If not, we exit
+        if not self._check_if_core_exists(core_name):
+            logger.info('The core ({idx}) must already exist.'.format(
+                idx = core_name
+            ))
+            return
+
+        content_type, encoding = mimetypes.guess_type(filepath)
+        logger.info('Inferred the mime-type of {f} to be: {m}'.format(
+            f = filepath,
+            m = content_type
+        ))
+
+        data = open(filepath, 'r').read()
+
+        headers = {'content-type': content_type}
+        params = {'commit': 'true'}
+        u = '{host}/{core}/update/'.format(host=self.SOLR_SERVER, core=core_name)
+        r = requests.post(u, data=data, params=params, headers=headers)
+        if r.status_code == 200:
+            logger.info('Successfully indexed and committed {f}'.format(f=filepath))
+        else:
+            logger.info('Failed to index or commit {f}.'
+                ' The response was: {j}'.format(
+                    f = filepath,
+                    j = r.json()
                 )
             )
-            raise ex
+            raise Exception('Failed to index/commit {f}'.format(f=filepath))
 
     def query(self, index_name, query_string):
         '''
@@ -114,57 +128,4 @@ class SolrIndexer(BaseIndexer):
         return False
 
 
-    def _create_core(self, index_name):
-        '''
-        Creates a new core with the given index name
-        '''
-
-        # We expect that there should be a directory containing files for the index
-        # at the proper location. If that directory doesn't exist, fail out.
-        this_dir = os.path.dirname(os.path.abspath(__file__))
-        schema_dir = os.path.join(this_dir, 'solr', index_name)
-        if not os.path.exists(schema_dir):
-            raise Exception('The expected solr index directory did not exist.'
-                ' Please check that the proper schema files exist at {d}'.format(
-                    d = schema_dir
-                )
-            )
-
-        cmd = '{solr_cmd} create_core -c {index_name} -d {schema_dir}'.format(
-            solr_cmd = self.SOLR_CMD,
-            index_name = index_name,
-            schema_dir = schema_dir
-        )
-        try:
-            stdout, stderr = run_shell_command(cmd)
-            logger.info('Completed creating core. Stdout={stdout}'.format(
-                stdout=stdout
-            ))
-        except Exception as ex:
-            logger.info('Failed to create a solr core with'
-                ' name {idx}.'.format(
-                    idx = index_name
-                )
-            )
-            raise ex
-
-    def _delete_core(self, index_name):
-        '''
-        Deletes a core with the given index name
-        '''
-        cmd = '{solr_cmd} delete -c {index_name}'.format(
-            solr_cmd = self.SOLR_CMD,
-            index_name = index_name,
-        )
-        try:
-            stdout, stderr = run_shell_command(cmd)
-            logger.info('Completed deleting core. Stdout={stdout}'.format(
-                stdout=stdout
-            ))
-        except Exception as ex:
-            logger.info('Failed to delete a solr core with'
-                ' name {idx}.'.format(
-                    idx = index_name
-                )
-            )
-            raise ex
+    
