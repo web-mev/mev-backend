@@ -74,6 +74,7 @@ six==1.16.0
 social-auth-app-django==4.0.0
 social-auth-core==4.1.0
 sqlparse==0.4.1
+tables==3.6.1
 tornado==6.1
 tqdm==4.61.1
 typing-extensions==3.10.0.0
