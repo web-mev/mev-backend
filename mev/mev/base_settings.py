@@ -141,8 +141,18 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'PAGE_SIZE': 50,
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination'
+    'DEFAULT_PAGINATION_CLASS': None
 }
+# This silences the page_size and default_pagination_class warning
+# that happens on startup.
+# We only paginate api requests if someone explicitly uses a 
+# ?page=X query param (e.g. from api/resources which can be quite large). 
+# However, we want to set some page_size default.
+# If we set DEFAULT_PAGINATION_CLASS to something other than
+# None, then the api defaults to responding with paginated payloads,
+# which is cumbersome for the frontend framework since the data is 
+# nested
+SILENCED_SYSTEM_CHECKS = ["rest_framework.W001"]
 
 # settings for the DRF JWT app:
 SIMPLE_JWT = {
