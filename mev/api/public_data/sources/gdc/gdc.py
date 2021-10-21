@@ -15,10 +15,10 @@ class GDCDataSource(PublicDataSource):
     # How many records to return with each query
     PAGE_SIZE = 100
 
-    # This defines which fields are returned from the data query. These are the top-level
-    # fields. Most of the interesting clinical data is contained in the "expandable" fields
-    # which are given below.
-    FIELDS = [
+    # This defines which fields are returned from the data query about cases 
+    # These are the top-level fields. Most of the interesting clinical data is 
+    # contained in the "expandable" fields which are given below.
+    CASE_FIELDS = [
         'file_id',
         'file_name',
         'cases.project.program.name',
@@ -29,7 +29,7 @@ class GDCDataSource(PublicDataSource):
 
     # These "expandable" fields have most of the metadata we are interested in.
     # By asking for these in the query, we get back info about race, gender, etc.
-    EXPANDABLE_FIELDS = [
+    CASE_EXPANDABLE_FIELDS = [
         'cases.demographic',
         'cases.diagnoses',
         'cases.exposures',
@@ -37,22 +37,33 @@ class GDCDataSource(PublicDataSource):
         'cases.project'
     ]
 
-    # For the request, a GET is used, so the filter parameters should be passed as a JSON string.
-    # The query params shown here are quite general-- the derived classes should specify
-    # a filter to query for the data of interest (e.g. data types, experimental strategy)
-    QUERY_PARAMS = {
-        "fields": ','.join(FIELDS),
-        "format": "JSON",
-        # cast this int as a string since it becomes a url param:
-        "size": str(PAGE_SIZE),
-        "expand": ','.join(EXPANDABLE_FIELDS)
-    }
-
     def download_and_prep_dataset(self):
         '''
         Used to periodically pull data from the GDC 
         '''
         raise NotImplementedError('You must implement this method in a child class.')
+
+    def create_query_params(self, fields, page_size = None, **kwargs):
+        '''
+        A GDC-common payload to specify parameters. All parameter payloads are
+        structured as such, so we can simply inject the proper fields, etc. 
+        as needed. Returns a dict.
+
+        `fields` is a list of strings
+        Any kwargs are inserted directly into this dict
+
+        '''
+        if page_size is None:
+            page_size = GDCDataSource.PAGE_SIZE
+
+        query_params = {
+            "fields": ','.join(fields),
+            "format": "JSON",
+            # cast this int as a string since it becomes a url param:
+            "size": str(page_size),
+        }
+        query_params.update(kwargs)
+        return query_params
 
     @staticmethod
     def merge_with_full_record(full_record, returned_data, aliquot_ids, extra_fields=None):

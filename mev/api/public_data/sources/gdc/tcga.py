@@ -140,7 +140,12 @@ class TCGARnaSeqDataSource(TCGADataSource):
             'content': final_filter_list
         }
 
-        final_query_params = copy.deepcopy(GDCDataSource.QUERY_PARAMS)
+        basic_fields = GDCDataSource.CASE_FIELDS
+        expanded_fields = ','.join(GDCDataSource.CASE_EXPANDABLE_FIELDS)
+        final_query_params = self.create_query_params(
+            basic_fields,
+            expand = expanded_fields
+        )
 
         # The query format requires that the nested items are already serialized
         # to JSON format. e.g. if `final_filter` were to remain a native python
