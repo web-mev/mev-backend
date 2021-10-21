@@ -90,7 +90,7 @@ class mevapi (
   }
 
   class { 'solr':
-    version     => '8.10.0',  # make sure luceneMatchVersion in all solrconfig.xml files matches this version
+    version     => '8.10.1',  # make sure luceneMatchVersion in all solrconfig.xml files matches this version
     url         => 'https://dlcdn.apache.org/lucene/solr',
     solr_home   => $solr_home,
     schema_name => 'schema.xml',  # classic schema
