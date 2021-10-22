@@ -64,8 +64,20 @@ class Command(BaseCommand):
             TAG = '{tag}'
             PUBLIC_NAME = ''
             DESCRIPTION = ''
+            DATASET_FILES = []
 
             def prepare(self):
+                pass
+
+            def verify_files(self, file_dict):
+                # verifies that all required files are present
+                # and returns a list of the files to index
+                pass
+
+            def create_from_query(self, query_params):
+                # subsets the dataset based on the query_params.
+                # Returns a tuple of a filepath (string) and
+                # a resource_type
                 pass
         '''
         # turns 'abc' to 'Abc' so it looks more like a canonical class name

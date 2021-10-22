@@ -25,3 +25,9 @@ class PublicDataset(models.Model):
     # to, for example, construct the proper url to query solr (if
     # that is our indexing technology)
     index_name = models.CharField(max_length=30, unique=True)
+
+    # a JSON object which tracks the files pertaining to this 
+    # public dataset. Each implementation class 
+    # (e.g. in api.public_data.sources) knows how to deal with this
+    # mapping
+    file_mapping = models.JSONField(blank=True, null=True)

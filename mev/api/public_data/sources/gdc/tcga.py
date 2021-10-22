@@ -2,6 +2,7 @@ import copy
 import re
 import json
 import logging
+from pandas.core.algorithms import diff
 import requests
 import datetime
 import shutil
@@ -125,10 +126,25 @@ class TCGARnaSeqDataSource(TCGADataSource):
     TAG = 'tcga-rnaseq'
 
     # A format-string for the annotation file
-    ANNOTATION_OUTPUT_FILE = 'annotations.{tag}.{ds}.csv'
+    ANNOTATION_OUTPUT_FILE_TEMPLATE = 'annotations.{tag}.{ds}.csv'
 
     # A format-string for the count file
-    COUNT_OUTPUT_FILE = 'counts.{tag}.{ds}.hd5'
+    COUNT_OUTPUT_FILE_TEMPLATE = 'counts.{tag}.{ds}.hd5'
+
+    #
+    ANNOTATION_FILE_KEY = 'annotations'
+    COUNTS_FILE_KEY = 'counts'
+    DATASET_FILES = [
+        ANNOTATION_FILE_KEY,
+        COUNTS_FILE_KEY
+    ]
+
+    # An example of how one might query this dataset, so we can provide useful
+    # help for dataset creation errors:
+    EXAMPLE_PAYLOAD = {
+        'TCGA-UVM': ["<UUID>","<UUID>"],
+        'TCGA-MESO': ["<UUID>","<UUID>", "<UUID>"]
+    }
 
     # This list defines further filters which are specific to this class where we
     # are getting data regarding HTSeq-based RNA-seq counts. This list is in addition
@@ -468,7 +484,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         total_annotation_df = pd.DataFrame()
         counts_output_path = os.path.join(
             self.ROOT_DIR,
-            self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=self.date_str)
+            self.COUNT_OUTPUT_FILE_TEMPLATE.format(tag=self.TAG, ds=self.date_str)
         )
         with pd.HDFStore(counts_output_path) as hdf_out:
             for cancer_type in tcga_cancer_types:
@@ -490,7 +506,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         # Write all the metadata to a file
         ann_output_path = os.path.join(
             self.ROOT_DIR,
-            self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
+            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(tag = self.TAG, ds=self.date_str)
         )
         total_annotation_df.to_csv(
             ann_output_path, 
@@ -500,6 +516,40 @@ class TCGARnaSeqDataSource(TCGADataSource):
         logger.info('The metadata/annnotation file for your TCGA RNA-seq data'
             'is available at {p}'.format(p=ann_output_path))
         
+
+    def verify_files(self, file_dict):
+        '''
+        A method to verify that all the necessary files are present
+        to properly index this dataset.
+        '''
+        # use the base class to verify that all the necessary files
+        # are there
+        self.check_file_dict(file_dict)
+
+        # for TCGA RNA-seq, we only have to index the annotation file(s)
+        return file_dict[self.ANNOTATION_FILE_KEY]
+
+    def create_from_query(self, query_params):
+        '''
+        Using the dict provided in `query_params`, subset the HDF5-stored data
+        and create a flat-file. 
+
+        Return a path to that file and a file "type" (e.g. one of our defined
+        Resource types)
+        '''
+        
+        # to properly filter our full HDF5 matrix, we expect a data structure that
+        # looks like:
+        #
+        # {'TCGA-UVM': [<uuid>, <uuid>], 'TCGA-ABC': [<uuid>]}
+        #
+        # The top level contains the tcga identifiers, which we use to identify
+        # the groups within the HDF5 file. Then, we use the UUIDs to filter the
+        # dataframes
+
+        keys = ''
+
+
 
 class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):
     '''

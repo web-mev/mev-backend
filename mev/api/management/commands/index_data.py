@@ -1,5 +1,7 @@
 import os
+import sys
 import logging
+from collections import defaultdict
 
 from django.core.management.base import BaseCommand
 
@@ -25,18 +27,37 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
-            'filepaths',
+            'files',
             metavar='path',
             nargs='+',
-            help='One or more paths to files to index into the dataset.'
+            help=('One or more key-value pairs, written as "<key>=<value>" which'
+                ' specify which files are germane to this dataset. Is specific to'
+                ' each dataset, and it will warn/error accordingly if anything'
+                ' is amiss.'
+            )
         )
+
+    def validate_kv_pairs(self, files_kv_pairs):
+        d = defaultdict(list)
+        for s in files_kv_pairs:
+            # s should be a string like "a=b"
+            # where a is a 'key' and 'b' is the path
+            # to a corresponding file
+            try:
+                k,v = [x.strip() for x in s.split('=')]
+                d[k].append(v)
+            except ValueError:
+                raise Exception('Could not parse the argument "%s" as a key-value pair'
+                    ' delimited by "="' % s
+                )
+        return d
 
     def handle(self, *args, **options):
 
         dataset_id = options['dataset_id']
-        filelist = options['filepaths']
-
+        files_kv_pairs = options['files']
         is_valid = check_if_valid_public_dataset_name(dataset_id)
+        file_mapping = self.validate_kv_pairs(files_kv_pairs)
 
         if is_valid:
 
@@ -65,7 +86,7 @@ class Command(BaseCommand):
                 )
                 dataset_db_model = PublicDataset.objects.create(index_name = dataset_id)
             
-            index_dataset(dataset_db_model, filelist)
+            index_dataset(dataset_db_model, file_mapping)
         else:
             logger.info('The requested datase was not valid. Check that you have'
                 ' typed the name correctly.'

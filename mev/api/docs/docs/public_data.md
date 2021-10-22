@@ -49,21 +49,31 @@ To provide a common means of ingesting/preparing all datasets, we expect that ea
     - `TAG`: This is a unique string which acts as an identifier for the dataset. If the name is not unique, then registering the dataset in the database will not be permitted, and hence the indexed dataset will not be usable. Additionally, the unit test suite will check that all implementing classes have unique identifiers. This string is limited to 30 characters by a database constraint.
     - `PUBLIC_NAME`: This string should be a relatively short "name" for the dataset, such as "TCGA RNA-seq"
     - `DESCRIPTION`: This is another string which provides more context and a thorough description of the data is contains.
+    - `DATASET_FILES`: This is a list which enumerates the files necessary for this dataset. For example, in the TCGA RNA-seq dataset, we have the metadata/annotations file, and we have a separate count file. This list of used to ensure that the proper
+    files are present when indexing and creating datasets.
 - Methods:
     - `prepare(self)`: a method that takes no arguments (other than the class instance) and prepares the data. A return value is not expected.
+    - `verify_files(self, file_dict)`: a method that takes a dictionary with keys that should match those in `DATASET_FILES` and the values are file paths so we can verify
+    that the files exist. **Important**: returns a list of the filepaths to index.
+    - `create_from_query(self, query_params)`: a method that takes a dict which specifies how to create the dataset. Think of the dict as a generic payload
+    for filtering, etc. Returns a tuple of a filepath(string) and a resource type string (one of our "special" types like `"EXP_MTX"`)
 
 A template for this new class:
 ```
 
-from api.public_data.sources.base import PublicDataset
+from api.public_data.sources.base import PublicDataSource
 
-class MyDataset(PublicDataset):
+class MyDataset(PublicDataSource):
 
     TAG = ''
     PUBLIC_NAME = ''
     DESCRIPTION = ''
-
+    DATASET_FILES = []
     def prepare(self):
+        pass
+    def verify_files(self, file_dict):
+        pass
+    def create_from_query(self, query_params):
         pass
 ```
 
