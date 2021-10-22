@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
-from api.models import PublicDataset
+from api.models import PublicDataset, Workspace, Resource
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -39,7 +39,7 @@ class PublicDataListTests(BaseAPITestCase):
 
 class PublicDataQueryTests(BaseAPITestCase):
     '''
-    Tests focused around the ability to add/create public datasets.
+    Tests focused around the ability to query public datasets.
     '''
     def setUp(self):
         self.all_public_datasets = PublicDataset.objects.all()
@@ -71,3 +71,143 @@ class PublicDataQueryTests(BaseAPITestCase):
         mock_query_dataset.return_value = mock_response_json
         response = self.authenticated_admin_client.get(url)
         mock_query_dataset.assert_called_with(self.test_active_dataset.index_name, encoded_str)
+
+
+class PublicDataCreateTests(BaseAPITestCase):
+    '''
+    Tests focused around the ability to create public datasets.
+    '''
+    def setUp(self):
+
+        self.establish_clients()
+
+        self.all_public_datasets = PublicDataset.objects.all()
+        if len(self.all_public_datasets) == 0:
+            raise ImproperlyConfigured('Need at least one active public dataset to'
+                ' run this test properly.'
+            )
+        self.all_active_datasets = [x for x in self.all_public_datasets if x.active]
+        if len(self.all_active_datasets) == 0:
+            raise ImproperlyConfigured('Need at least one active public dataset to'
+                ' run this test properly.'
+            )
+        # grab the first active dataset to use in the tests below
+        self.test_active_dataset = self.all_active_datasets[0]
+        self.url = reverse('public-dataset-create', 
+            kwargs={'dataset_id': self.test_active_dataset.index_name}
+        )
+
+        regular_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(regular_user_workspaces) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Workspace instance for the user {user}
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+        # just take the first Workspace for this user
+        self.regular_user_workspace = regular_user_workspaces[0]
+
+
+    def test_requires_auth(self):
+        """
+        Test that general requests to the endpoint generate 401
+        """
+        response = self.regular_client.post(self.url)
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
+
+    def test_rejects_request_with_missing_workspace(self):
+        '''
+        We need to know which workspace we are adding the resource to
+        Thus, we require a 'workspace' key in the payload
+        '''
+        payload = {'something': 0}
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
+
+    def test_rejects_request_with_owner_and_workspace_mismatch(self):
+        '''
+        If the workspace is not owned by the user, reject
+        '''
+        payload = {'workspace': self.regular_user_workspace.pk}
+        response = self.authenticated_other_client.post(
+            self.url, data=payload, format='json')
+        self.assertTrue(response.status_code == status.HTTP_403_FORBIDDEN)
+
+    @mock.patch('api.views.public_dataset.create_dataset_from_params')
+    def test_error_to_add_resource_reported(self, mock_create_dataset_from_params):
+        '''
+        If something goes wrong in the 
+        api.views.public_dataset.create_dataset_from_params function,
+        we return a 400 and report it.
+        '''
+        # this is the payload we want passed to the function.
+        # the full request will have this AND the workspace
+        minimal_payload = {'samples': [1,2,3]}
+        payload = {
+            'workspace': self.regular_user_workspace.pk,
+        }
+        payload.update(minimal_payload)
+
+        # mock the failure:
+        mock_create_dataset_from_params.side_effect = Exception('something bad!')
+
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
+
+
+    @mock.patch('api.views.public_dataset.create_dataset_from_params')
+    def test_adds_new_resource_to_workspace(self, mock_create_dataset_from_params):
+        '''
+        Assume that the request payloasd was valid so that the 
+        api.views.public_dataset.create_dataset_from_params function
+        returns an api.models.Resource instance. 
+
+        Here, test that we add that resource to the workspace and return a 201
+        '''
+        # this is the payload we want passed to the function.
+        # the full request will have this AND the workspace
+        minimal_payload = {'samples': [1,2,3]}
+        payload = {
+            'workspace': self.regular_user_workspace.pk,
+        }
+        payload.update(minimal_payload)
+
+        # below, we check that the workspace key gets stripped
+        # from the call to the creation method
+        new_resource = Resource.objects.create(
+            owner = self.regular_user_1,
+            path = '/some/dummy_path/file.tsv',
+            name = 'foo.tsv'
+        )
+        mock_create_dataset_from_params.return_value = new_resource
+
+        original_workspace_resource_pks = [str(x.pk) for x in self.regular_user_workspace.resources.all()]
+
+        # finally, call the endpoint
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertTrue(response.status_code == status.HTTP_201_CREATED)
+
+        # below, we check that the workspace key gets stripped
+        # from the call to the creation method
+        mock_create_dataset_from_params.assert_called_with(
+            self.test_active_dataset.index_name,
+            self.regular_user_1,
+            minimal_payload
+        )
+
+        # Need to query the database again to get the updated workspace info
+        w = Workspace.objects.get(pk = self.regular_user_workspace.pk)
+        updated_resources = [str(x.pk) for x in w.resources.all()]
+
+        s1 = set(original_workspace_resource_pks)
+        s2 = set(updated_resources)
+        diff_list = list(s2.difference(s1))
+        self.assertTrue(len(diff_list) == 1)
+        self.assertTrue(diff_list[0] == str(new_resource.pk))
+
+        j = response.json()
+        self.assertTrue(j['name'] == 'foo.tsv')

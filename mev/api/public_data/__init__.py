@@ -116,3 +116,12 @@ def query_dataset(dataset_id, query_payload):
     else: 
         raise Exception('The requested public dataset ({d})'
         ' could not be found.'.format(d=dataset_id))
+
+def create_dataset_from_params(dataset_id, user, request_payload):
+    '''
+    This will create a Resource based on the request
+    payload. 
+    '''
+    pass
+
+
