@@ -10,6 +10,7 @@ class GDCDataSource(PublicDataSource):
     
     GDC_FILES_ENDPOINT = "https://api.gdc.cancer.gov/files"
     GDC_DATA_ENDPOINT = "https://api.gdc.cancer.gov/data"
+    GDC_PROJECTS_ENDPOINT = "https://api.gdc.cancer.gov/projects"
     GDC_DICTIONARY_ENDPOINT = 'https://api.gdc.cancer.gov/v0/submission/_dictionary/{attribute}?format=json'
 
     # How many records to return with each query
@@ -157,7 +158,7 @@ class GDCDataSource(PublicDataSource):
             df = pd.merge(df, other_df, left_index=True, right_index=True)
         return df
 
-    def get_data_dictiontary(self):
+    def get_data_dictionary(self):
         '''
         The GDC defines a data schema which we query here. This gives the universe
         of data fields, which are used by children classes.

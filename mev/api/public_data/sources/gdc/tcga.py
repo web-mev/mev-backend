@@ -11,6 +11,7 @@ import tarfile
 import pandas as pd
 
 from django.conf import settings
+from requests.api import get
 
 from api.utilities.basic_utils import get_with_retry, make_local_directory
 from .gdc import GDCDataSource
@@ -31,7 +32,7 @@ class TCGADataSource(GDCDataSource):
     # API
     # Note that any items here will ultimately be "concatenated" using a logical
     # AND operation
-    FILTER_LIST = [
+    TCGA_FILTERS = [
         {
             "op": "in",
             "content":{
@@ -48,8 +49,54 @@ class TCGADataSource(GDCDataSource):
             )
             make_local_directory(self.ROOT_DIR)
 
+    def _create_python_compatible_tcga_id(self, tcga_type):
+        '''
+        When adding datasets or groups to a HDF5 file, need to modify
+        the name or it will not address properly
+        '''
+        return tcga_type.replace('-', '_').lower()
+
     def download_and_prep_dataset(self):
         pass
+
+    def query_for_tcga_types(self):
+        '''
+        Gets a list of the available TCGA types from the GDC.
+
+        Helps with organizing the data, so we can leverage HDF5 
+        stored matrices
+        '''
+        filters = {
+            'op':'in', 
+            'content':{
+                'field':'program.name', 
+                'value':'TCGA'
+            }
+        }
+        fields = ['program.name',]
+        query_params = self.create_query_params(
+            fields,
+            page_size = 100, # gets all types at once
+            filters = json.dumps(filters)
+        )
+        r = get_with_retry(GDCDataSource.GDC_PROJECTS_ENDPOINT, params=query_params)
+        response_json = r.json()
+        tcga_cancer_types = [x['id'] for x in response_json['data']['hits']]
+        return tcga_cancer_types
+
+    def create_cancer_specific_filter(self, tcga_cancer_id):
+        '''
+        Creates/returns a filter for a single TCGA type (e.g. TCGA-BRCA)
+
+        This filter (a dict) can be directly added to a filter array
+        '''
+        return {
+            "op": "in",
+            "content":{
+                "field": "files.cases.project.project_id",
+                "value": [tcga_cancer_id]
+                }
+        }
 
 
 class TCGARnaSeqDataSource(TCGADataSource):
@@ -81,14 +128,14 @@ class TCGARnaSeqDataSource(TCGADataSource):
     ANNOTATION_OUTPUT_FILE = 'annotations.{tag}.{ds}.csv'
 
     # A format-string for the count file
-    COUNT_OUTPUT_FILE = 'counts.{tag}.{ds}.tsv'
+    COUNT_OUTPUT_FILE = 'counts.{tag}.{ds}.hd5'
 
     # This list defines further filters which are specific to this class where we
     # are getting data regarding HTSeq-based RNA-seq counts. This list is in addition
     # to any other FILTER_LIST class attributes defined in parent classes. We will
-    # ultimately combine them using a local AND to create the final filter for our query
+    # ultimately combine them using a logical AND to create the final filter for our query
     # to the GDC API.
-    FILTER_LIST = [
+    RNASEQ_FILTERS = [
         {
             "op": "in",
             "content":{
@@ -127,13 +174,25 @@ class TCGARnaSeqDataSource(TCGADataSource):
         super().__init__()
         self.date_str = datetime.datetime.now().strftime('%m%d%Y')
 
-    def _create_filters(self):
+    def _create_rnaseq_query_params(self, cancer_type):
         '''
-        Internal method to create the GDC-compatible filter syntax
+        Internal method to create the GDC-compatible parameter syntax.
+
+        The parameter payload will dictate which data to get, which filters 
+        to apply, etc.
+
+        Returns a dict
         '''
         final_filter_list = []
-        final_filter_list.extend(TCGADataSource.FILTER_LIST)
-        final_filter_list.extend(self.FILTER_LIST)
+
+        # filters to subset to the TCGA project
+        final_filter_list.extend(TCGADataSource.TCGA_FILTERS)
+
+        # a filter for this specific cancer type
+        final_filter_list.append(self.create_cancer_specific_filter(cancer_type))
+
+        # and for the specific RNA-seq data
+        final_filter_list.extend(self.RNASEQ_FILTERS)
 
         final_filter = {
             'op': 'and',
@@ -144,27 +203,39 @@ class TCGARnaSeqDataSource(TCGADataSource):
         expanded_fields = ','.join(GDCDataSource.CASE_EXPANDABLE_FIELDS)
         final_query_params = self.create_query_params(
             basic_fields,
-            expand = expanded_fields
+            expand = expanded_fields,
+            filters = json.dumps(final_filter)
         )
-
-        # The query format requires that the nested items are already serialized
-        # to JSON format. e.g. if `final_filter` were to remain a native python
-        # dict, then the request would fail. 
-        final_query_params['filters'] = json.dumps(final_filter)
         return final_query_params
 
-    def download_and_prep_dataset(self):
-        '''
-        Implementation of the RNA-seq data download and prep. At the end, we will have
-        flat files that are ready to be indexed. However, this method does NOT perform
-        that indexing.
-        '''
 
-        # Get the data dictionary, which will tell us the universe of available
-        # fields and how to interpret them:
-        data_fields = self.get_data_dictiontary()
+    def _download_expression_archives(self, file_uuid_list):
+        '''
+        Given a list of file UUIDs, download those to the local disk.
+        Return the path to the downloaded archive.
+        '''
+        # Download the actual expression data corresponding to the aliquot metadata
+        # we've been collecting
+        download_params = {"ids": file_uuid_list}
+        download_response = requests.post(GDCDataSource.GDC_DATA_ENDPOINT, 
+            data = json.dumps(download_params), 
+            headers = {"Content-Type": "application/json"}
+        )
+        response_head_cd = download_response.headers["Content-Disposition"]
+        file_name = re.findall("filename=(.+)", response_head_cd)[0]
+        fout = os.path.join('/tmp', file_name)
+        with open(fout, "wb") as output_file:
+            output_file.write(download_response.content)
+        return fout
 
-        final_query_params = self._create_filters()
+    def _download_tcga_cohort(self, cancer_type, data_fields):
+        '''
+        Handles the download of metadata and actual data for a single
+        TCGA cancer type. Will return a tuple of:
+        - dataframe giving the metadata (i.e. patient info)
+        - count matrix 
+        '''
+        final_query_params = self._create_rnaseq_query_params(cancer_type)
         
         # prepare some temporary loop variables
         finished = False
@@ -176,7 +247,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         file_to_aliquot_mapping = {}
         annotation_df = pd.DataFrame()
         while not finished:
-            logger.info('Downloading TCGA RNA-seq batch %d ...' % i)
+            logger.info('Downloading batch %d for %s...' % (i, cancer_type))
 
             # the records are paginated, so we have to keep track of which page we are currently requesting
             start_index = i*GDCDataSource.PAGE_SIZE
@@ -318,22 +389,13 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
             ann_df = pd.concat([ann_df, s], axis=1)
 
-            # Add to the master dataframe
+            # Add to the master dataframe for this cancer type
             annotation_df = pd.concat([annotation_df, ann_df], axis=0)
 
-            # Download the actual expression data corresponding to the aliquot metadata
-            # we've been collecting
-            download_params = {"ids": file_uuid_list}
-            download_response = requests.post(GDCDataSource.GDC_DATA_ENDPOINT, 
-                data = json.dumps(download_params), 
-                headers = {"Content-Type": "application/json"}
+            # Go get the actual count data for this batch.
+            downloaded_archives.append(
+                self._download_expression_archives(file_uuid_list)
             )
-            response_head_cd = download_response.headers["Content-Disposition"]
-            file_name = re.findall("filename=(.+)", response_head_cd)[0]
-            fout = os.path.join('/tmp', file_name)
-            with open(fout, "wb") as output_file:
-                output_file.write(download_response.content)
-            downloaded_archives.append(fout)
 
             i += 1
 
@@ -341,25 +403,15 @@ class TCGARnaSeqDataSource(TCGADataSource):
             if end_index >= total_records:
                 finished = True
 
-        # Write all the metadata to a file
-        ann_output_path = os.path.join(
-            self.ROOT_DIR,
-            self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
-        )
-        annotation_df.to_csv(
-            ann_output_path, 
-            sep=',', 
-            index_label = 'id'
-        )
-        logger.info('Wrote TCGA RNA-seq annotation file to {p}'.format(p=ann_output_path))
+        logger.info('Completed looping through the batches for {ct}'.format(ct=cancer_type))
 
         # Merge and write the count files
-        self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
+        count_df = self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
 
         # Cleanup the downloads
         [os.remove(x) for x in downloaded_archives]
 
-        return ann_output_path
+        return annotation_df, count_df
 
 
     def _merge_downloaded_archives(self, downloaded_archives, file_to_aliquot_mapping):
@@ -386,25 +438,68 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
-        counts_output_path = os.path.join(
-            self.ROOT_DIR,
-            self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=self.date_str)
-        )
-        count_df.to_csv(counts_output_path, sep='\t')
-        logger.info('Writing final counts to {p}'.format(p=counts_output_path))
 
         # Clean up:
         shutil.rmtree(tmpdir)
+
+        return count_df
 
 
     def prepare(self):
         '''
         Entry method for downloading and munging the TCGA RNA-seq dataset
-        to a flat file.
+        to a HDF5 file
+
+        Note that creating a flat file of everything was not performant
+        and created a >2Gb matrix. Instead, we organize the RNA-seq data
+        hierarchically by splitting into the TCGA cancer types (e.g. TCGA-BRCA).
+        Each of those is assigned to a "dataset" in the HDF5 file. Therefore,
+        instead of a giant matrix we have to load each time, we can directly
+        go to cancer-specific count matrices for much better performance.
         '''
-        annotation_path = self.download_and_prep_dataset()
+
+        # first get all the TCGA cancer types.
+        tcga_cancer_types = self.query_for_tcga_types()
+        tcga_cancer_types = ['TCGA-UVM', 'TCGA-MESO']
+
+        # Get the data dictionary, which will tell us the universe of available
+        # fields and how to interpret them:
+        data_fields = self.get_data_dictionary()
+
+        total_annotation_df = pd.DataFrame()
+        counts_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.COUNT_OUTPUT_FILE.format(tag=self.TAG, ds=self.date_str)
+        )
+        with pd.HDFStore(counts_output_path) as hdf_out:
+            for cancer_type in tcga_cancer_types:
+                logger.info('Pull data for %s' % cancer_type)
+                ann_df, count_df = self._download_tcga_cohort(cancer_type, data_fields)
+                total_annotation_df = pd.concat([total_annotation_df, ann_df], axis=0)
+
+                # save the counts to a cancer-specific dataset. Store each
+                # dataset in a cancer-specific group. On testing, this seemed
+                # to be a bit faster for recall than keeping all the dataframes
+                # as datasets in the root group
+                group_id = (
+                    self._create_python_compatible_tcga_id(cancer_type) + '/ds')
+                hdf_out.put(group_id, count_df)
+                logger.info('Added the {ct} matrix to the HDF5'
+                    ' count matrix'.format(ct=cancer_type)
+                )
+
+        # Write all the metadata to a file
+        ann_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.ANNOTATION_OUTPUT_FILE.format(tag = self.TAG, ds=self.date_str)
+        )
+        total_annotation_df.to_csv(
+            ann_output_path, 
+            sep=',', 
+            index_label = 'id'
+        )
         logger.info('The metadata/annnotation file for your TCGA RNA-seq data'
-            'is available at {p}'.format(p=annotation_path))
+            'is available at {p}'.format(p=ann_output_path))
         
 
 class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):
