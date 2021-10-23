@@ -2,7 +2,7 @@ import datetime
 import os
 import logging
 
-from api.models import Resource
+from api.models import PublicDataset, Resource
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_size
 from .sources.gdc.tcga import TCGARnaSeqDataSource
@@ -130,8 +130,17 @@ def create_dataset_from_params(dataset_id, user, request_payload):
         raise Exception('Dataset identifier was not valid.')
 
     ds = get_implementing_class(dataset_id)
+    dataset_db_instance = PublicDataset.objects.get(index_name = dataset_id)
+    if not dataset_db_instance.is_active:
+        #TODO: improve message
+        raise Exception('The requested dataset was not active. If this'
+            ' does not resolve, please contact an administrator.'
+        )
     try:
-        path, resource_type = ds.create_from_query(request_payload)
+        path, resource_type = ds.create_from_query(
+            dataset_db_instance,
+            request_payload
+        )
     except Exception as ex:
         logger.info('An error occurred when preparing the file based'
              ' on the following query params: {d}.'.format(d=request_payload)

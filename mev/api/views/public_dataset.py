@@ -134,11 +134,18 @@ class PublicDatasetCreate(APIView):
         if request.user != workspace.owner:
             raise PermissionDenied()
 
+        # get the filter payload. The structure of this depends on the dataset
+        # being queried, so we leave that to the implementing class which will
+        # raise an exception if it's not formatted correctly.
+        # If not specified, filters is set to None, indicating the whole dataset
+        # was requested.
+        request_filters = request.data.get('filters')
+
         try:
             resource_instance = create_dataset_from_params(
                 dataset_id, 
                 request.user, 
-                request.data
+                request_filters
             )
             # now add the resource to the workspace
             resource_instance.workspaces.add(workspace)

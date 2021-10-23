@@ -157,11 +157,60 @@ class PublicDataCreateTests(BaseAPITestCase):
             self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
 
+    @mock.patch('api.views.public_dataset.create_dataset_from_params')
+    def test_missing_filter_creates_null_filter(self, mock_create_dataset_from_params):
+        '''
+        Assume that the request payload was valid so that the 
+        api.views.public_dataset.create_dataset_from_params function
+        returns an api.models.Resource instance. 
+
+        Here, test that we add that resource to the workspace and return a 201
+        '''
+        payload = {
+            'workspace': self.regular_user_workspace.pk,
+        }
+
+        # below, we check that the workspace key gets stripped
+        # from the call to the creation method
+        new_resource = Resource.objects.create(
+            owner = self.regular_user_1,
+            path = '/some/dummy_path/file.tsv',
+            name = 'foo.tsv'
+        )
+        mock_create_dataset_from_params.return_value = new_resource
+
+        original_workspace_resource_pks = [str(x.pk) for x in self.regular_user_workspace.resources.all()]
+
+        # finally, call the endpoint
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertTrue(response.status_code == status.HTTP_201_CREATED)
+
+        # below, we check that the workspace key gets stripped
+        # from the call to the creation method
+        mock_create_dataset_from_params.assert_called_with(
+            self.test_active_dataset.index_name,
+            self.regular_user_1,
+            None
+        )
+
+        # Need to query the database again to get the updated workspace info
+        w = Workspace.objects.get(pk = self.regular_user_workspace.pk)
+        updated_resources = [str(x.pk) for x in w.resources.all()]
+
+        s1 = set(original_workspace_resource_pks)
+        s2 = set(updated_resources)
+        diff_list = list(s2.difference(s1))
+        self.assertTrue(len(diff_list) == 1)
+        self.assertTrue(diff_list[0] == str(new_resource.pk))
+
+        j = response.json()
+        self.assertTrue(j['name'] == 'foo.tsv')
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')
     def test_adds_new_resource_to_workspace(self, mock_create_dataset_from_params):
         '''
-        Assume that the request payloasd was valid so that the 
+        Assume that the request payload was valid so that the 
         api.views.public_dataset.create_dataset_from_params function
         returns an api.models.Resource instance. 
 
@@ -169,7 +218,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         '''
         # this is the payload we want passed to the function.
         # the full request will have this AND the workspace
-        minimal_payload = {'samples': [1,2,3]}
+        minimal_payload = {'filters': [1,2,3]}
         payload = {
             'workspace': self.regular_user_workspace.pk,
         }
@@ -196,7 +245,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         mock_create_dataset_from_params.assert_called_with(
             self.test_active_dataset.index_name,
             self.regular_user_1,
-            minimal_payload
+            minimal_payload['filters']
         )
 
         # Need to query the database again to get the updated workspace info

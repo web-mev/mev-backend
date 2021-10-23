@@ -2,19 +2,19 @@ import copy
 import re
 import json
 import logging
-from pandas.core.algorithms import diff
 import requests
 import datetime
 import shutil
 import os
 import tarfile
+import uuid
  
 import pandas as pd
 
 from django.conf import settings
-from requests.api import get
 
-from api.utilities.basic_utils import get_with_retry, make_local_directory
+from api.utilities.basic_utils import get_with_retry, \
+    make_local_directory
 from .gdc import GDCDataSource
 
 logger = logging.getLogger(__name__)
@@ -529,15 +529,25 @@ class TCGARnaSeqDataSource(TCGADataSource):
         # for TCGA RNA-seq, we only have to index the annotation file(s)
         return file_dict[self.ANNOTATION_FILE_KEY]
 
-    def create_from_query(self, query_params):
+    def create_from_query(self, dataset_db_instance, query_filter):
         '''
-        Using the dict provided in `query_params`, subset the HDF5-stored data
+        Using the dict provided in `query_filter`, subset the HDF5-stored data
         and create a flat-file. 
 
         Return a path to that file and a file "type" (e.g. one of our defined
         Resource types)
         '''
         
+        # Look at the database object to get the path for the count matrix
+        file_mapping = dataset_db_instance.file_mapping
+        count_matrix_path = file_mapping[self.COUNTS_FILE_KEY]
+        if not os.path.exists(count_matrix_path):
+            #TODO: better error handling here.
+            logger.info('Could not find the count matrix')
+            raise Exception('Failed to find the proper data for this'
+                ' request. An administrator has been notified'
+            )
+
         # to properly filter our full HDF5 matrix, we expect a data structure that
         # looks like:
         #
@@ -546,9 +556,33 @@ class TCGARnaSeqDataSource(TCGADataSource):
         # The top level contains the tcga identifiers, which we use to identify
         # the groups within the HDF5 file. Then, we use the UUIDs to filter the
         # dataframes
+        final_df = pd.DataFrame()
+        with pd.HDFStore(count_matrix_path) as hdf:
+            for ct in query_filter.keys():
+                group_id = self._create_python_compatible_tcga_id(ct) + '/ds'
+                try:
+                    df = hdf.get(group_id)
+                    final_df = pd.concat([final_df, df], axis=1)
+                except KeyError as ex:
+                    raise Exception('The requested TCGA cancer type'
+                        ' {ct} was not found in the dataset. Ensure your'
+                        ' request was correctly formatted.'.format(ct=ct)
+                    )
+        # write the file to a temp location:
+        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+        dest_dir = os.path.join(settings.DATA_DIR, 'tmp')
+        if not os.path.exists(dest_dir):
+            make_local_directory(dest_dir)
+        filepath = os.path.join(dest_dir, filename)
+        try:
+            final_df.to_csv(filepath, sep='\t')
+        except Exception as ex:
+            logger.info('Failed to write the subset of TCGA RNA-seq'
+                ' Exception was: {ex}'.format(ex=ex)
+            )
+            raise Exception('Failed when writing the filtered data.')
 
-        keys = ''
-
+        return filepath, 'RNASEQ_COUNT_MTX'
 
 
 class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):

@@ -53,7 +53,7 @@ class TestTCGARnaSeq(unittest.TestCase):
         self.assertDictEqual(d, expected_query_filters)      
 
     @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.ROOT_DIR', '/tmp')
-    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.COUNT_OUTPUT_FILE', '__TEST__counts.{tag}.{ds}.tsv')
+    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.COUNT_OUTPUT_FILE_TEMPLATE', '__TEST__counts.{tag}.{ds}.tsv')
     @mock.patch('api.public_data.sources.gdc.tcga.datetime')
     def test_counts_merged_correctly(self, mock_datetime):
         file_to_aliquot_mapping = {
