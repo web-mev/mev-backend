@@ -526,6 +526,8 @@ class TCGARnaSeqDataSource(TCGADataSource):
         # are there
         self.check_file_dict(file_dict)
 
+    def get_indexable_files(self, file_dict):
+
         # for TCGA RNA-seq, we only have to index the annotation file(s)
         return file_dict[self.ANNOTATION_FILE_KEY]
 

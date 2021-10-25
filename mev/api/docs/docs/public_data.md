@@ -54,7 +54,9 @@ To provide a common means of ingesting/preparing all datasets, we expect that ea
 - Methods:
     - `prepare(self)`: a method that takes no arguments (other than the class instance) and prepares the data. A return value is not expected.
     - `verify_files(self, file_dict)`: a method that takes a dictionary with keys that should match those in `DATASET_FILES` and the values are file paths so we can verify
-    that the files exist. **Important**: returns a list of the filepaths to index.
+    that the files exist.
+    - `get_indexable_files(self, file_dict)`: a method that iterates through the passed
+    dictionary and returns a list of file paths for files that are to be indexed.
     - `create_from_query(self, query_params)`: a method that takes a dict which specifies how to create the dataset. Think of the dict as a generic payload
     for filtering, etc. Returns a tuple of a filepath(string) and a resource type string (one of our "special" types like `"EXP_MTX"`)
 
@@ -72,6 +74,8 @@ class MyDataset(PublicDataSource):
     def prepare(self):
         pass
     def verify_files(self, file_dict):
+        pass
+    def get_indexable_files(self, file_dict):
         pass
     def create_from_query(self, query_params):
         pass

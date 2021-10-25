@@ -8,7 +8,7 @@ INDEXER_CHOICES = {
 
 def get_indexer():
     '''
-    Returns the class (NOT an instance of that class)
+    Returns an instance of the class
     which implements the chosen indexer (as provided in 
     the Django settings)
 
@@ -16,5 +16,5 @@ def get_indexer():
     setting has been selected for the indexer, so we don't have
     to guard against garbage here.
     '''
-    return INDEXER_CHOICES[settings.PUBLIC_DATA_INDEXER]
+    return INDEXER_CHOICES[settings.PUBLIC_DATA_INDEXER]()
         

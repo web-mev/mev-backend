@@ -72,7 +72,9 @@ class Command(BaseCommand):
                 )
                 logger.info('Model for dataset {id} existed. '.format(id=dataset_id))
                 if dataset_db_model.active:
-                    logger.info('The dataset is active, so this process will update it.')
+                    logger.info('The dataset is active, so this process will update it.'
+                        ' Note, however, that we will inactivate it during the update.'
+                    )
                 else:
                     logger.info('The dataset was not active. Once it is correctly indexed, it'
                         ' will be activated.'

@@ -71,8 +71,13 @@ class Command(BaseCommand):
 
             def verify_files(self, file_dict):
                 # verifies that all required files are present
-                # and returns a list of the files to index
                 pass
+
+            def get_indexable_files(self, file_dict):
+                # Returns a list of files that we should index given
+                # the dictionary. Some files do not get indexed, but
+                # are necessary for a particular dataset
+                return []
 
             def create_from_query(self, query_params):
                 # subsets the dataset based on the query_params.

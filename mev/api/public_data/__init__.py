@@ -70,17 +70,23 @@ def index_dataset(dataset_db_instance, file_mapping):
     for instance, in the TCGA RNA-seq data, we ONLY index the annotation/metadata
     file, but we still require the presence of a count matrix. 
     '''
+
+    # temporarily inactivate the dataset:
+    dataset_db_instance.active = False
+    dataset_db_instance.save()
+
     # the unique dataset ID
     index_name = dataset_db_instance.index_name
 
     # the implementing class for this dataset
     dataset = get_implementing_class(index_name)
 
-    files_to_index = dataset.verify_files(file_mapping)
+    dataset.verify_files(file_mapping)
+
+    files_to_index = dataset.get_indexable_files(file_mapping)
 
     # get the implementation for the indexing tool and instantiate
-    indexer_impl = get_indexer()
-    indexer = indexer_impl()
+    indexer = get_indexer()
     for filepath in files_to_index:
         try:
             indexer.index(index_name, filepath)
@@ -111,8 +117,7 @@ def query_dataset(dataset_id, query_payload):
     '''
 
     # instantiate the indexer we're using
-    indexer_cls = get_indexer()
-    indexer = indexer_cls()
+    indexer = get_indexer()
 
     if check_if_valid_public_dataset_name(dataset_id):
         return indexer.query(dataset_id, query_payload)
@@ -131,7 +136,7 @@ def create_dataset_from_params(dataset_id, user, request_payload):
 
     ds = get_implementing_class(dataset_id)
     dataset_db_instance = PublicDataset.objects.get(index_name = dataset_id)
-    if not dataset_db_instance.is_active:
+    if not dataset_db_instance.active:
         #TODO: improve message
         raise Exception('The requested dataset was not active. If this'
             ' does not resolve, please contact an administrator.'

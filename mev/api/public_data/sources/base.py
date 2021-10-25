@@ -37,5 +37,11 @@ class PublicDataSource(object):
                     )
                     raise Exception(message)
 
+    def verify_files(self, file_dict):
+        raise NotImplementedError('Must implement this method in a child class.')
+
+    def get_indexable_files(self, file_dict):
+        raise NotImplementedError('Must implement this method in a child class.')
+
     def create_from_query(self, query_params):
         raise NotImplementedError('Must implement this method in a child class.')
