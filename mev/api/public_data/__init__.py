@@ -128,9 +128,10 @@ def query_dataset(dataset_id, query_payload):
 def create_dataset_from_params(dataset_id, user, request_payload):
     '''
     This will create a Resource based on the request
-    payload. 
+    payload. Note that if request_payload is None, then we 
+    do not apply any filtering 
     '''
-    
+
     if not check_if_valid_public_dataset_name(dataset_id):
         raise Exception('Dataset identifier was not valid.')
 

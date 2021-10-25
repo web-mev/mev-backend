@@ -476,6 +476,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # first get all the TCGA cancer types.
         tcga_cancer_types = self.query_for_tcga_types()
+        tcga_cancer_types = ['TCGA-MESO','TCGA-UVM']
 
         # Get the data dictionary, which will tell us the universe of available
         # fields and how to interpret them:
@@ -542,12 +543,21 @@ class TCGARnaSeqDataSource(TCGADataSource):
         
         # Look at the database object to get the path for the count matrix
         file_mapping = dataset_db_instance.file_mapping
-        count_matrix_path = file_mapping[self.COUNTS_FILE_KEY]
+        count_matrix_path = file_mapping[self.COUNTS_FILE_KEY][0]
         if not os.path.exists(count_matrix_path):
             #TODO: better error handling here.
             logger.info('Could not find the count matrix')
             raise Exception('Failed to find the proper data for this'
                 ' request. An administrator has been notified'
+            )
+
+        # if the query_filter was None (indicating no filtering was desired)
+        # then we reject-- this dataset is too big to store as a single
+        # dataframe
+        if query_filter is None:
+            raise Exception('The {name} dataset is too large to request without'
+                ' any filters. Please try again and request a'
+                ' subset of the data.'.format(name = self.PUBLIC_NAME)
             )
 
         # to properly filter our full HDF5 matrix, we expect a data structure that
@@ -561,15 +571,38 @@ class TCGARnaSeqDataSource(TCGADataSource):
         final_df = pd.DataFrame()
         with pd.HDFStore(count_matrix_path) as hdf:
             for ct in query_filter.keys():
+                if not type(query_filter[ct]) is list:
+                    raise Exception('Problem encountered with the filter'
+                        ' provided. We expect each cancer type to address'
+                        ' a list of sample identifiers, such as: {j}'.format(
+                            j = json.dumps(self.EXAMPLE_PAYLOAD)
+                        )
+                    )
                 group_id = self._create_python_compatible_tcga_id(ct) + '/ds'
                 try:
                     df = hdf.get(group_id)
-                    final_df = pd.concat([final_df, df], axis=1)
                 except KeyError as ex:
                     raise Exception('The requested TCGA cancer type'
                         ' {ct} was not found in the dataset. Ensure your'
                         ' request was correctly formatted.'.format(ct=ct)
                     )
+                try:
+                    df = df[query_filter[ct]]
+                except KeyError as ex:
+                    message = ('The subset of the count matrix failed since'
+                        ' one or more requested samples were missing: {s}'.format(
+                            s = str(ex)
+                        )
+                    )
+                    raise Exception(message)
+
+                final_df = pd.concat([final_df, df], axis=1)
+
+        if final_df.shape[1] == 0:
+            raise Exception('The resulting matrix was empty. No'
+                ' data was created.'
+            )
+
         # write the file to a temp location:
         filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
         dest_dir = os.path.join(settings.DATA_DIR, 'tmp')

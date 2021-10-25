@@ -218,7 +218,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         '''
         # this is the payload we want passed to the function.
         # the full request will have this AND the workspace
-        minimal_payload = {'filters': [1,2,3]}
+        minimal_payload = {'filters': {'a':1}}
         payload = {
             'workspace': self.regular_user_workspace.pk,
         }
@@ -260,3 +260,17 @@ class PublicDataCreateTests(BaseAPITestCase):
 
         j = response.json()
         self.assertTrue(j['name'] == 'foo.tsv')
+
+    @mock.patch('api.views.public_dataset.create_dataset_from_params')
+    def test_rejects_malformatted_filter(self, mock_create_dataset_from_params):
+        '''
+        Test that if a 'filter' key is provided and it is not parsed 
+        as a dict, then we reject
+        '''
+        payload = {
+            'workspace': self.regular_user_workspace.pk,
+            'filters': 'abc'
+        }
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)

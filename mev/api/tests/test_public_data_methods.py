@@ -15,6 +15,7 @@ from api.public_data import DATASETS, \
     index_dataset, \
     create_dataset_from_params
 from api.models import PublicDataset
+from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.gdc.gdc import GDCDataSource
 from api.public_data.sources.gdc.tcga import TCGADataSource, TCGARnaSeqDataSource
 from api.public_data.indexers.solr import SolrIndexer
@@ -126,7 +127,6 @@ class TestSolrIndexer(BaseAPITestCase):
                 return 'something'
 
         mock_response_obj = MockResponse()
-        print('mock_resp_obj: ', mock_response_obj)
         mock_post.return_value = mock_response_obj
         self.indexer.index(mock_core_name, ann_filepath)
         expected_url ='{host}/{core}/update/'.format(
@@ -144,9 +144,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
     def setUp(self):
         self.all_public_datasets = PublicDataset.objects.filter(active=True)
-        print('*'*200)
-        print(self.all_public_datasets)
-        print('*'*200)
+
         if len(self.all_public_datasets) == 0:
             raise ImproperlyConfigured('Need at least one active public dataset to'
                 ' run this test properly.'
@@ -295,6 +293,66 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_get_resource_size.assert_not_called()
 
 
+class TestBasePublicDataSource(BaseAPITestCase):
+
+    @mock.patch('api.public_data.sources.base.os')
+    def test_check_file_dict(self, mock_os):
+        '''
+        Tests a method in the base class that asserts the proper
+        files were passed during indexing
+        '''
+
+        mock_os.path.exists.return_value = True
+
+        pds = PublicDataSource()
+
+        # below, we pass a dict which identifies files passed to the 
+        # class. This, for instance, allows us to know which file is the 
+        # annotation file(s) and which is the count matrix. Each class
+        # implementation has some necessary files and they will define this:
+        pds.DATASET_FILES = ['keyA', 'keyB']
+
+        # a valid dict
+        fd = {
+            'keyA': ['/path/to/fileA.txt'],
+            'keyB': ['/path/to/fileB.txt', '/path/to/another_file.txt']
+        }
+        pds.check_file_dict(fd)
+
+        # has an extra key- ok to ignore
+        fd = {
+            'keyA': ['/path/to/fileA.txt'],
+            'keyB': ['/path/to/fileB.txt', '/path/to/another_file.txt'],
+            'keyC': ['']
+        }
+        pds.check_file_dict(fd)
+
+        # uses the wrong keys- keyA is missing
+        fd = {
+            'keyC': ['/path/to/fileA.txt'],
+            'keyB': ['/path/to/fileB.txt', '/path/to/another_file.txt']
+        }
+        with self.assertRaisesRegex(Exception, 'keyA'):
+            pds.check_file_dict(fd)
+
+        # Each key should address a list
+        fd = {
+            'keyA': '/path/to/fileA.txt',
+            'keyB': ['/path/to/fileB.txt', '/path/to/another_file.txt']
+        }
+        with self.assertRaisesRegex(Exception, 'keyA'):
+            pds.check_file_dict(fd)
+
+        # mock non-existent filepath
+        mock_os.path.exists.side_effect = [True, False, True]
+        fd = {
+            'keyA': ['/path/to/fileA.txt'],
+            'keyB': ['/path/to/fileB.txt', '/path/to/another_file.txt']
+        }
+        with self.assertRaisesRegex(Exception, '/path/to/fileB.txt'):
+            pds.check_file_dict(fd)     
+
+        
 
 class TestGDC(BaseAPITestCase): 
     def test_dummy(self):
@@ -361,3 +419,203 @@ class TestTCGARnaSeq(BaseAPITestCase):
         data_src = TCGARnaSeqDataSource()
         actual_df = data_src._merge_downloaded_archives(archives, file_to_aliquot_mapping)
         self.assertTrue(expected_matrix.equals(actual_df))
+
+    def test_indexes_only_annotation_file(self):
+        '''
+        The TCGA RNA-seq dataset consists of a metadata file and a count matrix.
+        This verifies that the `get_indexable_files`  method only returns
+        the annotation file
+        '''
+
+        data_src = TCGARnaSeqDataSource()
+
+        fd = {
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/path/to/A.txt'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:['/path/to/counts.tsv'] 
+        }
+        result = data_src.get_indexable_files(fd)
+        self.assertCountEqual(result, fd[TCGARnaSeqDataSource.ANNOTATION_FILE_KEY])
+
+    def test_filters_hdf_correctly(self):
+        '''
+        Tests that we filter properly for a 
+        dummy dataset stored in HDF5 format.
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            'TCGA-ABC': ['s1', 's3'],
+            'TCGA-DEF': ['s5']
+        }
+        data_src = TCGARnaSeqDataSource()
+        path, resource_type = data_src.create_from_query(mock_db_record, query)
+
+        expected_df = pd.DataFrame(
+            [[26,86,67],[54,59,29],[24,12,37]],
+            index = ['gA', 'gB', 'gC'],
+            columns = ['s1','s3','s5']
+        )
+        actual_df = pd.read_table(path, index_col=0)
+        self.assertTrue(actual_df.equals(expected_df))
+
+    def test_rejects_whole_dataset_with_null_filter(self):
+        '''
+        Tests that we reject the request (raise an exception)
+        if a filter of None is applied. This would be too large 
+        for us to handle.
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        data_src = TCGARnaSeqDataSource()
+        with self.assertRaisesRegex(Exception, 'too large'):
+            path, resource_type = data_src.create_from_query(mock_db_record, None)
+
+    def test_filters_with_cancer_type(self):
+        '''
+        Tests that we handle a bad TCGA ID appropriately
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # the only datasets in the file are for TCGA-ABC
+            # and TCGA-DEF. Below, we ask for a non-existant one
+            'TCGA-ABC': ['s1', 's3'],
+            'TCGA-XYZ': ['s5']
+        }
+        data_src = TCGARnaSeqDataSource()
+        with self.assertRaisesRegex(Exception, 'TCGA-XYZ'):
+            path, resource_type = data_src.create_from_query(mock_db_record, query)
+
+    def test_filters_with_bad_sample_id(self):
+        '''
+        Tests that we handle missing samples appropriately
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # add a bad sample ID to the TCGA-ABC set:
+            'TCGA-ABC': ['s1111', 's3'],
+            'TCGA-DEF': ['s5']
+        }
+        data_src = TCGARnaSeqDataSource()
+        with self.assertRaisesRegex(Exception, 's1111'):
+            path, resource_type = data_src.create_from_query(mock_db_record, query)
+
+    def test_empty_filters(self):
+        '''
+        Tests that we reject if the filtering list is empty
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # This should have some strings:
+            'TCGA-DEF': []
+        }
+        data_src = TCGARnaSeqDataSource()
+        with self.assertRaisesRegex(Exception, 'empty'):
+            path, resource_type = data_src.create_from_query(mock_db_record, query)
+
+    def test_malformatted_filter_dict(self):
+        '''
+        Tests that we reject if the cancer type refers to something
+        that is NOT a list
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # This should be a list:
+            'TCGA-DEF':'abc'
+        }
+        data_src = TCGARnaSeqDataSource()
+        with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
+            path, resource_type = data_src.create_from_query(mock_db_record, query)

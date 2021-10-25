@@ -96,6 +96,7 @@ class PublicDatasetCreate(APIView):
     ]
 
     def post(self, request, *args, **kwargs):
+
         try:
             dataset_id = self.kwargs['dataset_id']
         except KeyError as ex:
@@ -109,8 +110,7 @@ class PublicDatasetCreate(APIView):
         # the dataset was ok. Check that we have a 'workspace' key. This endpoint
         # ultimately creates a Resource and we need to add it to the user's workspace
         try:
-            workspace_uuid = request.data.pop('workspace')
-            request
+            workspace_uuid = request.data['workspace']
         except KeyError as ex:
             return Response(
                 {'workspace':'Need to supply a workspace UUID with this request'}, 
@@ -140,7 +140,9 @@ class PublicDatasetCreate(APIView):
         # If not specified, filters is set to None, indicating the whole dataset
         # was requested.
         request_filters = request.data.get('filters')
-
+        if (request_filters is not None) and (not type(request_filters) is dict):
+            return Response('The "filters" part of the payload'
+            ' should be formatted as an object.', status=status.HTTP_400_BAD_REQUEST)
         try:
             resource_instance = create_dataset_from_params(
                 dataset_id, 

@@ -27,6 +27,11 @@ class PublicDataSource(object):
 
         for file_key in self.DATASET_FILES:
             filepaths = file_dict[file_key]
+            if not type(filepaths) is list:
+                raise Exception('Each key of the passed dictionary'
+                    ' should address a list of file paths. The offending key'
+                    ' was {k}'.format(k=file_key)
+                )
             for f in filepaths:
                 if not os.path.exists(f):
                     message = ('The file {f} corresponding to key "{k}" did not exist.'
