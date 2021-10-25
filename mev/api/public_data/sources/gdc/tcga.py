@@ -476,7 +476,6 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # first get all the TCGA cancer types.
         tcga_cancer_types = self.query_for_tcga_types()
-        tcga_cancer_types = ['TCGA-MESO','TCGA-UVM']
 
         # Get the data dictionary, which will tell us the universe of available
         # fields and how to interpret them:
