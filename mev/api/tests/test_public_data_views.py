@@ -97,16 +97,6 @@ class PublicDataCreateTests(BaseAPITestCase):
             kwargs={'dataset_id': self.test_active_dataset.index_name}
         )
 
-        regular_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
-        if len(regular_user_workspaces) == 0:
-            msg = '''
-                Testing not setup correctly.  Please ensure that there is at least one
-                Workspace instance for the user {user}
-            '''.format(user=self.regular_user_1)
-            raise ImproperlyConfigured(msg)
-        # just take the first Workspace for this user
-        self.regular_user_workspace = regular_user_workspaces[0]
-
 
     def test_requires_auth(self):
         """
@@ -116,24 +106,6 @@ class PublicDataCreateTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    def test_rejects_request_with_missing_workspace(self):
-        '''
-        We need to know which workspace we are adding the resource to
-        Thus, we require a 'workspace' key in the payload
-        '''
-        payload = {'something': 0}
-        response = self.authenticated_regular_client.post(
-            self.url, data=payload, format='json')
-        self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
-
-    def test_rejects_request_with_owner_and_workspace_mismatch(self):
-        '''
-        If the workspace is not owned by the user, reject
-        '''
-        payload = {'workspace': self.regular_user_workspace.pk}
-        response = self.authenticated_other_client.post(
-            self.url, data=payload, format='json')
-        self.assertTrue(response.status_code == status.HTTP_403_FORBIDDEN)
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')
     def test_error_to_add_resource_reported(self, mock_create_dataset_from_params):
@@ -144,11 +116,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         '''
         # this is the payload we want passed to the function.
         # the full request will have this AND the workspace
-        minimal_payload = {'samples': [1,2,3]}
-        payload = {
-            'workspace': self.regular_user_workspace.pk,
-        }
-        payload.update(minimal_payload)
+        payload = {'samples': [1,2,3]}
 
         # mock the failure:
         mock_create_dataset_from_params.side_effect = Exception('something bad!')
@@ -166,12 +134,9 @@ class PublicDataCreateTests(BaseAPITestCase):
 
         Here, test that we add that resource to the workspace and return a 201
         '''
-        payload = {
-            'workspace': self.regular_user_workspace.pk,
-        }
+        payload = {}
 
-        # below, we check that the workspace key gets stripped
-        # from the call to the creation method
+        # this is the new resource that is mock-created
         new_resource = Resource.objects.create(
             owner = self.regular_user_1,
             path = '/some/dummy_path/file.tsv',
@@ -179,31 +144,16 @@ class PublicDataCreateTests(BaseAPITestCase):
         )
         mock_create_dataset_from_params.return_value = new_resource
 
-        original_workspace_resource_pks = [str(x.pk) for x in self.regular_user_workspace.resources.all()]
-
         # finally, call the endpoint
         response = self.authenticated_regular_client.post(
             self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_201_CREATED)
 
-        # below, we check that the workspace key gets stripped
-        # from the call to the creation method
         mock_create_dataset_from_params.assert_called_with(
             self.test_active_dataset.index_name,
             self.regular_user_1,
             None
         )
-
-        # Need to query the database again to get the updated workspace info
-        w = Workspace.objects.get(pk = self.regular_user_workspace.pk)
-        updated_resources = [str(x.pk) for x in w.resources.all()]
-
-        s1 = set(original_workspace_resource_pks)
-        s2 = set(updated_resources)
-        diff_list = list(s2.difference(s1))
-        self.assertTrue(len(diff_list) == 1)
-        self.assertTrue(diff_list[0] == str(new_resource.pk))
-
         j = response.json()
         self.assertTrue(j['name'] == 'foo.tsv')
 
@@ -218,11 +168,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         '''
         # this is the payload we want passed to the function.
         # the full request will have this AND the workspace
-        minimal_payload = {'filters': {'a':1}}
-        payload = {
-            'workspace': self.regular_user_workspace.pk,
-        }
-        payload.update(minimal_payload)
+        payload = {'filters': {'a':1}}
 
         # below, we check that the workspace key gets stripped
         # from the call to the creation method
@@ -232,8 +178,6 @@ class PublicDataCreateTests(BaseAPITestCase):
             name = 'foo.tsv'
         )
         mock_create_dataset_from_params.return_value = new_resource
-
-        original_workspace_resource_pks = [str(x.pk) for x in self.regular_user_workspace.resources.all()]
 
         # finally, call the endpoint
         response = self.authenticated_regular_client.post(
@@ -245,18 +189,8 @@ class PublicDataCreateTests(BaseAPITestCase):
         mock_create_dataset_from_params.assert_called_with(
             self.test_active_dataset.index_name,
             self.regular_user_1,
-            minimal_payload['filters']
+            payload['filters']
         )
-
-        # Need to query the database again to get the updated workspace info
-        w = Workspace.objects.get(pk = self.regular_user_workspace.pk)
-        updated_resources = [str(x.pk) for x in w.resources.all()]
-
-        s1 = set(original_workspace_resource_pks)
-        s2 = set(updated_resources)
-        diff_list = list(s2.difference(s1))
-        self.assertTrue(len(diff_list) == 1)
-        self.assertTrue(diff_list[0] == str(new_resource.pk))
 
         j = response.json()
         self.assertTrue(j['name'] == 'foo.tsv')
@@ -268,7 +202,6 @@ class PublicDataCreateTests(BaseAPITestCase):
         as a dict, then we reject
         '''
         payload = {
-            'workspace': self.regular_user_workspace.pk,
             'filters': 'abc'
         }
         response = self.authenticated_regular_client.post(

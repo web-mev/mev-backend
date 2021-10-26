@@ -107,33 +107,6 @@ class PublicDatasetCreate(APIView):
             )
             return Response({'message': message}, status=status.HTTP_400_BAD_REQUEST) 
 
-        # the dataset was ok. Check that we have a 'workspace' key. This endpoint
-        # ultimately creates a Resource and we need to add it to the user's workspace
-        try:
-            workspace_uuid = request.data['workspace']
-        except KeyError as ex:
-            return Response(
-                {'workspace':'Need to supply a workspace UUID with this request'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            ) 
-        
-        # Check the existence of the workspace
-        try:
-            workspace = Workspace.objects.get(pk=workspace_uuid)
-        except Workspace.DoesNotExist:
-            logger.info('Could not locate Workspace ({workspace_uuid}).'.format(
-                workspace_uuid = str(workspace_uuid)
-                )
-            )
-            raise ParseError({
-                'workspace_uuid': 'Workspace referenced by {uuid}'
-                ' was not found.'.format(uuid=workspace_uuid)
-            })
-
-        # ensure this user owns that workspace
-        if request.user != workspace.owner:
-            raise PermissionDenied()
-
         # get the filter payload. The structure of this depends on the dataset
         # being queried, so we leave that to the implementing class which will
         # raise an exception if it's not formatted correctly.
@@ -149,9 +122,6 @@ class PublicDatasetCreate(APIView):
                 request.user, 
                 request_filters
             )
-            # now add the resource to the workspace
-            resource_instance.workspaces.add(workspace)
-            resource_instance.save()
             rs = ResourceSerializer(resource_instance, context={'request': request})
             return Response(rs.data, status=status.HTTP_201_CREATED)
 
