@@ -48,24 +48,24 @@
 
 <field name="id" type="string" multiValued="false" indexed="true" required="true" stored="true"/>
 <field name="project_id" type="string"/>
-<field name="age_at_index" type="pint"/>
+<field name="age_at_index" type="pdouble"/>
 <field name="age_is_obfuscated" type="boolean"/>
 <field name="cause_of_death" type="string"/>
 <field name="cause_of_death_source" type="string"/>
 <field name="country_of_residence_at_enrollment" type="string"/>
-<field name="days_to_birth" type="pint"/>
+<field name="days_to_birth" type="pdouble"/>
 <field name="days_to_death" type="pdouble"/>
 <field name="ethnicity" type="string"/>
 <field name="gender" type="string"/>
-<field name="occupation_duration_years" type="pint"/>
+<field name="occupation_duration_years" type="pdouble"/>
 <field name="premature_at_birth" type="string"/>
 <field name="race" type="string"/>
 <field name="vital_status" type="string"/>
 <field name="weeks_gestation_at_birth" type="pfloat"/>
-<field name="year_of_birth" type="pint"/>
+<field name="year_of_birth" type="pdouble"/>
 <field name="year_of_death" type="pdouble"/>
 <field name="adrenal_hormone" type="string"/>
-<field name="age_at_diagnosis" type="pint"/>
+<field name="age_at_diagnosis" type="pdouble"/>
 <field name="ajcc_clinical_m" type="string"/>
 <field name="ajcc_clinical_n" type="string"/>
 <field name="ajcc_clinical_stage" type="string"/>
@@ -89,8 +89,8 @@
 <field name="cog_neuroblastoma_risk_group" type="string"/>
 <field name="cog_renal_stage" type="string"/>
 <field name="cog_rhabdomyosarcoma_risk_group" type="string"/>
-<field name="days_to_best_overall_response" type="pint"/>
-<field name="days_to_diagnosis" type="pint"/>
+<field name="days_to_best_overall_response" type="pdouble"/>
+<field name="days_to_diagnosis" type="pdouble"/>
 <field name="days_to_last_follow_up" type="pfloat"/>
 <field name="days_to_last_known_disease_status" type="pfloat"/>
 <field name="days_to_recurrence" type="pfloat"/>
@@ -161,8 +161,8 @@
 <field name="who_cns_grade" type="string"/>
 <field name="who_nte_grade" type="string"/>
 <field name="wilms_tumor_histologic_subtype" type="string"/>
-<field name="year_of_diagnosis" type="pint"/>
-<field name="age_at_onset" type="pint"/>
+<field name="year_of_diagnosis" type="pdouble"/>
+<field name="age_at_onset" type="pdouble"/>
 <field name="alcohol_days_per_week" type="pfloat"/>
 <field name="alcohol_drinks_per_day" type="pfloat"/>
 <field name="alcohol_history" type="string"/>
