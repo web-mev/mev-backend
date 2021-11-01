@@ -221,7 +221,7 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_dataset = mock.MagicMock()
         mock_resource_instance = mock.MagicMock()
 
-        mock_dataset.create_from_query.return_value = ('a', 'MTX')
+        mock_dataset.create_from_query.return_value = (['a'], ['MTX'])
 
         mock_resource_class.objects.create.return_value =  mock_resource_instance
 
@@ -239,7 +239,7 @@ class TestPublicDatasets(BaseAPITestCase):
             'filters': []
         }
 
-        r = create_dataset_from_params(dataset_id, mock_user, request_payload)
+        resource_list = create_dataset_from_params(dataset_id, mock_user, request_payload)
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload)
@@ -250,8 +250,8 @@ class TestPublicDatasets(BaseAPITestCase):
             resource_type='MTX'
         )
 
-        self.assertEqual(r.path, mock_final_path)
-        self.assertEqual(r.size, mock_size)
+        self.assertEqual(resource_list[0].path, mock_final_path)
+        self.assertEqual(resource_list[0].size, mock_size)
 
     @mock.patch('api.public_data.get_resource_size')
     @mock.patch('api.public_data.move_resource_to_final_location')
@@ -447,12 +447,17 @@ class TestTCGARnaSeq(BaseAPITestCase):
             'tcga_rnaseq.hd5'
         )
 
+        ann_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq_ann.csv'
+        )
+
         # this dict is what the database record is expected to contain
         # in the file_mapping field
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
-            # representation of the database record
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: [ann_path],
             TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
 
         }
@@ -463,15 +468,27 @@ class TestTCGARnaSeq(BaseAPITestCase):
             'TCGA-DEF': ['s5']
         }
         data_src = TCGARnaSeqDataSource()
-        path, resource_type = data_src.create_from_query(mock_db_record, query)
+        paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
+        # The order of these doesn't matter in practice, but to check the file contents,
+        # we need to be sure we're looking at the correct files for this test.
+        self.assertTrue(resource_types[0] == 'RNASEQ_COUNT_MTX')
+        self.assertTrue(resource_types[1] == 'ANN')
         expected_df = pd.DataFrame(
             [[26,86,67],[54,59,29],[24,12,37]],
             index = ['gA', 'gB', 'gC'],
             columns = ['s1','s3','s5']
         )
-        actual_df = pd.read_table(path, index_col=0)
+        actual_df = pd.read_table(paths[0], index_col=0)
         self.assertTrue(actual_df.equals(expected_df))
+
+        ann_df = pd.DataFrame(
+            [['TCGA-ABC', 1990],['TCGA-ABC', 1992], ['TCGA-DEF', 1994]],
+            index = ['s1','s3','s5'],
+            columns = ['cancer_type', 'year_of_birth']
+        )
+        actual_df = pd.read_table(paths[1], index_col=0)
+        self.assertTrue(actual_df.equals(ann_df))
 
     def test_rejects_whole_dataset_with_null_filter(self):
         '''
@@ -529,7 +546,7 @@ class TestTCGARnaSeq(BaseAPITestCase):
         }
         data_src = TCGARnaSeqDataSource()
         with self.assertRaisesRegex(Exception, 'TCGA-XYZ'):
-            path, resource_type = data_src.create_from_query(mock_db_record, query)
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
     def test_filters_with_bad_sample_id(self):
         '''
@@ -559,7 +576,7 @@ class TestTCGARnaSeq(BaseAPITestCase):
         }
         data_src = TCGARnaSeqDataSource()
         with self.assertRaisesRegex(Exception, 's1111'):
-            path, resource_type = data_src.create_from_query(mock_db_record, query)
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
     def test_empty_filters(self):
         '''
@@ -588,7 +605,7 @@ class TestTCGARnaSeq(BaseAPITestCase):
         }
         data_src = TCGARnaSeqDataSource()
         with self.assertRaisesRegex(Exception, 'empty'):
-            path, resource_type = data_src.create_from_query(mock_db_record, query)
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
     def test_malformatted_filter_dict(self):
         '''
@@ -618,4 +635,4 @@ class TestTCGARnaSeq(BaseAPITestCase):
         }
         data_src = TCGARnaSeqDataSource()
         with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
-            path, resource_type = data_src.create_from_query(mock_db_record, query)
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)

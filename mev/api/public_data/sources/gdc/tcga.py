@@ -534,9 +534,9 @@ class TCGARnaSeqDataSource(TCGADataSource):
     def create_from_query(self, dataset_db_instance, query_filter):
         '''
         Using the dict provided in `query_filter`, subset the HDF5-stored data
-        and create a flat-file. 
+        and create a flat-file. Also create the annotation file
 
-        Return a path to that file and a file "type" (e.g. one of our defined
+        Return paths and file "types" to those files (e.g. one of our defined
         Resource types)
         '''
         
@@ -607,16 +607,39 @@ class TCGARnaSeqDataSource(TCGADataSource):
         dest_dir = os.path.join(settings.DATA_DIR, 'tmp')
         if not os.path.exists(dest_dir):
             make_local_directory(dest_dir)
-        filepath = os.path.join(dest_dir, filename)
+        count_filepath = os.path.join(dest_dir, filename)
         try:
-            final_df.to_csv(filepath, sep='\t')
+            final_df.to_csv(count_filepath, sep='\t')
         except Exception as ex:
             logger.info('Failed to write the subset of TCGA RNA-seq'
                 ' Exception was: {ex}'.format(ex=ex)
             )
             raise Exception('Failed when writing the filtered data.')
 
-        return filepath, 'RNASEQ_COUNT_MTX'
+        # now create the annotation file:
+        full_uuid_list = []
+        [full_uuid_list.extend(query_filter[k]) for k in query_filter.keys()]
+        ann_path = file_mapping[self.ANNOTATION_FILE_KEY][0]
+        if not os.path.exists(ann_path):
+            #TODO: better error handling here.
+            logger.info('Could not find the annotation matrix')
+            raise Exception('Failed to find the proper data for this'
+                ' request. An administrator has been notified'
+            )
+        ann_df = pd.read_csv(ann_path, index_col=0)
+        subset_ann = ann_df.loc[full_uuid_list]
+
+        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+        ann_filepath = os.path.join(dest_dir, filename)
+        try:
+            subset_ann.to_csv(ann_filepath, sep='\t')
+        except Exception as ex:
+            logger.info('Failed to write the subset of the annotation dataframe.'
+                ' Exception was: {ex}'.format(ex=ex)
+            )
+            raise Exception('Failed when writing the filtered annotation data.')
+
+        return [count_filepath, ann_filepath], ['RNASEQ_COUNT_MTX', 'ANN']
 
 
 class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):

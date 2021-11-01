@@ -143,7 +143,7 @@ def create_dataset_from_params(dataset_id, user, request_payload):
             ' does not resolve, please contact an administrator.'
         )
     try:
-        path, resource_type = ds.create_from_query(
+        path_list, resource_type_list = ds.create_from_query(
             dataset_db_instance,
             request_payload
         )
@@ -153,21 +153,25 @@ def create_dataset_from_params(dataset_id, user, request_payload):
         )
         raise ex
 
-    # create the Resource instance.
-    r = Resource.objects.create(
-        owner = user,
-        path = path,
-        resource_type = resource_type
-    )
+    # create the Resource instances.
+    resource_list = []
+    for path, resource_type in zip(path_list, resource_type_list):
+        r = Resource.objects.create(
+            owner = user,
+            path = path,
+            resource_type = resource_type
+        )
 
-    # move to the final location and modify some attibutes.
-    # Note that we don't use the `validate_and_store_resource` function
-    # in the resource_utilities module as we have full control over the 
-    # creation of the file above. If we create an invalid file, then we 
-    # have other problems.
-    r.path = move_resource_to_final_location(r)
-    r.is_active = True
-    r.size = get_resource_size(r)
-    r.save()
+        # move to the final location and modify some attibutes.
+        # Note that we don't use the `validate_and_store_resource` function
+        # in the resource_utilities module as we have full control over the 
+        # creation of the file above. If we create an invalid file, then we 
+        # have other problems.
+        r.path = move_resource_to_final_location(r)
+        r.is_active = True
+        r.size = get_resource_size(r)
+        r.save()
 
-    return r
+        resource_list.append(r)
+
+    return resource_list

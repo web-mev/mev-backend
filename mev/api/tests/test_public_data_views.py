@@ -142,7 +142,7 @@ class PublicDataCreateTests(BaseAPITestCase):
             path = '/some/dummy_path/file.tsv',
             name = 'foo.tsv'
         )
-        mock_create_dataset_from_params.return_value = new_resource
+        mock_create_dataset_from_params.return_value = [new_resource,]
 
         # finally, call the endpoint
         response = self.authenticated_regular_client.post(
@@ -155,14 +155,14 @@ class PublicDataCreateTests(BaseAPITestCase):
             None
         )
         j = response.json()
-        self.assertTrue(j['name'] == 'foo.tsv')
+        self.assertTrue(j[0]['name'] == 'foo.tsv')
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')
     def test_adds_new_resource_to_workspace(self, mock_create_dataset_from_params):
         '''
         Assume that the request payload was valid so that the 
         api.views.public_dataset.create_dataset_from_params function
-        returns an api.models.Resource instance. 
+        returns a list of api.models.Resource instances. 
 
         Here, test that we add that resource to the workspace and return a 201
         '''
@@ -177,7 +177,7 @@ class PublicDataCreateTests(BaseAPITestCase):
             path = '/some/dummy_path/file.tsv',
             name = 'foo.tsv'
         )
-        mock_create_dataset_from_params.return_value = new_resource
+        mock_create_dataset_from_params.return_value = [new_resource,]
 
         # finally, call the endpoint
         response = self.authenticated_regular_client.post(
@@ -193,7 +193,8 @@ class PublicDataCreateTests(BaseAPITestCase):
         )
 
         j = response.json()
-        self.assertTrue(j['name'] == 'foo.tsv')
+        # j is a list of resource instances. We expect only one:
+        self.assertTrue(j[0]['name'] == 'foo.tsv')
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')
     def test_rejects_malformatted_filter(self, mock_create_dataset_from_params):

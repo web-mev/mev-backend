@@ -117,12 +117,12 @@ class PublicDatasetCreate(APIView):
             return Response('The "filters" part of the payload'
             ' should be formatted as an object.', status=status.HTTP_400_BAD_REQUEST)
         try:
-            resource_instance = create_dataset_from_params(
+            resource_instance_list = create_dataset_from_params(
                 dataset_id, 
                 request.user, 
                 request_filters
             )
-            rs = ResourceSerializer(resource_instance, context={'request': request})
+            rs = ResourceSerializer(resource_instance_list, many=True, context={'request': request})
             return Response(rs.data, status=status.HTTP_201_CREATED)
 
         except Exception as ex:
