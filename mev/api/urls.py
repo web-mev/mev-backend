@@ -86,6 +86,7 @@ urlpatterns = [
 
     ################# Views for public datasets ############################
     path('public-datasets/', api.views.PublicDatasetList.as_view(), name='public-dataset-list'),
+    path('public-datasets/<str:dataset_id>/', api.views.PublicDatasetDetails.as_view(), name='public-dataset-details'),
     path('public-datasets/query/<str:dataset_id>/', api.views.PublicDatasetQuery.as_view(), name='public-dataset-query'),
     path('public-datasets/create/<str:dataset_id>/', api.views.PublicDatasetCreate.as_view(), name='public-dataset-create'),
 

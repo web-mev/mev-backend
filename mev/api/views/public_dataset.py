@@ -1,7 +1,8 @@
 import logging
 
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions as framework_permissions
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -29,6 +30,24 @@ class PublicDatasetList(ListAPIView):
 
     def get_queryset(self):
         return PublicDataset.objects.filter(active=True)
+
+
+class PublicDatasetDetails(RetrieveAPIView):
+    '''
+    This allows retrieval of details about a single public dataset.
+    '''
+    permission_classes = [
+        framework_permissions.IsAuthenticated
+    ]
+
+    serializer_class = PublicDatasetSerializer
+    queryset = PublicDataset.objects.filter(active=True)
+    lookup_field = 'dataset_id'
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        filters = {'index_name': self.kwargs['dataset_id']}
+        return get_object_or_404(queryset, **filters)
 
 
 class PublicDatasetQuery(APIView):

@@ -44,6 +44,7 @@ from .operation_category_views import OperationCategoryList, \
     OperationCategoryDetail, \
     OperationCategoryAdd
 from .public_dataset import PublicDatasetList, \
+    PublicDatasetDetails, \
     PublicDatasetQuery, \
     PublicDatasetCreate
 

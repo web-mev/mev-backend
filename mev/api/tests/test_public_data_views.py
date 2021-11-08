@@ -37,6 +37,60 @@ class PublicDataListTests(BaseAPITestCase):
         self.assertTrue(len(response.json()) == len(self.all_active_datasets))
 
 
+class PublicDataDetailsTests(BaseAPITestCase):
+    '''
+    Tests focused around the ability to query a specific public dataset.
+    '''
+    def setUp(self):
+        self.all_public_datasets = PublicDataset.objects.all()
+        if len(self.all_public_datasets) == 0:
+            raise ImproperlyConfigured('Need at least one active public dataset to'
+                ' run this test properly.'
+            )
+        self.all_active_datasets = [x for x in self.all_public_datasets if x.active]
+        if len(self.all_active_datasets) == 0:
+            raise ImproperlyConfigured('Need at least one active public dataset to'
+                ' run this test properly.'
+            )
+        # grab the first active dataset to use in the tests below
+        self.test_active_dataset = self.all_active_datasets[0]
+        self.url = reverse('public-dataset-details', 
+            kwargs={'dataset_id': self.test_active_dataset.index_name}
+        )
+        self.establish_clients()
+
+    def test_requires_auth(self):
+        """
+        Test that general requests to the endpoint generate 401
+        """
+        response = self.regular_client.get(self.url)
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
+
+        response = self.authenticated_regular_client.get(self.url)
+        self.assertTrue((response.status_code == status.HTTP_200_OK))
+
+    def test_returns_expected_details(self):
+        response = self.authenticated_regular_client.get(self.url)
+        self.assertTrue((response.status_code == status.HTTP_200_OK))
+        response_json = response.json()
+        self.assertTrue(response_json['index_name'] == self.test_active_dataset.index_name)
+        print(response_json)
+
+    def test_inactive_instance_returns_404(self):
+        '''
+        If the details are requested on an inactive dataset, return a 404
+        '''
+        # check that we have an inactive dataset first:
+        dataset_tag = 'public-baz'
+        pd = PublicDataset.objects.get(index_name = dataset_tag)
+        self.assertFalse(pd.active)
+        url = reverse('public-dataset-details', 
+            kwargs={'dataset_id': dataset_tag}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertTrue((response.status_code == status.HTTP_404_NOT_FOUND))
+
 class PublicDataQueryTests(BaseAPITestCase):
     '''
     Tests focused around the ability to query public datasets.
