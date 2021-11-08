@@ -23,5 +23,6 @@ class PublicDatasetSerializer(serializers.ModelSerializer):
             'public_name',
             'description',
             'created',
-            'index_name'
+            'index_name',
+            'additional_metadata'
         ]

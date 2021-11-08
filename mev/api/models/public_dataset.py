@@ -31,3 +31,12 @@ class PublicDataset(models.Model):
     # (e.g. in api.public_data.sources) knows how to deal with this
     # mapping
     file_mapping = models.JSONField(blank=True, null=True)
+
+    # a JSON object which contains additional metadata about this dataset.
+    # Since each dataset can be quite different, this field is a bit of an
+    # "overflow" container for assisting with user interfaces, etc.
+    # An example-- in the TCGA dataset, there are multiple cancer types identified
+    # by a project code (e.g. "TCGA-LUAD"). A user might not familiar with this
+    # naming scheme and we'd like to show "Lung adenocarcinoma". This field will
+    # enable that sort of mapping
+    additional_metadata = models.JSONField(blank=True, null=True)
