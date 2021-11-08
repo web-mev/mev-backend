@@ -143,7 +143,7 @@ def create_dataset_from_params(dataset_id, user, request_payload):
             ' does not resolve, please contact an administrator.'
         )
     try:
-        path_list, resource_type_list = ds.create_from_query(
+        path_list, name_list, resource_type_list = ds.create_from_query(
             dataset_db_instance,
             request_payload
         )
@@ -155,8 +155,9 @@ def create_dataset_from_params(dataset_id, user, request_payload):
 
     # create the Resource instances.
     resource_list = []
-    for path, resource_type in zip(path_list, resource_type_list):
+    for path, name, resource_type in zip(path_list, name_list, resource_type_list):
         r = Resource.objects.create(
+            name = name,
             owner = user,
             path = path,
             resource_type = resource_type

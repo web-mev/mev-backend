@@ -220,8 +220,10 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_user = mock.MagicMock()
         mock_dataset = mock.MagicMock()
         mock_resource_instance = mock.MagicMock()
+        mock_name = 'filename.tsv'
+        mock_resource_instance.name = mock_name
 
-        mock_dataset.create_from_query.return_value = (['a'], ['MTX'])
+        mock_dataset.create_from_query.return_value = (['a'], [mock_name], ['MTX'])
 
         mock_resource_class.objects.create.return_value =  mock_resource_instance
 
@@ -245,6 +247,7 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload)
         mock_move_resource_to_final_location.assert_called_with(mock_resource_instance)
         mock_resource_class.objects.create.assert_called_with(
+            name = mock_name,
             owner=mock_user,
             path='a',
             resource_type='MTX'
@@ -252,6 +255,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         self.assertEqual(resource_list[0].path, mock_final_path)
         self.assertEqual(resource_list[0].size, mock_size)
+        self.assertEqual(resource_list[0].name, mock_name)
 
     @mock.patch('api.public_data.get_resource_size')
     @mock.patch('api.public_data.move_resource_to_final_location')
@@ -468,7 +472,7 @@ class TestTCGARnaSeq(BaseAPITestCase):
             'TCGA-DEF': ['s5']
         }
         data_src = TCGARnaSeqDataSource()
-        paths, resource_types = data_src.create_from_query(mock_db_record, query)
+        paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query)
 
         # The order of these doesn't matter in practice, but to check the file contents,
         # we need to be sure we're looking at the correct files for this test.

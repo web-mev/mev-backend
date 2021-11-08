@@ -639,7 +639,11 @@ class TCGARnaSeqDataSource(TCGADataSource):
             )
             raise Exception('Failed when writing the filtered annotation data.')
 
-        return [count_filepath, ann_filepath], ['RNASEQ_COUNT_MTX', 'ANN']
+        # finally make some names for these files, which we return
+        u = str(uuid.uuid4())
+        count_matrix_name = self.TAG + '.' + u + '.tsv'
+        ann_name = self.TAG + '.' + u + '.tsv'
+        return [count_filepath, ann_filepath], [count_matrix_name, ann_name], ['RNASEQ_COUNT_MTX', 'ANN']
 
 
 class MiniTCGARnaSeqDataSource(TCGARnaSeqDataSource):
