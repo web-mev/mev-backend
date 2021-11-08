@@ -174,6 +174,7 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_dataset.PUBLIC_NAME = 'foo'
         mock_dataset.DESCRIPTION = 'desc'
         mock_dataset.get_indexable_files.return_value = ['a','b']
+        mock_dataset.get_additional_metadata.return_value = {'something': 100}
         mock_indexer = mock.MagicMock()
 
         mock_get_implementing_class.return_value = mock_dataset
@@ -372,7 +373,9 @@ class TestTCGA(BaseAPITestCase):
         '''
         ds = TCGADataSource()
         tcga_cancer_types = ds.query_for_tcga_types()
-        self.assertTrue('TCGA-BRCA' in tcga_cancer_types)
+        self.assertTrue('TCGA-BRCA' in tcga_cancer_types.keys())
+
+        self.assertTrue(tcga_cancer_types['TCGA-LUAD'] == 'Lung Adenocarcinoma')
 
 
 class TestTCGARnaSeq(BaseAPITestCase): 

@@ -79,6 +79,11 @@ class Command(BaseCommand):
                 # are necessary for a particular dataset
                 return []
 
+            def get_additional_metadata(self):
+                # Returns a dict which contains additional dataset-
+                # specific information
+                return {}
+
             def create_from_query(self, query_params):
                 # subsets the dataset based on the query_params.
                 # Returns a tuple of a filepath (string) and

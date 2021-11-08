@@ -62,7 +62,7 @@ class TCGADataSource(GDCDataSource):
 
     def query_for_tcga_types(self):
         '''
-        Gets a list of the available TCGA types from the GDC.
+        Gets a mapping of the available TCGA types from the GDC.
 
         Helps with organizing the data, so we can leverage HDF5 
         stored matrices
@@ -74,7 +74,9 @@ class TCGADataSource(GDCDataSource):
                 'value':'TCGA'
             }
         }
-        fields = ['program.name',]
+        # 'program.name' gives the ID like "TCGA-LUAD" and 
+        # 'name' gives a "readable" name like "Lung adenocarcinoma"
+        fields = ['program.name', 'name']
         query_params = self.create_query_params(
             fields,
             page_size = 100, # gets all types at once
@@ -82,8 +84,8 @@ class TCGADataSource(GDCDataSource):
         )
         r = get_with_retry(GDCDataSource.GDC_PROJECTS_ENDPOINT, params=query_params)
         response_json = r.json()
-        tcga_cancer_types = [x['id'] for x in response_json['data']['hits']]
-        return tcga_cancer_types
+        tcga_cancer_types_dict = {x['id']: x['name'] for x in response_json['data']['hits']}
+        return tcga_cancer_types_dict
 
     def create_cancer_specific_filter(self, tcga_cancer_id):
         '''
@@ -98,6 +100,14 @@ class TCGADataSource(GDCDataSource):
                 "value": [tcga_cancer_id]
                 }
         }
+
+    def get_additional_metadata(self):
+        '''
+        For the TCGA datasets, we would like an additional mapping from the shorthand ID 
+        (e.g. TCGA-LUAD) to the "full" name (e.g. lung adenocarcinoma) 
+        '''
+        mapping = self.query_for_tcga_types()
+        return {'tcga_type_to_name_map': mapping}
 
 
 class TCGARnaSeqDataSource(TCGADataSource):
@@ -475,7 +485,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
         '''
 
         # first get all the TCGA cancer types.
-        tcga_cancer_types = self.query_for_tcga_types()
+        tcga_cancer_types_dict = self.query_for_tcga_types()
 
         # Get the data dictionary, which will tell us the universe of available
         # fields and how to interpret them:
@@ -487,7 +497,7 @@ class TCGARnaSeqDataSource(TCGADataSource):
             self.COUNT_OUTPUT_FILE_TEMPLATE.format(tag=self.TAG, ds=self.date_str)
         )
         with pd.HDFStore(counts_output_path) as hdf_out:
-            for cancer_type in tcga_cancer_types:
+            for cancer_type in tcga_cancer_types_dict.keys():
                 logger.info('Pull data for %s' % cancer_type)
                 ann_df, count_df = self._download_tcga_cohort(cancer_type, data_fields)
                 total_annotation_df = pd.concat([total_annotation_df, ann_df], axis=0)
@@ -530,6 +540,13 @@ class TCGARnaSeqDataSource(TCGADataSource):
 
         # for TCGA RNA-seq, we only have to index the annotation file(s)
         return file_dict[self.ANNOTATION_FILE_KEY]
+
+    def get_additional_metadata(self):
+        '''
+        This just uses the parent method which maps the TCGA IDs to
+        the name (e.g. TCGA-LUAD --> Lung adenocarcinoma)
+        '''
+        return super().get_additional_metadata()
 
     def create_from_query(self, dataset_db_instance, query_filter):
         '''

@@ -57,6 +57,7 @@ To provide a common means of ingesting/preparing all datasets, we expect that ea
     that the files exist.
     - `get_indexable_files(self, file_dict)`: a method that iterates through the passed
     dictionary and returns a list of file paths for files that are to be indexed.
+    - `get_additional_metadata(self)`: a method that returns a dictionary containing additional information that is relevant to the dataset, but not part of the traditional data or metadata. An example from the TCGA project is a mapping of the TCGA IDs (e.g. "TCGA-LUAD") to full names (e.g. "Lung adenocarcinoma"). The results of this method are placed into the `additional_metadata` JSON field in the database. There is no defined structure so that each dataset will be different in general.
     - `create_from_query(self, query_params)`: a method that takes a dict which specifies how to create the dataset. Think of the dict as a generic payload
     for filtering, etc. Returns a tuple of a filepath(string) and a resource type string (one of our "special" types like `"EXP_MTX"`)
 

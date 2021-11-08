@@ -93,6 +93,9 @@ def index_dataset(dataset_db_instance, file_mapping):
         except Exception as ex:
             return
 
+    # see if that dataset has any additional metadata we'd like to track
+    additional_metadata = dataset.get_additional_metadata()
+
     # Once the index process has successfully completed,
     # update the database model and save:
     dataset_db_instance.public_name = dataset.PUBLIC_NAME
@@ -100,6 +103,7 @@ def index_dataset(dataset_db_instance, file_mapping):
     dataset_db_instance.timestamp = datetime.datetime.today()
     dataset_db_instance.active = True
     dataset_db_instance.file_mapping = file_mapping
+    dataset_db_instance.additional_metadata = additional_metadata
     dataset_db_instance.save()
 
 def query_dataset(dataset_id, query_payload):
