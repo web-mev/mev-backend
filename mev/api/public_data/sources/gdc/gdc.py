@@ -1,12 +1,31 @@
 import json
-from os import stat
+import re
+import logging
+import shutil
+import os
 import requests
+import tarfile
+import uuid
 
 import pandas as pd
 
+from django.conf import settings
+
+from api.utilities.basic_utils import get_with_retry, \
+    make_local_directory
 from api.public_data.sources.base import PublicDataSource
 
+logger = logging.getLogger(__name__)
+
 class GDCDataSource(PublicDataSource):
+    '''
+    This class handles the logic/behavior for GDC-based data
+    sources like TCGA, TARGET, etc.
+
+    Note that in the GDC nomenclature, "program" refers to TCGA, 
+    TARGET, etc. and "project" refers to items within that program
+    such as TCGA-LUAD, TCGA-BRCA
+    '''
     
     GDC_FILES_ENDPOINT = "https://api.gdc.cancer.gov/files"
     GDC_DATA_ENDPOINT = "https://api.gdc.cancer.gov/data"
@@ -37,6 +56,75 @@ class GDCDataSource(PublicDataSource):
         'cases.tissue_source_site',
         'cases.project'
     ]
+
+    def _create_program_filter(self, program_id):
+        '''
+        Returns a GDC-compatible filter (a dict) that allows
+        filtering for a specific program (e.g. TCGA, TARGET)
+        '''
+        return {
+            "op": "in",
+            "content":{
+                "field": "files.cases.project.program.name",
+                "value": [program_id]
+                }
+        }
+
+    def _create_python_compatible_id(self, id):
+        '''
+        When adding datasets or groups to a HDF5 file, we need to modify
+        the name or it will not address properly. Identifiers like
+        TCGA-LUAD does not work, but TCGA_LUAD does.
+        '''
+        return id.replace('-', '_').lower()
+
+    def query_for_project_names_within_program(self, program_id):
+        '''
+        Gets a mapping of the available project names within a 
+        GDC program (e.g. all the TCGA cancer types within the TCGA
+        program)
+
+        Returns a dict that maps the program ID (e.g. TCGA-LUAD)
+        to a "real" name like lung adenocarcinoma
+
+        `program_id` is a string like TCGA or TARGET. One of the GDC
+        top-level programs
+
+        '''
+        filters = {
+            'op':'in', 
+            'content':{
+                'field':'program.name', 
+                'value':program_id
+            }
+        }
+        # 'program.name' gives the ID like "TCGA-LUAD" and 
+        # 'name' gives a "readable" name like "Lung adenocarcinoma"
+        fields = ['program.name', 'name']
+        query_params = self.create_query_params(
+            fields,
+            page_size = 10000, # gets all types at once
+            filters = json.dumps(filters)
+        )
+        r = get_with_retry(
+            GDCDataSource.GDC_PROJECTS_ENDPOINT, params=query_params)
+        response_json = r.json()
+        project_mapping_dict = {x['id']: x['name'] for x in response_json['data']['hits']}
+        return project_mapping_dict
+
+    def _create_project_specific_filter(self, project_id):
+        '''
+        Creates/returns a filter for a single project (e.g. TCGA-BRCA)
+
+        This filter (a dict) can be directly added to a filter array
+        '''
+        return {
+            "op": "in",
+            "content":{
+                "field": "files.cases.project.project_id",
+                "value": [project_id]
+                }
+        }
 
     def download_and_prep_dataset(self):
         '''
@@ -138,8 +226,8 @@ class GDCDataSource(PublicDataSource):
         for the 'project' attribute (available from 
         https://api.gdc.cancer.gov/v0/submission/_dictionary/{attribute}?format=json) 
         does not define the 'project_id' field. HOWEVER, the payload returned from the file
-        query API DOES have this field listed. Thus, to have the TCGA ID as part of the 
-        final data, we pass "project_id" within a list via that kwarg.
+        query API DOES have this field listed. Thus, to have the project (e.g. TCGA cancer type) 
+        as part of the final data, we pass "project_id" within a list via that kwarg.
 
         Thus,
         full_record: is a list of dicts. Each dict has (at minimum) `name` and `description` keys.
@@ -194,7 +282,7 @@ class GDCDataSource(PublicDataSource):
         for attr in ATTRIBUTES:
             property_list = []
             url = self.GDC_DICTIONARY_ENDPOINT.format(attribute = attr)
-            response = requests.get(url)
+            response = get_with_retry(url)
             j = response.json()
             properties = j['properties']
 
@@ -211,3 +299,523 @@ class GDCDataSource(PublicDataSource):
                 })
             d[attr] = property_list
         return d
+
+
+class GDCRnaSeqDataSourceMixin(object):
+    '''
+    A class that contains methods, filters, etc. that are common to 
+    count-based RNA-seq data across the various GDC programs
+    '''
+
+    # This list defines further filters which are specific to this class where we
+    # are getting data regarding HTSeq-based RNA-seq counts. This list is in addition
+    # to any other FILTER_LIST class attributes defined in parent classes. We will
+    # ultimately combine them using a logical AND to create the final filter for our query
+    # to the GDC API.
+    RNASEQ_FILTERS = [
+        {
+            "op": "in",
+            "content":{
+                "field": "files.analysis.workflow_type",
+                "value": ["HTSeq - Counts"]
+                }
+        },
+        {
+            "op": "in",
+            "content":{
+                "field": "files.experimental_strategy",
+                "value": ["RNA-Seq"]
+                }
+        },
+        {
+            "op": "in",
+            "content":{
+                "field": "files.data_type",
+                "value": ["Gene Expression Quantification"]
+                }
+        }
+    ]
+
+    # A format-string for the annotation file
+    ANNOTATION_OUTPUT_FILE_TEMPLATE = 'annotations.{tag}.{ds}.csv'
+
+    # A format-string for the count file
+    COUNT_OUTPUT_FILE_TEMPLATE = 'counts.{tag}.{ds}.hd5'
+
+    # These items describe the files that are part of a 
+    # GDC-based RNA-seq dataset. This includes an annotation
+    # file and a count matrix. Defining these constants allows
+    # us to track the files in the database. For instance, when we
+    # look up a particular dataset's files for a filtering/subsetting
+    # operation, we need to know the 'base' file from which we are
+    # filtering
+    ANNOTATION_FILE_KEY = 'annotations'
+    COUNTS_FILE_KEY = 'counts'
+    DATASET_FILES = [
+        ANNOTATION_FILE_KEY,
+        COUNTS_FILE_KEY
+    ]
+
+    # The count files include counts to non-genic features. We don't want those
+    # in our final assembled count matrix
+    SKIPPED_FEATURES = [
+        '__no_feature', 
+        '__ambiguous',
+        '__too_low_aQual', 
+        '__not_aligned', 
+        '__alignment_not_unique'
+    ]
+
+    # We look for HTSeq-based counts which have this suffix
+    HTSEQ_SUFFIX = 'htseq.counts.gz'
+
+    def verify_files(self, file_dict):
+        '''
+        A method to verify that all the necessary files are present
+        to properly index this dataset.
+        '''
+        # use the base class to verify that all the necessary files
+        # are there
+        self.check_file_dict(file_dict)
+
+    def get_indexable_files(self, file_dict):
+
+        # for RNA-seq, we only have to index the annotation file(s)
+        return file_dict[self.ANNOTATION_FILE_KEY]
+
+    def _download_cohort(self, project_id, data_fields):
+        '''
+        Handles the download of metadata and actual data for a single
+        GDC project (e.g. TCGA-LUAD). Will return a tuple of:
+        - dataframe giving the metadata (i.e. patient info)
+        - count matrix 
+        '''
+        final_query_params = self._create_rnaseq_query_params(project_id)
+        
+        # prepare some temporary loop variables
+        finished = False
+        i = 0
+        downloaded_archives = []
+
+        # We have to keep a map of the fileId to the aliquot so we can properly 
+        # concatenate the files later
+        file_to_aliquot_mapping = {}
+        annotation_df = pd.DataFrame()
+        while not finished:
+            logger.info('Downloading batch %d for %s...' % (i, project_id))
+
+            # the records are paginated, so we have to keep track of which page we are currently requesting
+            start_index = i*GDCDataSource.PAGE_SIZE
+            end_index = (i+1)*GDCDataSource.PAGE_SIZE
+            final_query_params.update(
+                {
+                    'from': start_index
+                }
+            )
+
+            try:
+                response = get_with_retry(
+                    GDCDataSource.GDC_FILES_ENDPOINT, 
+                    params = final_query_params
+                )
+            except Exception as ex:
+                logger.info('An exception was raised when querying the GDC for'
+                    ' metadata. The exception reads: {ex}'.format(ex=ex)
+                )
+                return
+
+            if response.status_code == 200:
+                response_json = json.loads(response.content.decode("utf-8"))
+            else:
+                logger.error('The response code was NOT 200, but the request'
+                    ' exception was not handled.'
+                )
+                return
+
+            # If the first request, we can get the total records by examining
+            # the pagination data
+            if i == 0:
+                pagination_response = response_json['data']['pagination']
+                total_records = int(pagination_response['total'])
+
+            # now collect the file UUIDs and download
+            file_uuid_list = []
+            case_id_list = []
+            exposures = []
+            diagnoses = []
+            demographics = []
+            projects = []
+            aliquot_ids = []
+
+            for hit in response_json['data']['hits']:
+                file_uuid_list.append(hit['file_id'])
+
+                # hit['cases'] is a list. To date, have only seen length of 1, 
+                # and it's not clear what a greater length would mean.
+                # Hence, catch this and issue an error so we can investigate
+                if len(hit['cases']) > 1:
+                    logger.error('Encountered an unexpected issue when iterating through the returned hits'
+                        ' of a GDC RNA-seq query. We expect the "cases" key for a hit to be of length 1,'
+                        ' but this was greater. Returned data was: {k}'.format(k=json.dumps(response_json))
+                    )
+                    return
+
+                case_item = hit['cases'][0]
+                case_id_list.append(case_item['case_id'])
+
+                try:
+                    exposures.append(case_item['exposures'][0])
+                except KeyError as ex:
+                    exposures.append({})
+
+                try:
+                    diagnoses.append(case_item['diagnoses'][0])
+                except KeyError as ex:
+                    diagnoses.append({})
+
+                try:
+                    demographics.append(case_item['demographic'])
+                except KeyError as ex:
+                    demographics.append({})
+
+                try:
+                    projects.append(case_item['project'])
+                except KeyError as ex:
+                    projects.append({})
+
+                try:
+                    aliquot_ids.append(case_item['samples'][0]['portions'][0]['analytes'][0]['aliquots'][0]['aliquot_id'])
+                except KeyError as ex:
+                    # Need an aliquot ID to uniquely identify the column. Fail out
+                    logger.error('Encountered an unexpected issue when iterating through the returned hits'
+                        ' of a GDC RNA-seq query. We expect that we should be able to drill-down to find a unique aliquot ID.'
+                        ' The returned data was: {k}'.format(k=json.dumps(response_json))
+                    )
+                    return
+
+            file_to_aliquot_mapping.update(dict(zip(file_uuid_list, aliquot_ids)))
+
+            exposure_df = GDCDataSource.merge_with_full_record(
+                data_fields['exposure'], 
+                exposures, 
+                aliquot_ids
+            )
+
+            demographic_df = GDCDataSource.merge_with_full_record(
+                data_fields['demographic'], 
+                demographics, 
+                aliquot_ids
+            )
+
+            diagnoses_df = GDCDataSource.merge_with_full_record(
+                data_fields['diagnosis'], 
+                diagnoses, 
+                aliquot_ids
+            )
+
+            # note that we keep the extra 'project_id' field in this method call. 
+            # That gives us the cancer type such as "TCGA-BRCA", etc.
+            project_df = GDCDataSource.merge_with_full_record(
+                data_fields['project'], 
+                projects, 
+                aliquot_ids,
+                extra_fields = ['project_id']
+            )
+
+            # Remove the extra project_id column from the exposure, demo, and diagnoses dataframes. Otherwise we get duplicated
+            # columns that we have to carry around:
+            exposure_df = exposure_df.drop('project_id', axis=1)
+            diagnoses_df = diagnoses_df.drop('project_id', axis=1)
+            demographic_df = demographic_df.drop('project_id', axis=1)
+
+            # Now merge all the dataframes (concatenate horizontally)
+            # to get the full metadata/annotations
+            ann_df = pd.concat([
+                exposure_df,
+                demographic_df,
+                diagnoses_df,
+                project_df
+            ], axis=1)
+
+            # Create another series which maps the aliquot IDs to the case ID.
+            # That will then be added to the annotation dataframe so we know which 
+            # metadata is mapped to each case
+            s = pd.Series(dict(zip(aliquot_ids, case_id_list)), name='case_id')
+
+            ann_df = pd.concat([ann_df, s], axis=1)
+
+            # Add to the master dataframe for this cancer type
+            annotation_df = pd.concat([annotation_df, ann_df], axis=0)
+
+            # Go get the actual count data for this batch.
+            downloaded_archives.append(
+                self._download_expression_archives(file_uuid_list)
+            )
+
+            i += 1
+
+            # are we done yet???
+            if end_index >= total_records:
+                finished = True
+
+        logger.info('Completed looping through the batches for {ct}'.format(ct=project_id))
+
+        # Merge and write the count files
+        count_df = self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
+
+        # Cleanup the downloads
+        [os.remove(x) for x in downloaded_archives]
+
+        return annotation_df, count_df
+
+    def _pull_data(self, program_id, tag):
+        '''
+        Method for downloading and munging an RNA-seq dataset
+        to a HDF5 file
+
+        Note that creating a flat file of everything was not performant
+        and created a >2Gb matrix. Instead, we organize the RNA-seq data
+        hierarchically by splitting into the individual projects (e.g.
+        TCGA cancer types).
+        Each of those is assigned to a "dataset" in the HDF5 file. Therefore,
+        instead of a giant matrix we have to load each time, we can directly
+        go to cancer-specific count matrices for much better performance.
+        '''
+
+        # first get all the cancer types so we can split the downloads
+        # and HDFS file
+        project_dict = self.query_for_project_names_within_program(program_id)
+
+        # Get the data dictionary, which will tell us the universe of available
+        # fields and how to interpret them:
+        data_fields = self.get_data_dictionary()
+
+        total_annotation_df = pd.DataFrame()
+        counts_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.COUNT_OUTPUT_FILE_TEMPLATE.format(tag=tag, ds=self.date_str)
+        )
+        with pd.HDFStore(counts_output_path) as hdf_out:
+            for project_id in project_dict.keys():
+                logger.info('Pull data for %s' % project_id)
+                ann_df, count_df = self._download_cohort(project_id, data_fields)
+                total_annotation_df = pd.concat([total_annotation_df, ann_df], axis=0)
+
+                # save the counts to a cancer-specific dataset. Store each
+                # dataset in a cancer-specific group. On testing, this seemed
+                # to be a bit faster for recall than keeping all the dataframes
+                # as datasets in the root group
+                group_id = (
+                    self._create_python_compatible_id(project_id) + '/ds')
+                hdf_out.put(group_id, count_df)
+                logger.info('Added the {ct} matrix to the HDF5'
+                    ' count matrix'.format(ct=project_id)
+                )
+
+        # Write all the metadata to a file
+        ann_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(tag = tag, ds=self.date_str)
+        )
+        total_annotation_df.to_csv(
+            ann_output_path, 
+            sep=',', 
+            index_label = 'id'
+        )
+        logger.info('The metadata/annnotation file for your {program} RNA-seq data'
+            'is available at {p}'.format(p=ann_output_path, program=program_id))
+
+    def _merge_downloaded_archives(self, downloaded_archives, file_to_aliquot_mapping):
+        '''
+        Given a list of the downloaded archives, extract and merge them into a single count matrix
+        '''
+        logger.info('Begin merging the individual count matrix archives into a single count matrix')
+        count_df = pd.DataFrame()
+        tmpdir = os.path.join(self.ROOT_DIR, 'tmparchive')
+        for f in downloaded_archives:
+            with tarfile.open(f, 'r:gz') as tf:
+                tf.extractall(path=tmpdir)
+                for t in tf.getmembers():
+                    if t.name.endswith(self.HTSEQ_SUFFIX):
+                        # the folder has the name of the file.
+                        # The prefix UUID on the basename is not useful to us.
+                        file_id = t.name.split('/')[0]
+                        df = pd.read_table(
+                            os.path.join(tmpdir, t.path), 
+                            index_col=0, 
+                            header=None, 
+                            names=['gene', file_to_aliquot_mapping[file_id]])
+                        count_df = pd.concat([count_df, df], axis=1)
+
+        # remove the skipped rows which don't correspond to actual gene features
+        count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
+
+        # Clean up:
+        shutil.rmtree(tmpdir)
+
+        return count_df
+
+    def _create_rnaseq_query_params(self, project_id):
+        '''
+        Internal method to create the GDC-compatible parameter syntax.
+
+        The parameter payload will dictate which data to get, which filters 
+        to apply, etc.
+
+        Returns a dict
+        '''
+        final_filter_list = []
+
+        # a filter for this specific project (e.g. TCGA-LUAD)
+        final_filter_list.append(self.create_project_specific_filter(project_id))
+
+        # and for the specific RNA-seq data
+        final_filter_list.extend(self.RNASEQ_FILTERS)
+
+        final_filter = {
+            'op': 'and',
+            'content': final_filter_list
+        }
+
+        basic_fields = GDCDataSource.CASE_FIELDS
+        expanded_fields = ','.join(GDCDataSource.CASE_EXPANDABLE_FIELDS)
+        final_query_params = self.create_query_params(
+            basic_fields,
+            expand = expanded_fields,
+            filters = json.dumps(final_filter)
+        )
+        return final_query_params
+
+
+    def _download_expression_archives(self, file_uuid_list):
+        '''
+        Given a list of file UUIDs, download those to the local disk.
+        Return the path to the downloaded archive.
+        '''
+        # Download the actual expression data corresponding to the aliquot metadata
+        # we've been collecting
+        download_params = {"ids": file_uuid_list}
+        download_response = requests.post(GDCDataSource.GDC_DATA_ENDPOINT, 
+            data = json.dumps(download_params), 
+            headers = {"Content-Type": "application/json"}
+        )
+        response_head_cd = download_response.headers["Content-Disposition"]
+        file_name = re.findall("filename=(.+)", response_head_cd)[0]
+        fout = os.path.join('/tmp', file_name)
+        with open(fout, "wb") as output_file:
+            output_file.write(download_response.content)
+        return fout
+
+    def create_from_query(self, dataset_db_instance, query_filter):
+        '''
+        Using the dict provided in `query_filter`, subset the HDF5-stored data
+        and create a flat-file. Also create the annotation file
+
+        Return paths and file "types" to those files (e.g. one of our defined
+        Resource types)
+        '''
+        
+        # Look at the database object to get the path for the count matrix
+        file_mapping = dataset_db_instance.file_mapping
+        count_matrix_path = file_mapping[self.COUNTS_FILE_KEY][0]
+        if not os.path.exists(count_matrix_path):
+            #TODO: better error handling here.
+            logger.info('Could not find the count matrix')
+            raise Exception('Failed to find the proper data for this'
+                ' request. An administrator has been notified'
+            )
+
+        # if the query_filter was None (indicating no filtering was desired)
+        # then we reject-- this dataset is too big to store as a single
+        # dataframe
+        if query_filter is None:
+            raise Exception('The {name} dataset is too large to request without'
+                ' any filters. Please try again and request a'
+                ' subset of the data.'.format(name = self.PUBLIC_NAME)
+            )
+
+        # to properly filter our full HDF5 matrix, we expect a data structure that
+        # looks like:
+        #
+        # {'TCGA-UVM': [<uuid>, <uuid>], 'TCGA-ABC': [<uuid>]}
+        #
+        # The top level contains the project identifiers, which we use to identify
+        # the groups within the HDF5 file. Then, we use the UUIDs to filter the
+        # dataframes
+        final_df = pd.DataFrame()
+        with pd.HDFStore(count_matrix_path) as hdf:
+            for ct in query_filter.keys():
+                if not type(query_filter[ct]) is list:
+                    raise Exception('Problem encountered with the filter'
+                        ' provided. We expect each cancer type to address'
+                        ' a list of sample identifiers, such as: {j}'.format(
+                            j = json.dumps(self.EXAMPLE_PAYLOAD)
+                        )
+                    )
+                group_id = self._create_python_compatible_id(ct) + '/ds'
+                try:
+                    df = hdf.get(group_id)
+                except KeyError as ex:
+                    raise Exception('The requested project'
+                        ' {ct} was not found in the dataset. Ensure your'
+                        ' request was correctly formatted.'.format(ct=ct)
+                    )
+                try:
+                    df = df[query_filter[ct]]
+                except KeyError as ex:
+                    message = ('The subset of the count matrix failed since'
+                        ' one or more requested samples were missing: {s}'.format(
+                            s = str(ex)
+                        )
+                    )
+                    raise Exception(message)
+
+                final_df = pd.concat([final_df, df], axis=1)
+
+        if final_df.shape[1] == 0:
+            raise Exception('The resulting matrix was empty. No'
+                ' data was created.'
+            )
+
+        # write the file to a temp location:
+        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+        dest_dir = os.path.join(settings.DATA_DIR, 'tmp')
+        if not os.path.exists(dest_dir):
+            make_local_directory(dest_dir)
+        count_filepath = os.path.join(dest_dir, filename)
+        try:
+            final_df.to_csv(count_filepath, sep='\t')
+        except Exception as ex:
+            logger.info('Failed to write the subset of GDC RNA-seq'
+                ' Exception was: {ex}'.format(ex=ex)
+            )
+            raise Exception('Failed when writing the filtered data.')
+
+        # now create the annotation file:
+        full_uuid_list = []
+        [full_uuid_list.extend(query_filter[k]) for k in query_filter.keys()]
+        ann_path = file_mapping[self.ANNOTATION_FILE_KEY][0]
+        if not os.path.exists(ann_path):
+            #TODO: better error handling here.
+            logger.info('Could not find the annotation matrix')
+            raise Exception('Failed to find the proper data for this'
+                ' request. An administrator has been notified'
+            )
+        ann_df = pd.read_csv(ann_path, index_col=0)
+        subset_ann = ann_df.loc[full_uuid_list]
+
+        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+        ann_filepath = os.path.join(dest_dir, filename)
+        try:
+            subset_ann.to_csv(ann_filepath, sep='\t')
+        except Exception as ex:
+            logger.info('Failed to write the subset of the annotation dataframe.'
+                ' Exception was: {ex}'.format(ex=ex)
+            )
+            raise Exception('Failed when writing the filtered annotation data.')
+
+        # finally make some names for these files, which we return
+        u = str(uuid.uuid4())
+        count_matrix_name = self.TAG + '.' + u + '.tsv'
+        ann_name = self.TAG + '.' + u + '.tsv'
+        return [count_filepath, ann_filepath], [count_matrix_name, ann_name], ['RNASEQ_COUNT_MTX', 'ANN']
