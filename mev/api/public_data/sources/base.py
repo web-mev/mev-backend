@@ -51,5 +51,5 @@ class PublicDataSource(object):
     def get_additional_metadata(self):
         raise NotImplementedError('Must implement this method in a child class.')
 
-    def create_from_query(self, query_params):
+    def create_from_query(self, db_record, query_params):
         raise NotImplementedError('Must implement this method in a child class.')

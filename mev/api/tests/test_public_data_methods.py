@@ -1,3 +1,4 @@
+import json
 import unittest
 import unittest.mock as mock
 import os
@@ -16,8 +17,10 @@ from api.public_data import DATASETS, \
     create_dataset_from_params
 from api.models import PublicDataset
 from api.public_data.sources.base import PublicDataSource
-from api.public_data.sources.gdc.gdc import GDCDataSource
-from api.public_data.sources.gdc.tcga import TCGADataSource, TCGARnaSeqDataSource
+from api.public_data.sources.gdc.gdc import GDCDataSource, \
+    GDCRnaSeqDataSourceMixin
+from api.public_data.sources.gdc.tcga import TCGADataSource
+from api.public_data.sources.gdc.target import TargetDataSource
 from api.public_data.indexers.solr import SolrIndexer
 
 
@@ -372,20 +375,35 @@ class TestTCGA(BaseAPITestCase):
         that a few known types are there as a sanity check.
         '''
         ds = TCGADataSource()
-        tcga_cancer_types = ds.query_for_tcga_types()
+        tcga_cancer_types = ds.query_for_project_names_within_program('TCGA')
+        print(tcga_cancer_types)
         self.assertTrue('TCGA-BRCA' in tcga_cancer_types.keys())
 
         self.assertTrue(tcga_cancer_types['TCGA-LUAD'] == 'Lung Adenocarcinoma')
 
+class TestTARGET(BaseAPITestCase): 
+    def test_gets_all_target_types(self):
+        '''
+        Tests that we get the response from querying all the TARGET types
+        from the GDC API. While we don't check the full set, we confirm
+        that a few known types are there as a sanity check.
+        '''
+        ds = TargetDataSource()
+        target_types = ds.query_for_project_names_within_program('TARGET')
+        print(target_types)
+        self.assertTrue('TARGET-NBL' in target_types.keys())
 
-class TestTCGARnaSeq(BaseAPITestCase): 
+        self.assertTrue(target_types['TARGET-NBL'] == 'Neuroblastoma')
+
+class TestGDCRnaSeqMixin(BaseAPITestCase): 
 
     def test_proper_filters_created(self):
         '''
         Tests that the json payload for a metadata
         query is created as expected
         '''
-        ds = TCGARnaSeqDataSource()
+        #ds = TCGARnaSeqDataSource()
+        ds = GDCRnaSeqDataSourceMixin()
         d = ds._create_rnaseq_query_params('TCGA-FOO')
 
         # Note that in the dict below, the value of the 'filters' key is itself a JSON
@@ -396,14 +414,12 @@ class TestTCGARnaSeq(BaseAPITestCase):
             "format": "JSON",
             "size": "100",
             "expand": "cases.demographic,cases.diagnoses,cases.exposures,cases.tissue_source_site,cases.project",
-            "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.program.name\", \"value\": [\"TCGA\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-FOO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"HTSeq - Counts\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"RNA-Seq\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.data_type\", \"value\": [\"Gene Expression Quantification\"]}}]}"
+            "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-FOO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"HTSeq - Counts\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"RNA-Seq\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.data_type\", \"value\": [\"Gene Expression Quantification\"]}}]}"
         }
         self.assertDictEqual(d, expected_query_filters)      
 
-    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.ROOT_DIR', '/tmp')
-    @mock.patch('api.public_data.sources.gdc.tcga.TCGARnaSeqDataSource.COUNT_OUTPUT_FILE_TEMPLATE', '__TEST__counts.{tag}.{ds}.tsv')
-    @mock.patch('api.public_data.sources.gdc.tcga.datetime')
-    def test_counts_merged_correctly(self, mock_datetime):
+    @mock.patch('api.public_data.sources.gdc.gdc.GDCRnaSeqDataSourceMixin.COUNT_OUTPUT_FILE_TEMPLATE', '__TEST__counts.{tag}.{ds}.tsv')
+    def test_counts_merged_correctly(self):
         file_to_aliquot_mapping = {
             's1': 'x1',
             's2': 'x2',
@@ -416,14 +432,15 @@ class TestTCGARnaSeq(BaseAPITestCase):
         )
         expected_matrix.index.name = 'gene'
 
-        now = datetime.datetime.now()
-        mock_datetime.datetime.now.return_value = now
         archives = [
             os.path.join(THIS_DIR, 'public_data_test_files', 'archive1.tar.gz'),
             os.path.join(THIS_DIR, 'public_data_test_files', 'archive2.tar.gz')
         ]
 
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
+        # The derived classes will have a ROOT_DIR attribute, but
+        # this mixin class doesn't. Patch it here
+        data_src.ROOT_DIR = '/tmp'
         actual_df = data_src._merge_downloaded_archives(archives, file_to_aliquot_mapping)
         self.assertTrue(expected_matrix.equals(actual_df))
 
@@ -434,14 +451,14 @@ class TestTCGARnaSeq(BaseAPITestCase):
         the annotation file
         '''
 
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
 
         fd = {
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/path/to/A.txt'],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:['/path/to/counts.tsv'] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: ['/path/to/A.txt'],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:['/path/to/counts.tsv'] 
         }
         result = data_src.get_indexable_files(fd)
-        self.assertCountEqual(result, fd[TCGARnaSeqDataSource.ANNOTATION_FILE_KEY])
+        self.assertCountEqual(result, fd[GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY])
 
     def test_filters_hdf_correctly(self):
         '''
@@ -464,8 +481,8 @@ class TestTCGARnaSeq(BaseAPITestCase):
         # in the file_mapping field
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: [ann_path],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: [ann_path],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:[hdf_path] 
 
         }
         mock_db_record = mock.MagicMock()
@@ -474,7 +491,10 @@ class TestTCGARnaSeq(BaseAPITestCase):
             'TCGA-ABC': ['s1', 's3'],
             'TCGA-DEF': ['s5']
         }
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
+        # the children classes will have a TAG attribute. Since we are
+        # testing this mixin here, we simply patch it
+        data_src.TAG = 'foo'
         paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query)
 
         # The order of these doesn't matter in practice, but to check the file contents,
@@ -514,13 +534,14 @@ class TestTCGARnaSeq(BaseAPITestCase):
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
             # representation of the database record
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:[hdf_path] 
 
         }
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
+        data_src.PUBLIC_NAME = 'foo'
         with self.assertRaisesRegex(Exception, 'too large'):
             path, resource_type = data_src.create_from_query(mock_db_record, None)
 
@@ -539,8 +560,8 @@ class TestTCGARnaSeq(BaseAPITestCase):
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
             # representation of the database record
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:[hdf_path] 
 
         }
         mock_db_record = mock.MagicMock()
@@ -551,7 +572,7 @@ class TestTCGARnaSeq(BaseAPITestCase):
             'TCGA-ABC': ['s1', 's3'],
             'TCGA-XYZ': ['s5']
         }
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
         with self.assertRaisesRegex(Exception, 'TCGA-XYZ'):
             paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
@@ -570,8 +591,8 @@ class TestTCGARnaSeq(BaseAPITestCase):
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
             # representation of the database record
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:[hdf_path] 
 
         }
         mock_db_record = mock.MagicMock()
@@ -581,7 +602,7 @@ class TestTCGARnaSeq(BaseAPITestCase):
             'TCGA-ABC': ['s1111', 's3'],
             'TCGA-DEF': ['s5']
         }
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
         with self.assertRaisesRegex(Exception, 's1111'):
             paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
@@ -600,8 +621,8 @@ class TestTCGARnaSeq(BaseAPITestCase):
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
             # representation of the database record
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:[hdf_path] 
 
         }
         mock_db_record = mock.MagicMock()
@@ -610,9 +631,10 @@ class TestTCGARnaSeq(BaseAPITestCase):
             # This should have some strings:
             'TCGA-DEF': []
         }
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
         with self.assertRaisesRegex(Exception, 'empty'):
-            paths, resource_types = data_src.create_from_query(mock_db_record, query)
+            paths, names, resource_types = data_src.create_from_query(mock_db_record, query)
+            #paths, names, resource_types = data_src.create_from_query(query)
 
     def test_malformatted_filter_dict(self):
         '''
@@ -630,8 +652,8 @@ class TestTCGARnaSeq(BaseAPITestCase):
         mock_mapping = {
             # this key doesn't matter- we just include it as a correct
             # representation of the database record
-            TCGARnaSeqDataSource.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
-            TCGARnaSeqDataSource.COUNTS_FILE_KEY:[hdf_path] 
+            GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            GDCRnaSeqDataSourceMixin.COUNTS_FILE_KEY:[hdf_path] 
 
         }
         mock_db_record = mock.MagicMock()
@@ -640,6 +662,12 @@ class TestTCGARnaSeq(BaseAPITestCase):
             # This should be a list:
             'TCGA-DEF':'abc'
         }
-        data_src = TCGARnaSeqDataSource()
+        data_src = GDCRnaSeqDataSourceMixin()
+        # again, the children will provide an EXAMPLE_PAYLOAD attribute
+        # which we patch into this mixin class here
+        data_src.EXAMPLE_PAYLOAD = {
+        'TCGA-UVM': ["<UUID>","<UUID>"],
+        'TCGA-MESO': ["<UUID>","<UUID>", "<UUID>"]
+        }
         with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
             paths, resource_types = data_src.create_from_query(mock_db_record, query)

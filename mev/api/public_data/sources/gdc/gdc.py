@@ -57,20 +57,25 @@ class GDCDataSource(PublicDataSource):
         'cases.project'
     ]
 
-    def _create_program_filter(self, program_id):
+    @staticmethod
+    def create_program_filter(program_id):
         '''
         Returns a GDC-compatible filter (a dict) that allows
         filtering for a specific program (e.g. TCGA, TARGET)
+
+        Note that this assumes you are using the "projects" endpoint
+        and not another endpoint like "files"
         '''
         return {
             "op": "in",
             "content":{
-                "field": "files.cases.project.program.name",
+                "field": "program.name",
                 "value": [program_id]
                 }
         }
 
-    def _create_python_compatible_id(self, id):
+    @staticmethod
+    def create_python_compatible_id(id):
         '''
         When adding datasets or groups to a HDF5 file, we need to modify
         the name or it will not address properly. Identifiers like
@@ -78,7 +83,8 @@ class GDCDataSource(PublicDataSource):
         '''
         return id.replace('-', '_').lower()
 
-    def query_for_project_names_within_program(self, program_id):
+    @staticmethod
+    def query_for_project_names_within_program(program_id):
         '''
         Gets a mapping of the available project names within a 
         GDC program (e.g. all the TCGA cancer types within the TCGA
@@ -91,17 +97,12 @@ class GDCDataSource(PublicDataSource):
         top-level programs
 
         '''
-        filters = {
-            'op':'in', 
-            'content':{
-                'field':'program.name', 
-                'value':program_id
-            }
-        }
+        filters = GDCDataSource.create_program_filter(program_id)
+
         # 'program.name' gives the ID like "TCGA-LUAD" and 
         # 'name' gives a "readable" name like "Lung adenocarcinoma"
         fields = ['program.name', 'name']
-        query_params = self.create_query_params(
+        query_params = GDCDataSource.create_query_params(
             fields,
             page_size = 10000, # gets all types at once
             filters = json.dumps(filters)
@@ -112,7 +113,8 @@ class GDCDataSource(PublicDataSource):
         project_mapping_dict = {x['id']: x['name'] for x in response_json['data']['hits']}
         return project_mapping_dict
 
-    def _create_project_specific_filter(self, project_id):
+    @staticmethod
+    def create_project_specific_filter(project_id):
         '''
         Creates/returns a filter for a single project (e.g. TCGA-BRCA)
 
@@ -132,7 +134,8 @@ class GDCDataSource(PublicDataSource):
         '''
         raise NotImplementedError('You must implement this method in a child class.')
 
-    def create_query_params(self, fields, page_size = None, **kwargs):
+    @staticmethod
+    def create_query_params(fields, page_size = None, **kwargs):
         '''
         A GDC-common payload to specify parameters. All parameter payloads are
         structured as such, so we can simply inject the proper fields, etc. 
@@ -584,7 +587,7 @@ class GDCRnaSeqDataSourceMixin(object):
 
         # first get all the cancer types so we can split the downloads
         # and HDFS file
-        project_dict = self.query_for_project_names_within_program(program_id)
+        project_dict = GDCDataSource.query_for_project_names_within_program(program_id)
 
         # Get the data dictionary, which will tell us the universe of available
         # fields and how to interpret them:
@@ -606,7 +609,7 @@ class GDCRnaSeqDataSourceMixin(object):
                 # to be a bit faster for recall than keeping all the dataframes
                 # as datasets in the root group
                 group_id = (
-                    self._create_python_compatible_id(project_id) + '/ds')
+                    GDCDataSource.create_python_compatible_id(project_id) + '/ds')
                 hdf_out.put(group_id, count_df)
                 logger.info('Added the {ct} matrix to the HDF5'
                     ' count matrix'.format(ct=project_id)
@@ -667,7 +670,7 @@ class GDCRnaSeqDataSourceMixin(object):
         final_filter_list = []
 
         # a filter for this specific project (e.g. TCGA-LUAD)
-        final_filter_list.append(self.create_project_specific_filter(project_id))
+        final_filter_list.append(GDCDataSource.create_project_specific_filter(project_id))
 
         # and for the specific RNA-seq data
         final_filter_list.extend(self.RNASEQ_FILTERS)
@@ -679,7 +682,7 @@ class GDCRnaSeqDataSourceMixin(object):
 
         basic_fields = GDCDataSource.CASE_FIELDS
         expanded_fields = ','.join(GDCDataSource.CASE_EXPANDABLE_FIELDS)
-        final_query_params = self.create_query_params(
+        final_query_params = GDCDataSource.create_query_params(
             basic_fields,
             expand = expanded_fields,
             filters = json.dumps(final_filter)
@@ -714,7 +717,6 @@ class GDCRnaSeqDataSourceMixin(object):
         Return paths and file "types" to those files (e.g. one of our defined
         Resource types)
         '''
-        
         # Look at the database object to get the path for the count matrix
         file_mapping = dataset_db_instance.file_mapping
         count_matrix_path = file_mapping[self.COUNTS_FILE_KEY][0]
@@ -752,7 +754,7 @@ class GDCRnaSeqDataSourceMixin(object):
                             j = json.dumps(self.EXAMPLE_PAYLOAD)
                         )
                     )
-                group_id = self._create_python_compatible_id(ct) + '/ds'
+                group_id = GDCDataSource.create_python_compatible_id(ct) + '/ds'
                 try:
                     df = hdf.get(group_id)
                 except KeyError as ex:

@@ -86,6 +86,14 @@ class TCGARnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
         '''
         self._pull_data('TCGA', self.TAG)
 
+    def create_from_query(self, dataset_db_instance, query_filter):
+        return GDCRnaSeqDataSourceMixin.create_from_query(
+            self, dataset_db_instance, query_filter
+        )
+
+    def get_indexable_files(self, file_dict):
+        return GDCRnaSeqDataSourceMixin.get_indexable_files(self, file_dict)
+
     def get_additional_metadata(self):
         '''
         This just uses the parent method which maps the TCGA IDs to

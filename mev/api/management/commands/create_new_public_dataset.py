@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 # specific information
                 return {}
 
-            def create_from_query(self, query_params):
+            def create_from_query(self, database_record, query_params):
                 # subsets the dataset based on the query_params.
                 # Returns a tuple of a filepath (string) and
                 # a resource_type

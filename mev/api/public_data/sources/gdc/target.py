@@ -15,7 +15,7 @@ class TargetDataSource(GDCDataSource):
     A general class for pulling data from TARGET, exposed via the GDC API
     '''
 
-    # All the TCGA-based data will be stored in this directory
+    # All the TARGET-based data will be stored in this directory
     ROOT_DIR = os.path.join(settings.PUBLIC_DATA_DIR, 'target')
 
     def __init__(self):
@@ -76,6 +76,14 @@ class TargetRnaSeqDataSource(TargetDataSource, GDCRnaSeqDataSourceMixin):
         to a HDF5 file
         '''
         self._pull_data('TARGET', self.TAG)
+
+    def create_from_query(self, dataset_db_instance, query_filter):
+        return GDCRnaSeqDataSourceMixin.create_from_query(
+            self, dataset_db_instance, query_filter
+        )
+
+    def get_indexable_files(self, file_dict):
+        return GDCRnaSeqDataSourceMixin.get_indexable_files(self, file_dict)
 
     def get_additional_metadata(self):
         '''
