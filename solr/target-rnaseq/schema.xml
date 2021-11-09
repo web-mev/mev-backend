@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<schema name="target-rnaseq-config" version="1.6">
+  <uniqueKey>id</uniqueKey>
+
+  <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
+  <fieldType name="booleans" class="solr.BoolField" sortMissingLast="true" multiValued="true"/>
+
+  <fieldType name="ignored" class="solr.StrField" indexed="false" stored="false" multiValued="true"/>
+  <fieldType name="lowercase" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer class="solr.KeywordTokenizerFactory"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
+  <fieldType name="pdates" class="solr.DatePointField" docValues="true" multiValued="true"/>
+  <fieldType name="pdouble" class="solr.DoublePointField" docValues="true"/>
+  <fieldType name="pdoubles" class="solr.DoublePointField" docValues="true" multiValued="true"/>
+  <fieldType name="pfloat" class="solr.FloatPointField" docValues="true"/>
+  <fieldType name="pfloats" class="solr.FloatPointField" docValues="true" multiValued="true"/>
+  <fieldType name="pint" class="solr.IntPointField" docValues="true"/>
+  <fieldType name="pints" class="solr.IntPointField" docValues="true" multiValued="true"/>
+  <fieldType name="plong" class="solr.LongPointField" docValues="true"/>
+  <fieldType name="plongs" class="solr.LongPointField" docValues="true" multiValued="true"/>
+  <fieldType name="point" class="solr.PointType" subFieldSuffix="_d" dimension="2"/>
+  <fieldType name="rank" class="solr.RankField"/>
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true"/>
+  <fieldType name="strings" class="solr.StrField" sortMissingLast="true" docValues="true" multiValued="true"/>
+  <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100" multiValued="true">
+    <analyzer type="index">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StopFilterFactory" words="stopwords.txt" ignoreCase="true"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StopFilterFactory" words="stopwords.txt" ignoreCase="true"/>
+      <filter class="solr.SynonymGraphFilterFactory" expand="true" ignoreCase="true" synonyms="synonyms.txt"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  
+  
+
+
+  <field name="_version_" type="plong" indexed="false" stored="false"/>
+
+<field name="id" type="string" multiValued="false" indexed="true" required="true" stored="true"/>
+<field name="project_id" type="string"/>
+<field name="age_at_index" type="pdouble"/>
+<field name="age_is_obfuscated" type="boolean"/>
+<field name="cause_of_death" type="string"/>
+<field name="cause_of_death_source" type="string"/>
+<field name="country_of_residence_at_enrollment" type="string"/>
+<field name="days_to_birth" type="pdouble"/>
+<field name="days_to_death" type="pdouble"/>
+<field name="ethnicity" type="string"/>
+<field name="gender" type="string"/>
+<field name="occupation_duration_years" type="pdouble"/>
+<field name="premature_at_birth" type="string"/>
+<field name="race" type="string"/>
+<field name="vital_status" type="string"/>
+<field name="weeks_gestation_at_birth" type="pfloat"/>
+<field name="year_of_birth" type="pdouble"/>
+<field name="year_of_death" type="pdouble"/>
+<field name="adrenal_hormone" type="string"/>
+<field name="age_at_diagnosis" type="pdouble"/>
+<field name="ajcc_clinical_m" type="string"/>
+<field name="ajcc_clinical_n" type="string"/>
+<field name="ajcc_clinical_stage" type="string"/>
+<field name="ajcc_clinical_t" type="string"/>
+<field name="ajcc_pathologic_m" type="string"/>
+<field name="ajcc_pathologic_n" type="string"/>
+<field name="ajcc_pathologic_stage" type="string"/>
+<field name="ajcc_pathologic_t" type="string"/>
+<field name="ajcc_staging_system_edition" type="string"/>
+<field name="ann_arbor_b_symptoms" type="string"/>
+<field name="ann_arbor_b_symptoms_described" type="string"/>
+<field name="ann_arbor_clinical_stage" type="string"/>
+<field name="ann_arbor_extranodal_involvement" type="string"/>
+<field name="ann_arbor_pathologic_stage" type="string"/>
+<field name="batch_id" type="pint"/>
+<field name="best_overall_response" type="string"/>
+<field name="burkitt_lymphoma_clinical_variant" type="string"/>
+<field name="child_pugh_classification" type="string"/>
+<field name="classification_of_tumor" type="string"/>
+<field name="cog_liver_stage" type="string"/>
+<field name="cog_neuroblastoma_risk_group" type="string"/>
+<field name="cog_renal_stage" type="string"/>
+<field name="cog_rhabdomyosarcoma_risk_group" type="string"/>
+<field name="days_to_best_overall_response" type="pdouble"/>
+<field name="days_to_diagnosis" type="pdouble"/>
+<field name="days_to_last_follow_up" type="pfloat"/>
+<field name="days_to_last_known_disease_status" type="pfloat"/>
+<field name="days_to_recurrence" type="pfloat"/>
+<field name="eln_risk_classification" type="string"/>
+<field name="enneking_msts_grade" type="string"/>
+<field name="enneking_msts_metastasis" type="string"/>
+<field name="enneking_msts_stage" type="string"/>
+<field name="enneking_msts_tumor_site" type="string"/>
+<field name="esophageal_columnar_dysplasia_degree" type="string"/>
+<field name="esophageal_columnar_metaplasia_present" type="string"/>
+<field name="figo_stage" type="string"/>
+<field name="figo_staging_edition_year" type="string"/>
+<field name="first_symptom_prior_to_diagnosis" type="string"/>
+<field name="gastric_esophageal_junction_involvement" type="string"/>
+<field name="gleason_grade_group" type="string"/>
+<field name="gleason_grade_tertiary" type="string"/>
+<field name="gleason_patterns_percent" type="pint"/>
+<field name="goblet_cells_columnar_mucosa_present" type="string"/>
+<field name="icd_10_code" type="string"/>
+<field name="igcccg_stage" type="string"/>
+<field name="inpc_grade" type="string"/>
+<field name="inpc_histologic_group" type="string"/>
+<field name="inrg_stage" type="string"/>
+<field name="inss_stage" type="string"/>
+<field name="international_prognostic_index" type="string"/>
+<field name="irs_group" type="string"/>
+<field name="irs_stage" type="string"/>
+<field name="ishak_fibrosis_score" type="string"/>
+<field name="iss_stage" type="string"/>
+<field name="last_known_disease_status" type="string"/>
+<field name="laterality" type="string"/>
+<field name="margin_distance" type="pfloat"/>
+<field name="margins_involved_site" type="string"/>
+<field name="masaoka_stage" type="string"/>
+<field name="medulloblastoma_molecular_classification" type="string"/>
+<field name="metastasis_at_diagnosis" type="string"/>
+<field name="metastasis_at_diagnosis_site" type="string"/>
+<field name="method_of_diagnosis" type="string"/>
+<field name="micropapillary_features" type="string"/>
+<field name="mitosis_karyorrhexis_index" type="string"/>
+<field name="mitotic_count" type="pint"/>
+<field name="morphology" type="string"/>
+<field name="ovarian_specimen_status" type="string"/>
+<field name="ovarian_surface_involvement" type="string"/>
+<field name="papillary_renal_cell_type" type="string"/>
+<field name="peritoneal_fluid_cytological_status" type="string"/>
+<field name="pregnant_at_diagnosis" type="string"/>
+<field name="primary_diagnosis" type="string"/>
+<field name="primary_disease" type="boolean"/>
+<field name="primary_gleason_grade" type="string"/>
+<field name="prior_malignancy" type="string"/>
+<field name="prior_treatment" type="string"/>
+<field name="progression_or_recurrence" type="string"/>
+<field name="residual_disease" type="string"/>
+<field name="satellite_nodule_present" type="string"/>
+<field name="secondary_gleason_grade" type="string"/>
+<field name="site_of_resection_or_biopsy" type="string"/>
+<field name="sites_of_involvement" type="string" multiValued="true"/>
+<field name="supratentorial_localization" type="string"/>
+<field name="synchronous_malignancy" type="string"/>
+<field name="tissue_or_organ_of_origin" type="string"/>
+<field name="tumor_confined_to_organ_of_origin" type="string"/>
+<field name="tumor_depth" type="pfloat"/>
+<field name="tumor_focality" type="string"/>
+<field name="tumor_grade" type="string"/>
+<field name="tumor_regression_grade" type="string"/>
+<field name="weiss_assessment_score" type="string"/>
+<field name="who_cns_grade" type="string"/>
+<field name="who_nte_grade" type="string"/>
+<field name="wilms_tumor_histologic_subtype" type="string"/>
+<field name="year_of_diagnosis" type="pdouble"/>
+<field name="age_at_onset" type="pdouble"/>
+<field name="alcohol_days_per_week" type="pfloat"/>
+<field name="alcohol_drinks_per_day" type="pfloat"/>
+<field name="alcohol_history" type="string"/>
+<field name="alcohol_intensity" type="string"/>
+<field name="alcohol_type" type="string"/>
+<field name="asbestos_exposure" type="string"/>
+<field name="cigarettes_per_day" type="pfloat"/>
+<field name="coal_dust_exposure" type="string"/>
+<field name="environmental_tobacco_smoke_exposure" type="string"/>
+<field name="exposure_duration" type="string"/>
+<field name="exposure_duration_years" type="pint"/>
+<field name="exposure_type" type="string"/>
+<field name="marijuana_use_per_week" type="pfloat"/>
+<field name="pack_years_smoked" type="pfloat"/>
+<field name="parent_with_radiation_exposure" type="string"/>
+<field name="radon_exposure" type="string"/>
+<field name="respirable_crystalline_silica_exposure" type="string"/>
+<field name="secondhand_smoke_as_child" type="string"/>
+<field name="smokeless_tobacco_quit_age" type="pint"/>
+<field name="smoking_frequency" type="string"/>
+<field name="time_between_waking_and_first_smoke" type="string"/>
+<field name="tobacco_smoking_onset_year" type="pint"/>
+<field name="tobacco_smoking_quit_year" type="pint"/>
+<field name="tobacco_smoking_status" type="string"/>
+<field name="tobacco_use_per_day" type="pfloat"/>
+<field name="type_of_smoke_exposure" type="string"/>
+<field name="type_of_tobacco_used" type="string"/>
+<field name="years_smoked" type="pfloat"/>
+<field name="awg_review" type="boolean"/>
+<field name="code" type="string"/>
+<field name="dbgap_accession_number" type="string"/>
+<field name="disease_type" type="string"/>
+<field name="in_review" type="boolean"/>
+<field name="is_legacy" type="boolean"/>
+<field name="name" type="string"/>
+<field name="primary_site" type="string"/>
+<field name="release_requested" type="boolean"/>
+<field name="request_submission" type="boolean"/>
+<field name="submission_enabled" type="boolean"/>
+<field name="case_id" type="string"/> 
+</schema>

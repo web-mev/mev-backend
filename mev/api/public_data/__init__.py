@@ -6,6 +6,7 @@ from api.models import PublicDataset, Resource
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_size
 from .sources.gdc.tcga import TCGARnaSeqDataSource
+from .sources.gdc.target import TargetRnaSeqDataSource
 from .indexers import get_indexer
 
 
@@ -19,7 +20,8 @@ logger = logging.getLogger(__name__)
 # actions like querying, etc.
 # Add the classes to this list as necessary:
 IMPLEMENTING_CLASSES = [
-    TCGARnaSeqDataSource
+    TCGARnaSeqDataSource,
+    TargetRnaSeqDataSource
 ]
 
 DATASET_MAPPING = {x.TAG:x for x in IMPLEMENTING_CLASSES}

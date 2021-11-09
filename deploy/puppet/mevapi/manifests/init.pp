@@ -105,6 +105,10 @@ class mevapi (
     schema_src_file     => "${project_root}/solr/tcga-rnaseq/schema.xml",
     solrconfig_src_file => "${project_root}/solr/tcga-rnaseq/solrconfig.xml",
   }
+  solr::core { 'target-rnaseq':
+    schema_src_file     => "${project_root}/solr/target-rnaseq/schema.xml",
+    solrconfig_src_file => "${project_root}/solr/target-rnaseq/solrconfig.xml",
+  }
 
   file { "${project_root}/.env":
     ensure  => file,
