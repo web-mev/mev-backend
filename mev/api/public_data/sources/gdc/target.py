@@ -82,6 +82,9 @@ class TargetRnaSeqDataSource(TargetDataSource, GDCRnaSeqDataSourceMixin):
             self, dataset_db_instance, query_filter
         )
 
+    def verify_files(self, file_dict):
+        return GDCRnaSeqDataSourceMixin.verify_files(self, file_dict)
+
     def get_indexable_files(self, file_dict):
         return GDCRnaSeqDataSourceMixin.get_indexable_files(self, file_dict)
 

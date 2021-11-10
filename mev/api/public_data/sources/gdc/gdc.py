@@ -451,7 +451,6 @@ class GDCRnaSeqDataSourceMixin(object):
             aliquot_ids = []
 
             for hit in response_json['data']['hits']:
-                file_uuid_list.append(hit['file_id'])
 
                 # hit['cases'] is a list. To date, have only seen length of 1, 
                 # and it's not clear what a greater length would mean.
@@ -461,7 +460,9 @@ class GDCRnaSeqDataSourceMixin(object):
                         ' of a GDC RNA-seq query. We expect the "cases" key for a hit to be of length 1,'
                         ' but this was greater. Returned data was: {k}'.format(k=json.dumps(response_json))
                     )
-                    return
+                    continue
+
+                file_uuid_list.append(hit['file_id'])
 
                 case_item = hit['cases'][0]
                 case_id_list.append(case_item['case_id'])
