@@ -371,6 +371,10 @@ class GDCRnaSeqDataSourceMixin(object):
 
     # We look for HTSeq-based counts which have this suffix
     HTSEQ_SUFFIX = 'htseq.counts.gz'
+    
+    # Some of the files are not named consistently and have this file suffix
+    HTSEQ_SUFFIX_ALT = 'htseq_counts.txt.gz'
+
 
     def verify_files(self, file_dict):
         '''
@@ -456,7 +460,7 @@ class GDCRnaSeqDataSourceMixin(object):
                 # and it's not clear what a greater length would mean.
                 # Hence, catch this and issue an error so we can investigate
                 if len(hit['cases']) > 1:
-                    logger.error('Encountered an unexpected issue when iterating through the returned hits'
+                    logger.info('Encountered an unexpected issue when iterating through the returned hits'
                         ' of a GDC RNA-seq query. We expect the "cases" key for a hit to be of length 1,'
                         ' but this was greater. Returned data was: {k}'.format(k=json.dumps(response_json))
                     )
@@ -497,6 +501,7 @@ class GDCRnaSeqDataSourceMixin(object):
                     )
                     return
 
+            logger.info('Adding {n} aliquots'.format(n=len(aliquot_ids)))
             file_to_aliquot_mapping.update(dict(zip(file_uuid_list, aliquot_ids)))
 
             exposure_df = GDCDataSource.merge_with_full_record(
@@ -566,6 +571,10 @@ class GDCRnaSeqDataSourceMixin(object):
 
         # Merge and write the count files
         count_df = self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
+        
+        logger.info('For {ct}, created a count matrix with {n} aliquots.'.format(
+            ct=project_id, n=count_df.shape[1])
+        )
 
         # Cleanup the downloads
         [os.remove(x) for x in downloaded_archives]
@@ -640,7 +649,7 @@ class GDCRnaSeqDataSourceMixin(object):
             with tarfile.open(f, 'r:gz') as tf:
                 tf.extractall(path=tmpdir)
                 for t in tf.getmembers():
-                    if t.name.endswith(self.HTSEQ_SUFFIX):
+                    if t.name.endswith(self.HTSEQ_SUFFIX) or t.name.endswith(self.HTSEQ_SUFFIX_ALT):
                         # the folder has the name of the file.
                         # The prefix UUID on the basename is not useful to us.
                         file_id = t.name.split('/')[0]
