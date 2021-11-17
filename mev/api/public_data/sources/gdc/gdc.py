@@ -816,6 +816,9 @@ class GDCRnaSeqDataSourceMixin(object):
         ann_df = pd.read_csv(ann_path, index_col=0)
         subset_ann = ann_df.loc[full_uuid_list]
 
+        # drop columns which are completely empty:
+        subset_ann = subset_ann.dropna(axis=1, how='all')
+
         filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
         ann_filepath = os.path.join(dest_dir, filename)
         try:
