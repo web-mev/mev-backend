@@ -755,7 +755,7 @@ class GDCRnaSeqDataSourceMixin(object):
         # the groups within the HDF5 file. Then, we use the UUIDs to filter the
         # dataframes
         final_df = pd.DataFrame()
-        with pd.HDFStore(count_matrix_path) as hdf:
+        with pd.HDFStore(count_matrix_path, 'r') as hdf:
             for ct in query_filter.keys():
                 if not type(query_filter[ct]) is list:
                     raise Exception('Problem encountered with the filter'
