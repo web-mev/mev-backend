@@ -434,7 +434,7 @@ class TableResource(DataResource):
         elif len(filters) == 1:
             self.table = self.table.loc[filters[0]]
 
-    def get_type_dict(self):
+    def get_type_dict(self, **kwargs):
         '''
         Gets a mapping from the pandas native dtype to a MEV-compatible
         type.
@@ -443,7 +443,7 @@ class TableResource(DataResource):
         for c in self.table.dtypes.index:
             # the convert_dtype function takes the native pandas dtype
             # and returns an attribute "type" that MEV understands.
-            type_dict[c] = convert_dtype(str(self.table.dtypes[c]))
+            type_dict[c] = convert_dtype(str(self.table.dtypes[c]), **kwargs)
         return type_dict
 
     def replace_special_values(self):
@@ -966,7 +966,10 @@ class ElementTable(TableResource):
         # Note that we can't determine specific types (e.g. bounded integers)
         # from general annotations.  We basically allow floats, integers, and
         # "other" types, which get converted to strings.
-        type_dict = self.get_type_dict()
+        # Also note that we pass the `allow_unrestricted_strings` kwarg
+        # which will allow the attribute values to take on arbitrary string
+        # values. 
+        type_dict = self.get_type_dict(allow_unrestricted_strings=True)
 
         # convert NaN and infs to our special marker values
         self.replace_special_values()

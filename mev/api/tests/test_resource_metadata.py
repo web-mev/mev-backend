@@ -17,6 +17,7 @@ from api.data_structures import Observation, \
     Feature, \
     FeatureSet, \
     StringAttribute, \
+    UnrestrictedStringAttribute, \
     IntegerAttribute
 
 from api.serializers.resource_metadata import ResourceMetadataSerializer, \
@@ -460,7 +461,7 @@ class TestAnnotationTableMetadata(unittest.TestCase):
                 samplename = contents[0]
                 attr_dict = {}
                 for j,v in enumerate(contents[1:]):
-                    attr = StringAttribute(v)
+                    attr = UnrestrictedStringAttribute(v)
                     attr_dict[column_dict[j]] = attr
                 obs = Observation(samplename, attr_dict)
                 obs_list.append(obs)

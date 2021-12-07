@@ -655,7 +655,7 @@ class OperationDataResourceAttribute(DataResourceAttribute):
     typename = 'OperationDataResource'
 
 
-def convert_dtype(dtype_str):
+def convert_dtype(dtype_str, **kwargs):
     '''
     Takes a pandas/numpy dtype and returns an appropriate attribute "type"
     string.  For instance, if "int64", return Integer.
@@ -669,4 +669,6 @@ def convert_dtype(dtype_str):
     elif re.match('float\d{0,2}', dtype_str):
         return FloatAttribute.typename
     else:
+        if 'allow_unrestricted_strings' in kwargs:
+            return UnrestrictedStringAttribute.typename
         return StringAttribute.typename

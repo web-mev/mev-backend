@@ -387,10 +387,8 @@ class TestAnnotationMatrix(unittest.TestCase):
         '''
         In this test, we have the case where a user submits an annotation file
         which has a column of strings. One of those strings, however, is entirely
-        numeric, which violates the underlying "StringAttribute" type (since it 
-        does not match the regex).
-
-        Check that we issue an appropriate error.
+        numeric. That is accepted, however, as there are situations where annotations
+        could be presented in this manner.
         '''
         t = AnnotationTable()
         p = os.path.join(
@@ -398,8 +396,7 @@ class TestAnnotationMatrix(unittest.TestCase):
         is_valid, err = t.validate_type(p)
         self.assertTrue(is_valid)
         self.assertIsNone(err)
-        with self.assertRaises(Exception):
-            t.extract_metadata(p)
+        metadata = t.extract_metadata(p)
 
 class TestBed(unittest.TestCase):
 
