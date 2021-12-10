@@ -3,8 +3,7 @@ import os
 import logging
 
 from api.models import PublicDataset, Resource
-from api.utilities.resource_utilities import move_resource_to_final_location, \
-    get_resource_size
+from api.utilities.resource_utilities import validate_and_store_resource
 from .sources.gdc.tcga import TCGARnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
 from .indexers import get_indexer
@@ -166,18 +165,14 @@ def create_dataset_from_params(dataset_id, user, request_payload):
             name = name,
             owner = user,
             path = path,
-            resource_type = resource_type
         )
 
-        # move to the final location and modify some attibutes.
-        # Note that we don't use the `validate_and_store_resource` function
-        # in the resource_utilities module as we have full control over the 
-        # creation of the file above. If we create an invalid file, then we 
-        # have other problems.
-        r.path = move_resource_to_final_location(r)
-        r.is_active = True
-        r.size = get_resource_size(r)
-        r.save()
+        # although we have full control over the creation of files here,
+        # running it through this function ensures that it is properly
+        # validated and that the proper metadata is extraced.
+        # Previously, the workspace was not populating metadata since
+        # it was bypassing this call
+        validate_and_store_resource(r, resource_type)
 
         resource_list.append(r)
 

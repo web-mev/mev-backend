@@ -204,16 +204,14 @@ class TestPublicDatasets(BaseAPITestCase):
         self.assertEqual('foo', p.public_name)
         self.assertEqual('desc', p.description)
 
-    @mock.patch('api.public_data.get_resource_size')
-    @mock.patch('api.public_data.move_resource_to_final_location')
+    @mock.patch('api.public_data.validate_and_store_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
     def test_dataset_creation_steps(self, mock_resource_class,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
-            mock_move_resource_to_final_location,
-            mock_get_resource_size
+            mock_validate_and_store_resource
         ):
         '''
         Tests the proper methods are called for the process of creating a 
@@ -226,8 +224,9 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_resource_instance = mock.MagicMock()
         mock_name = 'filename.tsv'
         mock_resource_instance.name = mock_name
+        filetype = 'MTX'
 
-        mock_dataset.create_from_query.return_value = (['a'], [mock_name], ['MTX'])
+        mock_dataset.create_from_query.return_value = (['a'], [mock_name], [filetype])
 
         mock_resource_class.objects.create.return_value =  mock_resource_instance
 
@@ -235,9 +234,6 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_get_implementing_class.return_value = mock_dataset
 
         mock_final_path = '/a/b/c.txt'
-        mock_size = 100
-        mock_move_resource_to_final_location.return_value = mock_final_path
-        mock_get_resource_size.return_value = mock_size
 
         # doesn't matter what this actually is since
         # it depends on the actual dataset being implemented.
@@ -249,28 +245,23 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload)
-        mock_move_resource_to_final_location.assert_called_with(mock_resource_instance)
+        mock_validate_and_store_resource.assert_called_with(mock_resource_instance, filetype)
         mock_resource_class.objects.create.assert_called_with(
             name = mock_name,
             owner=mock_user,
-            path='a',
-            resource_type='MTX'
+            path='a'        
         )
 
-        self.assertEqual(resource_list[0].path, mock_final_path)
-        self.assertEqual(resource_list[0].size, mock_size)
         self.assertEqual(resource_list[0].name, mock_name)
 
-    @mock.patch('api.public_data.get_resource_size')
-    @mock.patch('api.public_data.move_resource_to_final_location')
+    @mock.patch('api.public_data.validate_and_store_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
     def test_dataset_creation_fails(self, mock_resource_class,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
-            mock_move_resource_to_final_location,
-            mock_get_resource_size
+            mock_validate_and_store_resource
         ):
         '''
         Tests that we do not create a Resource in the case where the
@@ -297,8 +288,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check that methods were NOT called:
         mock_resource_class.objects.create.assert_not_called()
-        mock_move_resource_to_final_location.assert_not_called()
-        mock_get_resource_size.assert_not_called()
+        mock_validate_and_store_resource.assert_not_called()
 
 
 class TestBasePublicDataSource(BaseAPITestCase):
