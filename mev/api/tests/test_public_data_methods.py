@@ -204,7 +204,7 @@ class TestPublicDatasets(BaseAPITestCase):
         self.assertEqual('foo', p.public_name)
         self.assertEqual('desc', p.description)
 
-    @mock.patch('api.public_data.validate_and_store_resource')
+    @mock.patch('api.public_data.validate_resource_and_store')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
@@ -224,6 +224,8 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_resource_instance = mock.MagicMock()
         mock_name = 'filename.tsv'
         mock_resource_instance.name = mock_name
+        pk=1111
+        mock_resource_instance.pk = pk
         filetype = 'MTX'
 
         mock_dataset.create_from_query.return_value = (['a'], [mock_name], [filetype])
@@ -245,7 +247,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload)
-        mock_validate_and_store_resource.assert_called_with(mock_resource_instance, filetype)
+        mock_validate_and_store_resource.delay.assert_called_with(mock_resource_instance.pk, filetype)
         mock_resource_class.objects.create.assert_called_with(
             name = mock_name,
             owner=mock_user,
@@ -254,7 +256,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         self.assertEqual(resource_list[0].name, mock_name)
 
-    @mock.patch('api.public_data.validate_and_store_resource')
+    @mock.patch('api.public_data.validate_resource_and_store')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
@@ -288,7 +290,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check that methods were NOT called:
         mock_resource_class.objects.create.assert_not_called()
-        mock_validate_and_store_resource.assert_not_called()
+        mock_validate_and_store_resource.delay.assert_not_called()
 
 
 class TestBasePublicDataSource(BaseAPITestCase):
