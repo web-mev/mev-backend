@@ -719,7 +719,7 @@ class GDCRnaSeqDataSourceMixin(object):
             output_file.write(download_response.content)
         return fout
 
-    def create_from_query(self, dataset_db_instance, query_filter):
+    def create_from_query(self, dataset_db_instance, query_filter, output_name = ''):
         '''
         Using the dict provided in `query_filter`, subset the HDF5-stored data
         and create a flat-file. Also create the annotation file
@@ -820,6 +820,7 @@ class GDCRnaSeqDataSourceMixin(object):
         subset_ann = subset_ann.dropna(axis=1, how='all')
 
         filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+
         ann_filepath = os.path.join(dest_dir, filename)
         try:
             subset_ann.to_csv(ann_filepath, sep='\t')
@@ -830,7 +831,11 @@ class GDCRnaSeqDataSourceMixin(object):
             raise Exception('Failed when writing the filtered annotation data.')
 
         # finally make some names for these files, which we return
-        u = str(uuid.uuid4())
-        count_matrix_name = self.TAG + '.' + u + '.tsv'
-        ann_name = self.TAG + '.' + u + '.tsv'
+        if output_name == '':
+            u = str(uuid.uuid4())
+            count_matrix_name = self.TAG + '_counts.' + u + '.tsv'
+            ann_name = self.TAG + '_ann.' + u + '.tsv'
+        else:
+            count_matrix_name = output_name + '_counts.' + self.TAG + '.tsv'
+            ann_name = output_name + '_ann.' + self.TAG + '.tsv'
         return [count_filepath, ann_filepath], [count_matrix_name, ann_name], ['RNASEQ_COUNT_MTX', 'ANN']

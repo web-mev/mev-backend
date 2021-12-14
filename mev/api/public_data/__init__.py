@@ -131,7 +131,7 @@ def query_dataset(dataset_id, query_payload):
         raise Exception('The requested public dataset ({d})'
         ' could not be found.'.format(d=dataset_id))
 
-def create_dataset_from_params(dataset_id, user, request_payload):
+def create_dataset_from_params(dataset_id, user, request_payload, output_name = ''):
     '''
     This will create a Resource based on the request
     payload. Note that if request_payload is None, then we 
@@ -151,7 +151,8 @@ def create_dataset_from_params(dataset_id, user, request_payload):
     try:
         path_list, name_list, resource_type_list = ds.create_from_query(
             dataset_db_instance,
-            request_payload
+            request_payload,
+            output_name
         )
     except Exception as ex:
         logger.info('An error occurred when preparing the file based'

@@ -208,14 +208,16 @@ class TestPublicDatasets(BaseAPITestCase):
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
-    def test_dataset_creation_steps(self, mock_resource_class,
+    def test_dataset_creation_steps_case1(self, mock_resource_class,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
             mock_validate_and_store_resource
         ):
         '''
         Tests the proper methods are called for the process of creating a 
-        public dataset for a user
+        public dataset for a user. Here, we do not pass an output name
+        to the method. The output_name allows a user to give a custom name
+        to the exported files. Otherwise they are auto-named
         '''
 
         dataset_id = self.test_dataset.index_name
@@ -246,7 +248,7 @@ class TestPublicDatasets(BaseAPITestCase):
         resource_list = create_dataset_from_params(dataset_id, mock_user, request_payload)
 
         # check the proper methods were called:
-        mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload)
+        mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload, '')
         mock_validate_and_store_resource.delay.assert_called_with(mock_resource_instance.pk, filetype)
         mock_resource_class.objects.create.assert_called_with(
             name = mock_name,
@@ -452,7 +454,8 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
         result = data_src.get_indexable_files(fd)
         self.assertCountEqual(result, fd[GDCRnaSeqDataSourceMixin.ANNOTATION_FILE_KEY])
 
-    def test_filters_hdf_correctly(self):
+    @mock.patch('api.public_data.sources.gdc.gdc.uuid')
+    def test_filters_hdf_correctly(self, mock_uuid_mod):
         '''
         Tests that we filter properly for a 
         dummy dataset stored in HDF5 format.
@@ -468,6 +471,17 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
             'public_data_test_files', 
             'tcga_rnaseq_ann.csv'
         )
+
+        # create 5 mock UUIDs. The first two are used in the 
+        # first call to the tested method. The final 3 are used in the second
+        # call to the tested method. The reason for that is we auto-generate
+        # the output filename when the calling function has not provided an 
+        # `output_name` arg to the method. In the first call to the tested
+        # method, we provide that name, so only two calls are made to the 
+        # uuid.uuid4 function. In the second call, we omit that arg and we 
+        # hence make an extra call to the uuid4 func.
+        mock_uuids = [uuid.uuid4() for i in range(5)]
+        mock_uuid_mod.uuid4.side_effect = mock_uuids
 
         # this dict is what the database record is expected to contain
         # in the file_mapping field
@@ -486,8 +500,10 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
         data_src = GDCRnaSeqDataSourceMixin()
         # the children classes will have a TAG attribute. Since we are
         # testing this mixin here, we simply patch it
-        data_src.TAG = 'foo'
-        paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query)
+        tag = 'foo'
+        data_src.TAG = tag
+        output_name = 'abc'
+        paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query, output_name)
 
         # The order of these doesn't matter in practice, but to check the file contents,
         # we need to be sure we're looking at the correct files for this test.
@@ -508,6 +524,15 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
         )
         actual_df = pd.read_table(paths[1], index_col=0)
         self.assertTrue(actual_df.equals(ann_df))
+
+        self.assertEqual(filenames[0], '{x}_counts.{t}.tsv'.format(x=output_name, t=tag))
+        self.assertEqual(filenames[1], '{x}_ann.{t}.tsv'.format(x=output_name, t=tag))
+
+        # use index 4 below as 2 uuid.uuid4 calls were 'consumed' by the first call to `create_From_query`
+        # while the second call  (the one we are testing now) uses 3 calls to uuid.uuid4
+        paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query)
+        self.assertEqual(filenames[0], '{t}_counts.{u}.tsv'.format(u=mock_uuids[4], t=tag))
+        self.assertEqual(filenames[1], '{t}_ann.{u}.tsv'.format(u=mock_uuids[4], t=tag))
 
     def test_rejects_whole_dataset_with_null_filter(self):
         '''

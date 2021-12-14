@@ -135,11 +135,17 @@ class PublicDatasetCreate(APIView):
         if (request_filters is not None) and (not type(request_filters) is dict):
             return Response('The "filters" part of the payload'
             ' should be formatted as an object.', status=status.HTTP_400_BAD_REQUEST)
+
+        # users can optionally name the output. If nothing is passed, we have an auto-naming scheme
+        output_name = request.data.get('output_name')
+        if not output_name:
+            output_name = ''
         try:
             resource_instance_list = create_dataset_from_params(
                 dataset_id, 
                 request.user, 
-                request_filters
+                request_filters,
+                output_name
             )
             rs = ResourceSerializer(resource_instance_list, many=True, context={'request': request})
             return Response(rs.data, status=status.HTTP_201_CREATED)
