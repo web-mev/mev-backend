@@ -77,9 +77,9 @@ class TargetRnaSeqDataSource(TargetDataSource, GDCRnaSeqDataSourceMixin):
         '''
         self._pull_data('TARGET', self.TAG)
 
-    def create_from_query(self, dataset_db_instance, query_filter):
+    def create_from_query(self, dataset_db_instance, query_filter, output_name = ''):
         return GDCRnaSeqDataSourceMixin.create_from_query(
-            self, dataset_db_instance, query_filter
+            self, dataset_db_instance, query_filter, output_name
         )
 
     def verify_files(self, file_dict):
