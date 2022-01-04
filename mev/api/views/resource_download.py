@@ -62,7 +62,7 @@ class ResourceDownloadUrl(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if storage_backend.is_local_storage:
-            download_url = request.build_absolute_uri(reverse('download-resource'))
+            download_url = request.build_absolute_uri(reverse('download-resource', kwargs={'pk': resource_pk}))
             download_type = 'local'
         else:
             download_url = url
