@@ -63,9 +63,15 @@ class ResourceDownloadUrl(APIView):
 
         if storage_backend.is_local_storage:
             download_url = request.build_absolute_uri(reverse('download-resource'))
+            download_type = 'local'
         else:
             download_url = url
-        return Response({'url': download_url})
+            download_type = 'remote'
+        
+        # the 'download_type' is a flag for how the frontend should interpret the response.
+        # For example, if it's a direct download from the local server, 
+        # then it may choose to call the download url expecting a blob.
+        return Response({'url': download_url, 'download_type': download_type})
 
 class ResourceDownload(APIView):
     '''
