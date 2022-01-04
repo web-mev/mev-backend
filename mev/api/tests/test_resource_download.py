@@ -15,6 +15,10 @@ from api.tests import test_settings
 
 
 class ResourceDownloadTests(BaseAPITestCase):
+    '''
+    Tests the direct downloads, as is the case when the storage backend is
+    "local". 
+    '''
 
     def setUp(self):
 
@@ -128,6 +132,135 @@ class ResourceDownloadTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_400_BAD_REQUEST)
 
+    def test_inactive_resource_request_returns_400(self):
+        '''
+        Tests the case where we have an inactive resource and a download request
+        is issued. Should get a 400
+        '''
+        response = self.authenticated_regular_client.get(self.url_for_inactive_resource)
+        self.assertTrue(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+
+class ResourceUrlFetchTests(BaseAPITestCase):
+    '''
+    Tests the endpoint that provides the download url, which is based on the backend storage
+    service
+    '''
+
+    def setUp(self):
+
+        self.establish_clients()
+
+        self.TESTDIR = os.path.join(
+            os.path.dirname(__file__),
+            'resource_contents_test_files'    
+        )
+
+        # get an example from the database:
+        regular_user_resources = Resource.objects.filter(
+            owner=self.regular_user_1,
+        )
+        if len(regular_user_resources) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Resource instance for the user {user}
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+
+        active_resources = []
+        inactive_resources = []
+        for r in regular_user_resources:
+            if r.is_active:
+                active_resources.append(r)
+            else:
+                inactive_resources.append(r)
+
+        active_resources_which_are_small_enough = [x for x in active_resources if x.size < settings.MAX_DOWNLOAD_SIZE_BYTES]
+        active_resources_which_are_too_large = [x for x in active_resources if x.size > settings.MAX_DOWNLOAD_SIZE_BYTES]
+
+        if len(active_resources) == 0:
+            raise ImproperlyConfigured('Need at least one active resource.')
+        if len(inactive_resources) == 0:
+            raise ImproperlyConfigured('Need at least one INactive resource.')
+        if len(active_resources_which_are_small_enough) == 0:
+            raise ImproperlyConfigured('Need at least one active resource with a size smaller than %d.' % settings.MAX_DOWNLOAD_SIZE_BYTES)
+        if len(active_resources_which_are_too_large) == 0:
+            raise ImproperlyConfigured('Need at least one active resource with a size larger than %d.' % settings.MAX_DOWNLOAD_SIZE_BYTES)
+
+        # get an active resource that is small enough to pass the download size threshold:
+        self.small_active_resource = active_resources_which_are_small_enough[0]
+        # and one that is too large (which we block)
+        self.large_active_resource = active_resources_which_are_too_large[0]
+        self.inactive_resource = inactive_resources[0]
+
+        self.url_for_small_active_resource = reverse(
+            'download-resource-url', 
+            kwargs={'pk':self.small_active_resource.pk}
+        )
+        self.url_for_large_active_resource = reverse(
+            'download-resource-url', 
+            kwargs={'pk':self.large_active_resource.pk}
+        )
+        self.url_for_inactive_resource = reverse(
+            'download-resource-url', 
+            kwargs={'pk':self.inactive_resource.pk}
+        )
+
+    def test_requires_auth(self):
+        """
+        Test that general requests to the endpoint generate 401
+        """
+        response = self.regular_client.get(self.url_for_small_active_resource)
+        self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
+        | (response.status_code == status.HTTP_403_FORBIDDEN))
+
+    @mock.patch('api.views.resource_download.get_storage_backend')
+    def test_local_resource_for_small_file(self, mock_get_storage_backend):
+        '''
+        Tests the case where we have a local storage backend and are requesting 
+        the download of a file that is sufficiently small. Should proceed to give them
+        a "proper" download url in the response
+        '''
+        mock_backend = mock.MagicMock()
+
+        # an actual file
+        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.assertTrue(os.path.exists(f))
+        mock_backend.get_download_url.return_value = f
+        mock_backend.is_local_storage = True
+
+        mock_get_storage_backend.return_value = mock_backend
+        response = self.authenticated_regular_client.get(self.url_for_small_active_resource)
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(j['download_type'] == 'local')
+
+    @mock.patch('api.views.resource_download.get_storage_backend')
+    def test_local_resource_for_large_file(self, mock_get_storage_backend):
+        '''
+        Tests the case where we have a local storage backend and a file is requested that
+        is too large for our local download. This should still return a 200 which provides
+        a payload with the actual url for the download. We only check the file size if the
+        user actually makes a request to the download endpoint. Recall that this is simply
+        an endpoint that returns a url which depends on the storage backend
+        '''
+        mock_backend = mock.MagicMock()
+
+        # an actual file
+        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.assertTrue(os.path.exists(f))
+        mock_backend.get_download_url.return_value = f
+        mock_backend.is_local_storage = True
+
+        mock_get_storage_backend.return_value = mock_backend
+        response = self.authenticated_regular_client.get(self.url_for_large_active_resource)
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(j['download_type'] == 'local')
+
     @mock.patch('api.views.resource_download.get_storage_backend')
     def test_remote_resource(self, mock_get_storage_backend):
         '''
@@ -137,19 +270,24 @@ class ResourceDownloadTests(BaseAPITestCase):
         mock_backend = mock.MagicMock()
         some_url = 'https://some-remote-url/object.txt'
         mock_backend.get_download_url.return_value = some_url
+
+        # this is what mocks us using a remote file storage service
         mock_backend.is_local_storage = False
 
         mock_get_storage_backend.return_value = mock_backend
+
         response = self.authenticated_regular_client.get(self.url_for_small_active_resource)
-        self.assertTrue(response.status_code, status.HTTP_302_FOUND)
-        headers = response.headers
-        self.assertEqual(headers['location'],  some_url)
+        self.assertTrue(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(j['download_type'] != 'local')
+        self.assertTrue(j['url'] == some_url)
 
         # also test for a large file. Should not matter since the storage backend is remote.
         response = self.authenticated_regular_client.get(self.url_for_large_active_resource)
-        self.assertTrue(response.status_code, status.HTTP_302_FOUND)
-        headers = response.headers
-        self.assertEqual(headers['location'],  some_url)
+        self.assertTrue(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(j['download_type'] != 'local')
+        self.assertTrue(j['url'] == some_url)
 
     def test_inactive_resource_request_returns_400(self):
         '''
