@@ -13,7 +13,8 @@ from .resource_views import ResourceList, \
     ResourceDetail, \
     ResourceContents, \
     AddBucketResourceView
-from .resource_download import ResourceDownload
+from .resource_download import ResourceDownload, \
+    ResourceDownloadUrl
 from .operation_resource_views import OperationResourceList, OperationResourceFieldList
 from .workspace_resource_views import WorkspaceResourceList, WorkspaceResourceAdd, WorkspaceResourceRemove
 from .workspace_metadata_views import WorkspaceMetadataObservationsView, \
