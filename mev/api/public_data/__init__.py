@@ -167,6 +167,7 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
             name = name,
             owner = user,
             path = path,
+            status = Resource.VALIDATING
         )
 
         # although we have full control over the creation of files here,

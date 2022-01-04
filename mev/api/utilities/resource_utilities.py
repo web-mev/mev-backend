@@ -349,6 +349,7 @@ def validate_resource(resource_instance, requested_resource_type):
             x = str(resource_instance.id),
             t = requested_resource_type
         ))
+        resource_instance.status = Resource.VALIDATING
 
         # check the file extension is consistent with the requested type:
         try:

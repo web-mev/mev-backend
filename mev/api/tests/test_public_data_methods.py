@@ -233,6 +233,8 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_dataset.create_from_query.return_value = (['a'], [mock_name], [filetype])
 
         mock_resource_class.objects.create.return_value =  mock_resource_instance
+        validate_str = 'validating...'
+        mock_resource_class.VALIDATING = validate_str
 
         mock_check_if_valid_public_dataset_name.return_value = True
         mock_get_implementing_class.return_value = mock_dataset
@@ -253,7 +255,8 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_resource_class.objects.create.assert_called_with(
             name = mock_name,
             owner=mock_user,
-            path='a'        
+            path='a',
+            status = validate_str
         )
 
         self.assertEqual(resource_list[0].name, mock_name)
@@ -529,7 +532,7 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
         self.assertEqual(filenames[1], '{x}_ann.{t}.tsv'.format(x=output_name, t=tag))
 
         # use index 4 below as 2 uuid.uuid4 calls were 'consumed' by the first call to `create_From_query`
-        # while the second call  (the one we are testing now) uses 3 calls to uuid.uuid4
+        # while the second call  (the one we are testing now) uses 3 calls to
         paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query)
         self.assertEqual(filenames[0], '{t}_counts.{u}.tsv'.format(u=mock_uuids[4], t=tag))
         self.assertEqual(filenames[1], '{t}_ann.{u}.tsv'.format(u=mock_uuids[4], t=tag))
