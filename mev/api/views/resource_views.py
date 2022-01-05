@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 
 from django.conf import settings
 from rest_framework import permissions as framework_permissions
@@ -20,6 +21,7 @@ from api.utilities.resource_utilities import get_resource_view, \
 from api.storage_backends import get_storage_backend
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
+from api.async_tasks.async_resource_tasks import validate_resource_and_store as async_validate_resource_and_store
 from api.exceptions import NonIterableContentsException
 from resource_types import ParseException
 
@@ -237,6 +239,7 @@ class AddBucketResourceView(APIView):
     '''
 
     BUCKET_PATH = 'bucket_path'
+    RESOURCE_TYPE = 'resource_type'
     permission_classes = [framework_permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -248,11 +251,16 @@ class AddBucketResourceView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        try:
+            resource_type = request.data[self.RESOURCE_TYPE]
+        except KeyError as ex:
+            resource_type = None
+
         # We require the ability to interact with our storage backend.
         storage_backend = get_storage_backend()
 
         # If the storage backend happens to be local storage, we immediately fail
-        # the request.
+        # the request. This could change, however, if a different decision is made.
         if storage_backend.is_local_storage:
             return Response({self.BUCKET_PATH: 'The storage system does not support this endpoint.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -262,14 +270,22 @@ class AddBucketResourceView(APIView):
         # backend (which, for us, means bucket-based).
         # We still need to ensure the path given was real and accessible
         if storage_backend.resource_exists(resource_url):
+
+            basename = os.path.basename(resource_url)
+
             # create a Resource instance
             r = Resource.objects.create(
                 path = resource_url,
-                owner = request.user
+                owner = request.user,
+                name = basename
             )
-            final_path = storage_backend.store(r)
-            r.path = final_path
-            r.save()
+            if resource_type:
+                async_validate_resource_and_store.delay(r.pk, resource_type)
+            else:
+                # no resource type was requested, so we just directly store it.
+                final_path = storage_backend.store(r)
+                r.path = final_path
+                r.save()
             resource_serializer = ResourceSerializer(r, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:

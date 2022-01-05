@@ -2734,7 +2734,10 @@ class BucketResourceAddTests(BaseAPITestCase):
             status.HTTP_400_BAD_REQUEST)
 
     @mock.patch('api.views.resource_views.get_storage_backend')
-    def test_path_edited_correctly(self, mock_get_storage_backend):
+    @mock.patch('api.views.resource_views.async_validate_resource_and_store')
+    def test_path_edited_correctly(self, 
+        mock_async_validate_resource_and_store, 
+        mock_get_storage_backend):
         '''
         Tests the case where everything works-- check that the file goes
         where we expect.
@@ -2742,7 +2745,7 @@ class BucketResourceAddTests(BaseAPITestCase):
         mock_storage_impl = mock.MagicMock()
         mock_storage_impl.is_local_storage = False
         mock_storage_impl.resource_exists.return_value = True
-        fake_path = 'gs://our-bucket/some-path.txt'
+        fake_path = 'gs://our-bucket/some-file.txt'
         mock_storage_impl.store.return_value = fake_path
         mock_get_storage_backend.return_value = mock_storage_impl
 
@@ -2752,7 +2755,7 @@ class BucketResourceAddTests(BaseAPITestCase):
 
         response = self.authenticated_regular_client.post(
             self.url, 
-            data = {'bucket_path': 'gs://some-bucket/some-path'},
+            data = {'bucket_path': 'gs://some-bucket/some-path/some-file.txt'},
             format='json'
         )
         self.assertEqual(response.status_code, 
@@ -2760,6 +2763,10 @@ class BucketResourceAddTests(BaseAPITestCase):
 
         j = response.json()
         new_resource_uuid = j['id']
+        self.assertTrue(j['name'] == 'some-file.txt')
+
+        mock_storage_impl.store.assert_called()
+        mock_async_validate_resource_and_store.delay.assert_not_called()
 
         # count the number of original resources:
         all_resources = Resource.objects.all()
@@ -2772,4 +2779,54 @@ class BucketResourceAddTests(BaseAPITestCase):
         # already
         r = Resource.objects.get(id=new_resource_uuid)
         self.assertTrue(r.path == fake_path)
+        self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)
+
+    @mock.patch('api.views.resource_views.get_storage_backend')
+    @mock.patch('api.views.resource_views.async_validate_resource_and_store')
+    def test_resource_added_with_validation(self, 
+        mock_async_validate_resource_and_store, 
+        mock_get_storage_backend):
+        '''
+        Tests the case where everything works-- check that the file goes
+        where we expect.
+        '''
+        mock_storage_impl = mock.MagicMock()
+        mock_storage_impl.is_local_storage = False
+        mock_storage_impl.resource_exists.return_value = True
+        fake_path = 'gs://our-bucket/some-file.txt'
+        mock_storage_impl.store.return_value = fake_path
+        mock_get_storage_backend.return_value = mock_storage_impl
+
+        # count the number of original resources:
+        all_resources = Resource.objects.all()
+        n0 = len(all_resources)
+
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data = {
+                'bucket_path': 'gs://some-bucket/some-path/some-file.txt',
+                'resource_type': 'XYZ'
+                },
+            format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_201_CREATED)
+
+        j = response.json()
+        new_resource_uuid = j['id']
+        self.assertTrue(j['name'] == 'some-file.txt')
+
+
+        mock_storage_impl.store.assert_not_called()
+        mock_async_validate_resource_and_store.delay.assert_called()
+
+        # count the number of original resources:
+        all_resources = Resource.objects.all()
+        n1 = len(all_resources)
+        self.assertEqual(n1-n0, 1)
+
+        # Note that since we mocked the async validate and store method,
+        # then the resource will not have the path set yet. Here, we just 
+        # check that we have a new resource and that it has the proper owner
+        r = Resource.objects.get(id=new_resource_uuid)
         self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)
