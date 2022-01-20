@@ -663,6 +663,11 @@ class GDCRnaSeqDataSourceMixin(object):
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
 
+        # The count matrices have Ensembl identifiers like ENSG0000122345.11
+        # The 'version' suffix interferes with database lookups (such as for GO terms, etc.)
+        # so we strip that off
+        count_df.index = count_df.index.map(lambda x: x.split('.')[0])
+
         # Clean up:
         shutil.rmtree(tmpdir)
 
