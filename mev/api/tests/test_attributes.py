@@ -16,6 +16,7 @@ from api.data_structures import IntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
+    VariableDataResourceAttribute, \
     OperationDataResourceAttribute, \
     OptionStringAttribute
 from api.exceptions import AttributeValueError, \
@@ -285,67 +286,43 @@ class TestAttributes(unittest.TestCase):
 
     def test_dataresource_attribute(self):
         '''
-        Tests the DataResourceAttribute, which is used when specifying files
-        for use in analysis `Operation`s.
+        Tests the various iterations of DataResourceAttribute classes, 
+        which is used when specifying files for use in analysis `Operation`s.
         '''
 
-        # works:
-        d = DataResourceAttribute(str(uuid.uuid4()), many=True)
-        d = DataResourceAttribute(str(uuid.uuid4()), many=False)
+        tested_classes = [
+            DataResourceAttribute, 
+            VariableDataResourceAttribute, 
+            OperationDataResourceAttribute
+        ]
 
-        # should fail since multiple UUID passed, but many=False
-        with self.assertRaises(AttributeValueError):
-            DataResourceAttribute(
-                [str(uuid.uuid4()), str(uuid.uuid4())], 
-                many=False
-            )
+        for clazz in tested_classes:
 
-        # should fail since one of the vals is NOT a UUID
-        with self.assertRaises(AttributeValueError):
-            DataResourceAttribute(
-                [str(uuid.uuid4()), 'abc'], 
-                many=True
-            )
+            # works:
+            d = clazz(str(uuid.uuid4()), many=True)
+            d = clazz(str(uuid.uuid4()), many=False)
 
-        # the "value" is not a UUID. Should fail:
-        with self.assertRaises(AttributeValueError):
-            DataResourceAttribute('abc', many=True)
+            # should fail since multiple UUID passed, but many=False
+            with self.assertRaises(AttributeValueError):
+                clazz(
+                    [str(uuid.uuid4()), str(uuid.uuid4())], 
+                    many=False
+                )
 
-        # missing the "many" key
-        with self.assertRaises(InvalidAttributeKeywords):
-            DataResourceAttribute('abc')
+            # should fail since one of the vals is NOT a UUID
+            with self.assertRaises(AttributeValueError):
+                clazz(
+                    [str(uuid.uuid4()), 'abc'], 
+                    many=True
+                )
 
-    def test_operationdataresource_attribute(self):
-        '''
-        Tests the OperationDataResourceAttribute, which is used when specifying user-independent
-        files for use in analysis `Operation`s.
-        '''
+            # the "value" is not a UUID. Should fail:
+            with self.assertRaises(AttributeValueError):
+                clazz('abc', many=True)
 
-        # works:
-        d = OperationDataResourceAttribute(str(uuid.uuid4()), many=True)
-        d = OperationDataResourceAttribute(str(uuid.uuid4()), many=False)
-
-        # should fail since multiple UUID passed, but many=False
-        with self.assertRaises(AttributeValueError):
-            OperationDataResourceAttribute(
-                [str(uuid.uuid4()), str(uuid.uuid4())], 
-                many=False
-            )
-
-        # should fail since one of the vals is NOT a UUID
-        with self.assertRaises(AttributeValueError):
-            OperationDataResourceAttribute(
-                [str(uuid.uuid4()), 'abc'], 
-                many=True
-            )
-
-        # the "value" is not a UUID. Should fail:
-        with self.assertRaises(AttributeValueError):
-            OperationDataResourceAttribute('abc', many=True)
-
-        # missing the "many" key
-        with self.assertRaises(InvalidAttributeKeywords):
-            OperationDataResourceAttribute('abc')
+            # missing the "many" key
+            with self.assertRaises(InvalidAttributeKeywords):
+                clazz('abc')
 
     def test_option_string_attribute(self):
 

@@ -17,6 +17,7 @@ from api.data_structures.attributes import IntegerAttribute, \
     OptionStringAttribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
+    VariableDataResourceAttribute, \
     OperationDataResourceAttribute
 from api.data_structures.list_attributes import StringListAttribute, \
     UnrestrictedStringListAttribute
@@ -68,6 +69,7 @@ class InputOutputSpec(object):
         This method handles various keyword args passed
         to the constructor of the subclasses.
         '''
+        print('in handle_common_kwargs in the base InputOutputSpec class:', kwargs_dict)
         try:
             self.default = kwargs_dict.pop('default')
         except KeyError as ex:
@@ -79,6 +81,7 @@ class InputOutputSpec(object):
         # should be removed from the `kwargs_dict` at this point.
         params = list(kwargs_dict.keys())
         try:
+            print('about to call check_keys')
             self.check_keys(params)
         except InvalidAttributeKeywords as ex:
             raise ValidationError(ex)
@@ -393,14 +396,63 @@ class BooleanInputOutputSpec(InputOutputSpec, BooleanAttribute):
 class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
     '''
     This InputOutputSpec is used for displaying/capturing
-    inputs that are related to files.
+    inputs that are related to files. Depending on the particular
+    implementation (a child class), it can have different keys. 
+    This class handles the orchestration of the necessary methods, but
+    the child classes should implement those.
+
+    For instance, an "input" spec to describe an input for a particular
+    Operation could look like:
     ```
     {
         "attribute_type": "DataResource",
         "many": <bool>,
-        "resource_types": <list of valid resource types>
+        "resource_type": <a valid resource type>
     }
     ```
+    which dictates the type for input files (`resource_type`).
+
+    This is a fixed input type. If a particular `Operation` can work with multiple
+    types of inputs or produce multiple types of outputs, then choose the 
+    VariableDataResource* impementations.
+    '''
+
+    def __init__(self, **kwargs):
+        print('in constructor of DRIOS- the parent')
+        InputOutputSpec.__init__(self, **kwargs)
+        kwargs = self.validate_keyword_args(kwargs)
+        kwargs = self.handle_common_kwargs(kwargs)
+        try:
+            self.validate_many_key(kwargs.pop(self.MANY_KEY))
+        except AttributeValueError as ex:
+            raise ValidationError(ex)
+
+    def to_dict(self):
+        i = InputOutputSpec.to_dict(self, DataResourceAttribute)
+        return i
+
+
+class VariableDataResourceInputOutputSpec(InputOutputSpec, VariableDataResourceAttribute):
+    '''
+    This InputOutputSpec is used for displaying/capturing
+    inputs that are related to files. Depending on the particular
+    implementation (a child class), it can have different keys. 
+    This class handles the orchestration of the necessary methods, but
+    the child classes should implement those.
+
+    For instance, an "input" spec to describe an input for a particular
+    Operation could look like:
+    ```
+    {
+        "attribute_type": "VariableDataResource",
+        "many": <bool>,
+        "resource_types": <a list of valid resource types>
+    }
+    ```
+    which contains the available types for input files (`resource_types`).
+
+    This class allows for multiple resource types instead of dictating only 
+    a single allowable resource type.
     '''
 
     def __init__(self, **kwargs):
@@ -413,7 +465,7 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
             raise ValidationError(ex)
 
     def to_dict(self):
-        i = InputOutputSpec.to_dict(self, DataResourceAttribute)
+        i = InputOutputSpec.to_dict(self, VariableDataResourceAttribute)
         return i
 
 

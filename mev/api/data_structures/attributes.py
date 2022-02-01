@@ -655,6 +655,31 @@ class OperationDataResourceAttribute(DataResourceAttribute):
     typename = 'OperationDataResource'
 
 
+class VariableDataResourceAttribute(DataResourceAttribute):
+    '''
+    This class is a specialization of a DataResource which functions to allow
+    variable output resource types.
+
+    The reason for this is as follows:
+    In earlier iterations of WebMeV, the "type" of output files was fixed; for instance, 
+    differential expression analyses always produced 'feature tables'. However, some 
+    WebMeV `Operations` perform simple operations such as renaming rows (e.g.
+    changing gene names from ENSG to symbols) which can work with multiple file types.
+    The fixed system did not allow for such a general tool; we would have to create a 
+    virtually identical tool for each type of input file that we want to handle. 
+    That's obviously not ideal. Instead, we would like to allow those `Operation`s to 
+    create files that have the same type as the input file (e.g. an input feature table 
+    would create an output feature table).
+
+    The `VariableDataResource` type is a signal to the code that handles the finalization
+    of `ExecutedOperation`s that it should expect an output file that can have multiple types.
+    The actual type will be set by the `ExecutedOperation` in its `outputs.json` file. However,
+    those details are handled in the "operation spec" classes, not here. This class just establishes
+    this as an available type.
+    '''
+    typename = 'VariableDataResource'
+
+
 def convert_dtype(dtype_str, **kwargs):
     '''
     Takes a pandas/numpy dtype and returns an appropriate attribute "type"

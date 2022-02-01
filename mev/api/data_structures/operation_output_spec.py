@@ -17,6 +17,7 @@ from api.data_structures.operation_input_and_output_spec import InputOutputSpec,
     OptionStringInputOutputSpec, \
     BooleanInputOutputSpec, \
     DataResourceInputOutputSpec, \
+    VariableDataResourceInputOutputSpec, \
     OperationDataResourceInputOutputSpec, \
     ObservationInputOutputSpec, \
     FeatureInputOutputSpec, \
@@ -109,10 +110,11 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
     RESOURCE_TYPE_KEY = 'resource_type'
 
     def __init__(self, **kwargs):
+        print('in constructor of DataResourceOutputSpec')
         DataResourceInputOutputSpec.__init__(self, **kwargs)
 
     def validate_keyword_args(self, kwargs_dict):
- 
+        print('in validate_kwargs of DROS')
         try:
             self.resource_type = kwargs_dict.pop(self.RESOURCE_TYPE_KEY)
         except KeyError as ex:
@@ -140,6 +142,68 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
         i = DataResourceInputOutputSpec.to_dict(self)
         i[self.MANY_KEY] = self.many
         i[self.RESOURCE_TYPE_KEY] = self.resource_type
+        return i
+
+
+class VariableDataResourceOutputSpec(VariableDataResourceInputOutputSpec):
+    '''
+    This OutputSpec is used for describing VARIABLE outputs from an `Operation`
+
+    This allows an `Operation` to define a set of potential resource types
+    for a particular output. This allows us to write general tools that will
+    work with multiple input types and provide a way to dynamically specify the 
+    output resource type.
+
+    The reason for this is as follows:
+    In earlier iterations of WebMeV, the "type" of output files was fixed; for instance, 
+    differential expression analyses always produced 'feature tables'. However, some 
+    WebMeV `Operations` perform simple operations such as renaming rows (e.g.
+    changing gene names from ENSG to symbols) which can work with multiple file types.
+    The fixed system did not allow for such a general tool; we would have to create a 
+    virtually identical tool for each type of input file that we want to handle. 
+    That's obviously not ideal. Instead, we would like to allow those `Operation`s to 
+    create files that have the same type as the input file (e.g. an input feature table 
+    would create an output feature table).
+
+    This `VariableDataResourceOutputSpec` provides a mechanism for an `Operation` developer
+    to define the potential output resource types. It is then required that they 
+    structure the `outputs.json` file accordingly so that the "finalization" code
+    can properly set the actual resource type of any output file(s).
+    '''
+    RESOURCE_TYPES_KEY = 'resource_types'
+
+    def __init__(self, **kwargs):
+        VariableDataResourceInputOutputSpec.__init__(self, **kwargs)
+
+    def validate_keyword_args(self, kwargs_dict):
+        try:
+            self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPES_KEY)
+        except KeyError as ex:
+            raise ValidationError('The "{key}" key is required.'.format(
+                key = ex)
+            )
+
+        if not type(self.resource_types) == list:
+            raise ValidationError('The {key} key needs to be a list.'.format(
+                key=self.RESOURCE_TYPES_KEY
+                )
+            )
+
+        from resource_types import RESOURCE_MAPPING
+        for r in self.resource_types:
+            if not r in RESOURCE_MAPPING.keys():
+                raise ValidationError('The resource type {rt} is not valid.'
+                    ' Needs to be one of the following: {csv}.'.format(
+                        rt=r,
+                        csv=', '.join(RESOURCE_MAPPING.keys())
+                    )
+                )
+        return kwargs_dict
+
+    def to_dict(self):
+        i = VariableDataResourceInputOutputSpec.to_dict(self)
+        i[self.MANY_KEY] = self.many
+        i[self.RESOURCE_TYPES_KEY] = self.resource_types
         return i
 
 
