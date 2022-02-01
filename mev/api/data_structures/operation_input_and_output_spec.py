@@ -69,7 +69,6 @@ class InputOutputSpec(object):
         This method handles various keyword args passed
         to the constructor of the subclasses.
         '''
-        print('in handle_common_kwargs in the base InputOutputSpec class:', kwargs_dict)
         try:
             self.default = kwargs_dict.pop('default')
         except KeyError as ex:
@@ -81,7 +80,6 @@ class InputOutputSpec(object):
         # should be removed from the `kwargs_dict` at this point.
         params = list(kwargs_dict.keys())
         try:
-            print('about to call check_keys')
             self.check_keys(params)
         except InvalidAttributeKeywords as ex:
             raise ValidationError(ex)
@@ -418,7 +416,6 @@ class DataResourceInputOutputSpec(InputOutputSpec, DataResourceAttribute):
     '''
 
     def __init__(self, **kwargs):
-        print('in constructor of DRIOS- the parent')
         InputOutputSpec.__init__(self, **kwargs)
         kwargs = self.validate_keyword_args(kwargs)
         kwargs = self.handle_common_kwargs(kwargs)

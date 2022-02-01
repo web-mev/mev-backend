@@ -2,21 +2,14 @@
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
-        "required_int_type": {
+        "some_variable_resource": {
             "description": "", 
             "name": "", 
             "required": true, 
             "spec": {
-                "attribute_type": "Integer"
-            }
-        },
-        "optional_int_type": {
-            "description": "", 
-            "name": "", 
-            "required": false, 
-            "spec": {
-                "attribute_type": "Integer",
-                "default": 1
+                "attribute_type": "DataResource",
+                "many": true,
+                "resource_types": ["MTX", "I_MTX"]
             }
         }
     }, 

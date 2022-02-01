@@ -16,6 +16,7 @@ from api.data_structures import IntegerInputSpec, \
     OptionStringInputSpec, \
     BooleanInputSpec, \
     DataResourceInputSpec, \
+    VariableDataResourceInputSpec, \
     OperationDataResourceInputSpec, \
     ObservationInputSpec, \
     ObservationSetInputSpec, \
@@ -213,31 +214,73 @@ class TestInputSpec(unittest.TestCase):
         from resource_types import RESOURCE_MAPPING
         all_resource_types = list(RESOURCE_MAPPING.keys())
         random.shuffle(all_resource_types)
-        n = 2
-        valid_resource_types = [all_resource_types[i] for i in range(n)]
+        valid_resource_type = all_resource_types[0]
 
-        ds = DataResourceInputSpec(many=True, resource_types=valid_resource_types)
-        ds = DataResourceInputSpec(many=1, resource_types=valid_resource_types)
-        ds = DataResourceInputSpec(many='true', resource_types=valid_resource_types)
+        ds = DataResourceInputSpec(many=True, resource_type=valid_resource_type)
+        ds = DataResourceInputSpec(many=1, resource_type=valid_resource_type)
+        ds = DataResourceInputSpec(many='true', resource_type=valid_resource_type)
         
-        # missing `resource_types` key
+        # missing `resource_type` key
         with self.assertRaises(ValidationError):
             ds = DataResourceInputSpec(many=True)
+
+        # uses `resource_typeS` key, which is effectively the same
+        # as the `resource_type` key being missing. However, this tests
+        # the error more explicitly since it is likely to be common
+        with self.assertRaises(ValidationError):
+            ds = DataResourceInputSpec(resource_types=valid_resource_type, many=True)
+
         # missing `many` key
         with self.assertRaises(ValidationError):
-            ds = DataResourceInputSpec(resource_types=valid_resource_types)
+            ds = DataResourceInputSpec(resource_type=valid_resource_type)
 
         # `many` key cannot be cast as a boolean
         with self.assertRaises(ValidationError):
-            ds = DataResourceInputSpec(many='yes', resource_types=valid_resource_types)
+            ds = DataResourceInputSpec(many='yes', resource_type=valid_resource_type)
+
+        # `resource_type` key has an invalid type
+        with self.assertRaises(ValidationError):
+            ds = DataResourceInputSpec(many=True, resource_type='abc')
+
+        # `resource_type` key is not a string. Here, it's a list
+        with self.assertRaises(ValidationError):
+            ds = DataResourceInputSpec(many=True, resource_type=[valid_resource_type,])
+
+    def test_variable_dataresource_input_spec(self):
+        from resource_types import RESOURCE_MAPPING
+        all_resource_types = list(RESOURCE_MAPPING.keys())
+        random.shuffle(all_resource_types)
+        n = 2
+        valid_resource_types = [all_resource_types[i] for i in range(n)]
+
+        ds = VariableDataResourceInputSpec(many=True, resource_types=valid_resource_types)
+        ds = VariableDataResourceInputSpec(many=1, resource_types=valid_resource_types)
+        ds = VariableDataResourceInputSpec(many='true', resource_types=valid_resource_types)
+        
+        # missing `resource_types` key
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceInputSpec(many=True)
+        # missing `many` key
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceInputSpec(resource_types=valid_resource_types)
+
+        # uses `resource_type` key, which is effectively the same
+        # as the `resource_types` key being missing. However, this tests
+        # the error more explicitly since it is likely to be common
+        with self.assertRaises(ValidationError):
+            ds = DataResourceInputSpec(resource_type=valid_resource_types, many=True)
+
+        # `many` key cannot be cast as a boolean
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceInputSpec(many='yes', resource_types=valid_resource_types)
 
         # `resource_types` key has bad values
         with self.assertRaises(ValidationError):
-            ds = DataResourceInputSpec(many=True, resource_types=['abc',])
+            ds = VariableDataResourceInputSpec(many=True, resource_types=['abc',])
 
-        # `resource_types` key is not a list
+        # `resource_types` key is not a list. Here, just a string.
         with self.assertRaises(ValidationError):
-            ds = DataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
+            ds = VariableDataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
 
     def test_operationdataresource_input_spec(self):
         from resource_types import RESOURCE_MAPPING

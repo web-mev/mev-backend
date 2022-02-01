@@ -286,6 +286,7 @@ all_input_spec_types = [
     OptionStringInputSpec,
     BooleanInputSpec,
     DataResourceInputSpec,
+    VariableDataResourceInputSpec,
     OperationDataResourceInputSpec,
     ObservationInputSpec,
     FeatureInputSpec,

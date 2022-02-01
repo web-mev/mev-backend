@@ -110,11 +110,9 @@ class DataResourceOutputSpec(DataResourceInputOutputSpec):
     RESOURCE_TYPE_KEY = 'resource_type'
 
     def __init__(self, **kwargs):
-        print('in constructor of DataResourceOutputSpec')
         DataResourceInputOutputSpec.__init__(self, **kwargs)
 
     def validate_keyword_args(self, kwargs_dict):
-        print('in validate_kwargs of DROS')
         try:
             self.resource_type = kwargs_dict.pop(self.RESOURCE_TYPE_KEY)
         except KeyError as ex:

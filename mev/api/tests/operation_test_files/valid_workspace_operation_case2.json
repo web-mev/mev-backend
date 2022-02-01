@@ -2,16 +2,16 @@
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
-        "count_matrix": {
-            "description": "The count matrix of expressions", 
-            "name": "Count matrix:", 
+        "some_file": {
+            "description": "...", 
+            "name": "...:", 
             "required": true, 
             "spec": {
-                "attribute_type": "VariableDataResource", 
-                "resource_types": ["I_MTX", "EXP_MTX"], 
+                "attribute_type": "DataResource", 
+                "resource_type": "I_MTX", 
                 "many": false
             }
-        },
+        }, 
         "p_val": {
             "description": "The filtering threshold for the p-value", 
             "name": "P-value threshold:", 

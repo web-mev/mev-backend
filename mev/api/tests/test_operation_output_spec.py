@@ -16,6 +16,7 @@ from api.data_structures import IntegerOutputSpec, \
     OptionStringOutputSpec, \
     BooleanOutputSpec, \
     DataResourceOutputSpec, \
+    VariableDataResourceOutputSpec, \
     ObservationOutputSpec, \
     ObservationSetOutputSpec, \
     FeatureOutputSpec, \
@@ -245,6 +246,48 @@ class TestOutputSpec(unittest.TestCase):
         # `resource_type` key is a wildcard (e.g. for remote uploads where we don't 
         # know ahead of time what the file type is)
         ds = DataResourceOutputSpec(many=True, resource_type='*')
+
+    def test_variable_dataresource_output_spec(self):
+        from resource_types import RESOURCE_MAPPING
+        all_resource_types = list(RESOURCE_MAPPING.keys())
+        random.shuffle(all_resource_types)
+        n = 2
+        valid_resource_types = [all_resource_types[i] for i in range(n)]
+
+        ds = VariableDataResourceOutputSpec(many=True, resource_types=valid_resource_types)
+        ds = VariableDataResourceOutputSpec(many=1, resource_types=valid_resource_types)
+        ds = VariableDataResourceOutputSpec(many='true', resource_types=valid_resource_types)
+        
+        # missing `resource_types` key
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceOutputSpec(many=True)
+
+        # missing `many` key
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceOutputSpec(resource_types=valid_resource_types)
+
+        # uses `resource_type` key, which is effectively the same
+        # as the `resource_types` key being missing. However, this tests
+        # the error more explicitly since it is likely to be common
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceOutputSpec(many='yes', resource_type=valid_resource_types)
+
+        # `many` key cannot be cast as a boolean
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceOutputSpec(many='yes', resource_types=valid_resource_types)
+
+        # `resource_types` key has bad value
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceOutputSpec(many=True, resource_types=['abc', 'MTX'])
+
+        # `resource_types` key is NOT a list
+        with self.assertRaises(ValidationError):
+            ds = VariableDataResourceOutputSpec(many=True, resource_types='MTX')
+
+        # `resource_types` key is a wildcard (e.g. for remote uploads where we don't 
+        # know ahead of time what the file type is)
+        ds = VariableDataResourceOutputSpec(many=True, resource_types=['*',])
+
 
     def test_stringlist_output_spec(self):
         s = StringListOutputSpec()

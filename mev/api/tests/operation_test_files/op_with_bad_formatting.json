@@ -8,7 +8,7 @@
             "required": true, 
             "spec": {
                 "attribute_type": "DataResource", 
-                "resource_types": ["I_MTX", "RNASEQ_COUNT_MTX"], 
+                "resource_type": "RNASEQ_COUNT_MTX", 
                 "many": false
             }
         }, 

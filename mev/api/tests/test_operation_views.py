@@ -932,6 +932,8 @@ class OperationRunTests(BaseAPITestCase):
         '''
         The workspace and Operation IDs are fine and this test also checks that the 
         validation of the inputs works.
+
+        In this operation json file, the file input is of VariableDataResource type
         '''
         # set the mock to return True so that we mock the inputs passing validation
         f = os.path.join(
@@ -1016,6 +1018,65 @@ class OperationRunTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_submit_async_job.delay.assert_not_called()
+
+    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.utilities.operations.get_operation_instance_data')
+    def test_valid_op_inputs_case2(self, mock_get_operation_instance_data, mock_submit_async_job):
+        '''
+        The workspace and Operation IDs are fine and this test also checks that the 
+        validation of the inputs works.
+        '''
+        # set the mock to return True so that we mock the inputs passing validation
+        f = os.path.join(
+            TESTDIR,
+            'valid_workspace_operation_case2.json'
+        )
+        d = read_operation_json(f)
+        mock_get_operation_instance_data.return_value = d
+
+        # now give a bad UUID for workspace, but a valid one for the operation
+        ops = OperationDbModel.objects.filter(active=True)
+        if len(ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' a non-admin user.')
+
+        op = ops[0]
+
+        acceptable_resource_type = d['inputs']['some_file']['spec']['resource_type']
+        acceptable_resources = Resource.objects.filter(
+            owner=self.regular_user_1,
+            is_active=True,
+            resource_type=acceptable_resource_type
+        )
+        acceptable_resources = [x for x in acceptable_resources if len(x.workspaces.all()) > 0]
+
+        if len(acceptable_resources) == 0:
+            raise ImproperlyConfigured('Need to have at least one resource with type:'
+                ' {t}'.format(
+                    t=acceptable_resource_type
+                )
+            )
+
+        workspace = acceptable_resources[0].workspaces.all()[0]
+
+        valid_inputs = {
+            'some_file': str(acceptable_resources[0].id),
+            'p_val': 0.1
+        }
+
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: valid_inputs,
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called()
+        
 
     @mock.patch('api.views.operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')

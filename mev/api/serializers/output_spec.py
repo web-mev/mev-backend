@@ -10,7 +10,6 @@ class OutputSpecSerializer(InputOutputSpecSerializer):
     '''
 
     def to_internal_value(self, data):
-        print('in to internal value')
         try:
             output_spec_type_str = data['attribute_type']
         except KeyError as ex:
@@ -31,7 +30,6 @@ class OutputSpecSerializer(InputOutputSpecSerializer):
         return data
 
     def create(self, validated_data):
-        print('in create with vd=', validated_data)
         data_copy = copy.deepcopy(validated_data)
         output_spec_type_str = data_copy.pop('attribute_type')
         output_spec_type = output_spec_mapping[output_spec_type_str]

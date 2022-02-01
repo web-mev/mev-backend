@@ -20,6 +20,8 @@ from api.data_structures import create_attribute, \
     BooleanAttribute, \
     DataResourceAttribute, \
     DataResourceInputSpec, \
+    VariableDataResourceAttribute,\
+    VariableDataResourceInputSpec, \
     OperationDataResourceAttribute, \
     OperationDataResourceInputSpec
 from api.serializers.observation import ObservationSerializer
@@ -159,12 +161,14 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         return d['value']
 
 
-class DataResourceUserOperationInput(UserOperationInput):
+class BaseDataResourceUserOperationInput(UserOperationInput):
     '''
     This handles the validation of the user's input for an input
-    corresponding to a `DataResource` instance.
+    corresponding to a `DataResource` or `VariableDataResource` instance.
+
+    This class handles the common behavior (such as checking the 'many' key, etc.)
+    while child classes handle things specific to a `DataResource`, `VariableDataResource`, etc.
     '''
-    typename = DataResourceAttribute.typename
 
     def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
         super().__init__(user, operation, workspace, key, submitted_value, input_spec)
@@ -175,9 +179,6 @@ class DataResourceUserOperationInput(UserOperationInput):
         # if we are here, then we have passed all the checks-- assign the
         # self.instance variable 
         self._assign_instance(submitted_value, expect_many)
-
-    def _assign_instance(self, submitted_value, expect_many):
-        self.instance = DataResourceAttribute(submitted_value, many=expect_many)
 
     def _check_submitted_values(self, submitted_vals):
         for val in submitted_vals:
@@ -274,9 +275,49 @@ class DataResourceUserOperationInput(UserOperationInput):
                     )
                 })
 
+    def get_value(self):
+        d = self.instance.to_dict()
+        return d['value']
+
+
+class DataResourceUserOperationInput(BaseDataResourceUserOperationInput):
+
+    typename = DataResourceAttribute.typename
+
+    def _assign_instance(self, submitted_value, expect_many):
+        self.instance = DataResourceAttribute(submitted_value, many=expect_many)
+
     def _check_resource_types(self, resource):
     
-        expected_resource_types = self.input_spec[DataResourceInputSpec.RESOURCE_TYPES_KEY]
+        expected_resource_type = self.input_spec[DataResourceInputSpec.RESOURCE_TYPE_KEY]
+
+        if resource.resource_type != expected_resource_type:
+            logger.info('The resource type {rt} is not compatible'
+                ' with the expected resource type of {et}'.format(
+                    rt=resource.resource_type,
+                    et = expected_resource_type
+                )
+            )
+            raise ValidationError({
+                self.key: 'The resource ({resource_uuid}, {rt}) did not match'
+                ' the expected type(s) of {all_types}'.format(
+                    resource_uuid = str(resource.pk),
+                    rt = resource.resource_type,
+                    all_types = ', '.join(expected_resource_types)
+                )
+            })
+
+
+class VariableDataResourceUserOperationInput(BaseDataResourceUserOperationInput):
+
+    typename = VariableDataResourceAttribute.typename
+
+    def _assign_instance(self, submitted_value, expect_many):
+        self.instance = VariableDataResourceAttribute(submitted_value, many=expect_many)
+
+    def _check_resource_types(self, resource):
+    
+        expected_resource_types = self.input_spec[VariableDataResourceInputSpec.RESOURCE_TYPES_KEY]
 
         if not resource.resource_type in expected_resource_types:
             logger.info('The resource type {rt} is not compatible'
@@ -293,11 +334,6 @@ class DataResourceUserOperationInput(UserOperationInput):
                     all_types = ', '.join(expected_resource_types)
                 )
             })
-
-    def get_value(self):
-        d = self.instance.to_dict()
-        return d['value']
-
 
 class OperationDataResourceUserOperationInput(DataResourceUserOperationInput):
     '''
@@ -461,6 +497,8 @@ for t in AttributeBasedUserOperationInput.typenames:
 # add the other types
 user_operation_input_mapping[
     DataResourceUserOperationInput.typename] = DataResourceUserOperationInput
+user_operation_input_mapping[
+    VariableDataResourceUserOperationInput.typename] = VariableDataResourceUserOperationInput
 user_operation_input_mapping[
     OperationDataResourceUserOperationInput.typename] = OperationDataResourceUserOperationInput 
 user_operation_input_mapping[

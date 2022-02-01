@@ -19,7 +19,8 @@ from api.utilities.docker import build_docker_image, \
     get_finish_datetime, \
     remove_container, \
     get_logs
-from api.data_structures.attributes import DataResourceAttribute
+from api.data_structures.attributes import DataResourceAttribute, \
+    VariableDataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource, \
     alert_admins, \
@@ -48,6 +49,12 @@ class LocalDockerRunner(OperationRunner):
     REQUIRED_FILES = OperationRunner.REQUIRED_FILES + [
         os.path.join(OperationRunner.DOCKER_DIR, DOCKERFILE),
         ENTRYPOINT_FILE
+    ]
+
+    # This is a list of typenames for file types
+    RESOURCE_ATTR_TYPES = [
+        DataResourceAttribute.typename,
+        VariableDataResourceAttribute.typename
     ]
 
     # the template docker command to be run:
@@ -192,7 +199,7 @@ class LocalDockerRunner(OperationRunner):
 
     def _copy_data_resources(self, execution_dir, op_data, arg_dict):
         '''
-        Copies files (DataResource instances) from the user's local cache
+        Copies files (DataResource, etc. instances) from the user's local cache
         to a sandbox dir.
 
         `execution_dir` is where we want to copy the files
@@ -204,11 +211,29 @@ class LocalDockerRunner(OperationRunner):
             # v has type of OperationInput
             spec = v['spec']
             attribute_type = spec['attribute_type']
-            if attribute_type == DataResourceAttribute.typename:
-                path_in_cache = arg_dict[k]
-                dest = os.path.join(execution_dir, os.path.basename(path_in_cache))
-                copy_local_resource(path_in_cache, dest)
-                arg_dict[k] = dest
+            if attribute_type in self.RESOURCE_ATTR_TYPES:
+
+                # if the spec has many=True, we would need to copy
+                # the potentially >1 files
+                paths_in_cache = arg_dict[k]
+
+                # if many was False, then we are only receiving a single path.
+                # To handle in the same way as an input with > 1 files, put this
+                # path into a list
+                if type(paths_in_cache) is str:
+                    paths_in_cache = [paths_in_cache,]
+
+                # copy all the files,
+                final_paths = []
+                for p in paths_in_cache:    
+                    dest = os.path.join(execution_dir, os.path.basename(p))
+                    copy_local_resource(p, dest)
+                    final_paths.append(dest)
+
+                if type(arg_dict[k]) is str:
+                    arg_dict[k] = final_paths[0]
+                else:
+                    arg_dict[k] = final_paths
 
     def _get_entrypoint_command(self, entrypoint_file_path, arg_dict):
         '''
