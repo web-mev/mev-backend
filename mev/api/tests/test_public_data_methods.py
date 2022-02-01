@@ -424,7 +424,7 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
         }
         expected_matrix = pd.DataFrame(
             [[509, 1446, 2023],[0,2,22],[1768, 2356, 1768]],
-            index=['ENSG00000000003.13','ENSG00000000005.5','ENSG00000000419.11'],
+            index=['ENSG00000000003','ENSG00000000005','ENSG00000000419'],
             columns = ['x1', 'x2', 'x3']
         )
         expected_matrix.index.name = 'gene'
