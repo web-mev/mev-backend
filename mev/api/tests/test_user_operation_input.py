@@ -5,6 +5,7 @@ import json
 import copy
 import uuid
 import shutil
+from collections import defaultdict
 
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
@@ -160,7 +161,9 @@ class UserOperationInputTester(BaseAPITestCase):
         # want to get another Resource owned by this user that is NOT in the workspace
         # They should NOT be able to execute an analysis on it unless it's associated with 
         # the workspace.
-        non_workspace_resources = [x for x in Resource.objects.all() if not x in user_resource_list]
+        non_workspace_resources = [x for x in 
+            Resource.objects.filter(owner=self.regular_user_1) 
+            if not x in user_resource_list]
         if len(non_workspace_resources) == 0:
             raise ImproperlyConfigured('Need at least one Resource for the user that is not'
                 ' associated with a workspace.'
@@ -177,20 +180,33 @@ class UserOperationInputTester(BaseAPITestCase):
         single_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': False,
-            'resource_types': [rt, ]
+            'resource_type': rt
         }
         x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
             str(r.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r.id))
 
         # handle a good case with multiple files
-        r0 = user_resource_list[0]
-        r1 = user_resource_list[1]
-        typeset = set([r0.resource_type, r1.resource_type])
+        user_resource_dict = defaultdict(list)
+        for r in user_resource_list:
+            user_resource_dict[r.resource_type].append(r)
+        print(user_resource_dict)
+        print('^'*100)
+        rt = None
+        for k,v in user_resource_dict.items():
+            if len(v) > 1:
+                rt = k
+        if rt:
+            r0 = user_resource_dict[rt][0]
+            r1 = user_resource_dict[rt][1]
+        else:
+            raise ImproperlyConfigured('Set up the test such that there are '
+                'multiple resources with the same type.'
+            )
         multiple_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': True,
-            'resource_types': list(typeset)
+            'resource_type': rt
         }
         expected_vals = [str(r0.id), str(r1.id)]
         x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
@@ -198,13 +214,37 @@ class UserOperationInputTester(BaseAPITestCase):
             multiple_resource_input_spec)
         self.assertCountEqual(x.get_value(), expected_vals)
 
+        # malformatted input_spec (uses resource_typeS)
+        r = user_resource_list[0]
+        rt = r.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'DataResource',
+            'many': False,
+            'resource_types': rt
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace,
+                'xyz', str(r.id), single_resource_input_spec)
+
+        # malformatted input_spec (resource_type should be a str, not a list)
+        r = user_resource_list[0]
+        rt = r.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'DataResource',
+            'many': False,
+            'resource_type': [rt,]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace,
+                'xyz', str(r.id), single_resource_input_spec)
+
         # handle a single file with an invalid UUID; uuid is fine, but no Resource
         r = user_resource_list[0]
         rt = r.resource_type
         single_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': False,
-            'resource_types': [rt, ]
+            'resource_type': rt
         }
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, None, user_workspace,
@@ -215,7 +255,7 @@ class UserOperationInputTester(BaseAPITestCase):
         multiple_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': True,
-            'resource_types': []
+            'resource_type': 'MTX'
         }
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
@@ -227,7 +267,7 @@ class UserOperationInputTester(BaseAPITestCase):
         single_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': False,
-            'resource_types': [rt, ]
+            'resource_type': rt
         }
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
@@ -240,7 +280,7 @@ class UserOperationInputTester(BaseAPITestCase):
         single_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': False,
-            'resource_types': other_resource_types
+            'resource_type': other_resource_types[0]
         }
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
@@ -255,6 +295,208 @@ class UserOperationInputTester(BaseAPITestCase):
         resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': True,
+            'resource_type': other_resource_types[0]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+                [str(r0.id), str(r1.id)], resource_input_spec)
+
+        # handle the case where we have a list of UUIDs. They all identify
+        # files, but one of them is not in the workspace (it is, however, owned
+        # by the correct user.)
+        r0 = user_resource_list[0]
+
+        # get the resource_type for r0. Since we are dealing with an input
+        # that expects a single type, we need to now get another, non-workspace
+        # resource with that same type
+        r1_found = False
+        r1 = None
+        idx = 0
+        while ((not r1_found) and idx < len(non_workspace_resources)):
+            if non_workspace_resources[idx].resource_type == r0.resource_type:
+                r1_found = True
+                r1 = non_workspace_resources[idx]
+            idx += 1
+
+        # just a double check
+        rt_set = set([r0.resource_type, r1.resource_type])
+        if len(rt_set) > 1:
+            raise ImproperlyConfigured('Need two resources with the same type where'
+                ' one is in the workspace and the other is not.'
+            )
+        resource_input_spec = {
+            'attribute_type': 'DataResource',
+            'many': True,
+            'resource_type': list(rt_set)[0]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+                [str(r0.id), str(r1.id)], resource_input_spec)
+
+###########
+    def test_variable_resource_type_input(self):
+        '''
+        Tests the various scenarios for handling an input corresponding to a 
+        VariableDataResource
+        '''
+        user_operation_input_class = user_operation_input_mapping['VariableDataResource']
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1) 
+
+        has_valid_setup = False
+        user_workspace = None
+        for w in user_workspaces:
+            workspace_resources = w.resources.all()
+            user_resource_list = []
+            for r in workspace_resources:
+                if (r.is_active) and (r.owner == self.regular_user_1):
+                    user_resource_list.append(r)
+            if len(user_resource_list) >= 2:
+                user_workspace = w
+                has_valid_setup = True
+                break
+        if not has_valid_setup:
+            raise ImproperlyConfigured('Need at least two active user' 
+                ' Resources in a single Workspace for this test.'
+            )
+
+        # want to get another Resource owned by this user that is NOT in the workspace
+        # They should NOT be able to execute an analysis on it unless it's associated with 
+        # the workspace.
+        non_workspace_resources = [x for x in 
+            Resource.objects.filter(owner=self.regular_user_1) 
+            if not x in user_resource_list]
+        if len(non_workspace_resources) == 0:
+            raise ImproperlyConfigured('Need at least one Resource for the user that is not'
+                ' associated with a workspace.'
+            )
+
+        other_user_resource = Resource.objects.create(
+            is_active=True,
+            owner = self.regular_user_2
+        )
+
+        # handle a good case with a single file
+        r = user_resource_list[0]
+        rt = r.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': False,
+            'resource_types': [rt,]
+        }
+        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+            str(r.id), single_resource_input_spec)
+        self.assertEqual(x.get_value(), str(r.id))
+
+        # handle a good case with multiple files
+        user_resource_dict = defaultdict(list)
+        for r in user_resource_list:
+            user_resource_dict[r.resource_type].append(r)
+        print(user_resource_dict)
+        print('^'*100)
+        rt = None
+        for k,v in user_resource_dict.items():
+            if len(v) > 1:
+                rt = k
+        if rt:
+            r0 = user_resource_dict[rt][0]
+            r1 = user_resource_dict[rt][1]
+        else:
+            raise ImproperlyConfigured('Set up the test such that there are '
+                'multiple resources with the same type.'
+            )
+        multiple_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': True,
+            'resource_types': [rt,]
+        }
+        expected_vals = [str(r0.id), str(r1.id)]
+        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+            expected_vals, 
+            multiple_resource_input_spec)
+        self.assertCountEqual(x.get_value(), expected_vals)
+
+        # malformatted input_spec (uses resource_type...singular)
+        r = user_resource_list[0]
+        rt = r.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': False,
+            'resource_type': [rt,]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace,
+                'xyz', str(r.id), single_resource_input_spec)
+
+        # malformatted input_spec (resource_type should be a list, not a str)
+        r = user_resource_list[0]
+        rt = r.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': False,
+            'resource_types': rt
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace,
+                'xyz', str(r.id), single_resource_input_spec)
+
+        # handle a single file with an invalid UUID; uuid is fine, but no Resource
+        r = user_resource_list[0]
+        rt = r.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': False,
+            'resource_types': [rt,]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace,
+                'xyz', str(uuid.uuid4()), single_resource_input_spec)
+
+        # handle multiple files where one has an invalid UUID; uuid is fine, 
+        # but no Resource
+        multiple_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': True,
+            'resource_types': ['MTX', 'I_MTX']
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+                [str(uuid.uuid4()), str(uuid.uuid4())], 
+                multiple_resource_input_spec)
+
+        # handle the case where the UUID identifies a file, but it is not theirs
+        rt = other_user_resource.resource_type
+        single_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': False,
+            'resource_types': [rt,]
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+                str(other_user_resource.id), single_resource_input_spec)
+
+        # handle the case where the UUID identifies a file, but it is not the correct type
+        r = user_resource_list[0]
+        rt = r.resource_type
+        other_resource_types = [x for x in RESOURCE_MAPPING.keys() if x != rt]
+        single_resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': False,
+            'resource_types': other_resource_types
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+                str(r.id), single_resource_input_spec)
+
+        # handle the case where we have a list of UUIDs. They all identify
+        # files, but for one of them, it is not the correct type
+        r0 = user_resource_list[0]
+        r1 = user_resource_list[1]
+        rts = [r0.resource_type, r1.resource_type]
+        other_resource_types = [x for x in RESOURCE_MAPPING.keys() if not x in rts]
+        resource_input_spec = {
+            'attribute_type': 'VariableDataResource',
+            'many': True,
             'resource_types': other_resource_types
         }
         with self.assertRaises(ValidationError):
@@ -265,18 +507,35 @@ class UserOperationInputTester(BaseAPITestCase):
         # files, but one of them is not in the workspace (it is, however, owned
         # by the correct user.)
         r0 = user_resource_list[0]
-        r1 = non_workspace_resources[0]
-        rts = list(set([r0.resource_type, r1.resource_type]))
+
+        # get the resource_type for r0. Since we are dealing with an input
+        # that expects a single type, we need to now get another, non-workspace
+        # resource with that same type
+        r1_found = False
+        r1 = None
+        idx = 0
+        while ((not r1_found) and idx < len(non_workspace_resources)):
+            if non_workspace_resources[idx].resource_type == r0.resource_type:
+                r1_found = True
+                r1 = non_workspace_resources[idx]
+            idx += 1
+
+        # just a double check
+        rt_set = set([r0.resource_type, r1.resource_type])
+        if len(rt_set) > 1:
+            raise ImproperlyConfigured('Need two resources with the same type where'
+                ' one is in the workspace and the other is not.'
+            )
         resource_input_spec = {
-            'attribute_type': 'DataResource',
+            'attribute_type': 'VariableDataResource',
             'many': True,
-            'resource_types': rts
+            'resource_types': list(rt_set)
         }
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
-
+    ###########
     def test_operationresource_type_input(self):
         '''
         Tests the various scenarios for handling an input corresponding to a 
@@ -317,7 +576,7 @@ class UserOperationInputTester(BaseAPITestCase):
         single_resource_input_spec = {
             'attribute_type': 'OperationDataResource',
             'many': False,
-            'resource_types': [r1.resource_type, ]
+            'resource_type': r1.resource_type
         }
         x = user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
             str(r1.id), single_resource_input_spec)
@@ -358,7 +617,19 @@ class UserOperationInputTester(BaseAPITestCase):
         single_resource_input_spec = {
             'attribute_type': 'OperationDataResource',
             'many': False,
-            'resource_types': ['XYZ', ]
+            'resource_type': 'XYZ'
+        }
+        with self.assertRaises(ValidationError):
+            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
+                str(r1.id), single_resource_input_spec)
+
+        # change the resource_type for the input spec so 
+        # it doesn't match the format. It should be a string
+        # but it's a list
+        single_resource_input_spec = {
+            'attribute_type': 'OperationDataResource',
+            'many': False,
+            'resource_type': [r1.resource_type,]
         }
         with self.assertRaises(ValidationError):
             user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 

@@ -8,6 +8,7 @@ from rest_framework.exceptions import ValidationError
 from api.utilities.basic_utils import read_local_file
 from api.data_structures import create_attribute, \
     DataResourceAttribute, \
+    VariableDataResourceAttribute, \
     SimpleDag, \
     DagNode
 from api.utilities.resource_utilities import get_resource_by_pk
@@ -16,6 +17,13 @@ from api.models import Resource, WorkspaceExecutedOperation
 
 logger = logging.getLogger(__name__)
 
+# List the typenames for "data resources".
+# These can either be "fixed"  (i.e. `DataResource`)
+# or variable (i.e. `VariableDataResource`)
+DATARESOURCE_TYPENAMES = [
+    DataResourceAttribute.typename,
+    VariableDataResourceAttribute.typename
+]
 
 def read_operation_json(filepath):
     '''
@@ -286,7 +294,7 @@ def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
         else:
             # the key existed in the Operation (as it should). Get the spec dictating
             spec = op_input_or_output[k]['spec']
-            if spec['attribute_type'] == DataResourceAttribute.typename:
+            if spec['attribute_type'] in DATARESOURCE_TYPENAMES:
                 if spec['many']:
                     assert(type(v) is list)
                     resource_uuids.extend(v)
@@ -342,7 +350,7 @@ def create_workspace_dag(workspace_executed_ops):
             op_input_definition = op_inputs[k]
             op_spec = op_input_definition['spec']
             input_type = op_spec['attribute_type']
-            if input_type == DataResourceAttribute.typename:
+            if input_type in DATARESOURCE_TYPENAMES:
                 r = get_resource_by_pk(v)
                 resource_node = graph.get_or_create_node(
                     str(v), 
@@ -357,7 +365,7 @@ def create_workspace_dag(workspace_executed_ops):
                 op_output_definition = op_outputs[k]
                 op_spec = op_output_definition['spec']
                 output_type = op_spec['attribute_type']
-                if output_type == DataResourceAttribute.typename:
+                if output_type in DATARESOURCE_TYPENAMES:
                     if v is not None:
                         r = get_resource_by_pk(v)
                         resource_node = graph.get_or_create_node(

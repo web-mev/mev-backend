@@ -289,7 +289,16 @@ class DataResourceUserOperationInput(BaseDataResourceUserOperationInput):
 
     def _check_resource_types(self, resource):
     
-        expected_resource_type = self.input_spec[DataResourceInputSpec.RESOURCE_TYPE_KEY]
+        try:
+            expected_resource_type = self.input_spec[DataResourceInputSpec.RESOURCE_TYPE_KEY]
+        except KeyError as ex:
+            logger.info('The input spec did not contain the required'
+                ' key: {k}'.format(k=ex)
+            )
+            raise ValidationError({
+                self.key: 'The input spec did not contain the required'
+                ' key: {k}'.format(k=ex)
+            })    
 
         if resource.resource_type != expected_resource_type:
             logger.info('The resource type {rt} is not compatible'
@@ -300,10 +309,10 @@ class DataResourceUserOperationInput(BaseDataResourceUserOperationInput):
             )
             raise ValidationError({
                 self.key: 'The resource ({resource_uuid}, {rt}) did not match'
-                ' the expected type(s) of {all_types}'.format(
+                ' the expected type of {et}'.format(
                     resource_uuid = str(resource.pk),
                     rt = resource.resource_type,
-                    all_types = ', '.join(expected_resource_types)
+                    et = expected_resource_type
                 )
             })
 
@@ -317,7 +326,21 @@ class VariableDataResourceUserOperationInput(BaseDataResourceUserOperationInput)
 
     def _check_resource_types(self, resource):
     
-        expected_resource_types = self.input_spec[VariableDataResourceInputSpec.RESOURCE_TYPES_KEY]
+        try:
+            expected_resource_types = self.input_spec[VariableDataResourceInputSpec.RESOURCE_TYPES_KEY]
+        except KeyError as ex:
+            logger.info('The input spec did not contain the required'
+                ' key: {k}'.format(k=ex)
+            )
+            raise ValidationError({
+                self.key: 'The input spec did not contain the required'
+                ' key: {k}'.format(k=ex)
+            })  
+
+        if not type(expected_resource_types) is list:
+            raise ValidationError({
+                self.key: 'The resource_types key should contain a list of resource types.'
+            })
 
         if not resource.resource_type in expected_resource_types:
             logger.info('The resource type {rt} is not compatible'
@@ -347,6 +370,25 @@ class OperationDataResourceUserOperationInput(DataResourceUserOperationInput):
 
     def _assign_instance(self, submitted_value, expect_many):
         self.instance = OperationDataResourceAttribute(submitted_value, many=expect_many)
+
+    def _check_resource_types(self, resource):
+        expected_resource_type = self.input_spec[OperationDataResourceInputSpec.RESOURCE_TYPE_KEY]
+
+        if not resource.resource_type == expected_resource_type:
+            logger.info('The resource type {rt} is not compatible'
+                ' with the expected resource type of {et}'.format(
+                    rt=resource.resource_type,
+                    et = expected_resource_type
+                )
+            )
+            raise ValidationError({
+                self.key: 'The resource ({resource_uuid}, {rt}) did not match'
+                ' the expected type of {et}'.format(
+                    resource_uuid = str(resource.pk),
+                    rt = resource.resource_type,
+                    et = expected_resource_type
+                )
+            })
 
     def _check_submitted_values(self, submitted_vals):
         for val in submitted_vals:

@@ -212,7 +212,7 @@ class OperationDataResourceInputSpec(OperationDataResourceInputOutputSpec):
     We derive from DataResourceInputSpec so we can re-use some of the methods there
     '''
 
-    RESOURCE_TYPES_KEY = 'resource_types'
+    RESOURCE_TYPE_KEY = 'resource_type'
 
     def __init__(self, **kwargs):
         OperationDataResourceInputOutputSpec.__init__(self, **kwargs)
@@ -220,27 +220,26 @@ class OperationDataResourceInputSpec(OperationDataResourceInputOutputSpec):
     def validate_keyword_args(self, kwargs_dict):
  
         try:
-            self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPES_KEY)
+            self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPE_KEY)
         except KeyError as ex:
             raise ValidationError('The "{key}" key is required.'.format(
                 key = ex)
             )
 
-        if not type(self.resource_types) == list:
-            raise ValidationError('The {key} key needs to be a list.'.format(
-                key=self.RESOURCE_TYPES_KEY
+        if not type(self.resource_type) == str:
+            raise ValidationError('The "{key}" key needs to be a string.'.format(
+                key=self.RESOURCE_TYPE_KEY
                 )
             )
 
         from resource_types import RESOURCE_MAPPING
-        for r in self.resource_types:
-            if not r in RESOURCE_MAPPING.keys():
-                raise ValidationError('The resource type {rt} is not valid.'
-                    ' Needs to be one of the following: {csv}.'.format(
-                        rt=r,
-                        csv=', '.join(RESOURCE_MAPPING.keys())
-                    )
+        if not self.resource_type in RESOURCE_MAPPING.keys():
+            raise ValidationError('The resource type {rt} is not valid.'
+                ' Needs to be the following: {csv}.'.format(
+                    rt=self.resource_type,
+                    csv=', '.join(RESOURCE_MAPPING.keys())
                 )
+            )
         return kwargs_dict
 
     def to_dict(self):
