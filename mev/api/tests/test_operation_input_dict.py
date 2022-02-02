@@ -21,7 +21,7 @@ class OperationInputDictTester(unittest.TestCase):
             'required': True,
             'spec': {
                 'attribute_type': 'DataResource',
-                'resource_types': [all_resource_types[0], all_resource_types[1]],
+                'resource_type': all_resource_types[0],
                 'many': False
             }
         }

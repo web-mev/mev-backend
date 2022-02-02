@@ -204,7 +204,7 @@ class OperationDataResourceInputSpec(OperationDataResourceInputOutputSpec):
     {
         "attribute_type": "OperationDataResource",
         "many": <bool>,
-        "resource_types": <list of valid resource types>
+        "resource_type": <a valid resource type>
     }
     ```
     Note that the `many` key is a field of the underlying OperationDataResourceAttribute
@@ -220,7 +220,7 @@ class OperationDataResourceInputSpec(OperationDataResourceInputOutputSpec):
     def validate_keyword_args(self, kwargs_dict):
  
         try:
-            self.resource_types = kwargs_dict.pop(self.RESOURCE_TYPE_KEY)
+            self.resource_type = kwargs_dict.pop(self.RESOURCE_TYPE_KEY)
         except KeyError as ex:
             raise ValidationError('The "{key}" key is required.'.format(
                 key = ex)
@@ -245,7 +245,7 @@ class OperationDataResourceInputSpec(OperationDataResourceInputOutputSpec):
     def to_dict(self):
         i = OperationDataResourceInputOutputSpec.to_dict(self)
         i[self.MANY_KEY] = self.many
-        i[self.RESOURCE_TYPES_KEY] = self.resource_types
+        i[self.RESOURCE_TYPE_KEY] = self.resource_type
         return i
 
 

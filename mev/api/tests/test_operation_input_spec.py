@@ -289,28 +289,28 @@ class TestInputSpec(unittest.TestCase):
         n = 2
         valid_resource_types = [all_resource_types[i] for i in range(n)]
 
-        ds = OperationDataResourceInputSpec(many=True, resource_types=valid_resource_types)
-        ds = OperationDataResourceInputSpec(many=1, resource_types=valid_resource_types)
-        ds = OperationDataResourceInputSpec(many='true', resource_types=valid_resource_types)
+        ds = OperationDataResourceInputSpec(many=True, resource_type=valid_resource_types[0])
+        ds = OperationDataResourceInputSpec(many=1, resource_type=valid_resource_types[0])
+        ds = OperationDataResourceInputSpec(many='true', resource_type=valid_resource_types[0])
         
         # missing `resource_types` key
         with self.assertRaises(ValidationError):
             ds = OperationDataResourceInputSpec(many=True)
         # missing `many` key
         with self.assertRaises(ValidationError):
-            ds = OperationDataResourceInputSpec(resource_types=valid_resource_types)
+            ds = OperationDataResourceInputSpec(resource_type=valid_resource_types[0])
 
         # `many` key cannot be cast as a boolean
         with self.assertRaises(ValidationError):
-            ds = OperationDataResourceInputSpec(many='yes', resource_types=valid_resource_types)
+            ds = OperationDataResourceInputSpec(many='yes', resource_type=valid_resource_types[0])
 
-        # `resource_types` key has bad values
+        # `resource_type` key has bad value
         with self.assertRaises(ValidationError):
-            ds = OperationDataResourceInputSpec(many=True, resource_types=['abc',])
+            ds = OperationDataResourceInputSpec(many=True, resource_type='abc')
 
-        # `resource_types` key is not a list
+        # `resource_types` key is a list
         with self.assertRaises(ValidationError):
-            ds = OperationDataResourceInputSpec(many=True, resource_types=valid_resource_types[0])
+            ds = OperationDataResourceInputSpec(many=True, resource_type=valid_resource_types)
 
     def test_stringlist_input_spec(self):
         s = StringListInputSpec()

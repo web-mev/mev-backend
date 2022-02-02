@@ -477,7 +477,7 @@ class OperationDataResourceInputOutputSpec(InputOutputSpec, OperationDataResourc
     {
         "attribute_type": "OperationDataResource",
         "many": <bool>,
-        "resource_types": <list of valid resource types>
+        "resource_type": <a valid resource type>
     }
     ```
     '''
