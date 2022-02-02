@@ -340,7 +340,6 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertCountEqual(input_keyset, ['count_matrix','p_val'])
 
         mock_used_resource = workspace_with_resource.resources.all()[0]
-        print(mock_used_resource)
         mock_validated_inputs = {
             'count_matrix': str(mock_used_resource.pk), 
             'p_val': 0.01

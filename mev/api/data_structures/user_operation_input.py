@@ -325,7 +325,6 @@ class VariableDataResourceUserOperationInput(BaseDataResourceUserOperationInput)
         self.instance = VariableDataResourceAttribute(submitted_value, many=expect_many)
 
     def _check_resource_types(self, resource):
-    
         try:
             expected_resource_types = self.input_spec[VariableDataResourceInputSpec.RESOURCE_TYPES_KEY]
         except KeyError as ex:

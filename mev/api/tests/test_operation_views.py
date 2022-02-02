@@ -268,7 +268,6 @@ class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(url)
         j = response.json()
         self.assertTrue(len(j)==len(non_workspace_ops))
-        print(j)
         self.assertCountEqual([x['id'] for x in j], [str(x.id) for x in non_workspace_ops])
 
     def test_other_user_request(self):

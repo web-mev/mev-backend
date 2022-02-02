@@ -190,8 +190,7 @@ class UserOperationInputTester(BaseAPITestCase):
         user_resource_dict = defaultdict(list)
         for r in user_resource_list:
             user_resource_dict[r.resource_type].append(r)
-        print(user_resource_dict)
-        print('^'*100)
+
         rt = None
         for k,v in user_resource_dict.items():
             if len(v) > 1:
@@ -333,7 +332,7 @@ class UserOperationInputTester(BaseAPITestCase):
             user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
-###########
+
     def test_variable_resource_type_input(self):
         '''
         Tests the various scenarios for handling an input corresponding to a 
@@ -392,8 +391,7 @@ class UserOperationInputTester(BaseAPITestCase):
         user_resource_dict = defaultdict(list)
         for r in user_resource_list:
             user_resource_dict[r.resource_type].append(r)
-        print(user_resource_dict)
-        print('^'*100)
+
         rt = None
         for k,v in user_resource_dict.items():
             if len(v) > 1:
@@ -411,11 +409,11 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': [rt,]
         }
         expected_vals = [str(r0.id), str(r1.id)]
+
         x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
             expected_vals, 
             multiple_resource_input_spec)
         self.assertCountEqual(x.get_value(), expected_vals)
-
         # malformatted input_spec (uses resource_type...singular)
         r = user_resource_list[0]
         rt = r.resource_type
@@ -535,7 +533,7 @@ class UserOperationInputTester(BaseAPITestCase):
             user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
-    ###########
+    
     def test_operationresource_type_input(self):
         '''
         Tests the various scenarios for handling an input corresponding to a 

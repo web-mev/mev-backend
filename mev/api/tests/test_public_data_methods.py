@@ -373,7 +373,6 @@ class TestTCGA(BaseAPITestCase):
         '''
         ds = TCGADataSource()
         tcga_cancer_types = ds.query_for_project_names_within_program('TCGA')
-        print(tcga_cancer_types)
         self.assertTrue('TCGA-BRCA' in tcga_cancer_types.keys())
 
         self.assertTrue(tcga_cancer_types['TCGA-LUAD'] == 'Lung Adenocarcinoma')
@@ -387,7 +386,6 @@ class TestTARGET(BaseAPITestCase):
         '''
         ds = TargetDataSource()
         target_types = ds.query_for_project_names_within_program('TARGET')
-        print(target_types)
         self.assertTrue('TARGET-NBL' in target_types.keys())
 
         self.assertTrue(target_types['TARGET-NBL'] == 'Neuroblastoma')

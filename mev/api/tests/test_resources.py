@@ -1199,8 +1199,6 @@ class ResourceContentTests(BaseAPITestCase):
         j = response.json()
         self.assertTrue('error' in j)
 
-
-        print('x'*300)
         # provide a bad query string and check that it returns 400
         # (the value to compare to can't be cast as a float)
         url = base_url + '?page=1&page_size=10&pval=[lt]:a'
@@ -1243,7 +1241,6 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
         results = response.json()
-        print(results)
         self.assertTrue(len(results) == 7)
 
         # add the query params onto the end of the url:
