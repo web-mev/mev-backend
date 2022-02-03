@@ -101,6 +101,31 @@ def get_resource_by_pk(resource_pk):
         ' identified by the ID {u}'.format(u=resource_pk)
     )
 
+def delete_resource_by_pk(resource_pk):
+
+    try:
+        resource = Resource.objects.get(pk=resource_pk)
+        resource.delete()
+    except Resource.DoesNotExist as ex:
+        logger.info('Received an unknown/invalid primary key'
+            ' when trying to retrieve a Resource instance.'
+            ' Try looking for OperationResource with the UUID ({u}).'.format(
+                u = resource_pk
+            )
+        )
+    try:
+        resource = OperationResource.objects.get(pk=resource_pk)
+        resource.delete()
+    except OperationResource.DoesNotExist as ex:
+        logger.info('Could not find an OperationResource with'
+            ' pk={u}'.format(u = resource_pk)
+        )
+
+    # If we are here, raise an exception since nothing was found    
+    raise NoResourceFoundException('Could not find any sublcasses of AbstractResource'
+        ' identified by the ID {u}'.format(u=resource_pk)
+    )
+
 def set_resource_to_inactive(resource_instance):
     '''
     Function created to temporarily "disable"

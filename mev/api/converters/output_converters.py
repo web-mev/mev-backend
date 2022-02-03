@@ -1,8 +1,11 @@
 import os
 import logging
 
+from rest_framework.exceptions import ValidationError
+
 from api.utilities.resource_utilities import validate_and_store_resource
-from api.data_structures.attributes import DataResourceAttribute
+from api.data_structures.attributes import DataResourceAttribute, \
+    VariableDataResourceAttribute
 from api.models import Resource, ResourceMetadata
 
 logger = logging.getLogger(__name__)
@@ -59,6 +62,93 @@ class BaseOutputConverter(object):
                 rm.save()
 
                 resource_uuids.append(str(resource.pk))
+            # now return the resource UUID(s) consistent with the 
+            # output (e.g. if multiple, return list)
+            if output_spec['many'] == False:
+                return resource_uuids[0]
+            else:
+                return resource_uuids
+
+        elif attribute_type == VariableDataResourceAttribute.typename:
+
+            # in the case of a VariableDataResource output, we don't just get a
+            # string or list of strings. We get an object or a list of objects.
+            # Each of those objects has the path and the resource type.
+
+            # check if many
+            # if many, deal with the list, otherwise, just a single object
+            # if only a single output, place into a list so we can handle
+            # both single and multiple outputs in the same loop
+            if output_spec['many'] == False:
+                if not type(output_val) is dict:
+                    raise ValidationError('For a VariableResourceType, we expect'
+                        ' that the output format is provided as an object/dict.'
+                        ' The value received was {v}'.format(v=output_val)
+                    )
+                output_objs = [output_val,]
+            else:
+                if not type(output_val) is list:
+                    raise ValidationError('When there are multiple outputs, we expect a list.')
+                for x in output_val:
+                    if not type(x) is dict:
+                        raise ValidationError('For a VariableResourceType, we expect'
+                            ' that the output format is a list of objects/dicts.'
+                            ' The value received was {v}'.format(v=output_val)
+                        )
+                output_objs = output_val
+
+            # get the potential types of the VariableDataResource:
+            potential_resource_types = output_spec['resource_types']
+
+            resource_uuids = []
+            for obj in output_objs:
+
+                try:
+                    p = obj['path']
+                    resource_type = obj['resource_type']
+                except KeyError as ex:
+                    raise ValidationError('In the output object ({v}), we expect the'
+                        ' following key: {k}'.format(
+                            v = obj,
+                            k = str(ex)
+                        )
+                    )
+
+                # Before going any further, check the resource_type and that it's permitted
+                if not resource_type in potential_resource_types:
+                    raise ValidationError('The specified resource type of {rt}'
+                        ' was not consistent with the permitted types of {t}'.format(
+                            rt = resource_type,
+                            t = ','.join(potential_resource_types)
+                        )
+                    )
+
+                logger.info('Converting path at: {p} to a user-associated resource.'.format(
+                    p = p
+                ))
+                # p is a path in the execution "sandbox" directory or bucket,
+                # depending on the runner.
+                # Create a new Resource and use the storage 
+                # driver to send the file to its final location.
+
+                # the "name"  of the file as the user will see it.
+                if len(executed_op.job_name) > 0:
+                    name = '{job_name}.{n}'.format(
+                        job_name = str(executed_op.job_name),
+                        n = os.path.basename(p)
+                    )
+                else:
+                    name = os.path.basename(p)
+                resource = self.create_resource(executed_op.owner, workspace, p, name)
+                validate_and_store_resource(resource, resource_type)
+
+                # add the info about the parent operation to the resource metadata
+                rm = ResourceMetadata.objects.get(resource=resource)
+                rm.parent_operation = executed_op
+                rm.save()
+
+                resource_uuids.append(str(resource.pk))
+
             # now return the resource UUID(s) consistent with the 
             # output (e.g. if multiple, return list)
             if output_spec['many'] == False:
