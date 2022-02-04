@@ -161,6 +161,10 @@ class OperationRunner(object):
         Handles the mapping from outputs (as provided by the runner)
         to MEV-compatible data structures or resources.
         '''
+        print('in convert_outputs with:')
+        print(executed_op)
+        print(outputs_dict)
+        print('?'*50)
         # the workspace so we know which workspace to associate outputs with:
         user_workspace = getattr(executed_op, 'workspace', None)
 
@@ -170,9 +174,12 @@ class OperationRunner(object):
 
         converted_outputs_dict = {}
         try:
-            for k,v in outputs_dict.items():
+            # note that the sort is not necessary, but it incurs little penalty.
+            # However, it does make unit testing easier.
+            for k in sorted(op_spec_outputs.keys()):
+                spec = op_spec_outputs[k]['spec'] 
                 try:
-                    spec = op_spec_outputs[k]['spec']
+                    v = outputs_dict[k]
                 except KeyError as ex:
                     error_msg = ('Could not locate the output with key={k} in'
                         ' the outputs of operation with ID: {id}'.format(
@@ -182,16 +189,33 @@ class OperationRunner(object):
                     )
                     logger.info(error_msg)
                     alert_admins(error_msg)
+                    raise OutputConversionException(error_msg)
+
                 else:
                     if v is not None:
                         logger.info('Executed operation output was not None. Convert.')
                         converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
+                        print(converted_outputs_dict)
                     else:
                         logger.info('Executed operation output was null/None.')
                         converted_outputs_dict[k] = None
+
+            # If here, we had all the required output keys and they converted properly.
+            # However, the analysis might have specified EXTRA outputs. This isn't necessarily
+            # an error, but we treat it as such since it's clear there is a discrepancy between
+            # the "spec" and the actual output. 
+            # We don't fail the job, but we alert the admins.
+            extra_keys = set(outputs_dict.keys()).difference(op_spec_outputs.keys())
+            if len(extra_keys) > 0:
+                error_msg = ('There were extra keys ({keys}) in the output of'
+                    ' the operation. Check this.'.format(keys=','.join(extra_keys)))
+                logger.info(error_msg)
+                alert_admins(error_msg)
+
             return converted_outputs_dict
         except OutputConversionException as ex:
             logger.info('Requesting cleanup of an ExecutedOperation due to failure'
                 ' while converting outputs.'
             )
             self.cleanup_on_error(op_spec_outputs, converted_outputs_dict)
+            raise ex
