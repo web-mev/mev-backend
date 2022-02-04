@@ -73,3 +73,13 @@ class NonIterableContentsException(Exception):
     is a dict)
     '''
     pass
+
+
+class OutputConversionException(Exception):
+    '''
+    Raised when the output of an `ExecutedOperation` has an issue. Examples
+    include failure to format the output payload or a failure of the validation
+    functions for the output files (e.g. it's not actually an integer matrix as
+    we expect)
+    '''
+    pass

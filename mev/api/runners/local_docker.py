@@ -25,6 +25,7 @@ from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource, \
     alert_admins, \
     run_shell_command
+from api.utilities.resource_utilities import delete_resource_by_pk
 from api.models import ExecutedOperation
 from api.converters.output_converters import LocalDockerOutputConverter
 
@@ -335,3 +336,48 @@ class LocalDockerRunner(OperationRunner):
             executed_op.status = ExecutedOperation.ADMIN_NOTIFIED
             executed_op.save()
             alert_admins(str(ex))
+
+    def cleanup_on_error(self, op_spec_outputs, converted_outputs_dict):
+        '''
+        If there is an error during conversion of the outputs, we don't want
+        any Resource instances to be kept. For instance, if there are multiple
+        output files created and one fails validation, we don't want to expose the
+        others since it may cause a situation where the output state is ambiguous.
+
+        `op_spec_outputs` is the "operation spec" from the `Operation` instance. That
+        details what the expected output(s) should be.
+
+        `converted_outputs_dict` is a dict that has outputs that have already been
+        converted.
+        '''
+
+        # the types that we should clean up.
+        types_to_clean = [
+            DataResourceAttribute.typename,
+            VariableDataResourceAttribute.typename
+        ]
+        for k,v in converted_outputs_dict.items():
+            spec = op_spec_outputs[k]['spec']
+            output_attr_type = spec['attribute_type']
+            if output_attr_type in types_to_clean:
+                logger.info('Will cleanup the output "{k}" with'
+                    ' value of {v}'.format(
+                        k = k,
+                        v = v
+                    )
+                )
+                # ok, so we are dealing with an output type
+                # that represents a file/Resource. This can either
+                # be singular (so the value v is a UUID) or multiple
+                # in which case the value is a list of UUIDs
+
+                # if a single UUID, put that in a list
+                if type(v) is str:
+                    v = [v,]
+                
+                for resource_uuid in v:
+                    delete_resource_by_pk(resource_uuid)
+
+                
+
+                

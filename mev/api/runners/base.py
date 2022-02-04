@@ -6,6 +6,7 @@ from django.utils.module_loading import import_string
 
 from api.utilities.operations import get_operation_instance_data
 from api.utilities.basic_utils import alert_admins
+from api.exceptions import OutputConversionException
 
 logger = logging.getLogger(__name__)
 
@@ -168,23 +169,29 @@ class OperationRunner(object):
         op_spec_outputs = op_data['outputs']
 
         converted_outputs_dict = {}
-        for k,v in outputs_dict.items():
-            try:
-                spec = op_spec_outputs[k]['spec']
-            except KeyError as ex:
-                error_msg = ('Could not locate the output with key={k} in'
-                    ' the outputs of operation with ID: {id}'.format(
-                        k = k,
-                        id = str(executed_op.operation.id)
+        try:
+            for k,v in outputs_dict.items():
+                try:
+                    spec = op_spec_outputs[k]['spec']
+                except KeyError as ex:
+                    error_msg = ('Could not locate the output with key={k} in'
+                        ' the outputs of operation with ID: {id}'.format(
+                            k = k,
+                            id = str(executed_op.operation.id)
+                        )
                     )
-                )
-                logger.info(error_msg)
-                alert_admins(error_msg)
-            else:
-                if v is not None:
-                    logger.info('Executed operation output was not None. Convert.')
-                    converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
+                    logger.info(error_msg)
+                    alert_admins(error_msg)
                 else:
-                    logger.info('Executed operation output was null/None.')
-                    converted_outputs_dict[k] = None
-        return converted_outputs_dict
+                    if v is not None:
+                        logger.info('Executed operation output was not None. Convert.')
+                        converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
+                    else:
+                        logger.info('Executed operation output was null/None.')
+                        converted_outputs_dict[k] = None
+            return converted_outputs_dict
+        except OutputConversionException as ex:
+            logger.info('Requesting cleanup of an ExecutedOperation due to failure'
+                ' while converting outputs.'
+            )
+            self.cleanup_on_error(op_spec_outputs, converted_outputs_dict)

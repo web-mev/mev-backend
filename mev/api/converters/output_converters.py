@@ -1,12 +1,12 @@
 import os
 import logging
 
-from rest_framework.exceptions import ValidationError
-
-from api.utilities.resource_utilities import validate_and_store_resource
+from api.utilities.resource_utilities import validate_and_store_resource, \
+    delete_resource_by_pk
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.models import Resource, ResourceMetadata
+from api.exceptions import OutputConversionException
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +53,32 @@ class BaseOutputConverter(object):
                     )
                 else:
                     name = os.path.basename(p)
+
+                # create and validate the resource against its expected type
                 resource = self.create_resource(executed_op.owner, workspace, p, name)
                 validate_and_store_resource(resource, resource_type)
+
+                # if the `validate_and_store` method failed for some reason, then 
+                # the resource_type attribute will not match the desired type.
+                # That's a problem and we need to "roll back" both the current
+                # Resource and any others created as part of this output (in the
+                # case where an output produces multiple outputs/Resources)
+                if resource.resource_type != resource_type:
+                    logger.info('The validation method did not set the resource type'
+                        ' which indicates that validation did not succeed. Hence, the'
+                        ' resource ({pk}) will be removed.'.format(pk=resource.pk)
+                    )
+                    # delete the current Resource that failed
+                    # The cast to a string is not necessary, but makes
+                    # the unit test easier :)
+                    delete_resource_by_pk(str(resource.pk))
+
+                    # also delete other Resources associated with this output key
+                    [delete_resource_by_pk(x) for x in resource_uuids]
+
+                    # finally raise this exception which will trigger cleanup of any
+                    # other outputs for this ExecutedOperation
+                    raise OutputConversionException('The resource type was not set.')
 
                 # add the info about the parent operation to the resource metadata
                 rm = ResourceMetadata.objects.get(resource=resource)
@@ -62,6 +86,7 @@ class BaseOutputConverter(object):
                 rm.save()
 
                 resource_uuids.append(str(resource.pk))
+
             # now return the resource UUID(s) consistent with the 
             # output (e.g. if multiple, return list)
             if output_spec['many'] == False:
@@ -81,17 +106,17 @@ class BaseOutputConverter(object):
             # both single and multiple outputs in the same loop
             if output_spec['many'] == False:
                 if not type(output_val) is dict:
-                    raise ValidationError('For a VariableResourceType, we expect'
+                    raise OutputConversionException('For a VariableResourceType, we expect'
                         ' that the output format is provided as an object/dict.'
                         ' The value received was {v}'.format(v=output_val)
                     )
                 output_objs = [output_val,]
             else:
                 if not type(output_val) is list:
-                    raise ValidationError('When there are multiple outputs, we expect a list.')
+                    raise OutputConversionException('When there are multiple outputs, we expect a list.')
                 for x in output_val:
                     if not type(x) is dict:
-                        raise ValidationError('For a VariableResourceType, we expect'
+                        raise OutputConversionException('For a VariableResourceType, we expect'
                             ' that the output format is a list of objects/dicts.'
                             ' The value received was {v}'.format(v=output_val)
                         )
@@ -102,12 +127,11 @@ class BaseOutputConverter(object):
 
             resource_uuids = []
             for obj in output_objs:
-
                 try:
                     p = obj['path']
                     resource_type = obj['resource_type']
                 except KeyError as ex:
-                    raise ValidationError('In the output object ({v}), we expect the'
+                    raise OutputConversionException('In the output object ({v}), we expect the'
                         ' following key: {k}'.format(
                             v = obj,
                             k = str(ex)
@@ -116,12 +140,18 @@ class BaseOutputConverter(object):
 
                 # Before going any further, check the resource_type and that it's permitted
                 if not resource_type in potential_resource_types:
-                    raise ValidationError('The specified resource type of {rt}'
+
+                    # Delete any other resources since we don't want "incomplete" outputs
+                    [delete_resource_by_pk(x) for x in resource_uuids]
+
+                    raise OutputConversionException('The specified resource type of {rt}'
                         ' was not consistent with the permitted types of {t}'.format(
                             rt = resource_type,
                             t = ','.join(potential_resource_types)
                         )
                     )
+
+
 
                 logger.info('Converting path at: {p} to a user-associated resource.'.format(
                     p = p
@@ -141,7 +171,27 @@ class BaseOutputConverter(object):
                     name = os.path.basename(p)
                 resource = self.create_resource(executed_op.owner, workspace, p, name)
                 validate_and_store_resource(resource, resource_type)
+                if resource.resource_type != resource_type:
+                    logger.info('The validation method did not set the resource type'
+                        ' which indicates that validation did not succeed. Hence, the'
+                        ' resource ({pk}) will be removed.'.format(pk=resource.pk)
+                    )            
+                    # delete the current Resource that failed
+                    # The cast to a str is not necessary, but makes unit testing slightly simpler
+                    delete_resource_by_pk(str(resource.pk))
 
+                    # also delete other Resources associated with this output key
+                    [delete_resource_by_pk(x) for x in resource_uuids]
+
+                    # finally raise this exception which will trigger cleanup of any
+                    # other outputs for this ExecutedOperation
+                    raise OutputConversionException('The resource type of {rt} was not set'
+                        ' on output with name {name}'.format(
+                            rt = resource_type,
+                            name = name
+                        )
+                    )
+                    
                 # add the info about the parent operation to the resource metadata
                 rm = ResourceMetadata.objects.get(resource=resource)
                 rm.parent_operation = executed_op

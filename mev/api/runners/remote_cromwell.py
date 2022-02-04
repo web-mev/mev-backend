@@ -527,3 +527,19 @@ class RemoteCromwellRunner(OperationRunner):
 
         # construct the request to the Cromwell server:
         self.send_job(staging_dir, executed_op)
+
+
+    def cleanup_on_error(self, op_spec_outputs, converted_outputs_dict):
+        '''
+        If there is an error during conversion of the outputs, we don't want
+        any Resource instances to be kept. For instance, if there are multiple
+        output files created and one fails validation, we don't want to expose the
+        others since it may cause a situation where the output state is ambiguous.
+
+        `op_spec_outputs` is the "operation spec" from the `Operation` instance. That
+        details what the expected output(s) should be.
+
+        `converted_outputs_dict` is a dict that has outputs that have already been
+        converted.
+        '''
+        pass
