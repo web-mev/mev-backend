@@ -5,6 +5,7 @@ import json
 import uuid
 
 from django.core.exceptions import ImproperlyConfigured
+from rest_framework.exceptions import ValidationError
 
 from api.tests.base import BaseAPITestCase
 from api.models import Workspace, \
@@ -15,7 +16,60 @@ from api.models import Workspace, \
 from api.converters.output_converters import LocalDockerOutputConverter
 from api.exceptions import OutputConversionException
 
+# the api/tests dir
+TESTDIR = os.path.dirname(__file__)
+TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
+
 class ExecutedOperationOutputConverterTester(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+
+    def test_basic_attribute_outputs(self):
+
+        all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(all_user_workspaces) < 1:
+            raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
+        workspace = all_user_workspaces[0]
+
+        c = LocalDockerOutputConverter()
+        job_id = str(uuid.uuid4())
+        op = Operation.objects.all()[0]
+        job_name = 'foo'
+        executed_op = WorkspaceExecutedOperation.objects.create(
+            id=job_id,
+            workspace=workspace,
+            owner=self.regular_user_1,
+            inputs = {},
+            operation = op,
+            mode = '',
+            job_name = job_name
+        )
+
+        j = json.load(open(os.path.join(TESTDIR, 'non_resource_outputs.json')))
+        output_spec = j['outputs']['pval']['spec']
+        return_val = c.convert_output(executed_op, workspace, output_spec, 0.2)
+        self.assertEqual(return_val, 0.2)
+
+        with self.assertRaises(OutputConversionException) as ex:
+            return_val = c.convert_output(executed_op, workspace, output_spec, -0.2)
+
+        output_spec = j['outputs']['some_integer']['spec']
+        with self.assertRaises(OutputConversionException) as ex:
+            return_val = c.convert_output(executed_op, workspace, output_spec, 0.2)
+
+        # we are strict and don't accept string-cast integers. 
+        output_spec = j['outputs']['some_integer']['spec']
+        with self.assertRaises(OutputConversionException) as ex:
+            return_val = c.convert_output(executed_op, workspace, output_spec, '1')
+
+
+        output_spec = j['outputs']['some_bool']['spec']
+        self.assertTrue(c.convert_output(executed_op, workspace, output_spec, True))
+        with self.assertRaises(OutputConversionException) as ex:
+            return_val = c.convert_output(executed_op, workspace, output_spec, '1')
+
+class DataResourceOutputConverterTester(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()

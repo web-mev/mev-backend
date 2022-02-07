@@ -161,10 +161,7 @@ class OperationRunner(object):
         Handles the mapping from outputs (as provided by the runner)
         to MEV-compatible data structures or resources.
         '''
-        print('in convert_outputs with:')
-        print(executed_op)
-        print(outputs_dict)
-        print('?'*50)
+
         # the workspace so we know which workspace to associate outputs with:
         user_workspace = getattr(executed_op, 'workspace', None)
 
@@ -195,7 +192,6 @@ class OperationRunner(object):
                     if v is not None:
                         logger.info('Executed operation output was not None. Convert.')
                         converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
-                        print(converted_outputs_dict)
                     else:
                         logger.info('Executed operation output was null/None.')
                         converted_outputs_dict[k] = None

@@ -11,7 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
 from api.utilities.operations import read_operation_json
-from api.data_structures.user_operation_input import user_operation_input_mapping
+from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 from api.models import Resource, Workspace, Operation, OperationResource
 from api.tests.base import BaseAPITestCase
 
@@ -72,8 +72,8 @@ class UserOperationInputTester(BaseAPITestCase):
         for key, val in sample_inputs.items():
             spec_object = d['inputs'][key]['spec']
             spec_type = spec_object['attribute_type']
-            user_operation_input_class = user_operation_input_mapping[spec_type]
-            user_operation_input_class(self.regular_user_1, None, None, key, val, spec_object)
+            submitted_input_or_output_class = submitted_operation_input_or_output_mapping[spec_type]
+            submitted_input_or_output_class(self.regular_user_1, None, None, key, val, spec_object)
 
     def test_bad_basic_user_inputs(self):
         '''
@@ -107,11 +107,11 @@ class UserOperationInputTester(BaseAPITestCase):
         for key, val in sample_inputs.items():
             spec_object = d['inputs'][key]['spec']
             spec_type = spec_object['attribute_type']
-            user_operation_input_class = user_operation_input_mapping[spec_type]
+            submitted_input_or_output_class = submitted_operation_input_or_output_mapping[spec_type]
             with self.assertRaises(ValidationError):
                 # can pass None for the workspace arg since we don't use it when checking the basic types
                 # Also pass None for the Operation argument. None of the basic attributes require that.
-                user_operation_input_class(self.regular_user_1, None, None, key, val, spec_object)
+                submitted_input_or_output_class(self.regular_user_1, None, None, key, val, spec_object)
 
     def test_defaults_for_non_required_inputs(self):
         '''
@@ -128,16 +128,16 @@ class UserOperationInputTester(BaseAPITestCase):
         for key, op_input in d['inputs'].items():
             spec_object = op_input['spec']
             spec_type = spec_object['attribute_type']
-            user_operation_input_class = user_operation_input_mapping[spec_type]
+            submitted_input_or_output_class = submitted_operation_input_or_output_mapping[spec_type]
             # can pass None for the workspace arg since we don't use it when checking the basic types
-            user_operation_input_class(self.regular_user_1, None, None, key, None, spec_object)
+            submitted_input_or_output_class(self.regular_user_1, None, None, key, None, spec_object)
 
     def test_resource_type_input(self):
         '''
         Tests the various scenarios for handling an input corresponding to a 
         DataResource
         '''
-        user_operation_input_class = user_operation_input_mapping['DataResource']
+        submitted_input_or_output_class = submitted_operation_input_or_output_mapping['DataResource']
 
         user_workspaces = Workspace.objects.filter(owner=self.regular_user_1) 
 
@@ -182,7 +182,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': False,
             'resource_type': rt
         }
-        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+        x = submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
             str(r.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r.id))
 
@@ -208,7 +208,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': rt
         }
         expected_vals = [str(r0.id), str(r1.id)]
-        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+        x = submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
             expected_vals, 
             multiple_resource_input_spec)
         self.assertCountEqual(x.get_value(), expected_vals)
@@ -222,7 +222,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': rt
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(r.id), single_resource_input_spec)
 
         # malformatted input_spec (resource_type should be a str, not a list)
@@ -234,7 +234,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': [rt,]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(r.id), single_resource_input_spec)
 
         # handle a single file with an invalid UUID; uuid is fine, but no Resource
@@ -246,7 +246,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': rt
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(uuid.uuid4()), single_resource_input_spec)
 
         # handle multiple files where one has an invalid UUID; uuid is fine, 
@@ -257,7 +257,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': 'MTX'
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
                 [str(uuid.uuid4()), str(uuid.uuid4())], 
                 multiple_resource_input_spec)
 
@@ -269,7 +269,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': rt
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 str(other_user_resource.id), single_resource_input_spec)
 
         # handle the case where the UUID identifies a file, but it is not the correct type
@@ -282,7 +282,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': other_resource_types[0]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 str(r.id), single_resource_input_spec)
 
         # handle the case where we have a list of UUIDs. They all identify
@@ -297,7 +297,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': other_resource_types[0]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
         # handle the case where we have a list of UUIDs. They all identify
@@ -329,7 +329,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': list(rt_set)[0]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
 
@@ -338,7 +338,7 @@ class UserOperationInputTester(BaseAPITestCase):
         Tests the various scenarios for handling an input corresponding to a 
         VariableDataResource
         '''
-        user_operation_input_class = user_operation_input_mapping['VariableDataResource']
+        submitted_input_or_output_class = submitted_operation_input_or_output_mapping['VariableDataResource']
 
         user_workspaces = Workspace.objects.filter(owner=self.regular_user_1) 
 
@@ -383,7 +383,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': False,
             'resource_types': [rt,]
         }
-        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+        x = submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
             str(r.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r.id))
 
@@ -410,7 +410,7 @@ class UserOperationInputTester(BaseAPITestCase):
         }
         expected_vals = [str(r0.id), str(r1.id)]
 
-        x = user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+        x = submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
             expected_vals, 
             multiple_resource_input_spec)
         self.assertCountEqual(x.get_value(), expected_vals)
@@ -423,7 +423,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': [rt,]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(r.id), single_resource_input_spec)
 
         # malformatted input_spec (resource_type should be a list, not a str)
@@ -435,7 +435,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': rt
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(r.id), single_resource_input_spec)
 
         # handle a single file with an invalid UUID; uuid is fine, but no Resource
@@ -447,7 +447,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': [rt,]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,
                 'xyz', str(uuid.uuid4()), single_resource_input_spec)
 
         # handle multiple files where one has an invalid UUID; uuid is fine, 
@@ -458,7 +458,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': ['MTX', 'I_MTX']
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace,'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
                 [str(uuid.uuid4()), str(uuid.uuid4())], 
                 multiple_resource_input_spec)
 
@@ -470,7 +470,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': [rt,]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 str(other_user_resource.id), single_resource_input_spec)
 
         # handle the case where the UUID identifies a file, but it is not the correct type
@@ -483,7 +483,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': other_resource_types
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 str(r.id), single_resource_input_spec)
 
         # handle the case where we have a list of UUIDs. They all identify
@@ -498,7 +498,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': other_resource_types
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
         # handle the case where we have a list of UUIDs. They all identify
@@ -530,7 +530,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_types': list(rt_set)
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, None, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, None, user_workspace, 'xyz', 
                 [str(r0.id), str(r1.id)], resource_input_spec)
 
     
@@ -539,7 +539,7 @@ class UserOperationInputTester(BaseAPITestCase):
         Tests the various scenarios for handling an input corresponding to a 
         OperationDataResource
         '''
-        user_operation_input_class = user_operation_input_mapping['OperationDataResource']
+        submitted_input_or_output_class = submitted_operation_input_or_output_mapping['OperationDataResource']
 
         user_workspaces = Workspace.objects.filter(owner=self.regular_user_1) 
         user_workspace = user_workspaces[0]
@@ -576,7 +576,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'many': False,
             'resource_type': r1.resource_type
         }
-        x = user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
+        x = submitted_input_or_output_class(self.regular_user_1, op1, user_workspace, 'foo', 
             str(r1.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r1.id))
 
@@ -584,30 +584,30 @@ class UserOperationInputTester(BaseAPITestCase):
         # we mock a user trying to use that operationResource with a field named 'xyz'.
         # xyz is not a valid name for any input field.
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'xyz', 
+            submitted_input_or_output_class(self.regular_user_1, op1, user_workspace, 'xyz', 
                 str(r1.id), single_resource_input_spec)
 
         # change the input field name. Note that r1 is associated with field 'foo', but
         # we mock a user trying to use that operationResource with a field named 'bar'.
         # Here, 'bar' happens to be a valid name of a different input field
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'bar', 
+            submitted_input_or_output_class(self.regular_user_1, op1, user_workspace, 'bar', 
                 str(r1.id), single_resource_input_spec)
 
         # assert that this is valid
-        x = user_operation_input_class(self.regular_user_1, op1, user_workspace, 'bar', 
+        x = submitted_input_or_output_class(self.regular_user_1, op1, user_workspace, 'bar', 
             str(r2.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r2.id))
 
         # op2 has a 'foo' input field- check that it works before trying to create a 
         # failed example
-        x = user_operation_input_class(self.regular_user_1, op2, user_workspace, 'foo', 
+        x = submitted_input_or_output_class(self.regular_user_1, op2, user_workspace, 'foo', 
             str(r3.id), single_resource_input_spec)
         self.assertEqual(x.get_value(), str(r3.id))
         # now change the user input to be the UUID of r1. This resource has the same
         # input field, but is assoc. with op1, not op2
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, op2, user_workspace, 'foo', 
+            submitted_input_or_output_class(self.regular_user_1, op2, user_workspace, 'foo', 
                 str(r1.id), single_resource_input_spec)
 
         # change the resource_type for the input spec so 
@@ -618,7 +618,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': 'XYZ'
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
+            submitted_input_or_output_class(self.regular_user_1, op1, user_workspace, 'foo', 
                 str(r1.id), single_resource_input_spec)
 
         # change the resource_type for the input spec so 
@@ -630,7 +630,7 @@ class UserOperationInputTester(BaseAPITestCase):
             'resource_type': [r1.resource_type,]
         }
         with self.assertRaises(ValidationError):
-            user_operation_input_class(self.regular_user_1, op1, user_workspace, 'foo', 
+            submitted_input_or_output_class(self.regular_user_1, op1, user_workspace, 'foo', 
                 str(r1.id), single_resource_input_spec)
 
     def test_observation_set_inputs(self):
@@ -644,7 +644,7 @@ class UserOperationInputTester(BaseAPITestCase):
         )
         d = read_operation_json(f)
 
-        clazz = user_operation_input_mapping['ObservationSet']
+        clazz = submitted_operation_input_or_output_mapping['ObservationSet']
 
         valid_obs_1 = {
             'id': 'foo',
@@ -715,7 +715,7 @@ class UserOperationInputTester(BaseAPITestCase):
         )
         d = read_operation_json(f)
 
-        clazz = user_operation_input_mapping['FeatureSet']
+        clazz = submitted_operation_input_or_output_mapping['FeatureSet']
 
         valid_feature_1 = {
             'id': 'foo',
@@ -789,7 +789,7 @@ class UserOperationInputTester(BaseAPITestCase):
         )
         d = read_operation_json(f)
 
-        clazz = user_operation_input_mapping['Observation']
+        clazz = submitted_operation_input_or_output_mapping['Observation']
 
         valid_obs_1 = {
             'id': 'foo',
@@ -830,7 +830,7 @@ class UserOperationInputTester(BaseAPITestCase):
         )
         d = read_operation_json(f)
 
-        clazz = user_operation_input_mapping['Feature']
+        clazz = submitted_operation_input_or_output_mapping['Feature']
 
         valid_feature_1 = {
             'id': 'foo',

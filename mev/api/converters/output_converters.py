@@ -1,12 +1,15 @@
 import os
 import logging
 
+from rest_framework.exceptions import ValidationError
+
 from api.utilities.resource_utilities import validate_and_store_resource, \
     delete_resource_by_pk
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.models import Resource, ResourceMetadata
 from api.exceptions import OutputConversionException
+from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -151,8 +154,6 @@ class BaseOutputConverter(object):
                         )
                     )
 
-
-
                 logger.info('Converting path at: {p} to a user-associated resource.'.format(
                     p = p
                 ))
@@ -206,7 +207,30 @@ class BaseOutputConverter(object):
             else:
                 return resource_uuids
         else:
-            return output_val
+            # if we are here, then we have something other than a file-like output.
+            attribute_typename = output_spec['attribute_type']
+            try:
+                output_class = submitted_operation_input_or_output_mapping[attribute_typename]
+            except KeyError as ex:
+                logger.error('Could not find an appropriate class for handling the output'
+                    ' for the typename of {t}'.format(
+                        t=attribute_typename
+                    )
+                )
+                raise Exception('Could not find an appropriate class for typename {t}'
+                    ' for output.'.format(
+                        t = attribute_typename
+                    )
+                )
+            logger.info('Check supplied output: {d}'.format(d=output_val))
+            try:
+                o = output_class(executed_op.owner, 
+                    executed_op.operation, 
+                    workspace, '', output_val, output_spec)
+                return o.get_value()
+            except ValidationError as ex:
+                raise OutputConversionException(str(ex))
+
             
     def create_resource(self, owner, workspace, path, name):
         logger.info('From executed operation outputs, create'

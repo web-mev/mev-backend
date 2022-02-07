@@ -12,7 +12,7 @@ from api.data_structures import create_attribute, \
     SimpleDag, \
     DagNode
 from api.utilities.resource_utilities import get_resource_by_pk
-from api.data_structures.user_operation_input import user_operation_input_mapping
+from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 from api.models import Resource, WorkspaceExecutedOperation
 
 logger = logging.getLogger(__name__)
@@ -171,8 +171,8 @@ def validate_operation_inputs(user, inputs, operation, workspace):
         # now validate that supplied input against the spec
         attribute_typename = spec['attribute_type']
         try:
-            user_operation_input_class = user_operation_input_mapping[attribute_typename]
-            logger.info(user_operation_input_class)
+            submitted_input_class = submitted_operation_input_or_output_mapping[attribute_typename]
+            logger.info(submitted_input_class)
         except KeyError as ex:
             logger.error('Could not find an appropriate class for handling the user input'
                 ' for the typename of {t}'.format(
@@ -187,7 +187,7 @@ def validate_operation_inputs(user, inputs, operation, workspace):
             )
         if supplied_input is not None:
             logger.info('Check supplied input: {d}'.format(d=supplied_input))
-            final_inputs[key] = user_operation_input_class(user, operation, workspace, key, supplied_input, spec)
+            final_inputs[key] = submitted_input_class(user, operation, workspace, key, supplied_input, spec)
         else:
             final_inputs[key] = None
     return final_inputs

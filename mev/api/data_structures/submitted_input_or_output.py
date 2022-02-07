@@ -32,21 +32,30 @@ from api.models import Resource, OperationResource
 
 logger = logging.getLogger(__name__)
 
-class UserOperationInput(object):
+class SubmittedInputOrOutput(object):
     '''
     This object functions as a base class for formatting and
-    validating user-supplied inputs for a particular Operation
+    validating user-supplied inputs for a particular Operation.
+    Also handles outputs from ExecutedOperations. The latter is generally
+    less prone to error, but we need to ensure that outputs are being
+    created as expected
 
-    For many input types base off primitives (e.g. `Integer`, `Float`,
-    `BoundedInteger`, etc.), we simply take the input spec (a child class 
-    of `InputOutputSpec`), merge it with the value that the user submitted
+    For many input/output types bases on primitives (e.g. `Integer`, `Float`,
+    `BoundedInteger`, etc.), we simply take the spec (a child class 
+    of `InputOutputSpec`), merge it with the submitted value
     and then use the base attribute class to validate it.
 
     For other input types like `DataResourceInputSpec`, we have specialized
     logic that will be implemented in the children classes. 
     '''
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+    def __init__(self, 
+        user, 
+        operation, 
+        workspace, 
+        key, 
+        submitted_value, 
+        input_or_output_spec):
         '''
         The `submitted_value` is the python representation
         of the value provided by the user. For an input corresponding
@@ -55,7 +64,7 @@ class UserOperationInput(object):
         it would be a dictionary meeting the requirements of an
         `api.data_structures.ObservationSet` object.
 
-        The `input_spec` arg is the dictionary representation
+        The `input_or_output_spec` arg is the dictionary representation
         of the specific `InputOutputSpec` class. For instance, an
         input corresponding to a p-value would be of type
         `BoundedFloatInputSpec` and look like:
@@ -67,34 +76,37 @@ class UserOperationInput(object):
             "default": 0.05
         }
         ```
+        `operation` is an instance of the database object (not the `Operation` data structure)
+        `workspace` is an instance of the database object
+        `key` is a string indicating which input or output (helpful for error messages)
+        `user` is the database instance. 
         '''
         self.user = user
         self.operation = operation
         self.workspace = workspace
         self.key = key
         self.submitted_value = copy.deepcopy(submitted_value)
-        self.input_spec = input_spec
+        self.input_or_output_spec = input_or_output_spec
         self.instance = None
 
     def get_value(self):
         if self.instance:
-            return self.instance.to_dict()
-            
+            return self.instance.to_dict()  
         else:
             logger.error('The instance attribute was not set when calling'
-                ' for the representation of a UserOperationInput as a dict.'
+                ' for the representation of a SubmittedInputOrOutput as a dict.'
             )
-            raise ValidationError('Could not represent a UserOperationInput'
+            raise ValidationError('Could not represent a SubmittedInputOrOutput'
                 ' since the instance field was not set.'
             )
 
     def __repr__(self):
         return 'Value: {val} for spec: {spec}'.format(
             val=self.submitted_value,
-            spec=self.input_spec
+            spec=self.input_or_output_spec
         )
 
-class AttributeBasedUserOperationInput(UserOperationInput):
+class AttributeBasedSubmittedInputOrOutput(SubmittedInputOrOutput):
     '''
     This class handles inputs that are "simple" can use
     the validators contained in the Attribute children
@@ -122,16 +134,16 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         BooleanAttribute.typename
     ]
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
         logger.info('Check validity of value {val}'
             ' against input specification: {spec}'.format(
                 val=submitted_value,
-                spec=input_spec
+                spec=input_or_output_spec
             )
         )
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
-        d = copy.deepcopy(self.input_spec)
+        d = copy.deepcopy(self.input_or_output_spec)
 
         # check for a default:
         try:
@@ -147,13 +159,13 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         elif (self.submitted_value is None) and default:
             self.submitted_value = default
 
-        logger.info('In here, self.submitted_value={x}'.format(x=self.submitted_value))
+        logger.info('submitted_value={x}'.format(x=self.submitted_value))
         d['value'] = self.submitted_value
 
         # the following function will raise a ValidationError
         # if the submitted value is not sensible for the specific
         # input type.
-        logger.info('d was: {d}'.format(d=d))
+        logger.info(' was: {d}'.format(d=d))
         self.instance = create_attribute(key, d)
 
     def get_value(self):
@@ -161,7 +173,7 @@ class AttributeBasedUserOperationInput(UserOperationInput):
         return d['value']
 
 
-class BaseDataResourceUserOperationInput(UserOperationInput):
+class BaseDataResourceSubmittedInputOrOutput(SubmittedInputOrOutput):
     '''
     This handles the validation of the user's input for an input
     corresponding to a `DataResource` or `VariableDataResource` instance.
@@ -170,9 +182,9 @@ class BaseDataResourceUserOperationInput(UserOperationInput):
     while child classes handle things specific to a `DataResource`, `VariableDataResource`, etc.
     '''
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
-        expect_many = self.input_spec[DataResourceAttribute.MANY_KEY]
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
+        expect_many = self.input_or_output_spec[DataResourceAttribute.MANY_KEY]
         submitted_vals = self._check_many_vs_input(expect_many)
         self._check_submitted_values(submitted_vals)
 
@@ -280,7 +292,7 @@ class BaseDataResourceUserOperationInput(UserOperationInput):
         return d['value']
 
 
-class DataResourceUserOperationInput(BaseDataResourceUserOperationInput):
+class DataResourceSubmittedInputOrOutput(BaseDataResourceSubmittedInputOrOutput):
 
     typename = DataResourceAttribute.typename
 
@@ -290,7 +302,7 @@ class DataResourceUserOperationInput(BaseDataResourceUserOperationInput):
     def _check_resource_types(self, resource):
     
         try:
-            expected_resource_type = self.input_spec[DataResourceInputSpec.RESOURCE_TYPE_KEY]
+            expected_resource_type = self.input_or_output_spec[DataResourceInputSpec.RESOURCE_TYPE_KEY]
         except KeyError as ex:
             logger.info('The input spec did not contain the required'
                 ' key: {k}'.format(k=ex)
@@ -317,7 +329,7 @@ class DataResourceUserOperationInput(BaseDataResourceUserOperationInput):
             })
 
 
-class VariableDataResourceUserOperationInput(BaseDataResourceUserOperationInput):
+class VariableDataResourceSubmittedInputOrOutput(BaseDataResourceSubmittedInputOrOutput):
 
     typename = VariableDataResourceAttribute.typename
 
@@ -326,7 +338,7 @@ class VariableDataResourceUserOperationInput(BaseDataResourceUserOperationInput)
 
     def _check_resource_types(self, resource):
         try:
-            expected_resource_types = self.input_spec[VariableDataResourceInputSpec.RESOURCE_TYPES_KEY]
+            expected_resource_types = self.input_or_output_spec[VariableDataResourceInputSpec.RESOURCE_TYPES_KEY]
         except KeyError as ex:
             logger.info('The input spec did not contain the required'
                 ' key: {k}'.format(k=ex)
@@ -357,21 +369,21 @@ class VariableDataResourceUserOperationInput(BaseDataResourceUserOperationInput)
                 )
             })
 
-class OperationDataResourceUserOperationInput(DataResourceUserOperationInput):
+class OperationDataResourceSubmittedInputOrOutput(BaseDataResourceSubmittedInputOrOutput):
     '''
     This handles the validation of the user's input for an input
     corresponding to a `OperationDataResource` instance.
     '''
     typename = OperationDataResourceAttribute.typename
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
     def _assign_instance(self, submitted_value, expect_many):
         self.instance = OperationDataResourceAttribute(submitted_value, many=expect_many)
 
     def _check_resource_types(self, resource):
-        expected_resource_type = self.input_spec[OperationDataResourceInputSpec.RESOURCE_TYPE_KEY]
+        expected_resource_type = self.input_or_output_spec[OperationDataResourceInputSpec.RESOURCE_TYPE_KEY]
 
         if not resource.resource_type == expected_resource_type:
             logger.info('The resource type {rt} is not compatible'
@@ -422,7 +434,7 @@ class OperationDataResourceUserOperationInput(DataResourceUserOperationInput):
             # will catch things like bad UUIDs and also other unexpected errors
             raise ValidationError({self.key: ex})
 
-class ElementUserOperationInput(UserOperationInput):
+class SubmittedElementInputOrOutput(SubmittedInputOrOutput):
     '''
     This handles the validation of the user's input for an input
     corresponding to a subclass of `BaseElement`, such as an
@@ -430,19 +442,19 @@ class ElementUserOperationInput(UserOperationInput):
     '''
     typename = None
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
 
-class ObservationUserOperationInput(ElementUserOperationInput):
+class SubmittedObservationInputOrOutput(SubmittedElementInputOrOutput):
     '''
-    This handles the validation of the user's input for an input
+    This handles the validation of input/ouput for an input/output
     corresponding to a `Observation`.
     '''
     typename = 'Observation'
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
         # verify that the Observation is valid by using the serializer
         obs_s = ObservationSerializer(data=self.submitted_value)
@@ -455,15 +467,15 @@ class ObservationUserOperationInput(ElementUserOperationInput):
         self.instance = obs_s.get_instance()
 
 
-class FeatureUserOperationInput(ElementUserOperationInput):
+class SubmittedFeatureInputOrOutput(SubmittedElementInputOrOutput):
     '''
-    This handles the validation of the user's input for an input
+    This handles the validation of input/output for an input/output
     corresponding to a `Feature`.
     '''
     typename = 'Feature'
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
         # verify that the Feature is valid by using the serializer
         fs = FeatureSerializer(data=self.submitted_value)
@@ -475,27 +487,27 @@ class FeatureUserOperationInput(ElementUserOperationInput):
         # set the instance:
         self.instance = fs.get_instance()
 
-class ElementSetUserOperationInput(UserOperationInput):
+class SubmittedElementSetInputOrOutput(SubmittedInputOrOutput):
     '''
-    This handles the validation of the user's input for an input
+    This handles the validation of input/ouput for an input/output
     corresponding to a subclass of `BaseElementSet`, such as an
     `ObservationSet`.
     '''
     typename = None
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
 
-class ObservationSetUserOperationInput(ElementSetUserOperationInput):
+class SubmittedObservationSetInputOrOutput(SubmittedElementSetInputOrOutput):
     '''
-    This handles the validation of the user's input for an input
+    This handles the validation of input/output for an input/output
     corresponding to a `ObservationSet`.
     '''
     typename = 'ObservationSet'
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
         # verify that the ObservationSet is valid by using the serializer
         obs_s = ObservationSetSerializer(data=self.submitted_value)
@@ -507,15 +519,16 @@ class ObservationSetUserOperationInput(ElementSetUserOperationInput):
         # set the instance:
         self.instance = obs_s.get_instance()
 
-class FeatureSetUserOperationInput(ElementSetUserOperationInput):
+
+class SubmittedFeatureSetInputOrOutput(SubmittedElementSetInputOrOutput):
     '''
-    This handles the validation of the user's input for an input
+    This handles the validation of input/output for an input/output
     corresponding to a `FeatureSet`.
     '''
     typename = 'FeatureSet'
 
-    def __init__(self, user, operation, workspace, key, submitted_value, input_spec):
-        super().__init__(user, operation, workspace, key, submitted_value, input_spec)
+    def __init__(self, user, operation, workspace, key, submitted_value, input_or_output_spec):
+        super().__init__(user, operation, workspace, key, submitted_value, input_or_output_spec)
 
         # verify that the FeatureSet is valid by using the serializer
         fs = FeatureSetSerializer(data=self.submitted_value)
@@ -528,25 +541,25 @@ class FeatureSetUserOperationInput(ElementSetUserOperationInput):
 
 
 # now map the typenames to the class that will be used.
-# Recall that the input spec will have an 'attribute_type'
+# Recall that the input/output spec will have an 'attribute_type'
 # field that will give us the typename for each input. Then, the dict
 # below takes that typename and returns a type.
-user_operation_input_mapping = {}
-for t in AttributeBasedUserOperationInput.typenames:
-    user_operation_input_mapping[t] = AttributeBasedUserOperationInput
+submitted_operation_input_or_output_mapping = {}
+for t in AttributeBasedSubmittedInputOrOutput.typenames:
+    submitted_operation_input_or_output_mapping[t] = AttributeBasedSubmittedInputOrOutput
 
 # add the other types
-user_operation_input_mapping[
-    DataResourceUserOperationInput.typename] = DataResourceUserOperationInput
-user_operation_input_mapping[
-    VariableDataResourceUserOperationInput.typename] = VariableDataResourceUserOperationInput
-user_operation_input_mapping[
-    OperationDataResourceUserOperationInput.typename] = OperationDataResourceUserOperationInput 
-user_operation_input_mapping[
-    ObservationUserOperationInput.typename] = ObservationUserOperationInput
-user_operation_input_mapping[
-    FeatureUserOperationInput.typename] = FeatureUserOperationInput
-user_operation_input_mapping[
-    ObservationSetUserOperationInput.typename] = ObservationSetUserOperationInput
-user_operation_input_mapping[
-    FeatureSetUserOperationInput.typename] = FeatureSetUserOperationInput
+submitted_operation_input_or_output_mapping[
+    DataResourceSubmittedInputOrOutput.typename] = DataResourceSubmittedInputOrOutput
+submitted_operation_input_or_output_mapping[
+    VariableDataResourceSubmittedInputOrOutput.typename] = VariableDataResourceSubmittedInputOrOutput
+submitted_operation_input_or_output_mapping[
+    OperationDataResourceSubmittedInputOrOutput.typename] = OperationDataResourceSubmittedInputOrOutput 
+submitted_operation_input_or_output_mapping[
+    SubmittedObservationInputOrOutput.typename] = SubmittedObservationInputOrOutput
+submitted_operation_input_or_output_mapping[
+    SubmittedFeatureInputOrOutput.typename] = SubmittedFeatureInputOrOutput
+submitted_operation_input_or_output_mapping[
+    SubmittedObservationSetInputOrOutput.typename] = SubmittedObservationSetInputOrOutput
+submitted_operation_input_or_output_mapping[
+    SubmittedFeatureSetInputOrOutput.typename] = SubmittedFeatureSetInputOrOutput
