@@ -356,7 +356,7 @@ class ResourceDetailTests(BaseAPITestCase):
         using that resource.
         """
         response = self.authenticated_admin_client.delete(self.url_for_workspace_resource)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         mock_delete_file.delay.assert_not_called()
         Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 
@@ -381,7 +381,7 @@ class ResourceDetailTests(BaseAPITestCase):
         """
         mock_check_for_resource_operations.return_value = False
         response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         mock_delete_file.delay.assert_not_called()
         # check that the resource still exists
         Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
