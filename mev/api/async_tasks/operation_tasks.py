@@ -1,7 +1,8 @@
 import logging
 
 from django.contrib.auth import get_user_model
-from celery.decorators import task
+#from celery.decorators import task
+from celery import shared_task
 
 from api.models import Operation, \
     ExecutedOperation, \
@@ -13,7 +14,7 @@ from api.utilities.operations import get_operation_instance_data
 
 logger = logging.getLogger(__name__)
 
-@task(name='ingest_new_operation')
+@shared_task(name='ingest_new_operation')
 def ingest_new_operation(operation_uuid_str, repository_url):
     '''
     This function kicks off the ingestion process for a new Operation
@@ -33,7 +34,7 @@ def ingest_new_operation(operation_uuid_str, repository_url):
         operation.successful_ingestion = False
         operation.save()
 
-@task(name='submit_async_job')
+@shared_task(name='submit_async_job')
 def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, validated_inputs):
     '''
 
@@ -96,7 +97,7 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
         )
     submit_job(executed_op, op_data, validated_inputs)
 
-@task(name='finalize_executed_op')
+@shared_task(name='finalize_executed_op')
 def finalize_executed_op(exec_op_uuid):
     '''
     Performs some final operations following an analysis. Typically
