@@ -100,14 +100,30 @@ class LocalDockerRunner(OperationRunner):
         executed_op.execution_stop_datetime = finish_datetime
 
         if exit_code != 0:
-            logger.info('Received a non-zero exit code from container'
-                ' executing job: {op_id}'.format(op_id = executed_op.job_id))
+            logger.info('Received a non-zero exit code ({n}) from container'
+                ' executing job: {op_id}'.format(
+                    op_id = executed_op.job_id,
+                    n = exit_code
+                )
+            )
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
+
             # collect the errors that are  reported in the logs
             log_msg = get_logs(job_id)
-            executed_op.error_messages = [log_msg,]
-            alert_admins(log_msg)
+            message_list = [log_msg,]
+
+            # handle the out of memory error-- we can't do it all!
+            if exit_code == 137:
+                logger.info('Executed job {op_id} exhausted the available'
+                    ' memory.'.format(op_id = executed_op.job_id)
+                )
+                message_list.append('The process ran out of memory and exited.'
+                ' Sometimes the job parameters can result in analyses exceeding'
+                ' the processing capabilities of WebMeV.')
+                
+            executed_op.error_messages = message_list
+            alert_admins(','.join(log_msg))
             
         else:
             logger.info('Container exit code was zero. Fetch outputs.')

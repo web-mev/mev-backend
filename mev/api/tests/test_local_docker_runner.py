@@ -97,6 +97,40 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
     @mock.patch('api.runners.local_docker.get_logs')
+    @mock.patch('api.runners.local_docker.alert_admins')
+    def test_handles_job_out_of_memory_error(self, \
+        mock_alert_admins, \
+        mock_get_logs, \
+        mock_remove_container, \
+        mock_get_finish_datetime, \
+        mock_check_container_exit_code):
+        '''
+        If a Docker-based job exits due to an out-of-memory issue, Docker
+        issues a 137 exit code
+        '''
+        runner = LocalDockerRunner()
+        mock_executed_op = mock.MagicMock()
+        u = str(uuid.uuid4())
+        mock_executed_op.job_id = u
+
+        mock_get_finish_datetime.return_value = datetime.datetime.now()
+        mock_check_container_exit_code.return_value = 137
+        mock_get_logs.return_value = 'foo'
+
+        runner.finalize(mock_executed_op)
+        mock_executed_op.save.assert_called()
+        mock_remove_container.assert_called()
+        self.assertTrue(mock_executed_op.job_failed)
+        mock_messages = mock_executed_op.error_messages
+        self.assertTrue(mock_messages[0] == 'foo')
+        self.assertTrue('out of memory' in mock_messages[1])
+        mock_alert_admins.assert_called()
+
+
+    @mock.patch('api.runners.local_docker.check_container_exit_code')
+    @mock.patch('api.runners.local_docker.get_finish_datetime')
+    @mock.patch('api.runners.local_docker.remove_container')
+    @mock.patch('api.runners.local_docker.get_logs')
     def test_handles_job_failure_case2(self, mock_get_logs, \
         mock_remove_container, \
         mock_get_finish_datetime, \

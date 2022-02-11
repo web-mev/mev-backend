@@ -21,12 +21,8 @@ def alert_admins(msg):
     A function to be called when an error occurs that is not necessarily
     "fatal", but needs to be quickly handled or investigated
     '''
-
     # log to sentry
     capture_message(msg)
-
-    # email
-
 
 def is_fatal_code(e):
     if e.response:
