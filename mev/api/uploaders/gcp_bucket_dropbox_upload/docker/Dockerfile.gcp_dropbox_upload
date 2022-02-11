@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 RUN apt-get update \
     && apt-get install -y \
@@ -7,7 +7,9 @@ RUN apt-get update \
     python-dev \
     python3-dev \
     python3-pip \
-    wget
+    wget \
+    pkg-config \
+    libcairo2-dev
 
 RUN mkdir /opt/software
 ADD requirements.txt /opt/software/
