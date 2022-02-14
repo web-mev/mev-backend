@@ -39,15 +39,13 @@ def retrieve_commit_hash(git_dir):
     Retrieves the git commit ID given a directory
     '''
     logger.info('Retrieve commit ID.')
-    cmd = 'git --git-dir {git_dir}/.git show -s --format=%H'.format(
-        git_dir=git_dir
-    )
+    cmd = 'git show -s --format=%H'
     logger.info('Retrieve git commit with: {cmd}'.format(
         cmd=cmd
     ))
     cmd = cmd.split(' ')
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, cwd=git_dir)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with querying the'
@@ -69,7 +67,7 @@ def checkout_branch(git_dir, commit_id):
     Changes given a given git directory to the desired commit
     '''
     logger.info('Attempt to checkout commit {commit_id}'.format(commit_id=commit_id))
-    cmd = 'git --git-dir {git_dir}/.git checkout {commit_id}'.format(
+    cmd = 'git checkout {commit_id}'.format(
         git_dir=git_dir,
         commit_id = commit_id
     )
@@ -78,7 +76,7 @@ def checkout_branch(git_dir, commit_id):
     ))
     cmd = cmd.split(' ')
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, cwd=git_dir)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with checking out'
@@ -100,7 +98,7 @@ def retrieve_repo_name(git_dir):
     Retrieves the git repository name given a directory
     '''
     logger.info('Retrieve git repo name')
-    cmd = 'git --git-dir {git_dir}/.git remote get-url origin'.format(
+    cmd = 'git remote get-url origin'.format(
         git_dir=git_dir
     )
     logger.info('Retrieve git repo name with: {cmd}'.format(
@@ -108,7 +106,7 @@ def retrieve_repo_name(git_dir):
     ))
     cmd = cmd.split(' ')
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, cwd=git_dir)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with querying the'
