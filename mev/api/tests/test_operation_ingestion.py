@@ -571,6 +571,23 @@ class OperationIngestionTester(BaseAPITestCase):
         n = retrieve_repo_name('/some/dir/.git')
         self.assertEqual(n, 'some-repo')
 
+    @mock.patch('api.utilities.ingest_operation.sp')
+    def test_repo_name_case2(self, mock_subprocess):
+        '''
+        Tests that we parse the name of the git repository correctly if the url did not have
+        the .git suffix. Note that git clone can work with both. Failure to end with '.git' was
+        leading to truncated repository names (and hence docker images)
+        '''
+        mock_process = mock.MagicMock()
+        mock_process.returncode = 0
+        # Note that the url below does NOT have the '.git' suffix.
+        mock_process.communicate.return_value = (b'https://github.com:web-mev/some-repo\n', b'')
+        mock_subprocess.Popen.return_value = mock_process
+
+        # since we mock out the subprocess, the arg below doesn't actually matter.
+        n = retrieve_repo_name('')
+        self.assertEqual(n, 'some-repo')
+
     @mock.patch('api.utilities.ingest_operation.prepare_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
     @mock.patch('api.utilities.ingest_operation.check_required_files')

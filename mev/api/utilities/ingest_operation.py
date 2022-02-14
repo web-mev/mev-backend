@@ -122,8 +122,11 @@ def retrieve_repo_name(git_dir):
     else:
         git_str = stdout.strip().decode('utf-8')
         logger.info('Repo was found to be: {x}'.format(x=git_str))
-        name = git_str.split('/')[-1][:-4]
-        return name
+        final_piece = git_str.split('/')[-1]
+        if final_piece.endswith('.git'):
+            return final_piece[:-4]
+        else:
+            return final_piece
 
 def clone_repository(url):
     '''
