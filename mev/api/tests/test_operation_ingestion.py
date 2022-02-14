@@ -52,6 +52,45 @@ class OperationIngestionTester(BaseAPITestCase):
         self.assertTrue(d['abc'] == 1)
         self.assertTrue(d['xyz'] == 'foo')
 
+
+    @mock.patch('api.utilities.ingest_operation.clone_repository')
+    @mock.patch('api.utilities.ingest_operation.requests')
+    def test_bad_repository_url(self, mock_requests, mock_clone_repository):
+        '''
+        Tests where a bad url is provided for the github repo.
+        This can either be a url that does not exist OR one that
+        does not show up since it's private (we don't allow cloning
+        of private repos)
+        '''
+        mock_response = mock.MagicMock()
+        mock_response.status_code == 404
+        mock_requests.get.return_value = mock_response
+        repo_url = 'http://github.com/some-repo/'
+
+        n0 = len(OperationDbModel.objects.all())
+
+        op_uuid = uuid.uuid4()
+        o = OperationDbModel.objects.create(id=str(op_uuid))
+        n1 = len(OperationDbModel.objects.all())
+        n2 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n1-n0,1)
+
+        with self.assertRaisesRegex(Exception, 'not find'):
+            perform_operation_ingestion(
+                repo_url, 
+                str(op_uuid),
+                None # this means no specific commit was requested
+            )
+
+        mock_clone_repository.assert_not_called()
+        
+        n3 = len(OperationDbModel.objects.filter(active=True))
+        self.assertEqual(n3-n2,0)
+
+        op = OperationDbModel.objects.get(id=str(op_uuid))
+        self.assertFalse(op.successful_ingestion)
+
+
     @mock.patch('api.utilities.ingest_operation.prepare_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
     @mock.patch('api.utilities.ingest_operation.check_required_files')
@@ -59,11 +98,13 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     def test_operation_validates(self, 
         mock_shutil,
         mock_read_operation_json, 
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -118,11 +159,13 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     def test_operation_validates_case2(self, 
         mock_shutil,
         mock_read_operation_json, 
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -164,6 +207,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_save_operation.assert_called()
         mock_shutil.rmtree.assert_called_with(mock_dir)
         mock_checkout_branch.assert_called_with(mock_dir, mock_commit_id)
+        mock_check_for_repo.assert_called_with(repo_url)
 
         n3 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n3-n2,1)
@@ -178,11 +222,13 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     def test_workspace_operation_validates(self, 
         mock_shutil,
         mock_read_operation_json,
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -228,6 +274,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_save_operation.assert_called()
         mock_shutil.rmtree.assert_called_with(mock_dir)
         mock_checkout_branch.assert_not_called()
+        mock_check_for_repo.assert_called_with(repo_url)
 
         n3 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n3-n2,1)
@@ -242,11 +289,13 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     def test_workspace_operation_validates_case2(self, 
         mock_shutil,
         mock_read_operation_json,
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -292,6 +341,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_save_operation.assert_called()
         mock_shutil.rmtree.assert_called_with(mock_dir)
         mock_checkout_branch.assert_called_with(mock_dir, mock_commit_id)
+        mock_check_for_repo.assert_called_with(repo_url)
 
         n3 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n3-n2,1)
@@ -306,11 +356,13 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     def test_operation_rejected_for_validation(self, 
         mock_shutil,
         mock_read_operation_json, 
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -352,6 +404,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_save_operation.assert_not_called()
         mock_shutil.rmtree.assert_called_with(mock_dir)
         mock_checkout_branch.assert_not_called()
+        mock_check_for_repo.assert_called_with(repo_url)
 
         n3 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n3-n2,0)
@@ -363,11 +416,13 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     def test_operation_rejected_for_bad_formatting(self, 
         mock_shutil,
         mock_read_operation_json, 
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -417,6 +472,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_shutil.rmtree.assert_called_with(mock_dir)
         # no specific commit was passed (None), so this function is not called
         mock_checkout_branch.assert_not_called()
+        mock_check_for_repo.assert_called_with(repo_url)
 
         n3 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n3-n2,0)
@@ -521,6 +577,7 @@ class OperationIngestionTester(BaseAPITestCase):
     @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.checkout_branch')
+    @mock.patch('api.utilities.ingest_operation.check_for_repo')
     @mock.patch('api.utilities.ingest_operation.read_operation_json')
     @mock.patch('api.utilities.ingest_operation.shutil')
     @mock.patch('api.utilities.ingest_operation.settings')
@@ -528,6 +585,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_settings,
         mock_shutil,
         mock_read_operation_json, 
+        mock_check_for_repo,
         mock_checkout_branch,
         mock_clone_repository,
         mock_retrieve_commit_hash,
@@ -580,6 +638,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_retrieve_commit_hash.assert_called_with(mock_dir)
         mock_shutil.rmtree.assert_called_with(mock_dir)
         mock_checkout_branch.assert_not_called()
+        mock_check_for_repo.assert_called_with(repo_url)
 
         # check that we did NOT add another operation
         n3 = len(OperationDbModel.objects.filter(active=True))

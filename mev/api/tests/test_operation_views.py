@@ -31,8 +31,10 @@ TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
 @mock.patch('api.utilities.ingest_operation.check_required_files')
 @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
+@mock.patch('api.utilities.ingest_operation.check_for_repo')
 @mock.patch('api.utilities.ingest_operation.clone_repository')
 def setup_db_elements(self, op_file, op_dirname, mock_clone_repository, \
+    mock_check_for_repo,
     mock_retrieve_commit_hash, \
     mock_check_required_files,
     mock_retrieve_repo_name,

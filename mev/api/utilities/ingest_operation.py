@@ -4,6 +4,7 @@ import uuid
 import logging
 import subprocess as sp
 import shutil
+import requests
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
@@ -302,10 +303,32 @@ def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     runner = runner_class()
     runner.prepare_operation(staging_dir, repo_name, git_hash)
 
+
+def check_for_repo(repository_url):
+    '''
+    This function checks that we can reach a particular repository.
+
+    If a bad url is given, the GET request will return 404. This is different
+    than the behavior with a `git clone` where a bad repo url will first
+    attempt to log you in via the terminal (which requires interactivity or
+    storing github keys). Recall that we will only work with public repos
+    anyway.
+    '''
+    r = requests.get(repository_url)
+    if r.status_code == 200:
+        return
+    else:
+        raise Exception('Could not find the repository'
+            ' at {r} or it was not public'.format(r=repository_url))
+
 def perform_operation_ingestion(repository_url, op_uuid, commit_id):
     '''
     This function is the main entrypoint for the ingestion of a new `Operation`
     '''
+
+    # Check that we can find this
+    check_for_repo(repository_url)
+
     # pull from the repository:
     staging_dir = clone_repository(repository_url)
 
