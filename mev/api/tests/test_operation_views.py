@@ -55,7 +55,8 @@ def setup_db_elements(self, op_file, op_dirname, mock_clone_repository, \
     op = OperationDbModel.objects.create(id=str(op_uuid))
     perform_operation_ingestion(
         'http://github.com/some-dummy-repo/', 
-        str(op_uuid)
+        str(op_uuid),
+        None
     )
     return op
 
@@ -729,14 +730,36 @@ class OperationAddTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.operation_views.async_ingest_new_operation')
-    def test_ingest_method_called(self, mock_ingest):
+    @mock.patch('api.views.operation_views.uuid')
+    def test_ingest_method_called(self, mock_uuid, mock_ingest):
         '''
         Test that a proper request will call the ingestion function.
+        Here, no specific git commit is requested, so the async ingestion
+        method is called with 'None'
         '''
-        payload={'repository_url':'https://github.com/foo/'}
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+        mock_git_url = 'https://github.com/foo/'
+        payload={'repository_url': mock_git_url}
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_ingest.delay.assert_called()
+        mock_ingest.delay.assert_called_once_with(str(u), mock_git_url, None)
+
+    @mock.patch('api.views.operation_views.async_ingest_new_operation')
+    @mock.patch('api.views.operation_views.uuid')
+    def test_ingest_method_called_case2(self, mock_uuid, mock_ingest):
+        '''
+        Test that a proper request will call the ingestion function. Here,
+        we request a specific git commit
+        '''
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+        mock_commit_id = 'abcd1234'
+        mock_git_url = 'https://github.com/foo/'
+        payload={'repository_url': mock_git_url, 'commit_id': mock_commit_id}
+        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_ingest.delay.assert_called_once_with(str(u), mock_git_url, mock_commit_id)
 
     @mock.patch('api.views.operation_views.async_ingest_new_operation')
     def test_invalid_domain(self, mock_ingest):
@@ -752,7 +775,7 @@ class OperationAddTests(BaseAPITestCase):
     @mock.patch('api.views.operation_views.async_ingest_new_operation')
     def test_bad_payload(self, mock_ingest):
         '''
-        The payload has the wrong key.
+        The payload has the wrong key. Should be "repository_url"
         '''
         payload={'url':'https://github.com/foo/'}
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')

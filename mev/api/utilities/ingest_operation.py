@@ -63,6 +63,38 @@ def retrieve_commit_hash(git_dir):
         commit_hash = stdout.strip().decode('utf-8')
         return commit_hash
 
+
+def checkout_branch(git_dir, commit_id):
+    '''
+    Changes given a given git directory to the desired commit
+    '''
+    logger.info('Attempt to checkout commit {commit_id}'.format(commit_id=commit_id))
+    cmd = 'git --git-dir {git_dir}/.git checkout {commit_id}'.format(
+        git_dir=git_dir,
+        commit_id = commit_id
+    )
+    logger.info('Checkout commit with: {cmd}'.format(
+        cmd=cmd
+    ))
+    cmd = cmd.split(' ')
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+        logger.error('Problem with checking out'
+            ' commit {commit_id} from the git repo at {git_dir}.\n'
+            'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                commit_id=commit_id,
+                git_dir=git_dir,
+                stderr=stderr,
+                stdout=stdout
+            )
+        )
+        raise Exception('Failed when attemping to checkout a particular commit. See logs.')
+    else:
+        commit_hash = stdout.strip().decode('utf-8')
+        return commit_hash
+
 def retrieve_repo_name(git_dir):
     '''
     Retrieves the git repository name given a directory
@@ -90,6 +122,7 @@ def retrieve_repo_name(git_dir):
         raise Exception('Failed when querying the git commit ID. See logs.')
     else:
         git_str = stdout.strip().decode('utf-8')
+        logger.info('Repo was found to be: {x}'.format(x=git_str))
         name = git_str.split('/')[-1][:-4]
         return name
 
@@ -271,13 +304,20 @@ def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     runner = runner_class()
     runner.prepare_operation(staging_dir, repo_name, git_hash)
 
-def perform_operation_ingestion(repository_url, op_uuid):
+def perform_operation_ingestion(repository_url, op_uuid, commit_id):
     '''
     This function is the main entrypoint for the ingestion of a new `Operation`
     '''
     # pull from the repository:
     staging_dir = clone_repository(repository_url)
-    git_hash = retrieve_commit_hash(staging_dir)
+
+    if commit_id:
+        # if provided with a commit ID, check that out
+        checkout_branch(staging_dir, commit_id)
+        git_hash = commit_id
+    else:
+        git_hash = retrieve_commit_hash(staging_dir)
+        
     repo_name = retrieve_repo_name(staging_dir)
     try:
         ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)

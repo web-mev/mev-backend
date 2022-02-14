@@ -15,9 +15,13 @@ from api.utilities.operations import get_operation_instance_data
 logger = logging.getLogger(__name__)
 
 @shared_task(name='ingest_new_operation')
-def ingest_new_operation(operation_uuid_str, repository_url):
+def ingest_new_operation(operation_uuid_str, repository_url, commit_id):
     '''
     This function kicks off the ingestion process for a new Operation
+
+    `repository_url` is the url to the git repo
+    `commit_id` is the commit we want to ingest. Can be None, in which case we 
+    will default to the main branch
     '''
     try:
         operation = Operation.objects.get(id=operation_uuid_str)
@@ -29,7 +33,7 @@ def ingest_new_operation(operation_uuid_str, repository_url):
             ' database instance after ingesting from repository.'
         )     
     try:
-        perform_operation_ingestion(repository_url, operation_uuid_str)
+        perform_operation_ingestion(repository_url, operation_uuid_str, commit_id)
     except Exception:
         operation.successful_ingestion = False
         operation.save()
