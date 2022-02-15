@@ -404,6 +404,15 @@ class UserOperationInputTester(BaseAPITestCase):
         self.assertEqual(val['multiple'], valid_obs_set['multiple'])
         self.assertCountEqual(val['elements'], valid_obs_set['elements'])
 
+        # an empty element set is technically valid
+        empty_obs_set = {
+            'multiple': True,
+            'elements': []
+        }
+        x=clazz(self.regular_user_1, None, None, 'xyz', empty_obs_set, d['inputs']['obs_set_type'])
+        val = x.get_value()
+        self.assertCountEqual(val['elements'], [])
+
         invalid_obs_set = {
             'multiple': False,
             'elements': [
@@ -471,6 +480,15 @@ class UserOperationInputTester(BaseAPITestCase):
         self.assertEqual(val['multiple'], valid_feature_set['multiple'])
         self.assertCountEqual(val['elements'], valid_feature_set['elements'])
 
+        # this featureset has zero elements. It's technically valid
+        empty_feature_set = {
+            'multiple': True,
+            'elements': []
+        }
+        x = clazz(self.regular_user_1, None, None, 'xyz', empty_feature_set, d['inputs']['feature_set_type'])
+        val = x.get_value()
+        self.assertCountEqual(val['elements'], [])
+
         invalid_feature_set = {
             'multiple': False,
             'elements': [
@@ -494,7 +512,7 @@ class UserOperationInputTester(BaseAPITestCase):
         # This is because our methods add the empty 'attributes' key.
         # Therefore, a strict comparison of valid_feature_set2 would not be possible
         # as we designed THAT dict to be missing the 'attributes' key.
-        val = x.get_value()
+        val = x.get_value()      
         self.assertEqual(val['multiple'], valid_feature_set['multiple'])
         self.assertCountEqual(val['elements'], valid_feature_set['elements'])
 
