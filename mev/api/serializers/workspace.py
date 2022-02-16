@@ -9,7 +9,6 @@ class WorkspaceSerializer(serializers.ModelSerializer):
     owner_email = serializers.EmailField(source='owner.email', required=False)
     created = serializers.DateTimeField(
         source='creation_datetime', 
-        format = '%B %d, %Y (%H:%M:%S)',
         read_only=True
     )
     class Meta:

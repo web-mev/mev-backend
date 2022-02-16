@@ -18,7 +18,6 @@ class ResourceSerializer(serializers.ModelSerializer):
     # add a human-readable datetime
     created = serializers.DateTimeField(
         source='creation_datetime', 
-        format = '%B %d, %Y (%H:%M:%S)',
         read_only=True
     )
     owner_email = serializers.EmailField(source='owner.email', required=False, allow_null=True)
