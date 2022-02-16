@@ -509,13 +509,9 @@ class OperationRun(APIView):
             # it will simply be the UUID of the job
             try:
                 job_name = payload[self.JOB_NAME]
-                # ensure they are giving us something reasonable. This function also removes
-                # things like spaces that can cause problems downstream.
-                try:
-                    job_name = normalize_identifier(job_name)
-                except StringIdentifierException as ex:
-                    raise ValidationError({'job_name': ex})
-                if job_name is None:
+                job_name = job_name.strip() 
+
+                if (job_name is None) or (len(job_name) == 0):
                     job_name = str(executed_op_uuid)
             except KeyError as ex:
                 job_name = str(executed_op_uuid)
