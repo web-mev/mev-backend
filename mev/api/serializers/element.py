@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from api.utilities import normalize_identifier
 from api.data_structures import create_attribute
 from .attributes import AttributeSerializer, NullableAttributeSerializer
 

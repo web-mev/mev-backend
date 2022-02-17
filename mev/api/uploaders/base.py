@@ -116,12 +116,16 @@ class LocalUpload(BaseUpload):
     '''
 
     @staticmethod
-    def create_local_path(filename):
+    def create_local_path(extension):
 
-        tmp_name = '{uuid}.{filename}'.format(
-            uuid = str(uuid.uuid4()),
-            filename = filename
-        )
+        if extension is not None:
+            tmp_name = '{uuid}.{extension}'.format(
+                uuid = str(uuid.uuid4()),
+                extension = extension
+            )
+        else: 
+            tmp_name = str(uuid.uuid4())
+            
         tmp_path = os.path.join(
             settings.PENDING_FILES_DIR, 
             tmp_name

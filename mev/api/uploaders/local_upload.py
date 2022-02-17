@@ -18,12 +18,28 @@ class ServerLocalUpload(LocalUpload):
         # get the remainder of the payload parameters
         upload = request.data['upload_file']
 
-        # grab the file name from the upload request and normalize it
-        try:
-            self.filename = normalize_filename(upload.name)
-        except StringIdentifierException as ex:
-            raise ValidationError(ex)
-        tmp_path = LocalUpload.create_local_path(self.filename)
+        # preserve the user-supplied file name (e.g. the basename)
+        self.filename = upload.name
+        logger.info('Upload filename: {f}'.format(f=self.filename))
+
+        # grab the suffix from the file name. This extension will be appeneded
+        # to the UUID-based filepath below. Using our own "simple" paths (e.g.
+        # alpha-numeric paths can help to avoid issues with third-party packages, etc.
+        # failing to work with paths containing unicode chars)
+        name_split = upload.name.split('.')
+
+        if len(name_split) > 1: 
+            extension = name_split[-1]
+            logger.info('Filename could be split. The inferred'
+                ' extension is {x}'.format(x=extension))
+        else:
+            logger.info('No file extension found.')
+            extension = None
+
+        tmp_path = LocalUpload.create_local_path(extension)
+        logger.info('Temporary file upload will be placed at {t}'.format(
+            t = tmp_path
+        ))
 
         self.size = upload.size
 
