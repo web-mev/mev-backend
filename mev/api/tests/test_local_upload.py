@@ -381,10 +381,14 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertIsNone(r.owner)
 
     @mock.patch('api.serializers.resource.api_tasks')
-    def test_uploaded_filename_with_space(self, mock_api_tasks):
+    @mock.patch('api.uploaders.local_upload.uuid')
+    def test_uploaded_filename_with_space(self, mock_uuid, mock_api_tasks):
         '''
         Test that files with spaces retain the name but the path is set to be UUID-based. 
         '''
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+
         orig_name = 'test name with spaces.tsv'
         payload = {
             'owner_email': self.regular_user_1.email,
@@ -399,13 +403,20 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # is more involved)
         basename = os.path.basename(r.path)
         name_without_extension = basename.split('.')[0]
-        uuid.UUID(name_without_extension)
+        self.assertEqual(str(u), name_without_extension)
+        self.assertEqual(u, r.pk)
+
 
     @mock.patch('api.serializers.resource.api_tasks')
-    def test_uploaded_filename_with_no_extension(self, mock_api_tasks):
+    @mock.patch('api.uploaders.local_upload.uuid')
+    def test_uploaded_filename_with_no_extension(self, mock_uuid, mock_api_tasks):
         '''
         Test that files without extensions are named appropriately. 
         '''
+
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+
         orig_name = 'file_without_extension'
         payload = {
             'owner_email': self.regular_user_1.email,
@@ -419,17 +430,23 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # so we can't compare the full basename (unless we mocked that, which
         # is more involved)
         basename = os.path.basename(r.path)
-        uuid.UUID(basename)
+        self.assertEqual(str(u), basename)
+        self.assertEqual(u, r.pk)
+
 
 
     @mock.patch('api.serializers.resource.api_tasks')
-    def test_uploaded_filename_with_dots(self, mock_api_tasks):
+    @mock.patch('api.uploaders.local_upload.uuid')
+    def test_uploaded_filename_with_dots(self, mock_uuid, mock_api_tasks):
         '''
         Test a filename with a strange arrangement. This shouldn't violate
         anything, but WILL lead to a file extension we don't necessarily recognize.
         However, there's really nothing else to do. After all, a file name like
         abc.123.tsv is perfectly valid and we want to retain the TSV suffix.
         '''
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+
         # no way around this- if someone names it like this, then the "extension"
         # will be 'name'
         orig_name = 'some.file.name'
@@ -444,18 +461,23 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # the full 'temporary filename is {uuid}. The uuid is random,
         # so we can't compare the full basename (unless we mocked that, which
         # is more involved)
+        self.assertEqual(u, r.pk)
         basename = os.path.basename(r.path)
         split_name = basename.split('.')
-        uuid.UUID(split_name[0])
+        self.assertEqual(str(u), split_name[0])
         self.assertEqual(split_name[1], 'name')
 
 
     @mock.patch('api.serializers.resource.api_tasks')
-    def test_uploaded_file_with_odd_name_is_handled(self, mock_api_tasks):
+    @mock.patch('api.uploaders.local_upload.uuid')
+    def test_uploaded_file_with_atypical_and_non_ascii_name_is_handled(self, mock_uuid, mock_api_tasks):
         '''
         Test that we properly handle a file name that has different characters.
         Recall that the filename is just a string
         '''
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+
         filename = '?5x.tsv'
         payload = {
             'owner_email': self.regular_user_1.email,
@@ -466,11 +488,14 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         resource_path = r.path
         # check that the path is all UUIDs:
+        self.assertEqual(u, r.pk)
         basename = os.path.basename(resource_path)
         name_without_extension = basename.split('.')[0]
-        uuid.UUID(name_without_extension)
+        self.assertEqual(str(u), name_without_extension)
 
         # try a name with a unicode char:
+        u2 = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u2
         char = 'ゑ'
         filename = char + '.tsv'
         payload = {
@@ -480,12 +505,13 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
 
+        self.assertEqual(u2, r.pk)
         resource_path = r.path
         # check that the path is all UUIDs:
         basename = os.path.basename(resource_path)
         name_without_extension = basename.split('.')[0]
         # this would raise an exception if it's not a UUID
-        uuid.UUID(name_without_extension)
+        self.assertEqual(str(u2), name_without_extension)
         # double-check that the path does NOT contain that special char:
         self.assertFalse(char in resource_path)
         self.assertEqual(filename, r.name)

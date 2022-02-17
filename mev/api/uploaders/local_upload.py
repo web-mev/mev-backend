@@ -1,4 +1,6 @@
-import logging
+import uuid
+import logging 
+
 from rest_framework.exceptions import APIException, ValidationError
 from .base import LocalUpload
 from api.utilities import normalize_filename
@@ -22,6 +24,11 @@ class ServerLocalUpload(LocalUpload):
         self.filename = upload.name
         logger.info('Upload filename: {f}'.format(f=self.filename))
 
+        # generate a resource UUID which we can use to name the file. This
+        # UUID will also be used as the primary key in the db.
+        self.upload_resource_uuid = uuid.uuid4()
+        logger.info('Upload resource UUID={x}'.format(x=str(self.upload_resource_uuid)))
+
         # grab the suffix from the file name. This extension will be appeneded
         # to the UUID-based filepath below. Using our own "simple" paths (e.g.
         # alpha-numeric paths can help to avoid issues with third-party packages, etc.
@@ -36,7 +43,7 @@ class ServerLocalUpload(LocalUpload):
             logger.info('No file extension found.')
             extension = None
 
-        tmp_path = LocalUpload.create_local_path(extension)
+        tmp_path = LocalUpload.create_local_path(self.upload_resource_uuid, extension)
         logger.info('Temporary file upload will be placed at {t}'.format(
             t = tmp_path
         ))

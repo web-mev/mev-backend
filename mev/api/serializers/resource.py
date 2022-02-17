@@ -57,6 +57,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         optional parameters from the request to create or
         edit a Resource
         '''
+        id = validated_data.get('id', None)
         path = validated_data.get('path', '')
         name = validated_data.get('name', '')
         workspaces = validated_data.get('workspaces', None),
@@ -71,6 +72,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         #workspace = workspace[0]
 
         return {
+            'id': id,
             'path': path,
             'name': name,
             'workspaces': workspaces, 
@@ -121,6 +123,7 @@ class ResourceSerializer(serializers.ModelSerializer):
             params = ResourceSerializer.parse_request_parameters(validated_data)
 
             resource = Resource.objects.create(
+                id=params['id'],
                 owner=resource_owner,
                 path=params['path'],
                 name=params['name'],
