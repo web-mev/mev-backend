@@ -4,6 +4,7 @@ import uuid
 import logging
 import subprocess as sp
 import shutil
+import requests
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
@@ -39,15 +40,13 @@ def retrieve_commit_hash(git_dir):
     Retrieves the git commit ID given a directory
     '''
     logger.info('Retrieve commit ID.')
-    cmd = 'git --git-dir {git_dir}/.git show -s --format=%H'.format(
-        git_dir=git_dir
-    )
+    cmd = 'git show -s --format=%H'
     logger.info('Retrieve git commit with: {cmd}'.format(
         cmd=cmd
     ))
     cmd = cmd.split(' ')
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, cwd=git_dir)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with querying the'
@@ -63,12 +62,44 @@ def retrieve_commit_hash(git_dir):
         commit_hash = stdout.strip().decode('utf-8')
         return commit_hash
 
+
+def checkout_branch(git_dir, commit_id):
+    '''
+    Changes given a given git directory to the desired commit
+    '''
+    logger.info('Attempt to checkout commit {commit_id}'.format(commit_id=commit_id))
+    cmd = 'git checkout {commit_id}'.format(
+        git_dir=git_dir,
+        commit_id = commit_id
+    )
+    logger.info('Checkout commit with: {cmd}'.format(
+        cmd=cmd
+    ))
+    cmd = cmd.split(' ')
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, cwd=git_dir)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+        logger.error('Problem with checking out'
+            ' commit {commit_id} from the git repo at {git_dir}.\n'
+            'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                commit_id=commit_id,
+                git_dir=git_dir,
+                stderr=stderr,
+                stdout=stdout
+            )
+        )
+        raise Exception('Failed when attemping to checkout a particular commit. See logs.')
+    else:
+        commit_hash = stdout.strip().decode('utf-8')
+        return commit_hash
+
 def retrieve_repo_name(git_dir):
     '''
     Retrieves the git repository name given a directory
     '''
     logger.info('Retrieve git repo name')
-    cmd = 'git --git-dir {git_dir}/.git remote get-url origin'.format(
+    cmd = 'git remote get-url origin'.format(
         git_dir=git_dir
     )
     logger.info('Retrieve git repo name with: {cmd}'.format(
@@ -76,7 +107,7 @@ def retrieve_repo_name(git_dir):
     ))
     cmd = cmd.split(' ')
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, cwd=git_dir)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with querying the'
@@ -90,8 +121,12 @@ def retrieve_repo_name(git_dir):
         raise Exception('Failed when querying the git commit ID. See logs.')
     else:
         git_str = stdout.strip().decode('utf-8')
-        name = git_str.split('/')[-1][:-4]
-        return name
+        logger.info('Repo was found to be: {x}'.format(x=git_str))
+        final_piece = git_str.split('/')[-1]
+        if final_piece.endswith('.git'):
+            return final_piece[:-4]
+        else:
+            return final_piece
 
 def clone_repository(url):
     '''
@@ -271,13 +306,42 @@ def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     runner = runner_class()
     runner.prepare_operation(staging_dir, repo_name, git_hash)
 
-def perform_operation_ingestion(repository_url, op_uuid):
+
+def check_for_repo(repository_url):
+    '''
+    This function checks that we can reach a particular repository.
+
+    If a bad url is given, the GET request will return 404. This is different
+    than the behavior with a `git clone` where a bad repo url will first
+    attempt to log you in via the terminal (which requires interactivity or
+    storing github keys). Recall that we will only work with public repos
+    anyway.
+    '''
+    r = requests.get(repository_url)
+    if r.status_code == 200:
+        return
+    else:
+        raise Exception('Could not find the repository'
+            ' at {r} or it was not public'.format(r=repository_url))
+
+def perform_operation_ingestion(repository_url, op_uuid, commit_id):
     '''
     This function is the main entrypoint for the ingestion of a new `Operation`
     '''
+
+    # Check that we can find this
+    check_for_repo(repository_url)
+
     # pull from the repository:
     staging_dir = clone_repository(repository_url)
-    git_hash = retrieve_commit_hash(staging_dir)
+
+    if commit_id:
+        # if provided with a commit ID, check that out
+        checkout_branch(staging_dir, commit_id)
+        git_hash = commit_id
+    else:
+        git_hash = retrieve_commit_hash(staging_dir)
+        
     repo_name = retrieve_repo_name(staging_dir)
     try:
         ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)

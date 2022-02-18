@@ -13,8 +13,7 @@ class AbstractResource(models.Model):
     # Resource instances will be referenced by their UUID instead of a PK
     id = models.UUIDField(
         primary_key = True, 
-        default = uuid.uuid4, 
-        editable = False
+        default = uuid.uuid4
     )
 
     # the location of the file.  Since the files can be added in

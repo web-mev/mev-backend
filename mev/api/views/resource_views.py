@@ -132,7 +132,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
 
             logger.info('Resource was associated with one or more workspaces'
                 ' and cannot be removed.')
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         # at this point, we have an active Resource associated with
         # zero workspaces. delete.

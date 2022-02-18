@@ -22,7 +22,7 @@ variable "zone" {
 variable "cromwell_machine_config" {
   default     = {
     machine_type = "e2-standard-2"
-    disk_size_gb = 20
+    disk_size_gb = 200
   }
   description = "Cromwell GCE machine type and disk size"
   type        = object({
@@ -33,8 +33,8 @@ variable "cromwell_machine_config" {
 
 variable "api_machine_config" {
   default     = {
-    machine_type = "e2-standard-2"
-    disk_size_gb = 50
+    machine_type = "e2-standard-4"
+    disk_size_gb = 500
   }
   description = "API GCE machine type and disk size"
   type        = object({

@@ -90,8 +90,10 @@ class SubmittedInputOrOutput(object):
         self.instance = None
 
     def get_value(self):
-        if self.instance:
-            return self.instance.to_dict()  
+
+        if self.instance is not None:
+            return self.instance.to_dict()
+            
         else:
             logger.error('The instance attribute was not set when calling'
                 ' for the representation of a SubmittedInputOrOutput as a dict.'

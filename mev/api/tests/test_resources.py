@@ -79,6 +79,46 @@ class ResourceListTests(BaseAPITestCase):
         self.assertFalse(r.is_public)
         self.assertIsNone(r.resource_type)
 
+    @mock.patch('api.views.resource_views.async_validate_resource')
+    @mock.patch('api.views.resource_views.set_resource_to_inactive')
+    def test_admin_can_create_resource_with_explicit_uuid(self, 
+        mock_set_resource_to_inactive,
+        mock_validate_resource):
+        """
+        Test that admins can create a Resource and that the proper validation
+        methods are called. Here, we provide a UUID in the payload. We want to check
+        that the UUID in the db is the same
+        """
+        # get all initial instances before anything happens:
+        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+
+        u = uuid.uuid4()
+        payload = {
+            'owner_email': self.regular_user_1.email,
+            'name': 'some_file.txt',
+            'resource_type':'MTX',
+            'id': str(u)
+        }
+        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # get current instances:
+        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+        difference_set = current_resource_uuids.difference(initial_resource_uuids)
+        self.assertEqual(len(difference_set), 1)
+
+        # check that the proper validation methods were called
+        mock_set_resource_to_inactive.assert_called()
+        mock_validate_resource.delay.assert_called()
+
+        # check that the resource has the proper members set:
+        r = Resource.objects.get(pk=list(difference_set)[0])
+        self.assertFalse(r.is_active)
+        # should be False since it was not explicitly set to True
+        self.assertFalse(r.is_public)
+        self.assertIsNone(r.resource_type)
+        self.assertEqual(r.pk, u)
+
     def test_missing_owner_in_admin_resource_request_fails(self):
         """
         Test that admins must specify an owner_email field in their request
@@ -356,7 +396,7 @@ class ResourceDetailTests(BaseAPITestCase):
         using that resource.
         """
         response = self.authenticated_admin_client.delete(self.url_for_workspace_resource)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         mock_delete_file.delay.assert_not_called()
         Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
 
@@ -381,7 +421,7 @@ class ResourceDetailTests(BaseAPITestCase):
         """
         mock_check_for_resource_operations.return_value = False
         response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         mock_delete_file.delay.assert_not_called()
         # check that the resource still exists
         Resource.objects.get(pk=self.regular_user_workspace_resource.pk)

@@ -126,6 +126,7 @@ class OperationUpdate(APIView):
 class OperationCreate(APIView):
 
     REPO_URL = 'repository_url'
+    COMMIT_ID = 'commit_id'
 
     permission_classes = [
         framework_permissions.IsAdminUser
@@ -141,6 +142,15 @@ class OperationCreate(APIView):
             return Response({self.REPO_URL: 'You must supply this required key.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # can also check for a commit ID in case we don't want to use the default main.
+        # It's optional, so just set to None if it is not specified. That will default
+        # it to main
+        try:
+            commit_id = request.data[self.COMMIT_ID]
+        except KeyError as ex:
+            commit_id = None
+
         url_contents = url.split('/')
         domain = url_contents[2]
         if domain in settings.ACCEPTABLE_REPOSITORY_DOMAINS:
@@ -150,7 +160,7 @@ class OperationCreate(APIView):
             op_uuid = uuid.uuid4()
             db_op = OperationDbModel.objects.create(id=op_uuid, active=False)
 
-            async_ingest_new_operation.delay(str(op_uuid), url)
+            async_ingest_new_operation.delay(str(op_uuid), url, commit_id)
             return Response(
                 {'operation_uuid': op_uuid},
                 status=status.HTTP_200_OK
@@ -509,13 +519,9 @@ class OperationRun(APIView):
             # it will simply be the UUID of the job
             try:
                 job_name = payload[self.JOB_NAME]
-                # ensure they are giving us something reasonable. This function also removes
-                # things like spaces that can cause problems downstream.
-                try:
-                    job_name = normalize_identifier(job_name)
-                except StringIdentifierException as ex:
-                    raise ValidationError({'job_name': ex})
-                if job_name is None:
+                job_name = job_name.strip() 
+
+                if (job_name is None) or (len(job_name) == 0):
                     job_name = str(executed_op_uuid)
             except KeyError as ex:
                 job_name = str(executed_op_uuid)

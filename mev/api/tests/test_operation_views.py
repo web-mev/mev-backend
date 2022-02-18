@@ -31,8 +31,10 @@ TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
 @mock.patch('api.utilities.ingest_operation.check_required_files')
 @mock.patch('api.utilities.ingest_operation.retrieve_commit_hash')
+@mock.patch('api.utilities.ingest_operation.check_for_repo')
 @mock.patch('api.utilities.ingest_operation.clone_repository')
 def setup_db_elements(self, op_file, op_dirname, mock_clone_repository, \
+    mock_check_for_repo,
     mock_retrieve_commit_hash, \
     mock_check_required_files,
     mock_retrieve_repo_name,
@@ -55,7 +57,8 @@ def setup_db_elements(self, op_file, op_dirname, mock_clone_repository, \
     op = OperationDbModel.objects.create(id=str(op_uuid))
     perform_operation_ingestion(
         'http://github.com/some-dummy-repo/', 
-        str(op_uuid)
+        str(op_uuid),
+        None
     )
     return op
 
@@ -728,14 +731,36 @@ class OperationAddTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.operation_views.async_ingest_new_operation')
-    def test_ingest_method_called(self, mock_ingest):
+    @mock.patch('api.views.operation_views.uuid')
+    def test_ingest_method_called(self, mock_uuid, mock_ingest):
         '''
         Test that a proper request will call the ingestion function.
+        Here, no specific git commit is requested, so the async ingestion
+        method is called with 'None'
         '''
-        payload={'repository_url':'https://github.com/foo/'}
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+        mock_git_url = 'https://github.com/foo/'
+        payload={'repository_url': mock_git_url}
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_ingest.delay.assert_called()
+        mock_ingest.delay.assert_called_once_with(str(u), mock_git_url, None)
+
+    @mock.patch('api.views.operation_views.async_ingest_new_operation')
+    @mock.patch('api.views.operation_views.uuid')
+    def test_ingest_method_called_case2(self, mock_uuid, mock_ingest):
+        '''
+        Test that a proper request will call the ingestion function. Here,
+        we request a specific git commit
+        '''
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+        mock_commit_id = 'abcd1234'
+        mock_git_url = 'https://github.com/foo/'
+        payload={'repository_url': mock_git_url, 'commit_id': mock_commit_id}
+        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_ingest.delay.assert_called_once_with(str(u), mock_git_url, mock_commit_id)
 
     @mock.patch('api.views.operation_views.async_ingest_new_operation')
     def test_invalid_domain(self, mock_ingest):
@@ -751,7 +776,7 @@ class OperationAddTests(BaseAPITestCase):
     @mock.patch('api.views.operation_views.async_ingest_new_operation')
     def test_bad_payload(self, mock_ingest):
         '''
-        The payload has the wrong key.
+        The payload has the wrong key. Should be "repository_url"
         '''
         payload={'url':'https://github.com/foo/'}
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
@@ -1363,10 +1388,9 @@ class OperationRunTests(BaseAPITestCase):
             payload[OperationRun.INPUTS]
         )
 
-        # now add a job name that has a space- see that the "edited" string gets sent to the async method
+        # now add a job name that has a space- see that this is fine
         mock_submit_async_job.delay.reset_mock()
         job_name = 'foo bar'
-        edited_job_name = 'foo_bar'
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: {
@@ -1384,12 +1408,13 @@ class OperationRunTests(BaseAPITestCase):
             op.id, 
             self.regular_user_1.pk,
             workspace.id, 
-            edited_job_name,
+            job_name,
             payload[OperationRun.INPUTS]
         )
 
-        # now a bad job name
-        job_name = '1foo?'
+        # now an empty string. This is also fine- will just set to be a uuid
+        mock_submit_async_job.delay.reset_mock()
+        job_name = '    '
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: {
@@ -1400,8 +1425,41 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         response_json = response.json()
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue('job_name' in response_json.keys())
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            executed_op_uuid,
+            payload[OperationRun.INPUTS]
+        )
+
+        # now a non-latin character.
+        mock_submit_async_job.delay.reset_mock()
+        # non-english unicode characters. Not meant to be sensible. Hopefully not vulgar...
+        job_name = 'ほ ゑ'
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id),
+            OperationRun.JOB_NAME: job_name
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            job_name,
+            payload[OperationRun.INPUTS]
+        )
 
 
 class OperationUpdateTests(BaseAPITestCase):
