@@ -75,7 +75,8 @@ class UserOperationInput(object):
         self.instance = None
 
     def get_value(self):
-        if self.instance:
+
+        if self.instance is not None:
             return self.instance.to_dict()
             
         else:

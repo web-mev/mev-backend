@@ -1328,10 +1328,9 @@ class OperationRunTests(BaseAPITestCase):
             payload[OperationRun.INPUTS]
         )
 
-        # now add a job name that has a space- see that the "edited" string gets sent to the async method
+        # now add a job name that has a space- see that this is fine
         mock_submit_async_job.delay.reset_mock()
         job_name = 'foo bar'
-        edited_job_name = 'foo_bar'
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: {
@@ -1349,12 +1348,13 @@ class OperationRunTests(BaseAPITestCase):
             op.id, 
             self.regular_user_1.pk,
             workspace.id, 
-            edited_job_name,
+            job_name,
             payload[OperationRun.INPUTS]
         )
 
-        # now a bad job name
-        job_name = '1foo?'
+        # now an empty string. This is also fine- will just set to be a uuid
+        mock_submit_async_job.delay.reset_mock()
+        job_name = '    '
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: {
@@ -1365,8 +1365,41 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         response_json = response.json()
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue('job_name' in response_json.keys())
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            executed_op_uuid,
+            payload[OperationRun.INPUTS]
+        )
+
+        # now a non-latin character.
+        mock_submit_async_job.delay.reset_mock()
+        # non-english unicode characters. Not meant to be sensible. Hopefully not vulgar...
+        job_name = 'ほ ゑ'
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id),
+            OperationRun.JOB_NAME: job_name
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            job_name,
+            payload[OperationRun.INPUTS]
+        )
 
 
 class OperationUpdateTests(BaseAPITestCase):

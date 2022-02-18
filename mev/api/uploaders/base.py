@@ -90,6 +90,7 @@ class BaseUpload(object):
         else:
             owner_email = None
         d = {
+            'id': str(self.upload_resource_uuid),
             'owner_email': owner_email,
             'path': self.filepath,
             'name': self.filename,
@@ -116,12 +117,16 @@ class LocalUpload(BaseUpload):
     '''
 
     @staticmethod
-    def create_local_path(filename):
+    def create_local_path(upload_resource_uuid, extension):
 
-        tmp_name = '{uuid}.{filename}'.format(
-            uuid = str(uuid.uuid4()),
-            filename = filename
-        )
+        if extension is not None:
+            tmp_name = '{uuid}.{extension}'.format(
+                uuid = str(upload_resource_uuid),
+                extension = extension
+            )
+        else: 
+            tmp_name = str(upload_resource_uuid)
+
         tmp_path = os.path.join(
             settings.PENDING_FILES_DIR, 
             tmp_name
