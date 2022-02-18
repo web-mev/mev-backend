@@ -20,6 +20,7 @@ from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
     LocalDockerSingleDataResourceConverter, \
+    LocalDockerSingleDataResourceWithTypeConverter, \
     CromwellSingleDataResourceConverter, \
     CromwellCsvResourceConverter, \
     CromwellSpaceDelimResourceConverter
@@ -212,6 +213,33 @@ class TestDataResourceConverter(BaseAPITestCase):
         c = LocalDockerSingleDataResourceConverter()
         x = c.convert('foo', user_input, '')
         self.assertDictEqual(x, {'foo': p})
+
+    @mock.patch('api.converters.data_resource.get_storage_backend')
+    def test_single_local_with_rt_converter(self, mock_get_storage_backend):
+        '''
+        Tests that the converter can take a single Resource instance
+        and return the local path AND resource type as a special delimited string
+        '''
+        p = '/foo/bar.txt'
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = p
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        # the validators will check the validity of the user inputs prior to 
+        # calling the converter. Thus, we can use basically any Resource to test
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        rt = r.resource_type
+
+        user_input = str(r.pk)
+        c = LocalDockerSingleDataResourceWithTypeConverter()
+        x = c.convert('foo', user_input, '')
+        expected_str = '{p}{d}{rt}'.format(
+            p = p,
+            d = LocalDockerSingleDataResourceWithTypeConverter.DELIMITER,
+            rt = rt
+        )
+        self.assertDictEqual(x, {'foo': expected_str})
 
     @mock.patch('api.converters.data_resource.get_resource_by_pk')
     def test_single_cromwell_converter(self, mock_get_resource_by_pk):
