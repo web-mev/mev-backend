@@ -85,6 +85,17 @@ class OperationOutputTester(unittest.TestCase):
         self.assertTrue(os.is_valid())
         self.assertDictEqual(os.data, self.expected_result2)
 
+        # Test a VariableDataResource
+        valid_variable_resource_operation_output={
+            'spec': {
+                'attribute_type': 'VariableDataResource', 
+                'resource_types': ['MTX', 'I_MTX'],
+                'many': False
+            }
+        }
+        os = OperationOutputSerializer(data=valid_variable_resource_operation_output)
+        self.assertTrue(os.is_valid())
+
         # give it a bad input_spec to see that the error percolates:
         invalid_operation_output1={
             'spec': {

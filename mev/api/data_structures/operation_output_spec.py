@@ -293,6 +293,7 @@ all_output_spec_types = [
     OptionStringOutputSpec,
     BooleanOutputSpec,
     DataResourceOutputSpec,
+    VariableDataResourceOutputSpec,
     OperationDataResourceOutputSpec,
     ObservationOutputSpec,
     FeatureOutputSpec,
