@@ -1,6 +1,8 @@
+import os
 import logging
 
 from api.models import Resource
+from api.utilities.basic_utils import copy_local_resource
 from api.utilities.resource_utilities import get_resource_by_pk
 from api.converters.mixins import CsvMixin, SpaceDelimMixin
 from api.storage_backends import get_storage_backend
@@ -15,6 +17,7 @@ class BaseDataResourceConverter(object):
         '''
         return get_resource_by_pk(resource_uuid)
 
+
 class LocalDataResourceConverter(BaseDataResourceConverter):
     '''
     This class holds actions/behavior for local-based Resources/files
@@ -28,21 +31,35 @@ class LocalDataResourceConverter(BaseDataResourceConverter):
         local_path = get_storage_backend().get_local_resource_path(r)
         return local_path
 
+    def copy_local_resource_to_staging(self, resource_uuid, staging_dir):
+        '''
+        Takes a resource UUID and copies the associated file to `staging_dir`
+        Returns a path to the copied file
+        '''
+        # this is the path to the user's file:
+        original_local_path = self.get_local_path_from_uuid(resource_uuid)
+
+        dest = os.path.join(staging_dir, os.path.basename(original_local_path))
+        copy_local_resource(original_local_path, dest)
+        return dest
+
+
 class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
     '''
     This converter takes a DataResource instance (for a single file,
     which is simply a UUID) and returns the path to 
-    the local file.
+    the local file located in a sandbox dir.
 
     This converter takes that UUID, finds the Resource/file, brings it local, and returns
     the local path.
     '''
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         '''
         user_input is the dictionary-representation of a api.data_structures.UserOperationInput
         '''
         resource_uuid = user_input
-        return {input_key: self.get_local_path_from_uuid(resource_uuid)}
+        dest = self.copy_local_resource_to_staging(resource_uuid, staging_dir)
+        return {input_key: dest}
 
 
 class LocalDockerSingleDataResourceWithTypeConverter(LocalDataResourceConverter):
@@ -65,16 +82,16 @@ class LocalDockerSingleDataResourceWithTypeConverter(LocalDataResourceConverter)
     # This is the delimiter we use to separate the path from the resource type
     DELIMITER = ':::'
 
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         '''
         user_input is the dictionary-representation of a api.data_structures.UserOperationInput
         '''
         resource_uuid = user_input
         resource = self.get_resource(resource_uuid)
         resource_type = resource.resource_type
-        local_path = self.get_local_path_from_uuid(resource_uuid)
+        dest = self.copy_local_resource_to_staging(resource_uuid, staging_dir)
         formatted_str = '{p}{delim}{rt}'.format(
-            p = local_path,
+            p = dest,
             rt = resource_type,
             delim = LocalDockerSingleDataResourceWithTypeConverter.DELIMITER
         )
@@ -92,25 +109,25 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
         'value': [<UUID>, <UUID>, <UUID>]
     }
 
-    This converter takes the list UUIDs, finds each Resource/file, brings it local, and returns
-    a list of the local paths.
+    This converter takes the list UUIDs, finds each Resource/file, brings it local,
+    copies to a staging dir and returns a list of paths to those copies.
     '''
 
-    def get_path_list(self, user_input):
+    def get_path_list(self, user_input, staging_dir):
         path_list = []
         if type(user_input) == list:
             for u in user_input:
-                path_list.append(self.get_local_path_from_uuid(u))
+                path_list.append(self.copy_local_resource_to_staging(u, staging_dir))
         elif type(user_input) == str:
-            path_list.append(self.get_local_path_from_uuid(user_input))
+            path_list.append(self.copy_local_resource_to_staging(user_input, staging_dir))
         else:
             logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
                 v = value
             ))
         return path_list
 
-    def convert(self, input_key, user_input, op_dir):
-        path_list = self.get_path_list(user_input)
+    def convert(self, input_key, user_input, op_dir, staging_dir):
+        path_list = self.get_path_list(user_input, staging_dir)
         return {input_key: self.to_string(path_list)}
 
 class LocalDockerCsvResourceConverter(LocalDockerMultipleDataResourceConverter, CsvMixin):
@@ -132,7 +149,7 @@ class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
     storage.
     '''
 
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         resource_uuid = user_input
         r = self.get_resource(resource_uuid)
         return {input_key: r.path}
@@ -170,7 +187,7 @@ class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
             ))
         return path_list
 
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         path_list = self.get_path_list(user_input)
         return {input_key: self.to_string(path_list)}
 

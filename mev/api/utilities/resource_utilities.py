@@ -73,7 +73,8 @@ def check_that_resource_exists(path):
     # storage backend. Thus, while WebMEV may be using a bucket-based storage backend
     # we need to use the LocalStorage backend to verify the existence of the file
     # in the repository. 
-    storage_backend = get_storage_implementation(path)
+    # TODO: implement when we need it.
+    pass
     
 
 def get_resource_by_pk(resource_pk):

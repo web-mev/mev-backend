@@ -118,14 +118,18 @@ class OperationRunner(object):
         logger.info('Read the following converter mapping: {d}'.format(d=d))
         return d
 
-    def _map_inputs(self, op_dir, validated_inputs):
+    def _map_inputs(self, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
         and make them into something that we can pass to a command-line
         call. 
 
-        For instance, this takes a DataResource (which is a UUID identifying
-        the file), and turns it into a local path.
+        For instance, this might take a DataResource (which is a UUID identifying
+        the file), and turns it into a local path. The actual mapping depends
+        on the converter class defined by the Operation. Different operations
+        might "transform" a Resource into different things (e.g. a path, a delimited
+        string of the path and a resource type, etc.) depending on the requirements
+        of the analysis.
         '''
         converter_dict = self._get_converter_dict(op_dir)
         arg_dict = {}
@@ -149,7 +153,7 @@ class OperationRunner(object):
                 raise ex
             # instantiate the converter and convert the arg:
             c = converter_class()
-            arg_dict.update(c.convert(k,v, op_dir))
+            arg_dict.update(c.convert(k,v, op_dir, staging_dir))
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)

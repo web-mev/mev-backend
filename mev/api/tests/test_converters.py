@@ -35,90 +35,90 @@ class TestBasicAttributeConverter(BaseAPITestCase):
 
     def test_basic_attributes(self):
         s = StringConverter()
-        v = s.convert('foo','abc', '')
+        v = s.convert('foo','abc', '', '')
         self.assertDictEqual(v, {'foo':'abc'})
 
-        v = s.convert('foo','ab c', '')
+        v = s.convert('foo','ab c', '', '')
         self.assertDictEqual(v, {'foo':'ab_c'})
 
         with self.assertRaises(AttributeValueError):
-            v = s.convert('foo','ab?c', '')
+            v = s.convert('foo','ab?c', '', '')
 
         s = UnrestrictedStringConverter()
-        v = s.convert('foo','abc', '')
+        v = s.convert('foo','abc', '', '')
         self.assertDictEqual(v, {'foo':'abc'})
-        v = s.convert('foo','ab c', '')
+        v = s.convert('foo','ab c', '', '')
         self.assertDictEqual(v, {'foo':'ab c'})
-        v = s.convert('foo','ab?c', '')
+        v = s.convert('foo','ab?c', '', '')
         self.assertDictEqual(v, {'foo':'ab?c'})
 
         ic = IntegerConverter()
-        i = ic.convert('foo', 2, '')
+        i = ic.convert('foo', 2, '', '')
         self.assertDictEqual(i,{'foo':2})
 
         with self.assertRaises(AttributeValueError):
-            ic.convert('foo','1', '')
+            ic.convert('foo','1', '', '')
         with self.assertRaises(AttributeValueError):
-            ic.convert('foo','1.2', '')
+            ic.convert('foo','1.2', '', '')
 
         with self.assertRaises(AttributeValueError):
-            ic.convert('foo','a', '')
+            ic.convert('foo','a', '', '')
 
         s = StringListConverter()
-        v = s.convert('foo', ['ab','c d'], '')
+        v = s.convert('foo', ['ab','c d'], '', '')
         self.assertCountEqual(v.keys(), ['foo',])
         self.assertCountEqual(['ab','c_d'], v['foo'])
 
         with self.assertRaises(AttributeValueError):
-            v = s.convert('foo', 2, '')
+            v = s.convert('foo', 2, '', '')
 
         with self.assertRaises(AttributeValueError):
-            v = s.convert('foo', ['1','2'], '')
+            v = s.convert('foo', ['1','2'], '', '')
 
         s = UnrestrictedStringListConverter()
-        v = s.convert('foo', ['ab','c d'], '')
+        v = s.convert('foo', ['ab','c d'], '', '')
         self.assertCountEqual(v.keys(), ['foo',])
         self.assertCountEqual(['ab','c d'], v['foo'])
 
         c = StringListToCsvConverter()
-        v = c.convert('foo', ['aaa','bbb','ccc'], '')
+        v = c.convert('foo', ['aaa','bbb','ccc'], '', '')
         self.assertDictEqual(v, {'foo':'aaa,bbb,ccc'})
 
         c = StringListToCsvConverter()
-        v = c.convert('foo', ['a b','c d'], '')
+        v = c.convert('foo', ['a b','c d'], '', '')
         self.assertDictEqual(v, {'foo':'a_b,c_d'})
 
         c = StringListToCsvConverter()
         with self.assertRaises(AttributeValueError):
-            v = c.convert('foo', ['a?b','c d'], '')
+            v = c.convert('foo', ['a?b','c d'], '', '')
 
         c = UnrestrictedStringListToCsvConverter()
-        v = c.convert('foo',['aaa','bbb','ccc'], '')
+        v = c.convert('foo',['aaa','bbb','ccc'], '', '')
         self.assertDictEqual(v, {'foo':'aaa,bbb,ccc'})
 
         c = UnrestrictedStringListToCsvConverter()
-        v = c.convert('foo', ['a b','c d'], '')
+        v = c.convert('foo', ['a b','c d'], '', '')
         self.assertDictEqual(v, {'foo':'a b,c d'})
 
         c = UnrestrictedStringListToCsvConverter()
-        v = c.convert('foo', ['a?b','c d'], '')
+        v = c.convert('foo', ['a?b','c d'], '', '')
         self.assertDictEqual(v, {'foo':'a?b,c d'})
         
         c = NormalizingListToCsvConverter()
-        v = c.convert('foo', ['a b', 'c  d'], '')
+        v = c.convert('foo', ['a b', 'c  d'], '', '')
         self.assertDictEqual(v, {'foo':'a_b,c__d'})
 
         c = NormalizingListToCsvConverter()
         with self.assertRaises(AttributeValueError):
-            v = c.convert('foo', ['a b', 'c ? d'], '')
+            v = c.convert('foo', ['a b', 'c ? d'], '', '')
 
         c = NormalizingStringConverter()
-        v = c.convert('foo', 'a b.tsv', '')
+        v = c.convert('foo', 'a b.tsv', '', '')
         self.assertDictEqual(v, {'foo':'a_b.tsv'})
 
         c = NormalizingStringConverter()
         with self.assertRaises(AttributeValueError):
-            v = c.convert('foo', 'c ? d', '')
+            v = c.convert('foo', 'c ? d', '', '')
 
 
 class TestElementSetConverter(BaseAPITestCase):
@@ -130,7 +130,7 @@ class TestElementSetConverter(BaseAPITestCase):
         d = obs_set.to_dict()
         c = ObservationSetCsvConverter()  
         # order doesn't matter, so need to check both orders: 
-        converted_input = c.convert('xyz', d, '') 
+        converted_input = c.convert('xyz', d, '', '') 
         self.assertTrue(
             ({'xyz': 'foo,bar'} == converted_input)
             |
@@ -144,7 +144,7 @@ class TestElementSetConverter(BaseAPITestCase):
         d = f_set.to_dict()
         c = FeatureSetCsvConverter()  
         # order doesn't matter, so need to check both orders:      
-        converted_input = c.convert('xyz', d, '') 
+        converted_input = c.convert('xyz', d, '', '') 
         self.assertTrue(
             ({'xyz': 'foo,bar'} == converted_input)
             |
@@ -164,7 +164,7 @@ class TestElementSetConverter(BaseAPITestCase):
         d = obs_set.to_dict()
         c = ObservationSetListConverter()  
         # order doesn't matter, so need to check both orders: 
-        converted_input = c.convert('xyz', d, '') 
+        converted_input = c.convert('xyz', d, '', '') 
         self.assertTrue(
             ({'xyz': ['foo','bar']} == converted_input)
             |
@@ -184,7 +184,7 @@ class TestElementSetConverter(BaseAPITestCase):
         d = obs_set.to_dict()
         c = FeatureSetListConverter()  
         # order doesn't matter, so need to check both orders: 
-        converted_input = c.convert('xyz', d, '') 
+        converted_input = c.convert('xyz', d, '', '') 
         self.assertTrue(
             ({'xyz': ['foo','bar']} == converted_input)
             |
@@ -194,12 +194,15 @@ class TestElementSetConverter(BaseAPITestCase):
 class TestDataResourceConverter(BaseAPITestCase):
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
-    def test_single_local_converter(self, mock_get_storage_backend):
+    @mock.patch('api.converters.data_resource.copy_local_resource')
+    def test_single_local_converter(self, mock_copy_local_resource, mock_get_storage_backend):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path
         '''
         p = '/foo/bar.txt'
+        mock_staging_dir = '/some/staging_dir'
+        dest = os.path.join(mock_staging_dir, 'bar.txt')
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = p
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -211,16 +214,20 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         user_input = str(r.pk)
         c = LocalDockerSingleDataResourceConverter()
-        x = c.convert('foo', user_input, '')
-        self.assertDictEqual(x, {'foo': p})
+        x = c.convert('foo', user_input, '', mock_staging_dir)
+        mock_copy_local_resource.assert_called_with(p, dest)
+        self.assertDictEqual(x, {'foo':  dest})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
-    def test_single_local_with_rt_converter(self, mock_get_storage_backend):
+    @mock.patch('api.converters.data_resource.copy_local_resource')
+    def test_single_local_with_rt_converter(self, mock_copy_local_resource, mock_get_storage_backend):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path AND resource type as a special delimited string
         '''
         p = '/foo/bar.txt'
+        mock_staging_dir = '/some/staging_dir'
+        dest = os.path.join(mock_staging_dir, 'bar.txt')
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = p
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -233,9 +240,10 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         user_input = str(r.pk)
         c = LocalDockerSingleDataResourceWithTypeConverter()
-        x = c.convert('foo', user_input, '')
+        x = c.convert('foo', user_input, '', mock_staging_dir)
+        mock_copy_local_resource.assert_called_with(p, dest)
         expected_str = '{p}{d}{rt}'.format(
-            p = p,
+            p = dest,
             d = LocalDockerSingleDataResourceWithTypeConverter.DELIMITER,
             rt = rt
         )
@@ -256,7 +264,7 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         user_input = str(r.pk)
         c = CromwellSingleDataResourceConverter()
-        x = c.convert('foo', user_input, '')
+        x = c.convert('foo', user_input, '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo': expected})
 
     @mock.patch('api.converters.data_resource.get_resource_by_pk')
@@ -275,17 +283,20 @@ class TestDataResourceConverter(BaseAPITestCase):
         expected = ','.join([str(all_resources[i].path) for i in range(1,4)])
 
         c = CromwellCsvResourceConverter()
-        x = c.convert('foo', uuid_list, '')
+        x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
-    def test_csv_local_converter_case1(self, mock_get_storage_backend):
+    @mock.patch('api.converters.data_resource.copy_local_resource')
+    def test_csv_local_converter_case1(self, mock_copy_local_resource, mock_get_storage_backend):
         '''
         Tests that the converter can take a list of Resource instances
         and return a properly formatted comma-delim list 
         '''
         p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
+        mock_staging_dir = '/some/staging_dir'
+        final_paths = [x.replace('/foo', mock_staging_dir) for x in p]
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.side_effect = p
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -301,8 +312,10 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         user_input = v
         c = LocalDockerCsvResourceConverter()
-        x = c.convert('foo', user_input, '')
-        csv = ','.join(p)
+        x = c.convert('foo', user_input, '', mock_staging_dir)
+        mock_calls = [mock.call(p1, p2) for p1,p2 in zip(p, final_paths)]
+        mock_copy_local_resource.assert_has_calls(mock_calls)
+        csv = ','.join(final_paths)
         self.assertDictEqual(x, {'foo':csv})
 
     @mock.patch('api.converters.data_resource.get_resource_by_pk')
@@ -318,16 +331,19 @@ class TestDataResourceConverter(BaseAPITestCase):
         expected = r.path
 
         c = CromwellCsvResourceConverter()
-        x = c.convert('foo', str(r.pk), '')
+        x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
-    def test_csv_local_converter_case2(self, mock_get_storage_backend):
+    @mock.patch('api.converters.data_resource.copy_local_resource')
+    def test_csv_local_converter_case2(self, mock_copy_local_resource, mock_get_storage_backend):
         '''
         Tests that the CSV converter can take a single Resource instance
         and return a properly formatted string 
         '''
         p = '/foo/bar1.txt'
+        mock_staging_dir = '/some/staging_dir'
+        final_path = os.path.join(mock_staging_dir, os.path.basename(p))
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = p
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -338,8 +354,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         v = str(all_resources[0].pk)
         user_input = v
         c = LocalDockerCsvResourceConverter()
-        x = c.convert('foo', user_input, '')
-        self.assertDictEqual(x, {'foo': p})
+        x = c.convert('foo', user_input, '', '/some/staging_dir/')
+        mock_copy_local_resource.assert_called_with(p, final_path)
+        self.assertDictEqual(x, {'foo': final_path})
 
     @mock.patch('api.converters.data_resource.get_resource_by_pk')
     def test_space_delim_cromwell_converter_case1(self, mock_get_resource_by_pk):
@@ -357,16 +374,19 @@ class TestDataResourceConverter(BaseAPITestCase):
         expected = ' '.join([str(all_resources[i].path) for i in range(1,4)])
 
         c = CromwellSpaceDelimResourceConverter()
-        x = c.convert('foo', uuid_list, '')
+        x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
-    def test_space_delim_local_converter_case1(self, mock_get_storage_backend):
+    @mock.patch('api.converters.data_resource.copy_local_resource')
+    def test_space_delim_local_converter_case1(self, mock_copy_local_resource, mock_get_storage_backend):
         '''
         Tests that the converter can take a list of Resource instances
         and return a properly formatted space-delimited list.
         '''
         p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
+        mock_staging_dir = '/some/staging_dir'
+        final_paths = [os.path.join(mock_staging_dir, os.path.basename(x)) for x in p]
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.side_effect = p
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -380,8 +400,10 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         user_input = v
         c = LocalDockerSpaceDelimResourceConverter()
-        x = c.convert('foo', user_input, '')
-        delim_string = ' '.join(p)
+        x = c.convert('foo', user_input, '', '/some/staging_dir/')
+        mock_calls = [mock.call(p1, p2) for p1,p2 in zip(p, final_paths)]
+        mock_copy_local_resource.assert_has_calls(mock_calls)
+        delim_string = ' '.join(final_paths)
         self.assertDictEqual(x, {'foo': delim_string})
 
     @mock.patch('api.converters.data_resource.get_resource_by_pk')
@@ -398,16 +420,19 @@ class TestDataResourceConverter(BaseAPITestCase):
         expected = r.path
 
         c = CromwellCsvResourceConverter()
-        x = c.convert('foo', str(r.pk), '')
+        x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
     @mock.patch('api.converters.data_resource.get_storage_backend')
-    def test_space_delim_local_converter_case2(self, mock_get_storage_backend):
+    @mock.patch('api.converters.data_resource.copy_local_resource')
+    def test_space_delim_local_converter_case2(self, mock_copy_local_resource, mock_get_storage_backend):
         '''
         Tests that the converter can take a single Resource instance
         and return a properly formatted space-delimited list.
         '''
         p = '/foo/bar1.txt'
+        mock_staging_dir = '/some/staging_dir'
+        final_path = os.path.join(mock_staging_dir, os.path.basename(p))
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = p
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -419,8 +444,9 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         user_input = v
         c = LocalDockerSpaceDelimResourceConverter()
-        x = c.convert('foo', user_input, '')
-        self.assertDictEqual(x, {'foo':p})
+        x = c.convert('foo', user_input, '', mock_staging_dir)
+        mock_copy_local_resource.assert_called_with(p, final_path)
+        self.assertDictEqual(x, {'foo':final_path})
 
 
 class TestMapConverters(BaseAPITestCase):
@@ -428,7 +454,7 @@ class TestMapConverters(BaseAPITestCase):
     def test_missing_map_file(self):
         c = SimpleFileBasedMapConverter()
         with self.assertRaises(InputMappingException):
-            c.convert('foo', 'abc', '')
+            c.convert('foo', 'abc', '', '/some/staging_dir/')
 
     def test_bad_json_data(self):
         # missing quotes on "abc"
@@ -439,7 +465,7 @@ class TestMapConverters(BaseAPITestCase):
         
         c = SimpleFileBasedMapConverter()
         with self.assertRaises(InputMappingException):
-            c.convert('mykey', 'foo', '/tmp')
+            c.convert('mykey', 'foo', '/tmp', '/some/staging_dir/')
         os.remove(tmp_path)
 
 
@@ -452,7 +478,7 @@ class TestMapConverters(BaseAPITestCase):
         
         c = SimpleFileBasedMapConverter()
         with self.assertRaises(InputMappingException):
-            c.convert('mykey', 'bar', '/tmp')
+            c.convert('mykey', 'bar', '/tmp', '/some/staging_dir/')
         os.remove(tmp_path)
 
     def test_gets_expected_map(self):
@@ -462,7 +488,7 @@ class TestMapConverters(BaseAPITestCase):
             fout.write(json_str)
         
         c = SimpleFileBasedMapConverter()
-        r = c.convert('mykey', 'foo', '/tmp')
+        r = c.convert('mykey', 'foo', '/tmp', '/some/staging_dir/')
         self.assertDictEqual(r, {"keyA":"A", "keyB":"B"})
         os.remove(tmp_path)
 
@@ -470,27 +496,27 @@ class TestBooleanConverters(BaseAPITestCase):
 
     def test_basic_conversion(self):
         c = BooleanAsIntegerConverter()
-        x = c.convert('foo', 1, '/tmp')
+        x = c.convert('foo', 1, '/tmp', '')
         self.assertDictEqual(x, {"foo": 1})
 
-        x = c.convert('foo', True, '/tmp')
+        x = c.convert('foo', True, '/tmp', '')
         self.assertDictEqual(x, {"foo": 1})
 
-        x = c.convert('foo', 'true', '/tmp')
+        x = c.convert('foo', 'true', '/tmp', '')
         self.assertDictEqual(x, {"foo": 1})
 
         with self.assertRaises(AttributeValueError):
-            x = c.convert('foo', '1', '/tmp')
+            x = c.convert('foo', '1', '/tmp', '')
 
         # check the false'y vals:
-        x = c.convert('foo', 0, '/tmp')
+        x = c.convert('foo', 0, '/tmp', '')
         self.assertDictEqual(x, {"foo": 0})
 
-        x = c.convert('foo', False, '/tmp')
+        x = c.convert('foo', False, '/tmp', '')
         self.assertDictEqual(x, {"foo": 0})
 
-        x = c.convert('foo', 'false', '/tmp')
+        x = c.convert('foo', 'false', '/tmp', '')
         self.assertDictEqual(x, {"foo": 0})
 
         with self.assertRaises(AttributeValueError):
-            x = c.convert('foo', '0', '/tmp')
+            x = c.convert('foo', '0', '/tmp', '')

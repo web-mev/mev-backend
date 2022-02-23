@@ -24,62 +24,62 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         self.establish_clients()
         self.filepath = os.path.join(TESTDIR, 'valid_operation.json')
 
-    @mock.patch('api.runners.local_docker.copy_local_resource')
-    def test_copy_data_resources(self, mock_copy_local_resource):
-        '''
-        To execute Operations within a controlled environment, we copy
-        the necessary files out of the user's local cache into an execution
-        folder. Check that the proper copy calls are made
-        '''
+    # @mock.patch('api.runners.local_docker.copy_local_resource')
+    # def test_copy_data_resources(self, mock_copy_local_resource):
+    #     '''
+    #     To execute Operations within a controlled environment, we copy
+    #     the necessary files out of the user's local cache into an execution
+    #     folder. Check that the proper copy calls are made
+    #     '''
 
-        op_data = read_operation_json(self.filepath)
-        runner = LocalDockerRunner()
+    #     op_data = read_operation_json(self.filepath)
+    #     runner = LocalDockerRunner()
 
-        # this is a mock version of how the inputs would look after they were
-        # properly converted for the runner. Note that the keys below need
-        # to match those in the mock operation file (location at self.filepath)
-        arg_dict = {
-            'count_matrix': '/path/to/local/cache/foo.tsv',
-            'p_val': 0.05
-        }
-        exec_dir = '/some/dir'
-        runner._copy_data_resources(exec_dir, op_data, arg_dict)
-        self.assertEqual(arg_dict['count_matrix'], os.path.join(exec_dir, 'foo.tsv'))
+    #     # this is a mock version of how the inputs would look after they were
+    #     # properly converted for the runner. Note that the keys below need
+    #     # to match those in the mock operation file (location at self.filepath)
+    #     arg_dict = {
+    #         'count_matrix': '/path/to/local/cache/foo.tsv',
+    #         'p_val': 0.05
+    #     }
+    #     exec_dir = '/some/dir'
+    #     runner._copy_data_resources(exec_dir, op_data, arg_dict)
+    #     self.assertEqual(arg_dict['count_matrix'], os.path.join(exec_dir, 'foo.tsv'))
 
-    @mock.patch('api.runners.local_docker.copy_local_resource')
-    def test_copy_data_resources_case2(self, mock_copy_local_resource):
-        '''
-        To execute Operations within a controlled environment, we copy
-        the necessary files out of the user's local cache into an execution
-        folder. Check that the proper copy calls are made.
+    # @mock.patch('api.runners.local_docker.copy_local_resource')
+    # def test_copy_data_resources_case2(self, mock_copy_local_resource):
+    #     '''
+    #     To execute Operations within a controlled environment, we copy
+    #     the necessary files out of the user's local cache into an execution
+    #     folder. Check that the proper copy calls are made.
 
-        Here, we check the case where the input spec permits multiple files (many=True)
-        and we pass a list of files. Check that they all get copied.
-        '''
+    #     Here, we check the case where the input spec permits multiple files (many=True)
+    #     and we pass a list of files. Check that they all get copied.
+    #     '''
 
-        op_data = read_operation_json(
-            os.path.join(TESTDIR, 'valid_operation_with_multiple_input_resources.json')
-        )
-        runner = LocalDockerRunner()
+    #     op_data = read_operation_json(
+    #         os.path.join(TESTDIR, 'valid_operation_with_multiple_input_resources.json')
+    #     )
+    #     runner = LocalDockerRunner()
 
-        # this is a mock version of how the inputs would look after they were
-        # properly converted for the runner. Note that the keys below need
-        # to match those in the mock operation file (location at self.filepath)
-        arg_dict = {
-            'count_matrix': ['/path/to/local/cache/foo.tsv',
-                '/path/to/other/dir/bar.tsv'
-            ],
-            'p_val': 0.05
-        }
-        exec_dir = '/some/dir'
-        runner._copy_data_resources(exec_dir, op_data, arg_dict)
-        self.assertEqual(
-            arg_dict['count_matrix'], 
-            [
-                os.path.join(exec_dir, 'foo.tsv'),
-                os.path.join(exec_dir, 'bar.tsv'),
-            ]
-        )
+    #     # this is a mock version of how the inputs would look after they were
+    #     # properly converted for the runner. Note that the keys below need
+    #     # to match those in the mock operation file (location at self.filepath)
+    #     arg_dict = {
+    #         'count_matrix': ['/path/to/local/cache/foo.tsv',
+    #             '/path/to/other/dir/bar.tsv'
+    #         ],
+    #         'p_val': 0.05
+    #     }
+    #     exec_dir = '/some/dir'
+    #     runner._copy_data_resources(exec_dir, op_data, arg_dict)
+    #     self.assertEqual(
+    #         arg_dict['count_matrix'], 
+    #         [
+    #             os.path.join(exec_dir, 'foo.tsv'),
+    #             os.path.join(exec_dir, 'bar.tsv'),
+    #         ]
+    #     )
 
     @mock.patch('api.runners.local_docker.OperationRunner.CONVERTER_FILE', 
         new_callable=mock.PropertyMock, 

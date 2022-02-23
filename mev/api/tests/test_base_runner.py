@@ -32,6 +32,39 @@ class BaseRunnerTester(BaseAPITestCase):
         fp.close()
 
     @mock.patch('api.runners.base.OperationRunner._get_converter_dict')
+    @mock.patch('api.runners.base.import_string')
+    def test_input_mapping(self, mock_import_string, mock_get_converter_dict):
+
+        final_path = '/some/file/path.txt'
+        mock_converter1_class = mock.MagicMock()
+        mock_converter2_class = mock.MagicMock()
+        mock_converter1 = mock.MagicMock()
+        mock_converter2 = mock.MagicMock()
+        mock_converter1.convert.return_value = {'count_matrix': final_path}
+        mock_converter2.convert.return_value = {'p_val': 0.01}
+        mock_converter1_class.return_value = mock_converter1
+        mock_converter2_class.return_value = mock_converter2
+        mock_import_string.side_effect = [mock_converter1_class, mock_converter2_class]
+
+        mock_get_converter_dict.return_value = {
+            'count_matrix': 'api.converters.data_resource.LocalDockerSingleDataResourceConverter',
+            'p_val': 'api.converters.basic_attributes.BoundedFloatAttributeConverter'
+        }
+        r = Resource.objects.all()[0]
+        validated_inputs = {
+            'count_matrix': str(r.pk),
+            'p_val': 0.01 
+        }
+        runner = OperationRunner()
+        mock_op_dir = '/some/op/dir'
+        converted_inputs = runner._map_inputs(mock_op_dir, validated_inputs, '')
+        expected_outputs = {
+            'count_matrix': final_path,
+            'p_val': 0.01 
+        }
+        self.assertDictEqual(converted_inputs, expected_outputs)
+
+    @mock.patch('api.runners.base.OperationRunner._get_converter_dict')
     @mock.patch('api.runners.base.os.path.exists')
     def test_bad_converter_class(self, mock_os_exists, mock_get_converter_dict):
         '''

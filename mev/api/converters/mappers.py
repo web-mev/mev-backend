@@ -33,7 +33,7 @@ class SimpleFileBasedMapConverter(MapConverter):
     # will raise an exception at runtime 
     MAPPING_FILE = 'input_mapping.json'
 
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         map_file = os.path.join(op_dir, self.MAPPING_FILE)
         if not os.path.exists(map_file):
             raise InputMappingException('Could not locate the input mapping'

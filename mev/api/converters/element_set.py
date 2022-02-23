@@ -28,13 +28,13 @@ class FeatureSetConverter(BaseElementSetConverter):
 
 
 class ObservationSetCsvConverter(ObservationSetConverter, CsvMixin):
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         id_list = ObservationSetConverter.get_id_list(self, user_input)
         return {input_key: self.to_string(id_list)}
 
 
 class FeatureSetCsvConverter(FeatureSetConverter, CsvMixin):
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         id_list = FeatureSetConverter.get_id_list(self, user_input)
         return {input_key: self.to_string(id_list)}
 
@@ -44,7 +44,7 @@ class ObservationSetListConverter(ObservationSetConverter):
     Used by Cromwell-type inputs where we need an actual JSON-compatible
     array of sample identifiers, NOT a single string that is delimited
     '''
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         id_list = ObservationSetConverter.get_id_list(self, user_input)
         return {input_key: id_list}
 
@@ -54,6 +54,6 @@ class FeatureSetListConverter(FeatureSetConverter):
     Used by Cromwell-type inputs where we need an actual JSON-compatible
     array of sample identifiers, NOT a single string that is delimited
     '''
-    def convert(self, input_key, user_input, op_dir):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
         id_list = FeatureSetConverter.get_id_list(self, user_input)
         return {input_key: id_list}

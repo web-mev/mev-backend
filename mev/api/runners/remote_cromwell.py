@@ -219,7 +219,7 @@ class RemoteCromwellRunner(OperationRunner):
         the file), and turns it into a cloud-based path that Cromwell can access.
         '''
         # create/write the input JSON to a file in the staging location
-        arg_dict = self._map_inputs(op_dir, validated_inputs)
+        arg_dict = self._map_inputs(op_dir, validated_inputs, staging_dir)
         wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
         with open(wdl_input_path, 'w') as fout:
             json.dump(arg_dict, fout)

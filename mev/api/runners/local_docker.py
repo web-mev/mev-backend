@@ -25,8 +25,10 @@ from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource, \
     alert_admins, \
     run_shell_command
-from api.utilities.resource_utilities import delete_resource_by_pk
-from api.models import ExecutedOperation
+from api.utilities.resource_utilities import delete_resource_by_pk, \
+    get_resource_by_pk
+from api.storage_backends import get_storage_backend
+from api.models import ExecutedOperation, Resource
 from api.converters.output_converters import LocalDockerOutputConverter
 
 logger = logging.getLogger(__name__)
@@ -179,79 +181,6 @@ class LocalDockerRunner(OperationRunner):
         login_to_dockerhub()
         push_image_to_dockerhub(repo_name, git_hash)
 
-    def _map_inputs(self, op_dir, validated_inputs):
-        '''
-        Takes the inputs (which are MEV-native data structures)
-        and make them into something that we can pass to a command-line
-        call. 
-
-        For instance, this takes a DataResource (which is a UUID identifying
-        the file), and turns it into a local path.
-        '''
-        converter_dict = self._get_converter_dict(op_dir)
-        arg_dict = {}
-        for k,v in validated_inputs.items():
-            try:
-                converter_class_str = converter_dict[k] # a string telling us which converter to use
-            except KeyError as ex:
-                logger.error('Could not locate a converter for input: {i}'.format(
-                    i = k
-                ))
-                raise ex
-            try:
-                converter_class = import_string(converter_class_str)
-            except Exception as ex:
-                logger.error('Failed when importing the converter class: {clz}'
-                    ' Exception was: {ex}'.format(
-                        ex=ex,
-                        clz = converter_class_str
-                    )
-                )
-                raise ex
-            # instantiate the converter and convert the arg:
-            c = converter_class()
-            arg_dict.update(c.convert(k, v, op_dir))
-
-        return arg_dict
-
-    def _copy_data_resources(self, execution_dir, op_data, arg_dict):
-        '''
-        Copies files (DataResource, etc. instances) from the user's local cache
-        to a sandbox dir.
-
-        `execution_dir` is where we want to copy the files
-        `op_data` is the full operation "specification"
-        `arg_dict` is the user inputs, which have already been
-          mapped to appropriate commandline args
-        '''
-        for k,v in op_data['inputs'].items():
-            # v has type of OperationInput
-            spec = v['spec']
-            attribute_type = spec['attribute_type']
-            if attribute_type in self.RESOURCE_ATTR_TYPES:
-
-                # if the spec has many=True, we would need to copy
-                # the potentially >1 files
-                paths_in_cache = arg_dict[k]
-
-                # if many was False, then we are only receiving a single path.
-                # To handle in the same way as an input with > 1 files, put this
-                # path into a list
-                if type(paths_in_cache) is str:
-                    paths_in_cache = [paths_in_cache,]
-
-                # copy all the files,
-                final_paths = []
-                for p in paths_in_cache:    
-                    dest = os.path.join(execution_dir, os.path.basename(p))
-                    copy_local_resource(p, dest)
-                    final_paths.append(dest)
-
-                if type(arg_dict[k]) is str:
-                    arg_dict[k] = final_paths[0]
-                else:
-                    arg_dict[k] = final_paths
-
     def _get_entrypoint_command(self, entrypoint_file_path, arg_dict):
         '''
         Takes the entrypoint command file (a template) and the input
@@ -289,6 +218,11 @@ class LocalDockerRunner(OperationRunner):
             str(op_data['id'])
         )
 
+        # To avoid conflicts or corruption of user data, we run each operation in its
+        # own sandbox. We must first copy over their files to that sandbox dir.
+        execution_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
+        make_local_directory(execution_dir)
+
         # convert the user inputs into args compatible with commandline usage:
         # For instance, a differential gene expression requires one to specify
         # the samples that are in each group-- to do this, the Operation requires
@@ -297,14 +231,7 @@ class LocalDockerRunner(OperationRunner):
         # that the call with use- e.g. making a CSV list to submit as one of the args
         # like:
         # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
-        arg_dict = self._map_inputs(op_dir, validated_inputs)
-
-        # Note that any paths (i.e. DataResources) are currently in the user cache directory.
-        # To avoid conflicts, we want to run each operation in its own sandbox, so we
-        # copy over any DataResources to a new directory:
-        execution_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
-        make_local_directory(execution_dir)
-        self._copy_data_resources(execution_dir, op_data, arg_dict)
+        arg_dict = self._map_inputs(op_dir, validated_inputs, execution_dir)
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)
