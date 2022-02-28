@@ -118,7 +118,7 @@ class WorkspaceResourceRemove(APIView):
             raise ex
         except Exception as ex:
             return Response({
-                    'resource_uuid':'The owner of the workspace and '
+                    'message':'The owner of the workspace and '
                     'resource must be the same.'
                 }, status=status.HTTP_400_BAD_REQUEST
             )
@@ -147,8 +147,13 @@ class WorkspaceResourceRemove(APIView):
                     return Response(status=status.HTTP_200_OK)
             else:
                 # the resource was NOT associated with that workflow
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response(                        
+                    {'message': ('Resource was not associated with the'
+                            ' requested workspace and hence cannot be removed.')
+                    }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(                        
+                        {'message': 'Could not remove the resource from your workspace.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 
