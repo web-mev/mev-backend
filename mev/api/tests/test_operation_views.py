@@ -139,6 +139,64 @@ class ExecutedOperationListTests(BaseAPITestCase):
         j = response.json()
         self.assertTrue(len(j)==len(all_workspace_exec_ops))
 
+
+    def test_exec_ops_returns_inactive_ops(self):
+        '''
+        As operations are updated, we will encounter situations where
+        certain Operation instances are marked as 'inactive'. That inactive
+        status effectively hides the older tools from being run again. However, a 
+        user should still be able to see the results of analyses run using
+        that older tool. Whether any frontend tools are able to handle
+        updates to any tool outputs is another issue outside the scope
+        of the API
+
+        ''' 
+        url = reverse('workspace-executed-operation-list',
+            kwargs={'workspace_pk': self.workspace.pk}
+        )
+
+        inactive_ops = OperationDbModel.objects.filter(active=False)
+        if len(inactive_ops) == 0:
+            raise ImproperlyConfigured('Need at least one inactive operation to'
+                ' run this unit test.'
+            )
+        inactive_op = inactive_ops[0]
+
+        # create an ExecutedOp for that inactive op
+        exec_op_uuid = uuid.uuid4()
+        inactive_executed_op = WorkspaceExecutedOperation.objects.create(
+            id = exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            operation = inactive_op,
+            job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+
+        all_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(owner=self.regular_user_1)
+        all_active_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(
+            owner=self.regular_user_1,
+            operation__active = True    
+        )
+        all_inactive_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(
+            owner=self.regular_user_1,
+            operation__active = False    
+        )
+        response = self.authenticated_regular_client.get(url)
+        j = response.json()
+        self.assertTrue(len(j)==len(all_workspace_exec_ops))
+
+        queried_active = [x['id'] for x in j if x['operation']['active'] == True]
+        queried_inactive = [x['id'] for x in j if x['operation']['active'] == False]
+        self.assertCountEqual(
+            queried_active,
+            [str(x.pk) for x in all_active_workspace_exec_ops]
+        )
+        self.assertCountEqual(
+            queried_inactive,
+            [str(x.pk) for x in all_inactive_workspace_exec_ops]
+        )
+
     def test_list_of_exec_ops(self):
         '''
         In our setup, we only have one ExecutedOperation associated
@@ -191,6 +249,8 @@ class ExecutedOperationListTests(BaseAPITestCase):
         )
         other_user_exec_ops = ExecutedOperation.objects.filter(owner=self.regular_user_2)
         self.assertTrue(len(other_user_exec_ops) == 1)
+
+        # now test that this user can "see" the new executed op
         response = self.authenticated_other_client.get(url)
         j = response.json()
         s1 = set([x.pk for x in reg_user_exec_ops])

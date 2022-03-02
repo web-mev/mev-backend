@@ -9,7 +9,8 @@ class OperationField(serializers.RelatedField):
         return {
             'operation_id': str(value.id),
             'operation_name': value.name,
-            'categories': categories
+            'categories': categories,
+            'active': value.active
         }
 
 class WorkspaceExecutedOperationSerializer(serializers.ModelSerializer):
