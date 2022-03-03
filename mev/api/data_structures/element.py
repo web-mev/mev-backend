@@ -2,6 +2,7 @@ import copy
 from rest_framework.exceptions import ValidationError
 
 import api.utilities as api_utils
+import api.exceptions as api_exceptions
 from api.data_structures import create_attribute
 
 class BaseElement(object):
