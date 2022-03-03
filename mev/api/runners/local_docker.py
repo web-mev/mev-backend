@@ -11,10 +11,7 @@ from django.utils.module_loading import import_string
 
 from api.runners.base import OperationRunner
 from api.utilities.operations import get_operation_instance_data
-from api.utilities.docker import build_docker_image, \
-    login_to_dockerhub, \
-    push_image_to_dockerhub, \
-    check_if_container_running, \
+from api.utilities.docker import check_if_container_running, \
     check_container_exit_code, \
     get_finish_datetime, \
     remove_container, \
@@ -166,7 +163,7 @@ class LocalDockerRunner(OperationRunner):
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):
         '''
-        Prepares the Operation, including building and pushing the Docker container
+        Prepares the Operation, including pulling the Docker container
 
         `operation_dir` is the directory where the staged repository is held
         `repo_name` is the name of the repository. Used for the Docker image name

@@ -4,6 +4,7 @@ import logging
 from django.conf import settings
 
 from api.utilities.basic_utils import run_shell_command
+from api.container_registries import get_container_registry
 
 logger = logging.getLogger(__name__)
 
@@ -12,64 +13,23 @@ DOCKER_INSPECT_CMD = 'docker inspect {container_id} --format="{{{{{field}}}}}"'
 DOCKER_RUNNING_FLAG = 'running' # the "state" when a container is running
 DOCKER_EXITED_FLAG = 'exited' # the "state" when a container has exited (for whatever reason)
 
-def build_docker_image(image, tag, dockerfile, context_dir):
+def pull_image(remote_container_url):
     '''
-    Prepares the Operation, including building and pushing the Docker container
-
-    `operation_dir` is the directory where the staged repository is held
-    `git_hash` is the commit hash and it allows us to version the docker container
-        the same as the git repository
+    Provided with a fully qualifed docker image
+    url, pull the image to this machine. 
     '''
-
-    DOCKER_BUILD_CMD = 'docker build --no-cache -t {username}/{image}:{tag} -f {dockerfile} {context_dir}'
-    
-    if len(tag) == 0:
-        tag = 'latest'
-    
-    build_cmd = DOCKER_BUILD_CMD.format(
-        username = settings.DOCKERHUB_ORG,
-        image = image.lower(),
-        tag = tag,
-        dockerfile = dockerfile,
-        context_dir = context_dir
-    )
-    logger.info('Building Docker image for local operation with: {cmd}'.format(
-        cmd = build_cmd
-    ))
-    stdout, stderr = run_shell_command(build_cmd)
-    logger.info('Successfully built image.')
-
-def login_to_dockerhub():
-    DOCKER_LOGIN_CMD = 'docker login -u {username} -p {password}'
-
-    login_cmd = DOCKER_LOGIN_CMD.format(
-        username = settings.DOCKERHUB_USERNAME,
-        password = settings.DOCKERHUB_PASSWORD
-    )
-    logger.info('Attempting login to Dockerhub with: {cmd}'.format(
-        cmd = login_cmd
-    ))
-    stdout, stderr = run_shell_command(login_cmd)
-    logger.info('Successfully logged into Dockerhub')   
-
-def push_image_to_dockerhub(image, tag):
-
-    IMAGE_STR = '{username}/{image}:{tag}'
-    DOCKER_PUSH_CMD = 'docker push {img_str}'
-    image_str = IMAGE_STR.format(
-        username = settings.DOCKERHUB_ORG,
-        image = image.lower(),
-        tag = tag
-    )
-    push_cmd = DOCKER_PUSH_CMD.format(
-        img_str = image_str
-    ) 
-    logger.info('Push Docker image with: {cmd}'.format(cmd=push_cmd))
-    stdout, stderr = run_shell_command(push_cmd)
-    logger.info('Successfully pushed image.')
-    return image_str
+    pull_cmd = 'docker pull {x}'.format(x=remote_container_url)
+    try:
+        stdout, stderr = run_shell_command(pull_cmd)
+        logger.info('Successfully pulled Docker image')
+    except Exception as ex:
+        logger.error('Docker pull failed.')
+        raise ex
 
 def get_logs(container_id):
+    '''
+    Queries the logs from a given container
+    '''
     log_cmd = 'docker logs {id}'.format(id=container_id)
     logger.info('Query Docker logs with: {cmd}'.format(cmd=log_cmd))
     try:
@@ -139,18 +99,6 @@ def check_container_exit_code(container_id):
             id=container_id
         ))
         #TODO: do anything else here?
-
-def check_container_logs(container_id):
-    '''
-    Gets the logs from a container-- processes should dump errors to stderr, but
-    this gets anything printed to stdout/stderr
-    '''
-    cmd = 'docker logs {container_id}'.format(container_id=container_id)
-    logger.info('Check logs on local Docker container with: {cmd}'.format(
-        cmd = cmd
-    ))
-    stdout, stderr = run_shell_command(cmd)
-    return stdout.decode('utf-8')
 
 def get_timestamp_as_datetime(container_id, field):
     cmd = DOCKER_INSPECT_CMD.format(container_id=container_id, field=field)

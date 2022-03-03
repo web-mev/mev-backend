@@ -208,8 +208,6 @@ MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 
 # A directory where we hold user uploads while they are validated.
 # After validation, they are moved to a users' own storage
-# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
-# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 PENDING_FILES_DIR = os.path.join(DATA_DIR, 'pending_user_uploads')
 if not os.path.exists(PENDING_FILES_DIR):
     raise ImproperlyConfigured('Please create a directory for the'
@@ -340,13 +338,9 @@ if ENABLE_REMOTE_JOBS and (STORAGE_LOCATION==LOCAL):
 # In the case of remote storage backends (e.g. buckets), we want the ability
 # to locally cache the files for faster access.  Files in this directory
 # are temporary and will be removed after some period of inactivity
-# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
-# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 RESOURCE_CACHE_DIR = os.path.join(DATA_DIR, 'resource_cache')
 if not os.path.exists(RESOURCE_CACHE_DIR):
-    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
-        ' directory should persist by making use of docker volumes. This preserves'
-        ' the application state in case of API changes and restarts.'.format(
+    raise ImproperlyConfigured('There should be a directory at {d}.'.format(
             d = RESOURCE_CACHE_DIR
         )
     )
@@ -451,13 +445,10 @@ if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
 
 # the name of a directory where new Operation specifications will be cloned
 # and staged for ingestion
-# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
-# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 CLONE_STAGING_DIR = os.path.join(DATA_DIR, 'operation_staging')
 if not os.path.exists(CLONE_STAGING_DIR):
-    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
-        ' directory should persist by making use of docker volumes. This preserves'
-        ' the application state in case of API changes and restarts.'.format(
+    raise ImproperlyConfigured('There should be a directory at {d} for staging'
+        ' new operations.'.format(
             d = CLONE_STAGING_DIR
         )
     )
@@ -465,13 +456,10 @@ if not os.path.exists(CLONE_STAGING_DIR):
 OPERATION_SPEC_FILENAME = 'operation_spec.json'
 
 # a local directory where the various Operations are stashed
-# DON'T CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING. THIS NEEDS TO STAY
-# IN-SYNC WITH THE DOCKER-COMPOSE YAML
 OPERATION_LIBRARY_DIR = os.path.join(DATA_DIR, 'operations')
 if not os.path.exists(OPERATION_LIBRARY_DIR):
-    raise ImproperlyConfigured('There should be a directory at {d}. Ideally, this'
-        ' directory should persist by making use of docker volumes. This preserves'
-        ' the application state in case of API changes and restarts.'.format(
+    raise ImproperlyConfigured('There should be a directory at {d} for preserving'
+        ' operation files'.format(
             d = OPERATION_LIBRARY_DIR
         )
     )
@@ -502,6 +490,18 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 ###############################################################################
 
 ###############################################################################
+# START Settings for Docker container repos
+###############################################################################
+
+# A string indicating where the Docker containers are held 
+CONTAINER_REGISTRY = get_env('CONTAINER_REGISTRY')
+
+###############################################################################
+# END Settings for Docker container repos
+###############################################################################
+
+
+###############################################################################
 # START Settings for public datasets
 ###############################################################################
 
@@ -514,29 +514,6 @@ if not os.path.exists(PUBLIC_DATA_DIR):
 
 ###############################################################################
 # END Settings for public datasets
-###############################################################################
-
-
-###############################################################################
-# START Settings for Dockerhub 
-###############################################################################
-
-# the dockerhub username. e.g. if 'xyz', then the image would be available
-# from dockerhub at docker.io/xyz/<image>:<tag>
-DOCKERHUB_USERNAME = get_env('DOCKERHUB_USERNAME')
-DOCKERHUB_PASSWORD = get_env('DOCKERHUB_PASSWORD')
-
-if (len(DOCKERHUB_USERNAME) == 0) or (len(DOCKERHUB_PASSWORD) == 0) :
-    raise ImportError('The dockerhub username or password was blank.')
-
-DOCKERHUB_ORG = get_env('DOCKERHUB_ORG')
-
-# If the org was blank, just use the username
-if len(DOCKERHUB_ORG) == 0:
-    DOCKERHUB_ORG = DOCKERHUB_USERNAME
-
-###############################################################################
-# END Settings for Dockerhub
 ###############################################################################
 
 # Use these values as 'markers' for dataframes/tables that have infinite values.

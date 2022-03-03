@@ -298,8 +298,8 @@ def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     This function calls out to the runner to have it prepare the necessary
     elements to run the Operation.
 
-    For instance, in a local Docker-based job, we need to build the container
-    For a cromwell job, we need to build the containers and push to dockerhub
+    For instance, in a local Docker-based job, we need to pull the container
+    For a cromwell job, we need to check the containers and push to dockerhub
     '''
     run_mode = op_data['mode']
     runner_class = get_runner(run_mode)
