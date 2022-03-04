@@ -29,6 +29,7 @@
     }, 
     "outputs": {
         "something": {
+            "required": true,
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 

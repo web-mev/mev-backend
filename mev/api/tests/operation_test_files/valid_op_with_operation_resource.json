@@ -36,6 +36,7 @@
     }, 
     "outputs": {
         "norm_counts": {
+            "required": true,
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 
@@ -43,6 +44,7 @@
             }
         }, 
         "dge_table": {
+            "required": true,
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 

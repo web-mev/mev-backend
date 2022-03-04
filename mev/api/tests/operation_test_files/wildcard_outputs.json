@@ -13,6 +13,7 @@
     }, 
     "outputs": {
         "some_output": {
+            "required": true,
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "*",

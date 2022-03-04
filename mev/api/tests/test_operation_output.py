@@ -29,6 +29,7 @@ class OperationOutputTester(unittest.TestCase):
             'max': self.max_val 
         }   
         self.valid_operation_output1={ 
+            'required': True,
             'spec': self.output_spec_dict1
         }
         self.expected_result1 = self.valid_operation_output1.copy()
@@ -52,10 +53,22 @@ class OperationOutputTester(unittest.TestCase):
             'resource_type': self.rt
         }   
         self.valid_operation_output2={ 
+            'required': True,
             'spec': self.output_spec_dict2
         }
+
+        # this is invalid since it's missing the 'required' key
+        self.invalid_operation_output={ 
+            'spec': self.output_spec_dict2
+        }
+
         self.expected_result2 = self.valid_operation_output2.copy()
         self.expected_result2['spec'] = self.expected_spec_result2
+
+        self.optional_operation_output = { 
+            'required': False,
+            'spec': self.output_spec_dict2
+        }
 
     def test_serialization(self):
         '''
@@ -69,6 +82,18 @@ class OperationOutputTester(unittest.TestCase):
         o = OperationOutput(self.output_spec2)
         os = OperationOutputSerializer(o)
         self.assertDictEqual(os.data, self.expected_result2)
+
+        # test an optional output (required=False)
+        o = OperationOutput(self.output_spec2, False)
+        os = OperationOutputSerializer(o)
+        self.assertDictEqual(os.data, self.optional_operation_output)
+
+        # test that the default of required=True (no second boolean arg to
+        # the OperationOutput constructor) causes this to fail
+        o = OperationOutput(self.output_spec2)
+        os = OperationOutputSerializer(o)
+        os_data = os.data
+        self.assertTrue(os_data['required'])
 
     def test_deserialization(self):
         '''
@@ -85,8 +110,12 @@ class OperationOutputTester(unittest.TestCase):
         self.assertTrue(os.is_valid())
         self.assertDictEqual(os.data, self.expected_result2)
 
+        os = OperationOutputSerializer(data=self.invalid_operation_output)
+        self.assertFalse(os.is_valid())
+
         # Test a VariableDataResource
         valid_variable_resource_operation_output={
+            'required': True,
             'spec': {
                 'attribute_type': 'VariableDataResource', 
                 'resource_types': ['MTX', 'I_MTX'],
@@ -98,6 +127,7 @@ class OperationOutputTester(unittest.TestCase):
 
         # give it a bad input_spec to see that the error percolates:
         invalid_operation_output1={
+            'required': True,
             'spec': {
                 'attribute_type': 'DataResource', 
                 'resource_type': 'foo',
