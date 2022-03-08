@@ -13,7 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 
 from .remote_bucket import RemoteBucketStorageBackend
-
+from api.exceptions import StorageException
 from api.utilities.basic_utils import make_local_directory, get_with_retry
 
 logger = logging.getLogger(__name__)
@@ -161,15 +161,19 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             d = destination_blob
         ))
         source_blob = self.get_blob(path)
-        source_bucket = source_blob.bucket
-        destination_bucket = destination_blob.bucket
-        destination_object_name = destination_blob.name
-        source_bucket.copy_blob(source_blob, \
-            destination_bucket, \
-            new_name=destination_object_name \
-        )
-        logger.info('Completed interbucket transfer.')
-
+        if source_blob is not None:
+            source_bucket = source_blob.bucket
+            destination_bucket = destination_blob.bucket
+            destination_object_name = destination_blob.name
+            source_bucket.copy_blob(source_blob, \
+                destination_bucket, \
+                new_name=destination_object_name \
+            )
+            logger.info('Completed interbucket transfer.')
+        else:
+            logger.info('Source {p} was not found since the blob was None'.format(p=path))
+            raise FileNotFoundError('Source file was not found at {p}'.format(p=path))
+            
     def store(self, resource_instance):
         '''
         Handles moving the file described by the `resource_instance`
@@ -183,6 +187,7 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
 
         bucket = self.get_or_create_bucket()
 
+        # this is the destination
         blob = storage.Blob(relative_path, bucket)
 
         # if the resource is on the server, we need to upload. If it's already in 
@@ -204,12 +209,17 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             # This assumes we are not "mixing" different cloud providers like AWS and GCP
             try:
                 self.perform_interbucket_transfer(blob, resource_instance.path)
+            except FileNotFoundError:
+                logger.info('The source file ({path}) was not found and the interbucket'
+                ' transfer failed.'.format(path = resource_instance.path))
+                raise StorageException('Interbucket transfer failed, so file was not stored.')
             except Exception as ex:
                 logger.error('Failed to transfer between buckets.  File will'
                     ' remain at: {path}'.format(
                         path=resource_instance.path
                     )
                 )
+
         return final_path
 
     def delete(self, path):

@@ -74,13 +74,15 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
     def setUp(self):
         self.establish_clients()
 
-    @mock.patch('api.converters.output_converters.validate_and_store_resource')
-    @mock.patch('api.converters.output_converters.ResourceMetadata')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
-    def test_dataresource_converts_properly(self,
-        mock_create_resource, 
-        mock_resourcemetadata_model, 
-        mock_validate_and_store_resource):
+        all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(all_user_workspaces) < 1:
+            raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
+        self.workspace = all_user_workspaces[0]
+
+
+
+    @mock.patch('api.converters.output_converters.BaseOutputConverter.attempt_resource_addition')
+    def test_dataresource_converts_properly(self,mock_attempt_resource_addition):
         '''
         When a DataResource is created as part of an ExecutedOperation,
         the outputs give it as a path (or list of paths). Here we test the single value
@@ -90,20 +92,8 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
         '''
 
         resource_type = 'MTX'
-        resource_uuid = uuid.uuid4()
-
-        mock_resource = mock.MagicMock()
-        mock_resource.resource_type = resource_type
-        mock_resource.pk = resource_uuid
-        mock_create_resource.return_value = mock_resource
-
-        mock_resource_metadata_obj = mock.MagicMock()
-        mock_resourcemetadata_model.objects.get.return_value = mock_resource_metadata_obj
-
-        all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
-        if len(all_user_workspaces) < 1:
-            raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
-        workspace = all_user_workspaces[0]
+        resource_uuid = str(uuid.uuid4())
+        mock_attempt_resource_addition.return_value = resource_uuid
 
         c = LocalDockerOutputConverter()
         job_id = str(uuid.uuid4())
@@ -111,7 +101,7 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
         job_name = 'foo'
         executed_op = WorkspaceExecutedOperation.objects.create(
             id=job_id,
-            workspace=workspace,
+            workspace=self.workspace,
             owner=self.regular_user_1,
             inputs = {},
             operation = op,
@@ -123,27 +113,28 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
             'many': False,
             'resource_type': resource_type
         }
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
         mock_path = '/some/output/path.txt'
-        expected_name = '{n}.path.txt'.format(n=job_name)
-        return_val = c.convert_output(executed_op, workspace, output_spec, mock_path)
+        return_val = c.convert_output(executed_op, self.workspace, output_definition, mock_path)
 
-        mock_create_resource.assert_called_with(
-            self.regular_user_1,
-            workspace,
+        mock_attempt_resource_addition.assert_called_with(
+            executed_op,
+            self.workspace,
             mock_path,
-            expected_name
+            resource_type,
+            True
         )
-        mock_validate_and_store_resource.assert_called()
-        mock_resourcemetadata_model.objects.get.assert_called()
-        mock_resource_metadata_obj.save.assert_called()
         self.assertEqual(return_val, str(resource_uuid))
 
 
     @mock.patch('api.converters.output_converters.validate_and_store_resource')
     @mock.patch('api.converters.output_converters.ResourceMetadata')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
+    @mock.patch('api.converters.output_converters.BaseOutputConverter.attempt_resource_addition')
     def test_dataresource_converts_list_properly(self,
-        mock_create_resource, 
+        mock_attempt_resource_addition, 
         mock_resourcemetadata_model, 
         mock_validate_and_store_resource):
         '''
@@ -155,28 +146,9 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
         '''
 
         resource_type = 'MTX'
-        resource1_uuid = uuid.uuid4()
-        resource2_uuid = uuid.uuid4()
-
-        mock_resource1 = mock.MagicMock()
-        mock_resource2 = mock.MagicMock()
-        mock_resource1.resource_type = resource_type
-        mock_resource2.resource_type = resource_type
-        mock_resource1.pk = resource1_uuid
-        mock_resource2.pk = resource2_uuid
-        mock_create_resource.side_effect = [mock_resource1, mock_resource2]
-
-        mock_resource_metadata_obj1 = mock.MagicMock()
-        mock_resource_metadata_obj2 = mock.MagicMock()
-        mock_resourcemetadata_model.objects.get.side_effect = [
-            mock_resource_metadata_obj1,
-            mock_resource_metadata_obj2
-        ]
-
-        all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
-        if len(all_user_workspaces) < 1:
-            raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
-        workspace = all_user_workspaces[0]
+        resource1_uuid = str(uuid.uuid4())
+        resource2_uuid = str(uuid.uuid4())
+        mock_attempt_resource_addition.side_effect = [resource1_uuid, resource2_uuid]
 
         c = LocalDockerOutputConverter()
         job_id = str(uuid.uuid4())
@@ -184,7 +156,7 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
         job_name = 'foo'
         executed_op = WorkspaceExecutedOperation.objects.create(
             id=job_id,
-            workspace=workspace,
+            workspace=self.workspace,
             owner=self.regular_user_1,
             inputs = {},
             operation = op,
@@ -196,78 +168,55 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
             'many': True,
             'resource_type': resource_type
         }
+        output_required = True
+        output_definition = {
+            'required': output_required,
+            'spec': output_spec
+        }
         mock_path1 = '/some/output/path1.txt'
         mock_path2 = '/some/output/path2.txt'
         return_val = c.convert_output(executed_op, 
-            workspace, 
-            output_spec, 
+            self.workspace, 
+            output_definition, 
             [
                 mock_path1,
                 mock_path2
             ]
         )
 
-        expected_name1 = '{n}.path1.txt'.format(n=job_name)
-        expected_name2 = '{n}.path2.txt'.format(n=job_name)
         call1 = mock.call(
-            self.regular_user_1,
-            workspace,
+            executed_op,
+            self.workspace,
             mock_path1,
-            expected_name1
+            resource_type,
+            output_required
         )
         call2 = mock.call(
-            self.regular_user_1,
-            workspace,
+            executed_op,
+            self.workspace,
             mock_path2,
-            expected_name2
+            resource_type,
+            output_required
         )
-        mock_create_resource.assert_has_calls([
+        mock_attempt_resource_addition.assert_has_calls([
             call1,
             call2
         ])
-        self.assertEqual(mock_validate_and_store_resource.call_count, 2)
-        self.assertEqual(mock_resourcemetadata_model.objects.get.call_count, 2)
-        mock_resource_metadata_obj1.save.assert_called()
-        mock_resource_metadata_obj2.save.assert_called()
         self.assertCountEqual(return_val, [str(resource1_uuid), str(resource2_uuid)])
 
-    @mock.patch('api.converters.output_converters.validate_and_store_resource')
-    @mock.patch('api.converters.output_converters.ResourceMetadata')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
-    @mock.patch('api.converters.output_converters.delete_resource_by_pk')
-    def test_dataresource_failure_handled_properly(self,
-        mock_delete_resource_by_pk,
-        mock_create_resource, 
-        mock_resourcemetadata_model, 
-        mock_validate_and_store_resource):
+    @mock.patch('api.converters.output_converters.BaseOutputConverter.cleanup')
+    @mock.patch('api.converters.output_converters.BaseOutputConverter.attempt_resource_addition')
+    def test_dataresource_failure_handled_properly_case1(self,
+        mock_attempt_resource_addition,
+        mock_clean):
         '''
-        Here we test that the proper functions are called when one of the outputs
-        fails validation.
+        Ensures that the cleanup method is called in the case where an exception
+        is raised when attempting to add a resource (e.g. through failure to 
+        validate). 
 
-        The first one "passes validation", but the second one will fail.
+        Here, only a single file is requested (which fails)
         '''
-
-        resource_type = 'MTX'
-        resource1_uuid = uuid.uuid4()
-        resource2_uuid = uuid.uuid4()
-
-        mock_resource1 = mock.MagicMock()
-        mock_resource2 = mock.MagicMock()
-        mock_resource1.resource_type = resource_type
-        # don't set the resource_type on mock_resource2 so it 
-        # mocks the validation failure.
-
-        mock_resource1.pk = resource1_uuid
-        mock_resource2.pk = resource2_uuid
-        mock_create_resource.side_effect = [mock_resource1, mock_resource2]
-
-        mock_resource_metadata_obj1 = mock.MagicMock()
-        mock_resourcemetadata_model.objects.get.return_value = mock_resource_metadata_obj1
-
-        all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
-        if len(all_user_workspaces) < 1:
-            raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
-        workspace = all_user_workspaces[0]
+        mock_attempt_resource_addition.side_effect = OutputConversionException('something bad')
 
         c = LocalDockerOutputConverter()
         job_id = str(uuid.uuid4())
@@ -275,57 +224,203 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
         job_name = 'foo'
         executed_op = WorkspaceExecutedOperation.objects.create(
             id=job_id,
-            workspace=workspace,
+            workspace=self.workspace,
             owner=self.regular_user_1,
             inputs = {},
             operation = op,
             mode = '',
             job_name = job_name
         )
+        resource_type = 'MTX'
+        output_spec = {
+            'attribute_type': 'DataResource',
+            'many': False,
+            'resource_type': resource_type
+        }
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
+        mock_path = '/some/output/path.txt'
+        with self.assertRaises(OutputConversionException) as ex:
+            c.convert_output(executed_op, self.workspace, output_definition, mock_path)
+        mock_clean.assert_called_with([])
+        mock_attempt_resource_addition.assert_called_with(
+            executed_op,
+            self.workspace,
+            mock_path,
+            resource_type,
+            True
+        )
+
+    @mock.patch('api.converters.output_converters.BaseOutputConverter.cleanup')
+    @mock.patch('api.converters.output_converters.BaseOutputConverter.attempt_resource_addition')
+    def test_dataresource_failure_handled_properly_case2(self,
+        mock_attempt_resource_addition,
+        mock_clean):
+        '''
+        Ensures that the cleanup method is called in the case where an exception
+        is raised when attempting to add a resource (e.g. through failure to 
+        validate). 
+
+        Here, we test a situation where the first file passes
+        but the second file fails.
+        '''
+        mock_uuid = str(uuid.uuid4())
+        mock_attempt_resource_addition.side_effect = [
+            mock_uuid,
+            OutputConversionException('something bad')
+        ]
+        c = LocalDockerOutputConverter()
+        job_id = str(uuid.uuid4())
+        op = Operation.objects.all()[0]
+        job_name = 'foo'
+        executed_op = WorkspaceExecutedOperation.objects.create(
+            id=job_id,
+            workspace=self.workspace,
+            owner=self.regular_user_1,
+            inputs = {},
+            operation = op,
+            mode = '',
+            job_name = job_name
+        )
+        output_required = True
+        resource_type = 'MTX'
         output_spec = {
             'attribute_type': 'DataResource',
             'many': True,
             'resource_type': resource_type
         }
+        output_definition = {
+            'required': output_required,
+            'spec': output_spec
+        }
         mock_path1 = '/some/output/path1.txt'
         mock_path2 = '/some/output/path2.txt'
+        mock_paths = [mock_path1, mock_path2]
         with self.assertRaises(OutputConversionException) as ex:
-            c.convert_output(executed_op, 
-                workspace, 
-                output_spec, 
-                [
-                    mock_path1,
-                    mock_path2
-                ]
-            )
+            c.convert_output(executed_op, self.workspace, output_definition, mock_paths)
 
-        # the create_resource method should have been called twice
-        expected_name1 = '{n}.path1.txt'.format(n=job_name)
-        expected_name2 = '{n}.path2.txt'.format(n=job_name)
         call1 = mock.call(
-            self.regular_user_1,
-            workspace,
+            executed_op,
+            self.workspace,
             mock_path1,
-            expected_name1
+            resource_type,
+            output_required
         )
         call2 = mock.call(
-            self.regular_user_1,
-            workspace,
+            executed_op,
+            self.workspace,
             mock_path2,
-            expected_name2
+            resource_type,
+            output_required
         )
-        mock_create_resource.assert_has_calls([
+        mock_attempt_resource_addition.assert_has_calls([
             call1,
             call2
         ])
-        
-        self.assertEqual(mock_resourcemetadata_model.objects.get.call_count, 1)
-        mock_resource_metadata_obj1.save.assert_called()
+        mock_clean.assert_called_with([mock_uuid])
 
-        mock_delete_resource_by_pk.assert_has_calls([
-            mock.call(str(resource1_uuid)),
-            mock.call(str(resource2_uuid))
-        ], any_order = True)
+
+    # @mock.patch('api.converters.output_converters.validate_and_store_resource')
+    # @mock.patch('api.converters.output_converters.ResourceMetadata')
+    # @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
+    # @mock.patch('api.converters.output_converters.delete_resource_by_pk')
+    # def test_dataresource_failure_handled_properly(self,
+    #     mock_delete_resource_by_pk,
+    #     mock_create_resource, 
+    #     mock_resourcemetadata_model, 
+    #     mock_validate_and_store_resource):
+    #     '''
+    #     Here we test that the proper functions are called when one of the outputs
+    #     fails validation.
+
+    #     The first one "passes validation", but the second one will fail.
+    #     '''
+
+    #     resource_type = 'MTX'
+    #     resource1_uuid = uuid.uuid4()
+    #     resource2_uuid = uuid.uuid4()
+
+    #     mock_resource1 = mock.MagicMock()
+    #     mock_resource2 = mock.MagicMock()
+    #     mock_resource1.resource_type = resource_type
+    #     # don't set the resource_type on mock_resource2 so it 
+    #     # mocks the validation failure.
+
+    #     mock_resource1.pk = resource1_uuid
+    #     mock_resource2.pk = resource2_uuid
+    #     mock_create_resource.side_effect = [mock_resource1, mock_resource2]
+
+    #     mock_resource_metadata_obj1 = mock.MagicMock()
+    #     mock_resourcemetadata_model.objects.get.return_value = mock_resource_metadata_obj1
+
+    #     all_user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+    #     if len(all_user_workspaces) < 1:
+    #         raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
+    #     workspace = all_user_workspaces[0]
+
+    #     c = LocalDockerOutputConverter()
+    #     job_id = str(uuid.uuid4())
+    #     op = Operation.objects.all()[0]
+    #     job_name = 'foo'
+    #     executed_op = WorkspaceExecutedOperation.objects.create(
+    #         id=job_id,
+    #         workspace=workspace,
+    #         owner=self.regular_user_1,
+    #         inputs = {},
+    #         operation = op,
+    #         mode = '',
+    #         job_name = job_name
+    #     )
+    #     output_spec = {
+    #         'attribute_type': 'DataResource',
+    #         'many': True,
+    #         'resource_type': resource_type
+    #     }
+    #     output_definition = {
+    #         'required': True,
+    #         'spec': output_spec
+    #     }
+    #     mock_path1 = '/some/output/path1.txt'
+    #     mock_path2 = '/some/output/path2.txt'
+    #     with self.assertRaises(OutputConversionException) as ex:
+    #         c.convert_output(executed_op, 
+    #             workspace, 
+    #             output_definition, 
+    #             [
+    #                 mock_path1,
+    #                 mock_path2
+    #             ]
+    #         )
+
+    #     # the create_resource method should have been called twice
+    #     expected_name1 = '{n}.path1.txt'.format(n=job_name)
+    #     expected_name2 = '{n}.path2.txt'.format(n=job_name)
+    #     call1 = mock.call(
+    #         self.regular_user_1,
+    #         workspace,
+    #         mock_path1,
+    #         expected_name1
+    #     )
+    #     call2 = mock.call(
+    #         self.regular_user_1,
+    #         workspace,
+    #         mock_path2,
+    #         expected_name2
+    #     )
+    #     mock_create_resource.assert_has_calls([
+    #         call1,
+    #         call2
+    #     ])
+        
+    #     self.assertEqual(mock_resourcemetadata_model.objects.get.call_count, 1)
+    #     mock_resource_metadata_obj1.save.assert_called()
+
+    #     mock_delete_resource_by_pk.assert_has_calls([
+    #         mock.call(str(resource1_uuid)),
+    #         mock.call(str(resource2_uuid))
+    #     ], any_order = True)
 
     @mock.patch('api.converters.output_converters.validate_and_store_resource')
     @mock.patch('api.converters.output_converters.ResourceMetadata')
@@ -373,10 +468,13 @@ class DataResourceOutputConverterTester(BaseAPITestCase):
             'many': False,
             'resource_type': resource_type
         }
-
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
         mock_path = '/some/output/path.txt'
         expected_name = 'path.txt'
-        return_val = c.convert_output(executed_op, None, output_spec, mock_path)
+        return_val = c.convert_output(executed_op, None, output_definition, mock_path)
 
         mock_create_resource.assert_called_with(
             self.regular_user_1,
@@ -440,17 +538,20 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
             'many': False,
             'resource_types': ['MTX', 'I_MTX']
         }
-
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
         # try with a string- should raise an exception since the resource type is not known
         # otherwise
         with self.assertRaisesRegex(OutputConversionException, 'provided as an object/dict'):
-            c.convert_output(executed_op, workspace, output_spec, '/some/output/path.txt')
+            c.convert_output(executed_op, workspace, output_definition, '/some/output/path.txt')
         mock_create_resource.assert_not_called()
 
         # try with a dict, but one that does not have the correct keys 
         # (missing the resource_type key)
         with self.assertRaisesRegex(OutputConversionException, 'resource_type') as ex:
-            c.convert_output(executed_op, workspace, output_spec, 
+            c.convert_output(executed_op, workspace, output_definition, 
                 {
                     'path':'/some/output/path.txt',
                 }
@@ -460,7 +561,7 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
         # try with a dict, but one that does not have the correct keys 
         # (missing the path key)
         with self.assertRaisesRegex(OutputConversionException, 'path') as ex:
-            c.convert_output(executed_op, workspace, output_spec, 
+            c.convert_output(executed_op, workspace, output_definition, 
                 {
                     'pathS':'/some/output/path.txt',
                     'resource_type': 'MTX'
@@ -470,7 +571,7 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
 
         # a resource_type that doesn't match the spec
         with self.assertRaisesRegex(OutputConversionException, 'ANN'):
-            c.convert_output(executed_op, workspace, output_spec, 
+            c.convert_output(executed_op, workspace, output_definition, 
                 {
                     'path':'/some/output/path.txt',
                     'resource_type': 'ANN'
@@ -480,7 +581,7 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
 
         # the output is a list (with many =False set above)
         with self.assertRaisesRegex(OutputConversionException, 'dict'):
-            c.convert_output(executed_op, workspace, output_spec, 
+            c.convert_output(executed_op, workspace, output_definition, 
                 [{
                     'path':'/some/output/path.txt',
                     'resource_type': 'MTX'
@@ -494,11 +595,14 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
             'many': True,
             'resource_types': ['MTX', 'I_MTX']
         }
-
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
         # since many=True, then we should be passing a list of objects. Here,
         # we only pass a single object.
         with self.assertRaisesRegex(OutputConversionException, 'expect a list') as ex:
-            c.convert_output(executed_op, workspace, output_spec, 
+            c.convert_output(executed_op, workspace, output_definition, 
                 {
                     'path':'/some/output/path.txt',
                     'resource_type': 'ANN'
@@ -508,7 +612,7 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
 
         # here, the first and only item has the wrong type
         with self.assertRaisesRegex(OutputConversionException, 'ANN') as ex:
-            c.convert_output(executed_op, workspace, output_spec, 
+            c.convert_output(executed_op, workspace, output_definition, 
                 [{
                     'path':'/some/output/path.txt',
                     'resource_type': 'ANN'
@@ -566,10 +670,14 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
             'many': False,
             'resource_types': ['MTX', 'I_MTX']
         }
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
         # a good request- has the proper format for the output and the resource_type is 
         # permitted (based on the output_spec)
         mock_path = '/some/output/path.txt'
-        return_val = c.convert_output(executed_op, workspace, output_spec, 
+        return_val = c.convert_output(executed_op, workspace, output_definition, 
             {
                 'path': mock_path,
                 'resource_type': resource_type
@@ -657,11 +765,15 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
             'many': True,
             'resource_types': [resource_type, other_resource_type]
         }
+        output_definition = {
+            'required': True,
+            'spec': output_spec
+        }
         mock_path1 = '/some/output/path1.txt'
         mock_path2 = '/some/output/path2.txt'
         return_val = c.convert_output(executed_op, 
             workspace, 
-            output_spec, 
+            output_definition, 
             [
                 {
                     'path':mock_path1,
@@ -711,7 +823,7 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
         with self.assertRaisesRegex(OutputConversionException, unacceptable_resource_type):
             c.convert_output(executed_op, 
                 workspace, 
-                output_spec, 
+                output_definition, 
                 [
                     {
                         'path':mock_path1,
@@ -763,7 +875,7 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
         with self.assertRaisesRegex(OutputConversionException, other_resource_type):
             c.convert_output(executed_op, 
                 workspace, 
-                output_spec, 
+                output_definition, 
                 [
                     {
                         'path':mock_path1,
