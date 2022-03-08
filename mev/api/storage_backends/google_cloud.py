@@ -219,7 +219,7 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
                         path=resource_instance.path
                     )
                 )
-
+                raise ex
         return final_path
 
     def delete(self, path):
