@@ -7,6 +7,7 @@ from api.utilities.resource_utilities import validate_and_store_resource, \
     delete_resource_by_pk
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
+from api.exceptions import StorageException
 from api.models import Resource, ResourceMetadata
 from api.exceptions import OutputConversionException
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
@@ -181,17 +182,20 @@ class BaseOutputConverter(object):
         # also delete other Resources associated with this output key
         [delete_resource_by_pk(x) for x in resource_uuids]
 
-    def attempt_resource_addition(self, executed_op, \
-        workspace, path, resource_type, output_required):
-
-        # the "name"  of the file as the user will see it.
-        if len(executed_op.job_name) > 0:
-            name = '{job_name}.{n}'.format(
+    def create_output_filename(self, path, job_name):
+        if len(job_name) > 0:
+            return '{job_name}.{n}'.format(
                 job_name = str(executed_op.job_name),
                 n = os.path.basename(path)
             )
         else:
-            name = os.path.basename(path)
+            return os.path.basename(path)
+
+    def attempt_resource_addition(self, executed_op, \
+        workspace, path, resource_type, output_required):
+
+        # the "name"  of the file as the user will see it.
+        name = self.create_output_filename(path, executed_op.job_name) 
 
         # create the resource in the db.
         resource = self.create_resource(executed_op.owner, \
@@ -209,6 +213,11 @@ class BaseOutputConverter(object):
             # This gives us an opportunity to handle runner-specific
             # failures if desired.
             self.handle_storage_failure(resource, output_required)
+
+            # if handle_storage_failure does not raise an 
+            # exception, then it was "ok" that this file
+            # did not store correctly (as in the case of 
+            # optional outputs)
             return None
 
         # if the `validate_and_store` method failed to validate the 
@@ -218,7 +227,10 @@ class BaseOutputConverter(object):
         # Resource and any others created as part of this output (in the
         # case where an output produces multiple outputs/Resources)
         if resource.resource_type != resource_type:
-            self.handle_invalid_resource_type(resource, resource_uuids)
+            self.handle_invalid_resource_type(resource)
+            raise OutputConversionException('Failed to validate the expected'
+                ' resource type'
+            )
         else:
             # everything worked out correctly!
             # add the info about the parent operation to the resource metadata
@@ -242,16 +254,16 @@ class BaseOutputConverter(object):
         This base method simply removes the resource and returns None
         '''
 
-        # if the output was not actually required, delete the Resource
-        # instance from the db.
-        if not output_required:
-            resource.delete()
-        else:
+        # Regardless of whether the output was required, we
+        # delete the database instance so we don't have corrupted
+        # contents in the database
+        resource.delete()
+        if output_required:
             # output WAS required, but we failed to store. That's a problem
             raise OutputConversionException('A storage exception was '
                 ' encountered when attempting to store a required output ')
 
-    def handle_invalid_resource_type(self, resource, other_resource_uuids):
+    def handle_invalid_resource_type(self, resource):
         '''
         If a resource fails to validate to its expected type, then we delete
         that Resource and any others that were created for this particular
@@ -265,8 +277,6 @@ class BaseOutputConverter(object):
         # delete the current Resource that failed
         # The cast to a str is not necessary, but makes unit testing slightly simpler
         delete_resource_by_pk(str(resource.pk))
-
-
 
     def create_resource(self, owner, workspace, path, name, output_required):
         logger.info('From executed operation outputs based on a local job,'
