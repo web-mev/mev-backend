@@ -7,6 +7,7 @@ from api.utilities.resource_utilities import validate_and_store_resource, \
     delete_resource_by_pk
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
+from api.exceptions import StorageException
 from api.models import Resource, ResourceMetadata
 from api.exceptions import OutputConversionException
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class BaseOutputConverter(object):
 
-    def convert_output(self, executed_op, workspace, output_spec, output_val):
+    def convert_output(self, executed_op, workspace, output_definition, output_val):
         '''
         Converts the output payload from an ExecutedOperation into something
         that WebMEV can work with.
@@ -24,6 +25,12 @@ class BaseOutputConverter(object):
         not associated with any Workspace (As would be the case for an upload
         performed by a job runner)
         '''
+        # is this output actually required? Some jobs may have optional outputs
+        # and a failure to locate the corresponding output is NOT a failure.
+        output_required = output_definition['required']
+
+        # the specification- what kind of output data do we expect?
+        output_spec = output_definition['spec']
         attribute_type = output_spec['attribute_type']
         if attribute_type == DataResourceAttribute.typename:
             # check if many
@@ -45,50 +52,18 @@ class BaseOutputConverter(object):
                 ))
                 # p is a path in the execution "sandbox" directory or bucket,
                 # depending on the runner.
-                # Create a new Resource and use the storage 
-                # driver to send the file to its final location.
 
-                # the "name"  of the file as the user will see it.
-                if len(executed_op.job_name) > 0:
-                    name = '{job_name}.{n}'.format(
-                        job_name = str(executed_op.job_name),
-                        n = os.path.basename(p)
+                try:
+                    new_resource_uuid = self.attempt_resource_addition(
+                        executed_op, workspace, p, resource_type, output_required
                     )
-                else:
-                    name = os.path.basename(p)
-
-                # create and validate the resource against its expected type
-                resource = self.create_resource(executed_op.owner, workspace, p, name)
-                validate_and_store_resource(resource, resource_type)
-
-                # if the `validate_and_store` method failed for some reason, then 
-                # the resource_type attribute will not match the desired type.
-                # That's a problem and we need to "roll back" both the current
-                # Resource and any others created as part of this output (in the
-                # case where an output produces multiple outputs/Resources)
-                if resource.resource_type != resource_type:
-                    logger.info('The validation method did not set the resource type'
-                        ' which indicates that validation did not succeed. Hence, the'
-                        ' resource ({pk}) will be removed.'.format(pk=resource.pk)
-                    )
-                    # delete the current Resource that failed
-                    # The cast to a string is not necessary, but makes
-                    # the unit test easier :)
-                    delete_resource_by_pk(str(resource.pk))
-
-                    # also delete other Resources associated with this output key
-                    [delete_resource_by_pk(x) for x in resource_uuids]
-
+                    resource_uuids.append(new_resource_uuid)
+                except Exception as ex:
+                    # cleanup
+                    self.cleanup(resource_uuids)
                     # finally raise this exception which will trigger cleanup of any
                     # other outputs for this ExecutedOperation
-                    raise OutputConversionException('The resource type was not set.')
-
-                # add the info about the parent operation to the resource metadata
-                rm = ResourceMetadata.objects.get(resource=resource)
-                rm.parent_operation = executed_op
-                rm.save()
-
-                resource_uuids.append(str(resource.pk))
+                    raise OutputConversionException('')
 
             # now return the resource UUID(s) consistent with the 
             # output (e.g. if multiple, return list)
@@ -145,7 +120,7 @@ class BaseOutputConverter(object):
                 if not resource_type in potential_resource_types:
 
                     # Delete any other resources since we don't want "incomplete" outputs
-                    [delete_resource_by_pk(x) for x in resource_uuids]
+                    self.cleanup(resource_uuids)
 
                     raise OutputConversionException('The specified resource type of {rt}'
                         ' was not consistent with the permitted types of {t}'.format(
@@ -159,46 +134,18 @@ class BaseOutputConverter(object):
                 ))
                 # p is a path in the execution "sandbox" directory or bucket,
                 # depending on the runner.
-                # Create a new Resource and use the storage 
-                # driver to send the file to its final location.
 
-                # the "name"  of the file as the user will see it.
-                if len(executed_op.job_name) > 0:
-                    name = '{job_name}.{n}'.format(
-                        job_name = str(executed_op.job_name),
-                        n = os.path.basename(p)
-                    )
-                else:
-                    name = os.path.basename(p)
-                resource = self.create_resource(executed_op.owner, workspace, p, name)
-                validate_and_store_resource(resource, resource_type)
-                if resource.resource_type != resource_type:
-                    logger.info('The validation method did not set the resource type'
-                        ' which indicates that validation did not succeed. Hence, the'
-                        ' resource ({pk}) will be removed.'.format(pk=resource.pk)
-                    )            
-                    # delete the current Resource that failed
-                    # The cast to a str is not necessary, but makes unit testing slightly simpler
-                    delete_resource_by_pk(str(resource.pk))
-
-                    # also delete other Resources associated with this output key
-                    [delete_resource_by_pk(x) for x in resource_uuids]
-
+                try:
+                    new_resource_uuid = self.attempt_resource_addition(
+                        executed_op, workspace, p, resource_type, output_required
+                    )                    
+                    resource_uuids.append(new_resource_uuid)
+                except Exception as ex:
+                    # cleanup
+                    self.cleanup(resource_uuids)
                     # finally raise this exception which will trigger cleanup of any
                     # other outputs for this ExecutedOperation
-                    raise OutputConversionException('The resource type of {rt} was not set'
-                        ' on output with name {name}'.format(
-                            rt = resource_type,
-                            name = name
-                        )
-                    )
-                    
-                # add the info about the parent operation to the resource metadata
-                rm = ResourceMetadata.objects.get(resource=resource)
-                rm.parent_operation = executed_op
-                rm.save()
-
-                resource_uuids.append(str(resource.pk))
+                    raise OutputConversionException('')
 
             # now return the resource UUID(s) consistent with the 
             # output (e.g. if multiple, return list)
@@ -231,10 +178,109 @@ class BaseOutputConverter(object):
             except ValidationError as ex:
                 raise OutputConversionException(str(ex))
 
-            
-    def create_resource(self, owner, workspace, path, name):
-        logger.info('From executed operation outputs, create'
-            ' a resource at {p} with name {n}'.format(
+    def cleanup(self, resource_uuids):
+        # also delete other Resources associated with this output key
+        [delete_resource_by_pk(x) for x in resource_uuids]
+
+    def create_output_filename(self, path, job_name):
+        if len(job_name) > 0:
+            return '{job_name}.{n}'.format(
+                job_name = str(executed_op.job_name),
+                n = os.path.basename(path)
+            )
+        else:
+            return os.path.basename(path)
+
+    def attempt_resource_addition(self, executed_op, \
+        workspace, path, resource_type, output_required):
+
+        # the "name"  of the file as the user will see it.
+        name = self.create_output_filename(path, executed_op.job_name) 
+
+        # create the resource in the db.
+        resource = self.create_resource(executed_op.owner, \
+            workspace, path, name, output_required)
+
+        # Now attempt to validate and store the resource. IF this succeeds,
+        # then the resource will be moved to its final location and the resource_type
+        # field will be set.
+        # If there is an unrecoverable failure, this method will raise
+        # an exception that is caught in the calling method
+        try:
+            validate_and_store_resource(resource, resource_type)
+        except StorageException as ex:
+            logger.info('Failed to store the resource.')
+            # This gives us an opportunity to handle runner-specific
+            # failures if desired.
+            self.handle_storage_failure(resource, output_required)
+
+            # if handle_storage_failure does not raise an 
+            # exception, then it was "ok" that this file
+            # did not store correctly (as in the case of 
+            # optional outputs)
+            return None
+
+        # if the `validate_and_store` method failed to validate the 
+        # resource type for some reason, then 
+        # the resource_type attribute will not match the desired type.
+        # That's a problem and we need to "roll back" both the current
+        # Resource and any others created as part of this output (in the
+        # case where an output produces multiple outputs/Resources)
+        if resource.resource_type != resource_type:
+            self.handle_invalid_resource_type(resource)
+            raise OutputConversionException('Failed to validate the expected'
+                ' resource type'
+            )
+        else:
+            # everything worked out correctly!
+            # add the info about the parent operation to the resource metadata
+            rm = ResourceMetadata.objects.get(resource=resource)
+            rm.parent_operation = executed_op
+            rm.save()
+            return str(resource.pk)
+
+    def handle_storage_failure(self, resource, output_required):
+        '''
+        Base method for dictating behavior if a resource fails to store.
+        Note that this isn't used if an issue like fileystem corruption occurs
+        and a general exception is raised. It's used in situations where the 
+        failure is predictable and a custom exception is raised.
+
+        One common instance where this can happen is with Cromwell-based
+        jobs where outputs are optional. In that case, Cromwell still 
+        produces a path to a non-existent file. The storage backend will
+        raise an exception and this method will handle any actions to take
+
+        This base method simply removes the resource and returns None
+        '''
+
+        # Regardless of whether the output was required, we
+        # delete the database instance so we don't have corrupted
+        # contents in the database
+        resource.delete()
+        if output_required:
+            # output WAS required, but we failed to store. That's a problem
+            raise OutputConversionException('A storage exception was '
+                ' encountered when attempting to store a required output ')
+
+    def handle_invalid_resource_type(self, resource):
+        '''
+        If a resource fails to validate to its expected type, then we delete
+        that Resource and any others that were created for this particular
+        output field. This prevents there from being partial outputs which may lead
+        to confusion about a job's success.
+        '''
+        logger.info('The validation method did not set the resource type'
+            ' which indicates that validation did not succeed. Hence, the'
+            ' resource ({pk}) will be removed.'.format(pk=resource.pk)
+        )            
+        # delete the current Resource that failed
+        # The cast to a str is not necessary, but makes unit testing slightly simpler
+        delete_resource_by_pk(str(resource.pk))
+
+    def create_resource(self, owner, workspace, path, name, output_required):
+        logger.info('From executed operation outputs based on a local job,'
+            ' create a resource at {p} with name {n}'.format(
                 p = path,
                 n = name
             )
@@ -249,9 +295,8 @@ class BaseOutputConverter(object):
         resource_instance.save()
         return resource_instance
 
-        
 class LocalOutputConverter(BaseOutputConverter):
-    pass
+    pass        
 
 class RemoteOutputConverter(BaseOutputConverter):
     pass
@@ -261,4 +306,3 @@ class LocalDockerOutputConverter(LocalOutputConverter):
 
 class RemoteCromwellOutputConverter(RemoteOutputConverter):
     pass
-

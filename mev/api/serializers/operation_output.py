@@ -5,6 +5,7 @@ from api.serializers.output_spec import OutputSpecSerializer
 
 class OperationOutputSerializer(serializers.Serializer):
 
+    required = serializers.BooleanField(required=True)
     spec = OutputSpecSerializer(required=True)
 
     def to_representation(self, instance):
@@ -19,7 +20,7 @@ class OperationOutputSerializer(serializers.Serializer):
         data.
         '''
         spec = OutputSpecSerializer(data=validated_data['spec']).get_instance()
-        return OperationOutput(spec)
+        return OperationOutput(spec, validated_data['required'])
 
     def get_instance(self):
         '''

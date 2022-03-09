@@ -3,6 +3,7 @@ import os
 
 from api.tests.base import BaseAPITestCase
 from api.models import Resource
+from api.exceptions import StorageException
 from api.storage_backends.base import BaseStorageBackend
 from api.storage_backends.google_cloud import GoogleBucketStorage
 import google
@@ -100,6 +101,106 @@ class TestGoogleBucketStorage(BaseAPITestCase):
             Resource.USER_RESOURCE_STORAGE_DIRNAME, \
             str(owner_uuid), expected_basename)
         self.assertEqual(path, expected_destination)
+
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_bucket_transfer_call_case2(self, 
+        mock_settings, 
+        mock_service_account, 
+        mock_storage, mock_os_exists):
+        '''
+        If an analysis is performed remotely (so that files are located in 
+        bucket storage) and the storage backend is also bucket-based, we need to 
+        perform an inter-bucket transfer.
+
+        That interbucket method can fail for various reasons. One reason is that
+        the source file/blob does not actually exist. This will raise a StorageException
+        '''
+        resources = Resource.objects.filter(owner=self.regular_user_1)
+        r = resources[0]
+        original_path = r.path
+        owner_uuid = self.regular_user_1.pk
+        expected_basename = '{uuid}.{name}'.format(
+            uuid = str(r.pk),
+            name = os.path.basename(original_path)
+        )
+
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        mock_settings.STORAGE_CREDENTIALS = '/some/dummy/path'
+        storage_backend = GoogleBucketStorage()
+        mock_bucket = mock.MagicMock()
+        mock_upload_blob = mock.MagicMock()
+        mock_interbucket_transfer = mock.MagicMock()
+        storage_backend.get_or_create_bucket = mock.MagicMock()
+        storage_backend.get_or_create_bucket.return_value = mock_bucket
+        storage_backend.upload_blob = mock_upload_blob
+        mock_interbucket_transfer.side_effect = [FileNotFoundError('!!!')]
+        storage_backend.perform_interbucket_transfer = mock_interbucket_transfer
+
+        # If this is False, then the Resource does not exist on the local filesystem.
+        # This is what triggers the alternative behavior of performing an interbucket
+        # transfer
+        mock_os_exists.return_value = False
+
+        with self.assertRaises(StorageException) as ex:
+            storage_backend.store(r)
+
+        mock_upload_blob.assert_not_called()
+        mock_interbucket_transfer.assert_called()
+        storage_backend.get_or_create_bucket.assert_called()
+
+    @mock.patch('api.storage_backends.google_cloud.os.path.exists')
+    @mock.patch('api.storage_backends.google_cloud.storage')
+    @mock.patch('api.storage_backends.google_cloud.service_account')
+    @mock.patch('api.storage_backends.google_cloud.settings')
+    def test_bucket_transfer_call_case3(self, 
+        mock_settings, 
+        mock_service_account, 
+        mock_storage, mock_os_exists):
+        '''
+        If an analysis is performed remotely (so that files are located in 
+        bucket storage) and the storage backend is also bucket-based, we need to 
+        perform an inter-bucket transfer.
+
+        That interbucket method can fail for various reasons. If an unexpected
+        error occurs, the interbucket transfer function will raise a general
+        Exception
+        '''
+        resources = Resource.objects.filter(owner=self.regular_user_1)
+        r = resources[0]
+        original_path = r.path
+        owner_uuid = self.regular_user_1.pk
+        expected_basename = '{uuid}.{name}'.format(
+            uuid = str(r.pk),
+            name = os.path.basename(original_path)
+        )
+
+        os.environ['STORAGE_BUCKET_NAME'] = DUMMY_BUCKETNAME
+        mock_settings.STORAGE_CREDENTIALS = '/some/dummy/path'
+        storage_backend = GoogleBucketStorage()
+        mock_bucket = mock.MagicMock()
+        mock_upload_blob = mock.MagicMock()
+        mock_interbucket_transfer = mock.MagicMock()
+        storage_backend.get_or_create_bucket = mock.MagicMock()
+        storage_backend.get_or_create_bucket.return_value = mock_bucket
+        storage_backend.upload_blob = mock_upload_blob
+        mock_interbucket_transfer.side_effect = [Exception('!!!')]
+        storage_backend.perform_interbucket_transfer = mock_interbucket_transfer
+
+        # If this is False, then the Resource does not exist on the local filesystem.
+        # This is what triggers the alternative behavior of performing an interbucket
+        # transfer
+        mock_os_exists.return_value = False
+
+        with self.assertRaises(Exception) as ex:
+            storage_backend.store(r)
+
+        mock_upload_blob.assert_not_called()
+        mock_interbucket_transfer.assert_called()
+        storage_backend.get_or_create_bucket.assert_called()
+
 
     @mock.patch('api.storage_backends.google_cloud.make_local_directory')
     @mock.patch('api.storage_backends.google_cloud.os.path.exists')

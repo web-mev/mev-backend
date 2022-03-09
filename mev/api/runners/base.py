@@ -178,7 +178,7 @@ class OperationRunner(object):
             # note that the sort is not necessary, but it incurs little penalty.
             # However, it does make unit testing easier.
             for k in sorted(op_spec_outputs.keys()):
-                spec = op_spec_outputs[k]['spec'] 
+                current_output = op_spec_outputs[k]
                 try:
                     v = outputs_dict[k]
                 except KeyError as ex:
@@ -195,7 +195,7 @@ class OperationRunner(object):
                 else:
                     if v is not None:
                         logger.info('Executed operation output was not None. Convert.')
-                        converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, spec, v)
+                        converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, current_output, v)
                     else:
                         logger.info('Executed operation output was null/None.')
                         converted_outputs_dict[k] = None

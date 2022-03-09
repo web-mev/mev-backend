@@ -508,7 +508,7 @@ class TestValidateResource(BaseAPITestCase):
         validate_resource_and_store(unset_resource.pk, 'MTX')
 
         mock_validate_resource.assert_not_called()
-        mock_get_resource_size.assert_called()
+        mock_get_resource_size.assert_not_called()
         
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)

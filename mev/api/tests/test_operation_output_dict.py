@@ -2,6 +2,8 @@ import unittest
 import uuid
 import random
 
+from rest_framework.exceptions import ValidationError
+
 from resource_types import RESOURCE_MAPPING
 from api.serializers.operation_output_dict import OperationOutputDictSerializer
 from api.serializers.operation_output import OperationOutputSerializer
@@ -14,6 +16,7 @@ class OperationOutputDictTester(unittest.TestCase):
         random.shuffle(all_resource_types)
 
         self.op_output1_dict = {
+            'required': True,
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[0],
@@ -21,6 +24,16 @@ class OperationOutputDictTester(unittest.TestCase):
             }
         }
         self.op_output2_dict = {
+            'required': True,
+            'spec': {
+                'attribute_type': 'BoundedInteger',
+                'max': 10,
+                'min':0
+            }
+        }
+
+        # this is missing the `required` key
+        self.invalid_op_output_dict = {
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -34,6 +47,10 @@ class OperationOutputDictTester(unittest.TestCase):
         self.operation_output_dict = {
             'abc': self.op_output1_dict,
             'xyz': self.op_output2_dict
+        }
+
+        self.invalid_op_output = {
+            'abc': self.invalid_op_output_dict
         }
 
     def test_serialization(self):
@@ -51,11 +68,19 @@ class OperationOutputDictTester(unittest.TestCase):
         self.assertEqual(i['abc'], self.op_output1)
         self.assertEqual(i['xyz'], self.op_output2)
 
+        # assert that the invalid outputs (no 'required' key) ends up 
+        # raising an exception.
+        o = OperationOutputDictSerializer(data=self.invalid_op_output)
+        with self.assertRaisesRegex(ValidationError, 'required'):
+            o.is_valid(raise_exception=True)
+
+
     def test_equality(self):
         '''
         Tests that the '==' overload works as expected.
         '''
         od1 = {
+            'required': True,
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -63,6 +88,7 @@ class OperationOutputDictTester(unittest.TestCase):
             }
         }
         od2 = {
+            'required': True,
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -70,6 +96,7 @@ class OperationOutputDictTester(unittest.TestCase):
             }
         }
         od3 = {
+            'required': True,
             'spec': {
                 'attribute_type': 'Integer',
             }

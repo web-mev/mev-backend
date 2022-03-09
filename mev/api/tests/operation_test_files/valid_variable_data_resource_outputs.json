@@ -13,6 +13,7 @@
     }, 
     "outputs": {
         "some_output": {
+            "required": true,
             "spec": {
                 "attribute_type": "VariableDataResource", 
                 "resource_types": ["MTX","I_MTX"],

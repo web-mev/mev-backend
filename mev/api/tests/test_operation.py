@@ -48,6 +48,7 @@ class OperationTester(unittest.TestCase):
             }
         }
         self.op_output1_dict = {
+            'required': True,
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[0],
@@ -55,6 +56,7 @@ class OperationTester(unittest.TestCase):
             }
         }
         self.op_output2_dict = {
+            'required': True,
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[1],

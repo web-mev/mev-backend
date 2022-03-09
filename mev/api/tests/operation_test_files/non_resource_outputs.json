@@ -15,6 +15,7 @@
     }, 
     "outputs": {
         "pval": {
+            "required": true,
             "spec": {
                 "attribute_type": "BoundedFloat", 
                 "min": 0, 
@@ -22,11 +23,13 @@
             }
         },
         "some_integer": {
+            "required": true,
             "spec": {
                 "attribute_type": "Integer"
             }
         },
         "some_bool": {
+            "required": true,
             "spec": {
                 "attribute_type": "Boolean"
             }

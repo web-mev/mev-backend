@@ -83,3 +83,10 @@ class OutputConversionException(Exception):
     we expect)
     '''
     pass
+
+class StorageException(Exception):
+    '''
+    This is raised as part of storage operations where failure is predicted (i.e. 
+    it's not a generic catch-all failure that we did not expect)
+    '''
+    pass

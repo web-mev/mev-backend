@@ -8,7 +8,7 @@ from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource, ResourceMetadata, ExecutedOperation, OperationResource
-from api.exceptions import AttributeValueError
+from api.exceptions import AttributeValueError, StorageException
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
     move_resource, \
@@ -445,7 +445,14 @@ def validate_and_store_resource(resource, requested_resource_type):
     # final storage backend, we can handle all the variations in the same manner.
     try:
         resource.path = move_resource_to_final_location(resource)
+    except StorageException as ex:
+        # this exception 
+        logger.info('In validate_and_store, the resource {pk} failed to store.'.format(
+            pk = str(resource.pk)
+        ))
+        raise ex
     except Exception as ex:
+        # Catch other unexpected storage errors here
         logger.error('Caught an exception when moving the Resource {pk} to its'
             ' final location.  Exception was: {ex}'.format(
                 pk = str(resource.pk),
@@ -458,14 +465,14 @@ def validate_and_store_resource(resource, requested_resource_type):
             validate_resource(resource, requested_resource_type)
         except Exception as ex:
             resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
+        # save the filesize as well
+        resource.size = get_resource_size(resource)
 
     # regardless of what happened above, set the 
     # status to be active (so changes can be made)
     # and save the instance
     resource.is_active = True
 
-    # save the filesize as well
-    resource.size = get_resource_size(resource)
     resource.save()
 
 def resource_supports_pagination(resource_type_str):
