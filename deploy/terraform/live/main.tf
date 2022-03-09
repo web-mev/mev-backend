@@ -91,9 +91,8 @@ module "api" {
     gmail_client_id = var.gmail_client_id
     gmail_client_secret = var.gmail_client_secret
     sentry_url = var.sentry_url
-    dockerhub_username = var.dockerhub_username
-    dockerhub_passwd = var.dockerhub_passwd
-    dockerhub_org = var.dockerhub_org
+    container_registry = var.container_registry
+    docker_repo_org = var.docker_repo_org
     service_account_email = var.service_account_email
     ssl_cert = var.ssl_cert
     storage_location = var.storage_location

@@ -15,7 +15,9 @@ from api.utilities.docker import check_if_container_running, \
     check_container_exit_code, \
     get_finish_datetime, \
     remove_container, \
-    get_logs
+    get_logs, \
+    pull_image, \
+    get_image_name_and_tag
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
@@ -61,7 +63,7 @@ class LocalDockerRunner(OperationRunner):
     DOCKER_RUN_CMD = ('docker run -d --name {container_name}'
         ' -v {execution_mount}:/{work_dir}'
         ' --env WORKDIR={job_dir}'
-        ' --entrypoint="" {repo_name}/{image}:{tag} {cmd}')
+        ' --entrypoint="" {docker_image} {cmd}')
 
     def check_status(self, job_uuid):
         container_is_running = check_if_container_running(job_uuid)
@@ -170,13 +172,8 @@ class LocalDockerRunner(OperationRunner):
         `git_hash` is the commit hash and it allows us to version the docker container
             the same as the git repository
         '''
-        build_docker_image(repo_name, 
-            git_hash, 
-            os.path.join(operation_dir, self.DOCKER_DIR, self.DOCKERFILE), 
-            os.path.join(operation_dir, self.DOCKER_DIR)
-        )
-        login_to_dockerhub()
-        push_image_to_dockerhub(repo_name, git_hash)
+        image_url = get_image_name_and_tag(repo_name, git_hash)
+        pull_image(image_url)
 
     def _get_entrypoint_command(self, entrypoint_file_path, arg_dict):
         '''
@@ -250,15 +247,18 @@ class LocalDockerRunner(OperationRunner):
             )
         entrypoint_cmd = self._get_entrypoint_command(entrypoint_file_path, arg_dict)
 
+        image_str = get_image_name_and_tag(
+            op_data['repo_name'],
+            op_data['git_hash']
+        )
+
         cmd = self.DOCKER_RUN_CMD.format(
             container_name = execution_uuid,
             execution_mount = settings.OPERATION_EXECUTION_DIR,
             work_dir = settings.OPERATION_EXECUTION_DIR,
             job_dir = execution_dir,
-            cmd = entrypoint_cmd,
-            repo_name = settings.DOCKERHUB_ORG,
-            image = op_data['repo_name'].lower(),
-            tag = op_data['git_hash']
+            docker_image = image_str
+            cmd = entrypoint_cmd
         )
         try:
             run_shell_command(cmd)

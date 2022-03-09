@@ -7,4 +7,5 @@ class BaseContainerRegistry(object):
     to registries such as github, dockerhub, etc. 
     '''
     
-    def pull()
+    def construct_image_url(self, org, src_repo_name, commit_hash):
+        raise NotImplementedError('This method needs to be provided in a child class.')

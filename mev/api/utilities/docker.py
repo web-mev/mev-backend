@@ -4,7 +4,7 @@ import logging
 from django.conf import settings
 
 from api.utilities.basic_utils import run_shell_command
-from api.container_registries import get_container_registry
+from api.container_registries import get_container_registry, infer_container_registry_based_on_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,33 @@ logger = logging.getLogger(__name__)
 DOCKER_INSPECT_CMD = 'docker inspect {container_id} --format="{{{{{field}}}}}"'
 DOCKER_RUNNING_FLAG = 'running' # the "state" when a container is running
 DOCKER_EXITED_FLAG = 'exited' # the "state" when a container has exited (for whatever reason)
+
+def get_tag_format(docker_repo_prefix):
+    '''
+    Returns a format string specific to the Docker repo prefix provided.
+
+    for instance, with github repos (identified by "ghcr.io"), we have tags
+    that look like "sha-<hash>".  For Dockerhub, we might only have the hash
+    '''
+    registry = infer_container_registry_based_on_prefix(docker_repo_prefix)
+    return registr.TAG_FORMAT 
+
+def check_image_exists(img_str):
+    logger.info('Check if {img} exists.'.format(img = img_str))
+    manifest_cmd = 'docker manifest inspect {img}'.format(img = img_str)
+    try:
+        stdout, stderr = run_shell_command(manifest_cmd)
+        logger.info('Successfully found Docker image')
+        return True
+    except Exception as ex:
+        logger.info('Docker image lookup failed.')
+        return False
+
+def get_image_name_and_tag(git_repository_name, commit_hash):
+    container_registry = get_container_registry()
+    org = settings.DOCKER_REPO_ORG
+    full_image_url = container_registry.construct_image_url(org, git_repository_name, commit_hash)
+    return full_image_url
 
 def pull_image(remote_container_url):
     '''

@@ -155,19 +155,14 @@ variable "sentry_url" {
   description = "The URL of the Sentry tracker. Include protocol, port"
 }
 
-variable "dockerhub_username" {
-  default     = "mev"
-  description = "The username for your Dockerhub account"
+variable "container_registry" {
+  default     = "github"
+  description = "The Docker container registry you wish to use."
 }
 
-variable "dockerhub_passwd" {
-  default     = "pass"
-  description = "The password for your Dockerhub account"
-}
-
-variable "dockerhub_org" {
-  default     = "org"
-  description = "The organization of your Dockerhub user, which determines where any Docker images will be stored. If not supplied, images will be pushed to the user account."
+variable "docker_repo_org" {
+  default     = "web-mev"
+  description = "The organization associated with your Docker containers."
 }
 
 variable "other_cors_origins" {

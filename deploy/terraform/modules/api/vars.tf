@@ -109,17 +109,13 @@ variable "sentry_url" {
   description = "The URL of the Sentry tracker. Include protocol, port"
 }
 
-variable "dockerhub_username" {
-  description = "The username for your Dockerhub account"
+variable "container_registry" {
+  description = "The docker registry you wish to use."
 }
 
-variable "dockerhub_passwd" {
-  description = "The password for your Dockerhub account"
-}
-
-variable "dockerhub_org" {
-  description = "The organization of your Dockerhub user, which determines where any Docker images will be stored. If not supplied, images will be pushed to the user account."
-  default = ""
+variable "docker_repo_org" {
+  description = "The organization associated with the chosen Docker registry."
+  default = "web-mev"
 }
 
 variable "cromwell_bucket" {

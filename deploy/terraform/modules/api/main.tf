@@ -34,9 +34,8 @@ resource "google_compute_instance" "mev_server" {
         gmail_client_id = var.gmail_client_id,
         gmail_client_secret = var.gmail_client_secret,
         sentry_url = var.sentry_url,
-        dockerhub_username = var.dockerhub_username,
-        dockerhub_passwd = var.dockerhub_passwd,
-        dockerhub_org = var.dockerhub_org,
+        container_registry = var.container_registry,
+        docker_repo_org = var.docker_repo_org,
         enable_remote_job_runners = var.enable_remote_job_runners,
         remote_job_runners = var.remote_job_runners,
         service_account_email = var.service_account_email

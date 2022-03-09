@@ -350,7 +350,6 @@ if not os.path.exists(RESOURCE_CACHE_DIR):
 # parameter is used.
 RESOURCE_CACHE_EXPIRATION_DAYS = 2
 
-
 # The maximum size (in bytes) to allow "direct" downloads from the API.
 # If the file exceeds this, we ask the user to download in another way. 
 # Most files are small and this will be fine. However, we don't want users
@@ -489,12 +488,25 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
 # END Settings for Operation executions
 ###############################################################################
 
+
 ###############################################################################
 # START Settings for Docker container repos
 ###############################################################################
 
-# A string indicating where the Docker containers are held 
+# Some explanation for the items below:
+# The CONTAINER_REGISTRY defines where we pull the Docker images from. For example,
+# we can pull from the github container repos or Dockerhub. 
+# Beyond just the repo, we have the concept of an "organization". This roughly
+# corresponds to "accounts" at those container registries. After all, a fully
+# qualified Docker url is something like ghcr.io/<org>/<img>:<tag> (e.g. for
+# github) or docker.io/<org>/<img>:<tag> for Dockerhub.
+
+# A string indicating where the Docker containers are held. For available
+# options, see api.container_registries.__init__.py 
 CONTAINER_REGISTRY = get_env('CONTAINER_REGISTRY')
+
+# A string that indicates where Docker containers are held. 
+DOCKER_REPO_ORG = get_env('DOCKER_REPO_ORG')
 
 ###############################################################################
 # END Settings for Docker container repos

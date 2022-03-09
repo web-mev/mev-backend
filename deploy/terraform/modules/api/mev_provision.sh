@@ -198,19 +198,18 @@ FACTER_SENTRY_URL=${sentry_url}
 
 
 
-############################ Dockerhub related parameters ######################################
+############################ Docker related parameters ######################################
 
 # To push to the Dockerhub repository, we need to authenticate with `docker login`...
 # These credentials are used for that.
 
-FACTER_DOCKERHUB_USERNAME=${dockerhub_username}
-FACTER_DOCKERHUB_PASSWORD=${dockerhub_passwd}
+FACTER_CONTAINER_REGISTRY=${container_registry}
 
 # If we wish to associate the images with an organization account, specify this variable.
 # If not given (i.e. empty string), then images will be pushed to the username given above.
-FACTER_DOCKERHUB_ORG=${dockerhub_org}
+FACTER_DOCKER_REPO_ORG=${docker_repo_org}
 
-############################ END Dockerhub related parameters ######################################
+############################ END Docker related parameters ######################################
 
 
 ########################## Cromwell parameters #########################################

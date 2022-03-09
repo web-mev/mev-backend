@@ -19,9 +19,7 @@ from api.utilities.basic_utils import get_with_retry, post_with_retry
 from api.utilities.wdl_utils import WDL_SUFFIX, \
     get_docker_images_in_repo, \
     edit_runtime_containers
-from api.utilities.docker import build_docker_image, \
-    login_to_dockerhub, \
-    push_image_to_dockerhub
+from api.utilities.docker import check_image_exists, get_tag_format
 from api.storage_backends import get_storage_backend
 from api.cloud_backends import get_instance_zone, get_instance_region
 from api.converters.output_converters import RemoteCromwellOutputConverter
@@ -100,6 +98,7 @@ class RemoteCromwellRunner(OperationRunner):
     def prepare_operation(self, operation_dir, repo_name, git_hash):
 
         # get a list of the docker images in all the WDL files
+        # corresponding to this repo
         docker_image_names = get_docker_images_in_repo(operation_dir)
         logger.info('Found the following image names among the'
             ' WDL files: {imgs}'.format(
@@ -107,16 +106,42 @@ class RemoteCromwellRunner(OperationRunner):
             )
         )
 
-        # iterate through those, building the images
+        # We need to ensure the images are available from Cromwell's use.
+        # There are a couple situations:
+        # 1. an image is directly related to this repository (e.g. it is built
+        #    off a Dockerfile.<repo name> which exists in the repo). In this case
+        #    the image is NOT tagged with the commit hash in the WDL file since
+        #    we don't have that commit hash until AFTER we make the commit. We
+        #    obviously cannot know the tag in advance and provide that tag
+        #    in the WDL file. In this case, we check that the image can be found
+        #    (e.g. in github CR or dockerhub) and then edit the cloned WDL to tag
+        #    it. IF the image does happen to have a tag, then we do NOT edit it.
+        #    It is possible that a new commit may try to use an image built off a 
+        #    previous commit. While that is not generally how we advise, it's not
+        #    incorrect since we have an umambiguous container image reference.
+        #
+        # 2. An image is from external resources and hence NEEDS a tag. An example
+        #    might be use of a samtools Docker. It would be unnecessary to create our
+        #    own samtools docker. However, we need to unambiguously know which samtools
+        #    container we ended up using.
+        #
+        # Below, we iterate through the Docker images and make these checks/edits
         name_mapping = {}
         for full_image_name in docker_image_names:
             # image name is something like 
-            # <docker repo, e.g. docker.io>/<username>/<name>:<tag>
+            # ghcr.io/web-mev/pca:sha-abcde1234
+            # in the format of <registry>/<org>/<name>:<tag>
+            # (recall the tag does not need to exist)
+
+            # First determine whether an image tag 
+            # exists.
             split_full_name = full_image_name.split(':')
             if len(split_full_name) == 2: #if a tag is specified
                 image_prefix, tag = split_full_name
+                image_is_tagged = True
             elif len(split_full_name) == 1: # if no tag
                 image_prefix = split_full_name[0]
+                image_is_tagged = False
             else:
                 logger.error('Could not properly handle the following docker'
                     ' image spec: {x}'.format(x = full_image_name)
@@ -124,50 +149,48 @@ class RemoteCromwellRunner(OperationRunner):
                 raise Exception('Could not make sense of the docker'
                     ' image handle: {x}'.format(x=full_image_name)
                 )
+            
+            # Look at the image string (the non-tag portion)
             image_split = image_prefix.split('/')
             if len(image_split) == 3:
                 docker_repo, username, image_name = image_split
-            elif len(image_split) == 2:
-                username, image_name = image_split
             else:
                 logger.error('Could not properly handle the following docker'
-                    ' image spec: {x}'.format(x = full_image_name)
+                    ' image spec: {x}.\nBe sure to include the registry prefix'.format(
+                        x = full_image_name)
                 )
                 raise Exception('Could not make sense of the docker'
                     ' image handle: {x}'.format(x=full_image_name)
                 )
-            dockerfile_name = '{df}.{name}'.format(
-                df = self.DOCKERFILE,
-                name = image_name
-            )
-            dockerfile_path = os.path.join(
-                operation_dir, 
-                self.DOCKER_DIR, 
-                dockerfile_name
-            )
-            if not os.path.exists(dockerfile_path):
-                raise Exception('To create the Docker image for {img}, expected'
-                    ' a Dockerfile at: {p}'.format(
-                        p = dockerfile_path,
-                        img = image_prefix
+
+            # if the image_name matches the repo, then we are NOT expecting 
+            # a tag (see above).
+            # However, a tag may exist, in which case we will NOT edit that.
+            if image_name == repo_name:
+                if not image_is_tagged:
+                    tag_format = get_tag_format(docker_repo)
+                    tag = tag_format.format(hash = git_hash)
+                    final_image_name = full_image_name + ':' + tag
+                else:  # image WAS tagged and associated with this repo
+                    final_image_name = full_image_name
+            else:
+                # the image is "external" to our repo, in which case it NEEDS a tag
+                if not image_is_tagged:
+                    raise Exception('Since the Docker image {img} had a name indicating it'
+                        ' is external to the github repository, we require a tag. None'
+                        ' was found.'.format(img = full_image_name)
                     )
-                )
-            
-            # to create unambiguous images, we take the "base" image name 
-            # (e.g. docker.io/myuser/foo) and append a tag which is the
-            # github commit hash
-            # Noted that `image_prefix` does NOT include the repo (e.g. docker.io)
-            # or the username. This allows us to keep our own images in case a 
-            # developer submitted a workflow that used images associated with their
-            # personal dockerhub account
-            build_docker_image(image_name, 
-                git_hash, 
-                dockerfile_path, 
-                os.path.join(operation_dir, self.DOCKER_DIR)
-            )
-            login_to_dockerhub()
-            pushed_image_str = push_image_to_dockerhub(image_name, git_hash)
-            name_mapping[full_image_name] = pushed_image_str
+                else: # was tagged AND "external"
+                    final_image_name = full_image_name
+
+            image_found = check_image_exists(final_image_name)
+            if not image_found:
+                raise Exception('Could not locate the following'
+                    ' image: {img}. Aborting'.format(img = final_image_name))
+
+            # keep track of any "edited" image names so we can modify
+            # the WDL files
+            name_mapping[full_image_name] = final_image_name
 
         # change the name of the image in the WDL file(s), saving them in-place:
         edit_runtime_containers(operation_dir, name_mapping)
