@@ -359,7 +359,8 @@ fi
 # Add on "static" operations, such as the dropbox uploaders, etc.
 # Other operations (such as those used for a differential expression
 # analysis) are added by admins once the application is running.
-/usr/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations
+/usr/bin/python3 /opt/software/mev-backend/mev/manage.py add_static_operations -c $GIT_COMMIT
+
 chown -R $MEV_USER:$MEV_USER $FACTER_DATA_DIR/operations
 
 # Start celery:
