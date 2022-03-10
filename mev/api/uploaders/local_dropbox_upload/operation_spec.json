@@ -21,6 +21,7 @@
     }, 
     "outputs": {
         "uploaded_paths": {
+            "required" : true,
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "*",

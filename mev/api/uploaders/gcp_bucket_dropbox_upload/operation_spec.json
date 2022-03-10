@@ -38,6 +38,7 @@
     }, 
     "outputs": {
         "GCPDropboxUpload.uploaded_path": {
+            "required": true,
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "*",

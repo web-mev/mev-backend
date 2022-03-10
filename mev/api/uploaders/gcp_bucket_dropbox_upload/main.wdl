@@ -48,7 +48,7 @@ task upload {
     }
 
     runtime {
-        docker: "blawney/gcp_dropbox_upload"
+        docker: "ghcr.io/web-mev/gcp_bucket_dropbox_upload"
         cpu: 1
         memory: "4 G"
         disks: "local-disk " + disk_size + " HDD"
