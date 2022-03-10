@@ -2,8 +2,8 @@ import logging
 
 from django.conf import settings
 
-from github_cr import GithubContainerRegistry
-from dockerhub_cr import DockerhubRegistry
+from .github_cr import GithubContainerRegistry
+from .dockerhub_cr import DockerhubRegistry
 
 logger = logging.getLogger(__name__)
 

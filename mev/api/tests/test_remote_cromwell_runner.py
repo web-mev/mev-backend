@@ -60,95 +60,174 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
             status = ExecutedOperation.SUBMITTED
         )
 
+    @mock.patch('api.runners.remote_cromwell.get_tag_format')
     @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
-    @mock.patch('api.runners.remote_cromwell.build_docker_image')
-    @mock.patch('api.runners.remote_cromwell.login_to_dockerhub')
-    @mock.patch('api.runners.remote_cromwell.push_image_to_dockerhub')
+    @mock.patch('api.runners.remote_cromwell.check_image_exists')
     @mock.patch('api.runners.remote_cromwell.edit_runtime_containers')
-    @mock.patch('api.runners.remote_cromwell.os.path.exists')
-    def test_preparation_case1(self, mock_path_exists,
+    def test_preparation_case1(self,
         mock_edit_runtime_containers,
-        mock_push_image_to_dockerhub, 
-        mock_login_to_dockerhub,
-        mock_build_docker_image,
-        mock_get_docker_images_in_repo
+        mock_check_image_exists, 
+        mock_get_docker_images_in_repo,
+        mock_get_tag_format
     ):
         '''
         Tests that the proper calls are made when ingesting a workflow 
         intended to run via a remote Cromwell call.
+
+        Here, we test that a tag is added to the Docker image associated
+        with the repo and that the "external" docker image (bar:tagB)
+        is untouched.
         '''
+        # here, mock that one of the Docker images is associated with 
+        # the repo (e.g. it has the same name as the repo). The second
+        # is 'external', e.g. like a samtools Docker could be.
         mock_get_docker_images_in_repo.return_value = [
-            'docker.io/myUser/foo:tagA',
+            'docker.io/myUser/my-repo',
             'docker.io/myUser/bar:tagB',
         ]
         git_hash = 'abc123'
-        mock_path_exists.side_effect = [True, True]
-        mock_push_image_to_dockerhub.side_effect = [
-            'docker.io/mevUser/foo:%s' % git_hash,
-            'docker.io/mevUser/bar:%s' % git_hash
-        ]
+        mock_check_image_exists.side_effect = [True, True]
+        mock_get_tag_format.return_value = '{hash}'
 
         expected_name_mapping = {
-            'docker.io/myUser/foo:tagA': 'docker.io/mevUser/foo:%s' % git_hash,
-            'docker.io/myUser/bar:tagB': 'docker.io/mevUser/bar:%s' % git_hash
+            'docker.io/myUser/my-repo': 'docker.io/myUser/my-repo:%s' % git_hash,
+            'docker.io/myUser/bar:tagB': 'docker.io/myUser/bar:tagB'
         }
 
         # call the tested function:
         rcr = RemoteCromwellRunner()
         mock_op_dir = '/abc/'
-        rcr.prepare_operation(mock_op_dir, 'some-repo', git_hash)
+        rcr.prepare_operation(mock_op_dir, 'my-repo', git_hash)
 
-        self.assertEqual(mock_build_docker_image.call_count, 2)
-        mock_login_to_dockerhub.assert_called()
-        self.assertEqual(mock_push_image_to_dockerhub.call_count, 2)
+        self.assertEqual(mock_check_image_exists.call_count, 2)
         mock_edit_runtime_containers.assert_called_with(mock_op_dir, expected_name_mapping)
 
     @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
-    @mock.patch('api.runners.remote_cromwell.build_docker_image')
-    @mock.patch('api.runners.remote_cromwell.login_to_dockerhub')
-    @mock.patch('api.runners.remote_cromwell.push_image_to_dockerhub')
+    def test_preparation_case2(self, mock_get_docker_images_in_repo):
+        '''
+        Tests that the proper calls are made when ingesting a workflow 
+        intended to run via a remote Cromwell call.
+
+        Here, we test that a failure to specify the docker repo raises
+        an exception. We can't guess that they'll come from Dockerhub, GCR, etc.
+        '''
+        # here, mock that the Docker image does not have the registry prefix
+        # which is invalid as far as we are concerned
+        mock_get_docker_images_in_repo.return_value = [
+            'myUser/my-repo',
+        ]
+
+        # call the tested function:
+        rcr = RemoteCromwellRunner()
+        mock_op_dir = '/abc/'
+        with self.assertRaisesRegex(Exception, 'registry prefix'):
+            rcr.prepare_operation(mock_op_dir, 'my-repo', '')
+
+    @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
+    def test_preparation_case3(self, mock_get_docker_images_in_repo):
+        '''
+        Tests that the proper calls are made when ingesting a workflow 
+        intended to run via a remote Cromwell call.
+
+        Here, we test that a failure to specify the docker repo raises
+        an exception. We can't guess that they'll come from Dockerhub, GCR, etc.
+        '''
+        # here, mock that the image string is malformatted (e.g. two colons)
+        mock_get_docker_images_in_repo.return_value = [
+            'ghcr.io/myUser/my-repo:a:b',
+        ]
+
+        # call the tested function:
+        rcr = RemoteCromwellRunner()
+        mock_op_dir = '/abc/'
+        with self.assertRaisesRegex(Exception, 'image handle'):
+            rcr.prepare_operation(mock_op_dir, 'my-repo', '')
+
+
+    @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
+    def test_preparation_case4(self, mock_get_docker_images_in_repo):
+        '''
+        Tests that the proper calls are made when ingesting a workflow 
+        intended to run via a remote Cromwell call.
+
+        Here, we test that a failure to specify the docker repo raises
+        an exception. We can't guess that they'll come from Dockerhub, GCR, etc.
+        '''
+        # here, mock that the image string is malformatted (e.g. is missing
+        # the account/user ID)
+        mock_get_docker_images_in_repo.return_value = [
+            'ghcr.io/my-repo:a',
+        ]
+
+        # call the tested function:
+        rcr = RemoteCromwellRunner()
+        mock_op_dir = '/abc/'
+        with self.assertRaisesRegex(Exception, 'org account'):
+            rcr.prepare_operation(mock_op_dir, 'my-repo', '')
+
+    @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
+    @mock.patch('api.runners.remote_cromwell.check_image_exists')
     @mock.patch('api.runners.remote_cromwell.edit_runtime_containers')
-    @mock.patch('api.runners.remote_cromwell.os.path.exists')
-    def test_preparation_case2(self, mock_path_exists,
+    def test_preparation_case5(self,
         mock_edit_runtime_containers,
-        mock_push_image_to_dockerhub, 
-        mock_login_to_dockerhub,
-        mock_build_docker_image,
+        mock_check_image_exists, 
         mock_get_docker_images_in_repo
     ):
         '''
         Tests that the proper calls are made when ingesting a workflow 
         intended to run via a remote Cromwell call.
 
-        Here, we use docker images that do NOT have the docker.io repo prefix
+        Here, we test that an "external" image is not tagged. That is,
+        the Docker image is not originating from our repository and hence
+        requires a tag to be unambiguous
         '''
+        # here, mock that the Docker image is 'external', e.g. 
+        # like a samtools Docker could be.
         mock_get_docker_images_in_repo.return_value = [
-            'myUser/foo:tagA',
-            'myUser/bar',
+            'docker.io/myUser/foo',
         ]
-        git_hash = 'abc123'
-        mock_path_exists.side_effect = [True, True]
-        mock_push_image_to_dockerhub.side_effect = [
-            'docker.io/mevUser/foo:%s' % git_hash,
-            'docker.io/mevUser/bar:%s' % git_hash
-        ]
-
-        expected_name_mapping = {
-            'myUser/foo:tagA': 'docker.io/mevUser/foo:%s' % git_hash,
-            'myUser/bar': 'docker.io/mevUser/bar:%s' % git_hash
-        }
 
         # call the tested function:
         rcr = RemoteCromwellRunner()
         mock_op_dir = '/abc/'
-        rcr.prepare_operation(mock_op_dir, 'some-repo', git_hash)
+        with self.assertRaisesRegex(Exception, 'require a tag'):
+            rcr.prepare_operation(mock_op_dir, 'my-repo', '')
 
-        self.assertEqual(mock_build_docker_image.call_count, 2)
-        mock_login_to_dockerhub.assert_called()
-        self.assertEqual(mock_push_image_to_dockerhub.call_count, 2)
-        mock_edit_runtime_containers.assert_called_with(mock_op_dir, expected_name_mapping)
+    @mock.patch('api.runners.remote_cromwell.get_tag_format')
+    @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
+    @mock.patch('api.runners.remote_cromwell.check_image_exists')
+    @mock.patch('api.runners.remote_cromwell.edit_runtime_containers')
+    def test_preparation_case6(self,
+        mock_edit_runtime_containers,
+        mock_check_image_exists, 
+        mock_get_docker_images_in_repo,
+        mock_get_tag_format
+    ):
+        '''
+        Tests that the proper calls are made when ingesting a workflow 
+        intended to run via a remote Cromwell call.
 
+        Here, we test that an image cannot be located and that we fail accordingly
+        '''
+        # here, mock that one of the Docker images is associated with 
+        # the repo (e.g. it has the same name as the repo). The second
+        # is 'external', e.g. like a samtools Docker could be.
+        mock_get_docker_images_in_repo.return_value = [
+            'docker.io/myUser/my-repo',
+            'docker.io/myUser/bar:tagB',
+        ]
+        git_hash = 'abc123'
+        mock_check_image_exists.side_effect = [True, False]
+        mock_get_tag_format.return_value = '{hash}'
 
+        # call the tested function:
+        rcr = RemoteCromwellRunner()
+        mock_op_dir = '/abc/'
+        with self.assertRaisesRegex(Exception, 'Could not locate'):
+            rcr.prepare_operation(mock_op_dir, 'my-repo', git_hash)
+
+        self.assertEqual(mock_check_image_exists.call_count, 2)
+        mock_edit_runtime_containers.assert_not_called()
 
     @mock.patch('api.runners.remote_cromwell.datetime')
     @mock.patch('api.runners.remote_cromwell.alert_admins')

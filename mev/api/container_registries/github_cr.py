@@ -37,6 +37,6 @@ class GithubContainerRegistry(BaseContainerRegistry):
         img_str = self.construct_image_str(org, src_repo_name, commit_hash)
 
         return '{prefix}/{img}'.format(
-            prefix = GithubContainerRegistry.PREFIX
+            prefix = GithubContainerRegistry.PREFIX,
             img = img_str
         )

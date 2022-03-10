@@ -21,7 +21,7 @@ def get_tag_format(docker_repo_prefix):
     that look like "sha-<hash>".  For Dockerhub, we might only have the hash
     '''
     registry = infer_container_registry_based_on_prefix(docker_repo_prefix)
-    return registr.TAG_FORMAT 
+    return registry.TAG_FORMAT 
 
 def check_image_exists(img_str):
     logger.info('Check if {img} exists.'.format(img = img_str))

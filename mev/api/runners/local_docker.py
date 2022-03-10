@@ -257,7 +257,7 @@ class LocalDockerRunner(OperationRunner):
             execution_mount = settings.OPERATION_EXECUTION_DIR,
             work_dir = settings.OPERATION_EXECUTION_DIR,
             job_dir = execution_dir,
-            docker_image = image_str
+            docker_image = image_str,
             cmd = entrypoint_cmd
         )
         try:

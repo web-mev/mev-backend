@@ -155,13 +155,13 @@ class RemoteCromwellRunner(OperationRunner):
             if len(image_split) == 3:
                 docker_repo, username, image_name = image_split
             else:
-                logger.error('Could not properly handle the following docker'
-                    ' image spec: {x}.\nBe sure to include the registry prefix'.format(
+                err_msg = ('Could not properly handle the following docker'
+                    ' image spec: {x}.\nBe sure to include the registry prefix'
+                    ' and user/org account'.format(
                         x = full_image_name)
                 )
-                raise Exception('Could not make sense of the docker'
-                    ' image handle: {x}'.format(x=full_image_name)
-                )
+                logger.error(err_msg )
+                raise Exception(err_msg)
 
             # if the image_name matches the repo, then we are NOT expecting 
             # a tag (see above).

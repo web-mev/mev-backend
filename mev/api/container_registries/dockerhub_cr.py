@@ -13,7 +13,7 @@ class DockerhubRegistry(BaseContainerRegistry):
     PREFIX = 'docker.io'
 
     # How we expect the image tags to be formatted
-    TAG = '{hash}'
+    TAG_FORMAT = '{hash}'
 
     # The format for an image held in the dockerhub container registry. 
     # Here, we expect that the image is tagged with the SHA of the desired commit
@@ -38,6 +38,6 @@ class DockerhubRegistry(BaseContainerRegistry):
         img_str = self.construct_image_str(org, src_repo_name, commit_hash)
 
         return '{prefix}/{img}'.format(
-            prefix = DockerhubRegistry.PREFIX
+            prefix = DockerhubRegistry.PREFIX,
             img = img_str
         )
