@@ -21,6 +21,9 @@ class ExecutedOperation(models.Model):
     FINALIZING = 'Finalizing.'
     COMPLETION_SUCCESS = 'Successfully completed.'
     COMPLETION_ERROR = 'An error occurred during execution.'
+    FINALIZING_ERROR = ('An error occurred while the job was finalizing.'
+        ' An administrator has been notified.'
+    )
     ADMIN_NOTIFIED = 'An administrator has been notified.'
 
     # This tracks the unique run in our system

@@ -354,6 +354,12 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_resourcemetadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_not_called()
 
+    def test_create_output_filename(self):
+        r = self.converter.create_output_filename('/some/random/path/myfile.tsv', 'myjob')
+        self.assertEqual(r, 'myjob.myfile.tsv')
+
+        r = self.converter.create_output_filename('/some/random/path/myfile.tsv', '')
+        self.assertEqual(r, 'myfile.tsv')
 
 class DataResourceOutputConverterTester(BaseAPITestCase):
     '''

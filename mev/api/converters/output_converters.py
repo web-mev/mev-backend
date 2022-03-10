@@ -185,7 +185,7 @@ class BaseOutputConverter(object):
     def create_output_filename(self, path, job_name):
         if len(job_name) > 0:
             return '{job_name}.{n}'.format(
-                job_name = str(executed_op.job_name),
+                job_name = str(job_name),
                 n = os.path.basename(path)
             )
         else:

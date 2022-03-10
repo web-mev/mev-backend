@@ -9,6 +9,7 @@ import datetime
 
 from django.core.exceptions import ImproperlyConfigured
 
+from api.exceptions import OutputConversionException
 from api.tests.base import BaseAPITestCase
 from api.utilities.operations import read_operation_json
 from api.runners.local_docker import LocalDockerRunner
@@ -70,6 +71,38 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
 
+    @mock.patch('api.runners.local_docker.check_container_exit_code')
+    @mock.patch('api.runners.local_docker.get_finish_datetime')
+    @mock.patch('api.runners.local_docker.remove_container')
+    def test_handles_output_conversion_error(self, \
+        mock_remove_container, \
+        mock_get_finish_datetime, \
+        mock_check_container_exit_code):
+        '''
+        If a job succeeds, but the outputs fail to convert
+        for some reason, check that we give the user an appropriate
+        message and notify the admins
+        '''
+        runner = LocalDockerRunner()
+        mock_load_outputs_file = mock.MagicMock()
+        mock_load_outputs_file.return_value = {} # doesn't matter what this is
+        mock_convert_outputs = mock.MagicMock()
+        mock_convert_outputs.side_effect = [OutputConversionException('!!!')]
+
+        runner.load_outputs_file = mock_load_outputs_file
+        runner.convert_outputs = mock_convert_outputs
+
+        mock_executed_op = mock.MagicMock()
+        u = str(uuid.uuid4())
+        mock_executed_op.job_id = u
+
+        mock_get_finish_datetime.return_value = datetime.datetime.now()
+        mock_check_container_exit_code.return_value = 0
+
+        runner.finalize(mock_executed_op)
+        mock_executed_op.save.assert_called()
+        mock_remove_container.assert_called()
+        self.assertTrue(mock_executed_op.job_failed)
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')

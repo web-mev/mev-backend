@@ -13,6 +13,7 @@ from api.models.operation import Operation
 from api.models.executed_operation import ExecutedOperation
 from api.models.workspace_executed_operation import WorkspaceExecutedOperation
 from api.models.workspace import Workspace
+from api.exceptions import OutputConversionException
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -504,3 +505,36 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         mock_handle_other_job_outcome.assert_called()
         mock_handle_job_success.assert_not_called()
         mock_handle_job_failure.assert_not_called()
+
+    @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
+    @mock.patch('api.runners.remote_cromwell.alert_admins')
+    def test_conversion_failure_handled(self, \
+        mock_alert_admins,
+        mock_query_for_metadata
+    ):
+
+        mock_job_metadata = {
+            'end': '2020-10-28T00:05:03.694Z',
+            'outputs': {} # doesn't matter what this is, just that the key is there
+        }
+        expected_end_datetime = datetime.datetime(2020, 10, 28, 
+            hour=0, minute=5, second=3, microsecond=694000)
+        mock_query_for_metadata.return_value = mock_job_metadata
+
+        # query the ExecutedOp 
+        exec_op_id = self.executed_op.id
+        exec_op = ExecutedOperation.objects.get(id=exec_op_id)
+        self.assertIsNone(exec_op.outputs)
+        self.assertFalse(exec_op.job_failed)
+        self.assertIsNone(exec_op.execution_stop_datetime)
+
+        rcr = RemoteCromwellRunner()
+        mock_convert_outputs = mock.MagicMock()
+        mock_convert_outputs.side_effect = [OutputConversionException('!!!')]
+        rcr.convert_outputs = mock_convert_outputs
+        rcr.handle_job_success(exec_op)
+
+        # query to see that the failure was saved in the db
+        self.assertTrue(exec_op.job_failed)
+        mock_alert_admins.assert_called()
+

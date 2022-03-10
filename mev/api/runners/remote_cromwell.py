@@ -9,6 +9,7 @@ import io
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+from api.exceptions import OutputConversionException
 from api.runners.base import OperationRunner
 from api.utilities.operations import get_operation_instance_data
 from api.utilities.basic_utils import make_local_directory, \
@@ -457,13 +458,19 @@ class RemoteCromwellRunner(OperationRunner):
         # instantiate the output converter class which will take the job outputs
         # and create MEV-compatible data structures or resources:
         converter = RemoteCromwellOutputConverter()
-        converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
+        try:
+            converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
+            executed_op.outputs = converted_outputs
+            executed_op.execution_stop_datetime = end_time
+            executed_op.job_failed = False
+            executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
+        except OutputConversionException as ex:
+            executed_op.execution_stop_datetime = end_time
+            executed_op.job_failed = True
+            executed_op.status = ExecutedOperation.FINALIZING_ERROR
+            alert_admins(str(ex)) 
 
-        # set fields on the executed op:
-        executed_op.outputs = converted_outputs
-        executed_op.execution_stop_datetime = end_time
-        executed_op.job_failed = False
-        executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
+
 
 
     def handle_job_failure(self, executed_op):
