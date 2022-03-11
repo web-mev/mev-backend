@@ -37,7 +37,8 @@ def check_image_exists(img_str):
 def get_image_name_and_tag(git_repository_name, commit_hash):
     container_registry = get_container_registry()
     org = settings.DOCKER_REPO_ORG
-    full_image_url = container_registry.construct_image_url(org, git_repository_name, commit_hash)
+    full_image_url = container_registry.construct_image_url(
+        org.lower(), git_repository_name.lower(), commit_hash)
     return full_image_url
 
 def pull_image(remote_container_url):
