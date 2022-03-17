@@ -42,14 +42,16 @@ def subset_PANDA_net(resource, query_params):
     path_to_fname = get_storage_backend().get_local_resource_path(resource)
 
     try:
-        max_depth = PositiveIntegerAttribute(int(query_params['maxdepth']))
+        p = PositiveIntegerAttribute(int(query_params['maxdepth']))
+        max_depth = p.value
     except KeyError:
         raise Exception('You must supply a "maxdepth" parameter')
     except ValueError:
         raise Exception('The parameter "maxdepth" could not be parsed as an integer.')
 
     try:
-        max_depth = PositiveIntegerAttribute(int(query_params['children']))
+        p = PositiveIntegerAttribute(int(query_params['children']))
+        N = p.value
     except KeyError:
         raise Exception('You must supply a "children" parameter')
     except ValueError:
