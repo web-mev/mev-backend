@@ -85,9 +85,10 @@ MISSING_HEADER_WARNING = ('One of your column names matched the values in the'
     ' proper header line was missing.  Please check to ensure the file was'
     ' parsed correctly.')
 
-EMPTY_TABLE_ERROR = ('The parsed table was empty. If you are trying to'
-    ' import an Excel spreadsheet, please ensure that the data is contained'
-    ' in the first sheet of the workbook.')
+EMPTY_TABLE_ERROR = ('The parsed table was empty. This can happen if you are'
+    ' importing a table with only a single column. Alternatively, if you are'
+    ' trying to import an Excel spreadsheet, please ensure that the data is'
+    ' contained in the first sheet of the workbook.')
 
 def col_str_formatter(x):
     '''
@@ -228,6 +229,10 @@ class TableResource(DataResource):
             try:
                 # read the table using the appropriate parser:
                 self.table = reader(resource_path, index_col=0, comment='#')
+
+                # drop extra/empty cols and rows
+                self.table.dropna(axis=0, how='all', inplace=True)
+                self.table.dropna(axis=1, how='all', inplace=True)
 
                 # call a method to 
             except Exception as ex:

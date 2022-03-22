@@ -355,6 +355,18 @@ class TestAnnotationMatrix(unittest.TestCase):
         self.assertTrue(is_valid)
         self.assertEqual(msg, MISSING_HEADER_WARNING)
 
+    def test_table_with_extra_columns_and_extra_row(self):
+        '''
+        The table we test here has extra rows and columns. Common for XLS exports.
+        Should NOT fail this since it's common and would be hard for frontend
+        users to diagnose
+        '''
+        t = AnnotationTable()
+        p = os.path.join(TESTDIR, 'annotation_with_extra_cols_and_rows.csv')
+        is_valid, msg = t.validate_type(p)
+        self.assertTrue(is_valid)
+        metadata = t.extract_metadata(p)
+
     def test_table_with_single_column_fails(self):
         '''
         Tables with only a single column fails since
@@ -364,7 +376,7 @@ class TestAnnotationMatrix(unittest.TestCase):
         is_valid, err = t.validate_type(os.path.join(
             TESTDIR, 'single_column_annotation.tsv'))
         self.assertFalse(is_valid)
-        self.assertEqual(err, TRIVIAL_TABLE_ERROR)
+        self.assertEqual(err, EMPTY_TABLE_ERROR)
 
     def test_duplicate_rownames_fails(self):
         '''
