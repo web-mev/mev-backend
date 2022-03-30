@@ -9,3 +9,4 @@ from .workspace_executed_operation import WorkspaceExecutedOperation
 from .operation_resource import OperationResource
 from .operation_category import OperationCategory
 from .public_dataset import PublicDataset
+from .feedback_message import FeedbackMessage

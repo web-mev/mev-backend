@@ -8,7 +8,11 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from api.models import Workspace, Resource, ResourceMetadata, PublicDataset
+from api.models import Workspace, \
+    Resource, \
+    ResourceMetadata, \
+    PublicDataset, \
+    FeedbackMessage
 from api.models import Operation as OperationDbModel
 from api.utilities.operations import read_operation_json, \
     validate_operation
@@ -47,6 +51,12 @@ class Command(BaseCommand):
         user_dict[USER1] = u1
         user_dict[USER2] = u2
         user_dict[ADMIN_USER] = u3
+
+    def populate_messages(self):
+        FeedbackMessage.objects.create(
+            user=user_dict[USER1],
+            message='some simple message'
+        )
 
     def populate_workspaces(self):
         Workspace.objects.create(owner=user_dict[USER1])
@@ -240,6 +250,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.populate_users()
         self.populate_workspaces()
+        self.populate_messages()
         self.populate_resources()
         self.add_metadata_to_resources()
         self.add_resources_to_workspace()

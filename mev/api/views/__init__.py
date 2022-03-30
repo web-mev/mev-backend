@@ -48,6 +48,7 @@ from .public_dataset import PublicDatasetList, \
     PublicDatasetDetails, \
     PublicDatasetQuery, \
     PublicDatasetCreate
+from .feedback_views import SubmitFeedbackView
 
 def sentry_debug(request):
     '''

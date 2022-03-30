@@ -91,6 +91,10 @@ urlpatterns = [
     path('public-datasets/query/<str:dataset_id>/', api.views.PublicDatasetQuery.as_view(), name='public-dataset-query'),
     path('public-datasets/create/<str:dataset_id>/', api.views.PublicDatasetCreate.as_view(), name='public-dataset-create'),
 
+    ################### Misc. views #####################################
+    path('feedback/', api.views.SubmitFeedbackView.as_view(), name='feedback'),
+
+
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
 
