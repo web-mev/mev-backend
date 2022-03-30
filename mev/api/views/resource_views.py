@@ -18,12 +18,14 @@ from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive, \
     resource_supports_pagination
+from api.data_transformations import get_transformation_function
 from api.storage_backends import get_storage_backend
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
 from api.async_tasks.async_resource_tasks import validate_resource_and_store as async_validate_resource_and_store
 from api.exceptions import NonIterableContentsException
 from resource_types import ParseException
+
 
 
 logger = logging.getLogger(__name__)
@@ -295,3 +297,35 @@ class AddBucketResourceView(APIView):
             return Response({self.BUCKET_PATH: msg},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class ResourceContentTransform(ResourceContents):
+    '''
+    Endpoint for performing transforms on resource contents. Used in situations where frontend data
+    transformations are not feasible.
+
+    This class derives from ResourceContents so we can re-use the method for checking 
+    the request validity. Since we are effectively returning a transformed view of the contents,
+    this is reasonable.
+    '''
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        resource_pk=kwargs['pk']
+        r = self.check_request_validity(user, resource_pk)
+        if not type(r) == Resource:
+            # if it's not a Resource, then it was something else, like a Response object
+            # If so, return that.
+            return r
+        else:
+            query_params = request.query_params
+            try:
+                transform_fn = get_transformation_function(query_params['transform-name'])
+                result = transform_fn(r, query_params)
+                return Response(result)
+            except KeyError as ex:
+                return Response(
+                    {'error': 'The request must contain the {x} parameter.'.format(x=str(ex))}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )   
+            except Exception as ex:
+                return Response({'error': str(ex)}, status=status.HTTP_400_BAD_REQUEST)

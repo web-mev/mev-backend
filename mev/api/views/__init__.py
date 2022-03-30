@@ -12,7 +12,8 @@ from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, \
     ResourceDetail, \
     ResourceContents, \
-    AddBucketResourceView
+    AddBucketResourceView, \
+    ResourceContentTransform
 from .resource_download import ResourceDownload, \
     ResourceDownloadUrl
 from .operation_resource_views import OperationResourceList, OperationResourceFieldList
