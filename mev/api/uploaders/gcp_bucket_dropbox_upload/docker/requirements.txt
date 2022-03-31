@@ -17,8 +17,6 @@ keyrings.alt==3.1.1
 protobuf==3.19.4
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
-pycrypto==2.6.1
-PyGObject==3.30.4
 pyxdg==0.26
 requests==2.27.1
 rsa==4.8
