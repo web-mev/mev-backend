@@ -45,10 +45,13 @@ class FeedbackTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_201_CREATED)
+        j = response.json()
+        self.assertTrue('user_email' in j)
         # check that we added a message to the db
         final_messages = FeedbackMessage.objects.all()
         n1 = len(final_messages)
         self.assertEqual(n1 - n0, 1)
+
 
     def test_malformatted_message(self):
         orig_messages = FeedbackMessage.objects.all()
