@@ -204,8 +204,9 @@ class mevapi (
     },
   }
   nginx::resource::server { 'default':
-    server_name         => ['""'],
+    server_name         => ['_'],
     listen_port         => 80,
+    listen_options      => "default_server",
     index_files         => [],
     access_log          => 'absent',
     error_log           => 'absent',
