@@ -33,6 +33,7 @@ resource "google_compute_instance" "mev_server" {
         gmail_refresh_token = var.gmail_refresh_token,
         gmail_client_id = var.gmail_client_id,
         gmail_client_secret = var.gmail_client_secret,
+        admin_email_csv = var.admin_email_csv,
         sentry_url = var.sentry_url,
         container_registry = var.container_registry,
         docker_repo_org = var.docker_repo_org,

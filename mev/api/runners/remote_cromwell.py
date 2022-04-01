@@ -13,8 +13,8 @@ from api.exceptions import OutputConversionException
 from api.runners.base import OperationRunner
 from api.utilities.operations import get_operation_instance_data
 from api.utilities.basic_utils import make_local_directory, \
-    copy_local_resource, \
-    alert_admins
+    copy_local_resource
+from api.utilities.admin_utils import alert_admins
 from api.runners.base import OperationRunner
 from api.utilities.basic_utils import get_with_retry, post_with_retry
 from api.utilities.wdl_utils import WDL_SUFFIX, \

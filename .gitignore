@@ -4,6 +4,7 @@ __pycache__
 *.sqlite3
 .vagrant/
 .idea/
+.env
 
 .librarian/
 .terraform/

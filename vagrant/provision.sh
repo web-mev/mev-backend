@@ -7,16 +7,19 @@ set -e
 set -x
 
 #################### Start ENV variables #################################
-# This section contains environment variables that are populated
-# by terraform as part of its templatefile function
+# The /vagrant/.env file is populated by puppet
+# The /vagrant/$1 arg is a file of environment variables
+# Note that the .env file (populated by puppet) is itself populated by
+# the env.txt file passed as $1. However, there are some vars in that file
+# which we need, but don't want to put into /vagrant/.env
 
 set -o allexport
 
 source /vagrant/$1
-
-MEV_USER=vagrant
+source /vagrant/.env
 
 set +o allexport
+
 
 #################### End ENV variables #################################
 
@@ -31,13 +34,6 @@ mkdir -p /www
 
 # Give the mev user ownership of the code directory and the static file directory
 chown -R $MEV_USER:$MEV_USER /www
- 
-# use localhost when we're in dev. the postgres server is local
-export DB_HOST_SOCKET=$DB_HOST_FULL
-
-# Specify the appropriate settings file.
-# We do this here so it's prior to cycling the supervisor daemon
-export DJANGO_SETTINGS_MODULE=mev.settings_dev
 
 # Generate a set of keys for signing the download URL for bucket-based files.
 # Don't really need this for local dev, but it needs to be populated for the app
@@ -67,61 +63,8 @@ EOSQL"
 
 # Apply database migrations, collect the static files to server, and create
 # a superuser based on the environment variables passed to the container.
-
-if [ "$RESTORE_FROM_BACKUP" = "yes" ]; then
-
-    # Check that the proper folder exists which has the backup data
-    BACKUP_DIR="/vagrant/example_data"
-    ls $BACKUP_DIR || (echo "Since you requested to populate the database from a backup, you must have a directory named example_data."; exit 1)
-
-    ls $BACKUP_DIR/$BACKUP_FILE* || (echo "Did not find any database dump."; exit 1)
-
-    # Have either a compressed or uncompressed file present. If the following `ls` for the
-    # uncompressed file fails, then we need to uncompress
-    ls $BACKUP_DIR/$BACKUP_FILE || gunzip $BACKUP_DIR/$BACKUP_FILE".gz" 
-
-    # The cloud managed database adds some extra users which interfere with our setup here.
-    # This first line removes the line referencing the "cloudsqladmin" user
-    sed -i 's?^.*cloudsqladmin.*$??g' $BACKUP_DIR/$BACKUP_FILE
-
-    # This next command replaces the GRANT command for the cloudsqlsuperuser
-    # with the WebMeV database user. Without this, we end up with permissions
-    # errors when querying the DB via Django
-    sed -i "s?cloudsqlsuperuser?$DB_USER?g" $BACKUP_DIR/$BACKUP_FILE
-
-    # If we are restoring from a backup, we fill the database with real data.
-    # This also sets up the tables, etc.
-    export PGPASSWORD=$DB_PASSWD
-    runuser -m postgres -c "psql -v ON_ERROR_STOP=1 -h localhost --username "$DB_USER" --dbname "$DB_NAME" < $BACKUP_DIR/$BACKUP_FILE"
-
-    # Run a script which will correct the cloud-based paths to local ones.
-    # This edits the database AND moves the files
-    /usr/bin/python3 /vagrant/mev/manage.py edit_db_data \
-      --email $DJANGO_SUPERUSER_EMAIL \
-      --password $DJANGO_SUPERUSER_PASSWORD \
-      --dir $BACKUP_DIR/$LOCAL_STORAGE_DIRNAME
-
-    # Also move the operations
-    /usr/bin/python3 /vagrant/mev/manage.py move_operations \
-      --dir $BACKUP_DIR"/operations" \
-      --output /vagrant/mev/operations
-  /usr/bin/python3 /vagrant/mev/manage.py migrate
-  /usr/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput || echo "User existed already"
-
-else
-
-  /usr/bin/python3 /vagrant/mev/manage.py migrate
-  /usr/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
-
-
-  # Populate a "test" database, so the database
-  # will have some content to query. Note that we only do this
-  # if we are not populating from a backup
-  if [ "$POPULATE_DB" = "yes" ]; then
-      /usr/bin/python3 /vagrant/mev/manage.py populate_db
-  fi
-
-fi
+/usr/bin/python3 /vagrant/mev/manage.py migrate
+/usr/bin/python3 /vagrant/mev/manage.py createsuperuser --noinput
 
 # The collectstatic command gets all the static files 
 # and puts them at /vagrant/mev/static.

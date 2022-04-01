@@ -6,6 +6,8 @@ class mevapi (
   String                    $app_user,
   String                    $project_root,
   String                    $secret_key,
+  String                    $django_allowed_hosts,
+  String                    $django_cors_origins,
   String                    $frontend_domain,
   String                    $backend_domain,
   String                    $site_name,
@@ -29,6 +31,13 @@ class mevapi (
   Enum['dev', 'production'] $environment,
   String                    $cromwell_server_url,
   String                    $cromwell_bucket,
+  String                    $email_backend_choice,
+  String                    $from_email,
+  String                    $gmail_access_token,
+  String                    $gmail_refresh_token,
+  String                    $gmail_client_id,
+  String                    $gmail_client_secret,
+  String                    $admin_email_csv
 ) {
   $app_group = $app_user
   $django_root = "${project_root}/mev"

@@ -5,7 +5,7 @@ import logging
 from django.utils.module_loading import import_string
 
 from api.utilities.operations import get_operation_instance_data
-from api.utilities.basic_utils import alert_admins
+from api.utilities.admin_utils import alert_admins
 from api.exceptions import OutputConversionException
 
 logger = logging.getLogger(__name__)

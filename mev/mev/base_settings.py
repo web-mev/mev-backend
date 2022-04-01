@@ -198,6 +198,7 @@ import_string(EMAIL_BACKEND)
 # If None, emails are sent as ""
 FROM_EMAIL = os.environ.get('FROM_EMAIL', None)
 
+ADMIN_EMAIL_LIST = [x for x in os.environ.get('ADMIN_EMAIL_CSV', '').split(',') if len(x) > 0]
 ###############################################################################
 # END Parameters for Email functions
 ###############################################################################
@@ -565,3 +566,4 @@ PUBLIC_DATA_INDEXER = 'solr'
 ###############################################################################
 # END settings/imports for public data indexing
 ###############################################################################
+

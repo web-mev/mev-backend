@@ -150,6 +150,10 @@ variable "gmail_client_secret" {
   description = "For using Gmail API to send messages"
 }
 
+variable "admin_email_csv" {
+  description = "A comma-delimited string of administrator emails"
+}
+
 variable "sentry_url" {
   default     = ""
   description = "The URL of the Sentry tracker. Include protocol, port"

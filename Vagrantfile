@@ -27,8 +27,44 @@ Vagrant.configure("2") do |config|
   SHELL
 
   config.vm.provision :puppet do |puppet|
+
+
+    # Users can specify optional args in the local environment
+    # These ENV vars must be sourced prior to `vagrant up`
+    if ENV['DJANGO_SETTINGS_MODULE']
+      puppet.facter['django_settings_module'] = ENV['DJANGO_SETTINGS_MODULE']
+    end
+    if ENV['EMAIL_BACKEND_CHOICE']
+      puppet.facter['email_backend_choice'] = ENV['EMAIL_BACKEND_CHOICE']
+    end
+    if ENV['FROM_EMAIL']
+      puppet.facter['from_email'] = ENV['FROM_EMAIL']
+    end
+    if ENV['GMAIL_ACCESS_TOKEN']
+      puppet.facter['gmail_access_token'] = ENV['GMAIL_ACCESS_TOKEN']
+    end
+    if ENV['GMAIL_REFRESH_TOKEN']
+      puppet.facter['gmail_refresh_token'] = ENV['GMAIL_REFRESH_TOKEN']
+    end
+    if ENV['GMAIL_CLIENT_ID']
+      puppet.facter['gmail_client_id'] = ENV['GMAIL_CLIENT_ID']
+    end
+    if ENV['GMAIL_CLIENT_SECRET']
+      puppet.facter['gmail_client_secret'] = ENV['GMAIL_CLIENT_SECRET']
+    end
+    if ENV['ADMIN_EMAIL_CSV']
+      puppet.facter['admin_email_csv'] = ENV['ADMIN_EMAIL_CSV']
+    end
+    if ENV['CONTAINER_REGISTRY']
+      puppet.facter['container_registry'] = ENV['CONTAINER_REGISTRY']
+    end
+    if ENV['DOCKER_REPO_ORG']
+      puppet.facter['docker_repo_org'] = ENV['DOCKER_REPO_ORG']
+    end
+
     puppet.manifests_path = "deploy/puppet/manifests"
     puppet.manifest_file  = "site.pp"
+    
   end
 
   config.vm.define "api", primary: true do |api|
