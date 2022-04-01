@@ -20,7 +20,7 @@ from api.data_structures import Feature, \
     create_attribute, \
     convert_dtype, \
     numeric_attribute_typenames
-from api.utilities.basic_utils import alert_admins
+from api.utilities.admin_utils import alert_admins
 from api.serializers.feature_set import FeatureSetSerializer
 from api.serializers.observation_set import ObservationSetSerializer
 

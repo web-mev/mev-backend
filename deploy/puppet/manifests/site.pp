@@ -4,6 +4,8 @@ node /api/ {
     app_user                  => $facts['app_user'],
     project_root              => $facts['project_root'],
     secret_key                => $facts['secret_key'],
+    django_allowed_hosts      => $facts['django_allowed_hosts'],
+    django_cors_origins       => $facts['django_cors_origins'],
     frontend_domain           => $facts['frontend_domain'],
     backend_domain            => $facts['backend_domain'],
     site_name                 => $facts['site_name'],
@@ -17,7 +19,7 @@ node /api/ {
     max_download_size_bytes   => $facts['max_download_size_bytes'],
     social_backends           => $facts['social_backends'],
     sentry_url                => $facts['sentry_url'],
-    docker_repo_org             => $facts['docker_repo_org'],
+    docker_repo_org           => $facts['docker_repo_org'],
     container_registry        => $facts['container_registry'],
     database_name             => $facts['database_name'],
     database_user             => $facts['database_user'],
@@ -27,6 +29,13 @@ node /api/ {
     environment               => $facts['environment'],
     cromwell_server_url       => $facts['cromwell_server_url'],
     cromwell_bucket           => $facts['cromwell_bucket'],
+    email_backend_choice      => $facts['email_backend_choice'],
+    from_email                => $facts['from_email'],
+    gmail_access_token        => $facts['gmail_access_token'],
+    gmail_refresh_token       => $facts['gmail_refresh_token'],
+    gmail_client_id           => $facts['gmail_client_id'],
+    gmail_client_secret       => $facts['gmail_client_secret'],
+    admin_email_csv           => $facts['admin_email_csv']
   }
 }
 

@@ -76,7 +76,8 @@ class BaseRunnerTester(BaseAPITestCase):
             runner.check_required_files('')
 
     @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_bad_keys(self, mock_get_operation_instance_data):
+    @mock.patch('api.runners.base.alert_admins')
+    def test_bad_keys(self, mock_alert_admins, mock_get_operation_instance_data):
         '''
         This tests that differing keys between the operation spec 
         and the actual outputs are handled appropriately.
@@ -106,11 +107,14 @@ class BaseRunnerTester(BaseAPITestCase):
             self.op_data['outputs'],
             {}
         )
+        mock_alert_admins.assert_called()
 
         # run another test here-- now there will be a
         # resource which needs cleanup so that we don't leave any 
         # 'hanging' outputs.
         mock_cleanup.reset_mock()
+        mock_alert_admins.reset_mock()
+
         # this is missing a norm_counts key
         bad_outputs = {
             "dge_table": "/path/to/dge.tsv"
@@ -133,6 +137,7 @@ class BaseRunnerTester(BaseAPITestCase):
                 'dge_table': u
             }
         )
+        mock_alert_admins.assert_called()
 
     @mock.patch('api.runners.base.get_operation_instance_data')
     def test_output_conversion(self, mock_get_operation_instance_data):

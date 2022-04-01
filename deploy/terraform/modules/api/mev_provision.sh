@@ -84,12 +84,12 @@ FACTER_SECRET_KEY=${django_secret}
 INTERNAL_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
 
 LOAD_BALANCER_IP=${load_balancer_ip}
-DJANGO_ALLOWED_HOSTS=$FACTER_BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
+FACTER_DJANGO_ALLOWED_HOSTS=$FACTER_BACKEND_DOMAIN,$INTERNAL_IP,$LOAD_BALANCER_IP
 
 # A comma-delimited list of the origins for cors requests
 # Needed to hookup to front-end frameworks which may be 
 # at a different domain. Include protocol and ports
-DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
+FACTER_DJANGO_CORS_ORIGINS=https://$FACTER_FRONTEND_DOMAIN,${other_cors_origins}
 
 
 # For automatically creating an admin, supply the following:
@@ -166,19 +166,20 @@ SERVICE_ACCOUNT=${service_account_email}
 # How to send email-- by default, we print emails to the console for dev
 # If you would like to set another email backend (e.g. gmail), set this accordingly.
 # See the docs and/or base_settings.py in the relevant section regarding email.
-EMAIL_BACKEND_CHOICE=${email_backend}
+FACTER_EMAIL_BACKEND_CHOICE=${email_backend}
 
 # When email is sent, this will give the "from" field.  e.g. "some name <some@email.com>" (without the quotes)
-FROM_EMAIL="${from_email}"
+FACTER_FROM_EMAIL="${from_email}"
 
 # If using Gmail for your email service, specify the following:
 # See docs for how to get these values.
-GMAIL_ACCESS_TOKEN=${gmail_access_token}
-GMAIL_REFRESH_TOKEN=${gmail_refresh_token}
-GMAIL_CLIENT_ID=${gmail_client_id}
-GMAIL_CLIENT_SECRET=${gmail_client_secret}
+FACTER_GMAIL_ACCESS_TOKEN=${gmail_access_token}
+FACTER_GMAIL_REFRESH_TOKEN=${gmail_refresh_token}
+FACTER_GMAIL_CLIENT_ID=${gmail_client_id}
+FACTER_GMAIL_CLIENT_SECRET=${gmail_client_secret}
 
-
+# A comma-delimited string of administrator email addresses
+FACTER_ADMIN_EMAIL_CSV=${admin_email_csv}
 ########################## END Email-related parameters #####################################
 
 

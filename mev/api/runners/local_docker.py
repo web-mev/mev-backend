@@ -22,8 +22,8 @@ from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource, \
-    alert_admins, \
     run_shell_command
+from api.utilities.admin_utils import alert_admins
 from api.utilities.resource_utilities import delete_resource_by_pk, \
     get_resource_by_pk
 from api.storage_backends import get_storage_backend

@@ -52,12 +52,12 @@ class BaseEmailMessage(mail.EmailMultiAlternatives):
 
             user = context.get('user') or self.request.user
 
-        context.update({
-            'domain': domain,
-            'protocol': protocol,
-            'site_name': site_name,
-            'frontend_domain': frontend_domain
-        })
+            context.update({
+                'domain': domain,
+                'protocol': protocol,
+                'site_name': site_name,
+                'frontend_domain': frontend_domain
+            })
         return context
 
     def render(self):
@@ -109,6 +109,13 @@ class PasswordResetEmail(BaseEmailMessage):
         context["url"] = settings.RESET_PASSWORD_URL.format(**context)
         return context
 
+class AdminNotificationEmail(BaseEmailMessage):
+    template_name = "email/admin_notification.html"
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        return context
+
 def send_uid_and_token_link(request, user, message_cls):
     '''
     Common behavior for situations where we send a link to the
@@ -147,3 +154,14 @@ def send_password_reset_email(request, user):
     logger.info('Sending password reset email to {email}'.format(email=user.email))
     message_cls = PasswordResetEmail
     send_uid_and_token_link(request, user, message_cls)
+
+def send_email_to_admins(message):
+    '''
+    Orchestrates sending an email to the admins
+    '''
+    context = {
+        'message': message
+    }
+    AdminNotificationEmail(context=context).send(
+        settings.ADMIN_EMAIL_LIST, 
+        from_email=settings.FROM_EMAIL)

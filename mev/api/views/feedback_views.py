@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from api.serializers.feedback import FeedbackSerializer
 from api.models import FeedbackMessage
-from api.utilities.basic_utils import alert_admins
+from api.utilities.admin_utils import alert_admins
 
 class SubmitFeedbackView(APIView):
 

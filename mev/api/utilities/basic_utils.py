@@ -12,17 +12,7 @@ from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from sentry_sdk import capture_message
-
 logger = logging.getLogger(__name__)
-
-def alert_admins(msg):
-    '''
-    A function to be called when an error occurs that is not necessarily
-    "fatal", but needs to be quickly handled or investigated
-    '''
-    # log to sentry
-    capture_message(msg)
 
 def is_fatal_code(e):
     if e.response:
