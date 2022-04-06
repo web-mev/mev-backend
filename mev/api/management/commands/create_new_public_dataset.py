@@ -82,7 +82,7 @@ class Command(BaseCommand):
             def get_additional_metadata(self):
                 # Returns a dict which contains additional dataset-
                 # specific information
-                return {}
+                return {{}}
 
             def create_from_query(self, database_record, query_params):
                 # subsets the dataset based on the query_params.
