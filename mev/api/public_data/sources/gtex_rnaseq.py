@@ -1,4 +1,5 @@
 import os
+import datetime
 import pandas as pd
 import logging
 
@@ -42,7 +43,7 @@ class GtexRnaseqDataSource(PublicDataSource):
     COLUMN_MAPPING = {
         'SAMPID': 'sample_id',
         'SMTSD': 'tissue',
-        '_SEX': 'sex',
+        '_SEX': 'sex', # underscore NOT a typo- see below
         'AGE': 'age_range',
         'DTHHRDY':'hardy_scale_death',
         'SMRIN': 'rna_rin',
@@ -91,10 +92,15 @@ class GtexRnaseqDataSource(PublicDataSource):
         self._download_file(self.PHENOTYPES, phenotypes_file)
         self._download_file(self.COUNTS, counts_file)
 
+        # uncompress the counts archive
+        run_shell_command('gunzip {f}'.format(f=counts_file))
+        counts_file = counts_file[:-3]
+
         # Merge the sample-level table with the patient-level data
         ann_df = pd.read_table(sample_attr_file, sep='\t')
         pheno_df = pd.read_table(phenotypes_file, sep='\t')
         ann_df['subject_id'] = ann_df['SAMPID'].apply(lambda x: '-'.join(x.split('-')[:2]))
+        print(ann_df.head())
         # In the phenotypes file, sex is 2=F, 1=M
         pheno_df['_SEX'] = pheno_df['SEX'].apply(lambda x: 'M' if x==1 else 'F')
         merged_ann = pd.merge(ann_df, pheno_df, left_on='subject_id', right_on='SUBJID')
@@ -102,12 +108,12 @@ class GtexRnaseqDataSource(PublicDataSource):
         # remap the column names and drop the others
         merged_ann.rename(columns=self.COLUMN_MAPPING, inplace=True)
         merged_ann = merged_ann[self.COLUMN_MAPPING.values()]
-        merged_ann = merged_ann.set_index('subject_id')
+        merged_ann = merged_ann.set_index('sample_id')
 
         # at this point we have a prepared annotation table, but it can contain
         # annotations for non-RNA-seq samples. We will use the actual counts to 
         # filter out the non-applicable rows from the annotation file.
-        counts = pd.read_table('demo.gct', sep='\t', skiprows=2, header=0, index_col=0)
+        counts = pd.read_table(counts_file, sep='\t', skiprows=2, header=0, index_col=0)
         counts.drop(['Description'], axis=1, inplace=True)
         counts.index = [x.split('.')[0] for x in counts.index]
         samples_from_matrix = counts.columns
@@ -141,13 +147,14 @@ class GtexRnaseqDataSource(PublicDataSource):
 
     def verify_files(self, file_dict):
         # verifies that all required files are present
-        pass
+        self.check_file_dict(file_dict)
 
     def get_indexable_files(self, file_dict):
         # Returns a list of files that we should index given
         # the dictionary. Some files do not get indexed, but
         # are necessary for a particular dataset
-        return []
+        # for RNA-seq, we only have to index the annotation file(s)
+        return file_dict[self.ANNOTATION_FILE_KEY]
 
     def get_additional_metadata(self):
         # Returns a dict which contains additional dataset-
