@@ -53,3 +53,12 @@ class PublicDataSource(object):
 
     def create_from_query(self, db_record, query_params):
         raise NotImplementedError('Must implement this method in a child class.')
+
+    @staticmethod
+    def create_python_compatible_id(id):
+        '''
+        When adding datasets or groups to a HDF5 file, we need to modify
+        the name or it will not address properly. Identifiers like
+        "Whole Blood" do not work, but whole_blood does.
+        '''
+        return id.replace('-', '_').replace(' ','_').lower()

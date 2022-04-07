@@ -75,15 +75,6 @@ class GDCDataSource(PublicDataSource):
         }
 
     @staticmethod
-    def create_python_compatible_id(id):
-        '''
-        When adding datasets or groups to a HDF5 file, we need to modify
-        the name or it will not address properly. Identifiers like
-        TCGA-LUAD does not work, but TCGA_LUAD does.
-        '''
-        return id.replace('-', '_').lower()
-
-    @staticmethod
     def query_for_project_names_within_program(program_id):
         '''
         Gets a mapping of the available project names within a 
@@ -619,7 +610,7 @@ class GDCRnaSeqDataSourceMixin(object):
                 # to be a bit faster for recall than keeping all the dataframes
                 # as datasets in the root group
                 group_id = (
-                    GDCDataSource.create_python_compatible_id(project_id) + '/ds')
+                    PublicDataSource.create_python_compatible_id(project_id) + '/ds')
                 hdf_out.put(group_id, count_df)
                 logger.info('Added the {ct} matrix to the HDF5'
                     ' count matrix'.format(ct=project_id)
@@ -769,7 +760,7 @@ class GDCRnaSeqDataSourceMixin(object):
                             j = json.dumps(self.EXAMPLE_PAYLOAD)
                         )
                     )
-                group_id = GDCDataSource.create_python_compatible_id(ct) + '/ds'
+                group_id = PublicDataSource.create_python_compatible_id(ct) + '/ds'
                 try:
                     df = hdf.get(group_id)
                 except KeyError as ex:
