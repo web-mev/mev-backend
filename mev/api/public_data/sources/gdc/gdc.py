@@ -11,9 +11,9 @@ import pandas as pd
 
 from django.conf import settings
 
-from api.utilities.basic_utils import get_with_retry, \
-    make_local_directory
+from api.utilities.basic_utils import get_with_retry
 from api.public_data.sources.base import PublicDataSource
+from api.public_data.sources.rnaseq import RnaSeqMixin
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +295,7 @@ class GDCDataSource(PublicDataSource):
         return d
 
 
-class GDCRnaSeqDataSourceMixin(object):
+class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
     '''
     A class that contains methods, filters, etc. that are common to 
     count-based RNA-seq data across the various GDC programs
@@ -330,26 +330,6 @@ class GDCRnaSeqDataSourceMixin(object):
         }
     ]
 
-    # A format-string for the annotation file
-    ANNOTATION_OUTPUT_FILE_TEMPLATE = 'annotations.{tag}.{ds}.csv'
-
-    # A format-string for the count file
-    COUNT_OUTPUT_FILE_TEMPLATE = 'counts.{tag}.{ds}.hd5'
-
-    # These items describe the files that are part of a 
-    # GDC-based RNA-seq dataset. This includes an annotation
-    # file and a count matrix. Defining these constants allows
-    # us to track the files in the database. For instance, when we
-    # look up a particular dataset's files for a filtering/subsetting
-    # operation, we need to know the 'base' file from which we are
-    # filtering
-    ANNOTATION_FILE_KEY = 'annotations'
-    COUNTS_FILE_KEY = 'counts'
-    DATASET_FILES = [
-        ANNOTATION_FILE_KEY,
-        COUNTS_FILE_KEY
-    ]
-
     # The count files include counts to non-genic features. We don't want those
     # in our final assembled count matrix
     SKIPPED_FEATURES = [
@@ -375,11 +355,6 @@ class GDCRnaSeqDataSourceMixin(object):
         # use the base class to verify that all the necessary files
         # are there
         self.check_file_dict(file_dict)
-
-    def get_indexable_files(self, file_dict):
-
-        # for RNA-seq, we only have to index the annotation file(s)
-        return file_dict[self.ANNOTATION_FILE_KEY]
 
     def _download_cohort(self, project_id, data_fields):
         '''
@@ -610,7 +585,7 @@ class GDCRnaSeqDataSourceMixin(object):
                 # to be a bit faster for recall than keeping all the dataframes
                 # as datasets in the root group
                 group_id = (
-                    PublicDataSource.create_python_compatible_id(project_id) + '/ds')
+                    RnaSeqMixin.create_python_compatible_id(project_id) + '/ds')
                 hdf_out.put(group_id, count_df)
                 logger.info('Added the {ct} matrix to the HDF5'
                     ' count matrix'.format(ct=project_id)
@@ -714,124 +689,3 @@ class GDCRnaSeqDataSourceMixin(object):
         with open(fout, "wb") as output_file:
             output_file.write(download_response.content)
         return fout
-
-    def create_from_query(self, dataset_db_instance, query_filter, output_name = ''):
-        '''
-        Using the dict provided in `query_filter`, subset the HDF5-stored data
-        and create a flat-file. Also create the annotation file
-
-        Return paths and file "types" to those files (e.g. one of our defined
-        Resource types)
-        '''
-        # Look at the database object to get the path for the count matrix
-        file_mapping = dataset_db_instance.file_mapping
-        count_matrix_path = file_mapping[self.COUNTS_FILE_KEY][0]
-        if not os.path.exists(count_matrix_path):
-            #TODO: better error handling here.
-            logger.info('Could not find the count matrix')
-            raise Exception('Failed to find the proper data for this'
-                ' request. An administrator has been notified'
-            )
-
-        # if the query_filter was None (indicating no filtering was desired)
-        # then we reject-- this dataset is too big to store as a single
-        # dataframe
-        if query_filter is None:
-            raise Exception('The {name} dataset is too large to request without'
-                ' any filters. Please try again and request a'
-                ' subset of the data.'.format(name = self.PUBLIC_NAME)
-            )
-
-        # to properly filter our full HDF5 matrix, we expect a data structure that
-        # looks like:
-        #
-        # {'TCGA-UVM': [<uuid>, <uuid>], 'TCGA-ABC': [<uuid>]}
-        #
-        # The top level contains the project identifiers, which we use to identify
-        # the groups within the HDF5 file. Then, we use the UUIDs to filter the
-        # dataframes
-        final_df = pd.DataFrame()
-        with pd.HDFStore(count_matrix_path, 'r') as hdf:
-            for ct in query_filter.keys():
-                if not type(query_filter[ct]) is list:
-                    raise Exception('Problem encountered with the filter'
-                        ' provided. We expect each cancer type to address'
-                        ' a list of sample identifiers, such as: {j}'.format(
-                            j = json.dumps(self.EXAMPLE_PAYLOAD)
-                        )
-                    )
-                group_id = PublicDataSource.create_python_compatible_id(ct) + '/ds'
-                try:
-                    df = hdf.get(group_id)
-                except KeyError as ex:
-                    raise Exception('The requested project'
-                        ' {ct} was not found in the dataset. Ensure your'
-                        ' request was correctly formatted.'.format(ct=ct)
-                    )
-                try:
-                    df = df[query_filter[ct]]
-                except KeyError as ex:
-                    message = ('The subset of the count matrix failed since'
-                        ' one or more requested samples were missing: {s}'.format(
-                            s = str(ex)
-                        )
-                    )
-                    raise Exception(message)
-
-                final_df = pd.concat([final_df, df], axis=1)
-
-        if final_df.shape[1] == 0:
-            raise Exception('The resulting matrix was empty. No'
-                ' data was created.'
-            )
-
-        # write the file to a temp location:
-        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
-        dest_dir = os.path.join(settings.DATA_DIR, 'tmp')
-        if not os.path.exists(dest_dir):
-            make_local_directory(dest_dir)
-        count_filepath = os.path.join(dest_dir, filename)
-        try:
-            final_df.to_csv(count_filepath, sep='\t')
-        except Exception as ex:
-            logger.info('Failed to write the subset of GDC RNA-seq'
-                ' Exception was: {ex}'.format(ex=ex)
-            )
-            raise Exception('Failed when writing the filtered data.')
-
-        # now create the annotation file:
-        full_uuid_list = []
-        [full_uuid_list.extend(query_filter[k]) for k in query_filter.keys()]
-        ann_path = file_mapping[self.ANNOTATION_FILE_KEY][0]
-        if not os.path.exists(ann_path):
-            #TODO: better error handling here.
-            logger.info('Could not find the annotation matrix')
-            raise Exception('Failed to find the proper data for this'
-                ' request. An administrator has been notified'
-            )
-        ann_df = pd.read_csv(ann_path, index_col=0)
-        subset_ann = ann_df.loc[full_uuid_list]
-
-        # drop columns which are completely empty:
-        subset_ann = subset_ann.dropna(axis=1, how='all')
-
-        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
-
-        ann_filepath = os.path.join(dest_dir, filename)
-        try:
-            subset_ann.to_csv(ann_filepath, sep='\t')
-        except Exception as ex:
-            logger.info('Failed to write the subset of the annotation dataframe.'
-                ' Exception was: {ex}'.format(ex=ex)
-            )
-            raise Exception('Failed when writing the filtered annotation data.')
-
-        # finally make some names for these files, which we return
-        if output_name == '':
-            u = str(uuid.uuid4())
-            count_matrix_name = self.TAG + '_counts.' + u + '.tsv'
-            ann_name = self.TAG + '_ann.' + u + '.tsv'
-        else:
-            count_matrix_name = output_name + '_counts.' + self.TAG + '.tsv'
-            ann_name = output_name + '_ann.' + self.TAG + '.tsv'
-        return [count_filepath, ann_filepath], [count_matrix_name, ann_name], ['RNASEQ_COUNT_MTX', 'ANN']

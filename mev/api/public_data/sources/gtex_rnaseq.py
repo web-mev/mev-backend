@@ -8,28 +8,23 @@ from django.conf import settings
 from api.utilities.basic_utils import make_local_directory, \
     run_shell_command
 from api.public_data.sources.base import PublicDataSource
+from api.public_data.sources.rnaseq import RnaSeqMixin
 
 logger = logging.getLogger(__name__)
 
-class GtexRnaseqDataSource(PublicDataSource):
+class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
 
     TAG = 'gtex-rnaseq'
     PUBLIC_NAME = 'GTEx RNA-seq'
     DESCRIPTION = ('Gene read counts for v8 of the GTEx dataset.'
         ' <a href="https://www.gtexportal.org">https://www.gtexportal.org</a>')
 
-    ANNOTATION_FILE_KEY = 'annotations'
-    COUNTS_FILE_KEY = 'counts'
-    DATASET_FILES = [
-        ANNOTATION_FILE_KEY,
-        COUNTS_FILE_KEY
-    ]
-
-    # A format-string for the annotation file
-    ANNOTATION_OUTPUT_FILE_TEMPLATE = 'annotations.{tag}.{date}.csv'
-
-    # A format-string for the count file
-    COUNT_OUTPUT_FILE_TEMPLATE = 'counts.{tag}.{date}.hd5'
+    # An example of how one might query this dataset, so we can provide useful
+    # help for dataset creation errors:
+    EXAMPLE_PAYLOAD = {
+        'Whole Blood': ["<ID>","<ID>"],
+        'Prostate': ["<ID>","<ID>", "<ID>"]
+    }
 
     # All the GTex data will be stored in this directory
     ROOT_DIR = os.path.join(settings.PUBLIC_DATA_DIR, 'gtex')
@@ -54,6 +49,7 @@ class GtexRnaseqDataSource(PublicDataSource):
     }
 
     def __init__(self):
+        print('in init with self.ROOT_DIR=', self.ROOT_DIR)
         if not os.path.exists(self.ROOT_DIR):
             logger.info('When instantiating an instance of GtexRnaseqDataSource, the'
                 ' expected directory did not exist. Go create it...'
@@ -76,31 +72,49 @@ class GtexRnaseqDataSource(PublicDataSource):
             logger.info('Failed at downloading from {u}'.format(u=url))
             raise ex
 
+    def _get_sample_annotations(self, tmp_dir):
+        sample_attr_file = '{d}/samples.{tag}.{date}.tsv'.format(
+            d=tmp_dir, date=self.date_str, tag=self.TAG)
+        self._download_file(self.SAMPLE_ATTRIBUTES, sample_attr_file)
+        return pd.read_table(sample_attr_file, sep='\t')
+
+    def _get_phenotype_data(self, tmp_dir):
+        phenotypes_file = '{d}/phenotypes.{tag}.{date}.tsv'.format(
+            d=tmp_dir, date=self.date_str, tag=self.TAG)
+        self._download_file(self.PHENOTYPES, phenotypes_file)
+        return pd.read_table(phenotypes_file, sep='\t')
+
+    def _get_counts_data(self, tmp_dir):
+        counts_file = '{d}/counts.{date}.gct.gz'.format(
+            d=tmp_dir, date=self.date_str)
+        self._download_file(self.COUNTS, counts_file)
+        # uncompress the counts file
+        run_shell_command('gunzip {f}'.format(f=counts_file))
+        counts_file = counts_file[:-3]
+
+        # the GCT-format file has two header lines. The third line has the usual
+        # column headers
+        counts = pd.read_table(counts_file, sep='\t', skiprows=2, header=0, index_col=0)
+        counts.drop(['Description'], axis=1, inplace=True)
+        # Remove the version from the ENSG gene ID
+        counts.index = [x.split('.')[0] for x in counts.index]
+        return counts
+
     def prepare(self):
         '''
         Handles prep of the dataset. Does NOT index!
         '''
 
         # Grab all the required files:
-        sample_attr_file = '{d}/samples.{date}.tsv'.format(
-            d=self.ROOT_DIR, date=self.date_str)
-        phenotypes_file = '{d}/phenotypes.{date}.tsv'.format(
-            d=self.ROOT_DIR, date=self.date_str)
-        counts_file = '{d}/counts.{date}.gct.gz'.format(
-            d=self.ROOT_DIR, date=self.date_str)
-        self._download_file(self.SAMPLE_ATTRIBUTES, sample_attr_file)
-        self._download_file(self.PHENOTYPES, phenotypes_file)
-        self._download_file(self.COUNTS, counts_file)
+        tmp_dir = os.path.join(settings.DATA_DIR, 'tmp')
 
-        # uncompress the counts archive
-        run_shell_command('gunzip {f}'.format(f=counts_file))
-        counts_file = counts_file[:-3]
+        ann_df = self._get_sample_annotations(tmp_dir)
+        pheno_df = self._get_phenotype_data(tmp_dir)
+        counts = self._get_counts_data(tmp_dir)
 
         # Merge the sample-level table with the patient-level data
-        ann_df = pd.read_table(sample_attr_file, sep='\t')
-        pheno_df = pd.read_table(phenotypes_file, sep='\t')
         ann_df['subject_id'] = ann_df['SAMPID'].apply(lambda x: '-'.join(x.split('-')[:2]))
-        print(ann_df.head())
+
         # In the phenotypes file, sex is 2=F, 1=M
         pheno_df['_SEX'] = pheno_df['SEX'].apply(lambda x: 'M' if x==1 else 'F')
         merged_ann = pd.merge(ann_df, pheno_df, left_on='subject_id', right_on='SUBJID')
@@ -113,13 +127,9 @@ class GtexRnaseqDataSource(PublicDataSource):
         # at this point we have a prepared annotation table, but it can contain
         # annotations for non-RNA-seq samples. We will use the actual counts to 
         # filter out the non-applicable rows from the annotation file.
-        counts = pd.read_table(counts_file, sep='\t', skiprows=2, header=0, index_col=0)
-        counts.drop(['Description'], axis=1, inplace=True)
-        counts.index = [x.split('.')[0] for x in counts.index]
-        samples_from_matrix = counts.columns
-
         # keep only those rows from the ann matrix that correspond to RNA-seq
         # samples from the matrix
+        samples_from_matrix = counts.columns
         merged_ann = merged_ann.loc[samples_from_matrix]
         merged_ann.to_csv(
             self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
@@ -139,7 +149,7 @@ class GtexRnaseqDataSource(PublicDataSource):
         with pd.HDFStore(counts_output_path) as hdf_out:
             for tissue, subdf in merged_ann.groupby('tissue'):
                 group_id = (
-                    PublicDataSource.create_python_compatible_id(tissue) + '/ds')
+                    RnaSeqMixin.create_python_compatible_id(tissue) + '/ds')
                 hdf_out.put(group_id, counts[subdf.index])
                 logger.info('Added the {t} matrix to the HDF5'
                     ' count matrix'.format(t=tissue)
@@ -161,8 +171,5 @@ class GtexRnaseqDataSource(PublicDataSource):
         # specific information
         return {}
 
-    def create_from_query(self, database_record, query_params):
-        # subsets the dataset based on the query_params.
-        # Returns a tuple of a filepath (string) and
-        # a resource_type
-        pass
+    
+
