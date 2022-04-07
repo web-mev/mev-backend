@@ -59,7 +59,7 @@ class Command(BaseCommand):
         module_template = '''
         from api.public_data.sources.base import PublicDataSource
 
-        class {camelizedTag}Dataset(PublicDataSource):
+        class {camelizedTag}DataSource(PublicDataSource):
 
             TAG = '{tag}'
             PUBLIC_NAME = ''
@@ -71,7 +71,7 @@ class Command(BaseCommand):
 
             def verify_files(self, file_dict):
                 # verifies that all required files are present
-                pass
+                raise NotImplementedError('')
 
             def get_indexable_files(self, file_dict):
                 # Returns a list of files that we should index given
@@ -84,11 +84,13 @@ class Command(BaseCommand):
                 # specific information
                 return {{}}
 
-            def create_from_query(self, database_record, query_params):
+            def create_from_query(self, database_record, query_params, output_name=''):
                 # subsets the dataset based on the query_params.
-                # Returns a tuple of a filepath (string) and
-                # a resource_type
-                pass
+                # Returns a 3-tuple of lists:
+                # - a list of paths
+                # - a list of names for the files 
+                # - a list of resource types
+                return [],[],[]
         '''
         # turns 'abc' to 'Abc' so it looks more like a canonical class name
         camelizedTag = dataset_id.title().replace('-', '').replace('_', '')
