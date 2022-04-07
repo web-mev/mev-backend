@@ -107,6 +107,8 @@ class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
 
         # Grab all the required files:
         tmp_dir = os.path.join(settings.DATA_DIR, 'tmp')
+        if not os.path.exists(tmp_dir):
+            make_local_directory(tmp_dir)
 
         ann_df = self._get_sample_annotations(tmp_dir)
         pheno_df = self._get_phenotype_data(tmp_dir)
