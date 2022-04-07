@@ -7,6 +7,7 @@ from api.models import PublicDataset, Resource
 from api.async_tasks.async_resource_tasks import validate_resource_and_store
 from .sources.gdc.tcga import TCGARnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
+from .sources.gtex_rnaseq import GtexRnaseqDataSource
 from .indexers import get_indexer
 
 
@@ -21,7 +22,8 @@ logger = logging.getLogger(__name__)
 # Add the classes to this list as necessary:
 IMPLEMENTING_CLASSES = [
     TCGARnaSeqDataSource,
-    TargetRnaSeqDataSource
+    TargetRnaSeqDataSource,
+    GtexRnaseqDataSource
 ]
 
 DATASET_MAPPING = {x.TAG:x for x in IMPLEMENTING_CLASSES}

@@ -116,6 +116,10 @@ class mevapi (
     schema_src_file     => "${project_root}/solr/target-rnaseq/schema.xml",
     solrconfig_src_file => "${project_root}/solr/target-rnaseq/solrconfig.xml",
   }
+  solr::core { 'gtex-rnaseq':
+    schema_src_file     => "${project_root}/solr/gtex-rnaseq/schema.xml",
+    solrconfig_src_file => "${project_root}/solr/gtex-rnaseq/solrconfig.xml",
+  }
 
   file { "${project_root}/.env":
     ensure  => file,

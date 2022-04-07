@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<schema name="gtex-rnaseq-config" version="1.6">
+
+  <uniqueKey>sample_id</uniqueKey>
+
+  <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
+  <fieldType name="booleans" class="solr.BoolField" sortMissingLast="true" multiValued="true"/>
+  <fieldType name="ignored" class="solr.StrField" indexed="false" stored="false" multiValued="true"/>
+  <fieldType name="lowercase" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer class="solr.KeywordTokenizerFactory"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
+  <fieldType name="pdates" class="solr.DatePointField" docValues="true" multiValued="true"/>
+  <fieldType name="pdouble" class="solr.DoublePointField" docValues="true"/>
+  <fieldType name="pdoubles" class="solr.DoublePointField" docValues="true" multiValued="true"/>
+  <fieldType name="pfloat" class="solr.FloatPointField" docValues="true"/>
+  <fieldType name="pfloats" class="solr.FloatPointField" docValues="true" multiValued="true"/>
+  <fieldType name="pint" class="solr.IntPointField" docValues="true"/>
+  <fieldType name="pints" class="solr.IntPointField" docValues="true" multiValued="true"/>
+  <fieldType name="plong" class="solr.LongPointField" docValues="true"/>
+  <fieldType name="plongs" class="solr.LongPointField" docValues="true" multiValued="true"/>
+  <fieldType name="point" class="solr.PointType" subFieldSuffix="_d" dimension="2"/>
+  <fieldType name="random" class="solr.RandomSortField" indexed="true"/>
+  <fieldType name="rank" class="solr.RankField"/>
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true"/>
+
+  <field name="_version_" type="plong" indexed="false" stored="false"/>
+  <field name="sample_id" type="string" multiValued="false" indexed="true" required="true" stored="true"/>
+  <field name="sex" type="string"/>
+  <field name="age_range" type="string"/>
+  <field name="kit" type="string"/>
+  <field name="hardy_scale_death" type="string"/>
+  <field name="collection_site_code" type="string"/>
+  <field name="expression_batch" type="string"/>
+  <field name="expression_batch_type" type="string"/>
+  <field name="nucleic_acid_isolation_batch" type="string"/>
+  <field name="rna_rin" type="pdoubles"/>
+  <field name="tissue" type="string"/>
+  
+</schema>
