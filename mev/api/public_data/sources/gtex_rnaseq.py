@@ -206,11 +206,11 @@ class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
                 group_id = RnaSeqMixin.create_python_compatible_id(tissue) + '/ds'
                 hdf_out.put(group_id, counts)
 
-        final_ann.to_csv(
+        final_ann.to_csv(os.path.join(self.ROOT_DIR,
             self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
                 tag = self.TAG,
                 date = self.date_str
-            ),
+            )),
             sep=',',
             index_label = 'sample_id'
         )

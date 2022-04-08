@@ -491,8 +491,14 @@ class TestGTExRnaseq(BaseAPITestCase):
             tag = data_src.TAG,
             date = data_src.date_str
         )
+        ann_output = RnaSeqMixin.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
+            tag = data_src.TAG,
+            date = data_src.date_str
+        )
         expected_output_hdf = os.path.join(tmp_testing_dir, f)
+        expected_output_ann = os.path.join(tmp_testing_dir, ann_output)
         self.assertTrue(os.path.exists(expected_output_hdf))
+        self.assertTrue(os.path.exists(expected_output_ann))
 
         expected_tissue_list = [
             'Adipose - Subcutaneous', 
