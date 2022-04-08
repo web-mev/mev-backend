@@ -445,14 +445,23 @@ class TestGTExRnaseq(BaseAPITestCase):
 
     @mock.patch('api.public_data.sources.gtex_rnaseq.GtexRnaseqDataSource._get_sample_annotations')
     @mock.patch('api.public_data.sources.gtex_rnaseq.GtexRnaseqDataSource._get_phenotype_data')
-    @mock.patch('api.public_data.sources.gtex_rnaseq.GtexRnaseqDataSource._get_counts_data')
+    @mock.patch('api.public_data.sources.gtex_rnaseq.GtexRnaseqDataSource._download_file')
+    @mock.patch('api.public_data.sources.gtex_rnaseq.GtexRnaseqDataSource._create_tmp_dir')
+    @mock.patch('api.public_data.sources.gtex_rnaseq.run_shell_command')
     def test_data_prep(self, \
-        mock_get_counts_data, \
+        mock_run_shell_command, \
+        mock_create_tmp_dir, \
+        mock_download_file, \
         mock_get_phenotype_data, \
         mock_get_sample_annotations):
         '''
         Test that we munge everything correctly
         '''
+        mock_tmp_dir = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files'
+        )
+        mock_create_tmp_dir.return_value = mock_tmp_dir
         ann_path = os.path.join(
             THIS_DIR, 
             'public_data_test_files', 
@@ -463,18 +472,19 @@ class TestGTExRnaseq(BaseAPITestCase):
             'public_data_test_files', 
             'gtex_rnaseq_pheno.tsv'
         )
-        counts_path = os.path.join(
-            THIS_DIR, 
-            'public_data_test_files', 
-            'gtex_counts.tsv'
-        )
+
         mock_get_sample_annotations.return_value = pd.read_table(ann_path)
         mock_get_phenotype_data.return_value = pd.read_table(pheno_path)
-        mock_get_counts_data.return_value = pd.read_table(counts_path, index_col=0)
 
         tmp_testing_dir = os.path.join(settings.DATA_DIR, 'test-gtex-rnaseq')
         os.mkdir(tmp_testing_dir)
         GtexRnaseqDataSource.ROOT_DIR = tmp_testing_dir 
+        mock_adipose_url = 'adipose_url'
+        mock_blood_url = 'blood_url'
+        GtexRnaseqDataSource.TISSUE_TO_FILE_MAP = {
+            'Adipose - Subcutaneous': mock_adipose_url,
+            'Whole Blood': mock_blood_url
+        }
         data_src = GtexRnaseqDataSource()
         data_src.prepare()
         f = RnaSeqMixin.COUNT_OUTPUT_FILE_TEMPLATE.format(
@@ -485,19 +495,8 @@ class TestGTExRnaseq(BaseAPITestCase):
         self.assertTrue(os.path.exists(expected_output_hdf))
 
         expected_tissue_list = [
-            'Whole Blood',
-            'Adipose - Subcutaneous', 'Muscle - Skeletal', 'Artery - Tibial',
-            'Artery - Coronary', 'Heart - Atrial Appendage',
-            'Adipose - Visceral (Omentum)', 'Uterus', 'Vagina',
-            'Breast - Mammary Tissue', 'Skin - Not Sun Exposed (Suprapubic)',
-            'Minor Salivary Gland', 'Brain - Cortex', 'Adrenal Gland',
-            'Thyroid', 'Lung', 'Spleen', 'Pancreas', 'Esophagus - Muscularis',
-            'Esophagus - Mucosa', 'Esophagus - Gastroesophageal Junction',
-            'Stomach', 'Colon - Sigmoid', 'Small Intestine - Terminal Ileum',
-            'Colon - Transverse', 'Prostate', 'Testis',
-            'Skin - Sun Exposed (Lower leg)', 'Nerve - Tibial',
-            'Heart - Left Ventricle', 'Brain - Cerebellum',
-            'Cells - Cultured fibroblasts', 'Artery - Aorta'
+            'Adipose - Subcutaneous', 
+            'Whole Blood'
         ]
         converted_tissue_list = [RnaSeqMixin.create_python_compatible_id(x) for x in expected_tissue_list]
         groups_list = ['/{x}/ds'.format(x=x) for x in converted_tissue_list]
@@ -506,6 +505,20 @@ class TestGTExRnaseq(BaseAPITestCase):
 
         # cleanup the test folder
         shutil.rmtree(tmp_testing_dir)
+
+        shell_calls = []
+        for i in range(2):
+            f = os.path.join(mock_tmp_dir, 'f{x}.gct.gz'.format(x=i))
+            shell_calls.append(mock.call('gunzip {f}'.format(f=f)))
+        mock_run_shell_command.assert_has_calls(shell_calls)
+        mock_download_file.assert_has_calls([
+            mock.call(
+                mock_adipose_url, os.path.join(mock_tmp_dir, 'f0.gct.gz')
+            ),
+            mock.call(
+                mock_blood_url, os.path.join(mock_tmp_dir, 'f1.gct.gz'))
+        ])
+
 
 class TestRnaSeqMixin(BaseAPITestCase): 
 
