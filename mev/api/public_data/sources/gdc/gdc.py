@@ -572,7 +572,7 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         total_annotation_df = pd.DataFrame()
         counts_output_path = os.path.join(
             self.ROOT_DIR,
-            self.COUNT_OUTPUT_FILE_TEMPLATE.format(tag=tag, ds=self.date_str)
+            self.COUNT_OUTPUT_FILE_TEMPLATE.format(tag=tag, date=self.date_str)
         )
         with pd.HDFStore(counts_output_path) as hdf_out:
             for project_id in project_dict.keys():
@@ -594,7 +594,7 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         # Write all the metadata to a file
         ann_output_path = os.path.join(
             self.ROOT_DIR,
-            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(tag = tag, ds=self.date_str)
+            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(tag = tag, date=self.date_str)
         )
         total_annotation_df.to_csv(
             ann_output_path, 
