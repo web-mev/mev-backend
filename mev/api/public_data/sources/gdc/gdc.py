@@ -302,7 +302,7 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
     '''
 
     # This list defines further filters which are specific to this class where we
-    # are getting data regarding HTSeq-based RNA-seq counts. This list is in addition
+    # are getting data regarding STAR-based RNA-seq counts. This list is in addition
     # to any other FILTER_LIST class attributes defined in parent classes. We will
     # ultimately combine them using a logical AND to create the final filter for our query
     # to the GDC API.
@@ -311,7 +311,7 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
             "op": "in",
             "content":{
                 "field": "files.analysis.workflow_type",
-                "value": ["HTSeq - Counts"]
+                "value": ["STAR - Counts"]
                 }
         },
         {
@@ -340,12 +340,8 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         '__alignment_not_unique'
     ]
 
-    # We look for HTSeq-based counts which have this suffix
-    HTSEQ_SUFFIX = 'htseq.counts.gz'
-    
-    # Some of the files are not named consistently and have this file suffix
-    HTSEQ_SUFFIX_ALT = 'htseq_counts.txt.gz'
-
+    # We look for STAR-based counts which have this suffix
+    STAR_COUNTS_SUFFIX = 'rna_seq.augmented_star_gene_counts.tsv'
 
     def verify_files(self, file_dict):
         '''
@@ -615,16 +611,20 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
             with tarfile.open(f, 'r:gz') as tf:
                 tf.extractall(path=tmpdir)
                 for t in tf.getmembers():
-                    if t.name.endswith(self.HTSEQ_SUFFIX) or t.name.endswith(self.HTSEQ_SUFFIX_ALT):
+                    if t.name.endswith(self.STAR_COUNTS_SUFFIX):
                         # the folder has the name of the file.
                         # The prefix UUID on the basename is not useful to us.
                         file_id = t.name.split('/')[0]
                         df = pd.read_table(
                             os.path.join(tmpdir, t.path), 
                             index_col=0, 
-                            header=None, 
+                            sep = '\t',
+                            skiprows = 6,
+                            usecols =[0,3],
                             names=['gene', file_to_aliquot_mapping[file_id]])
                         count_df = pd.concat([count_df, df], axis=1)
+                    else:
+                        logger.info('Found file named: {x}'.format(x=t.name))
 
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]

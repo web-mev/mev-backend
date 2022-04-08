@@ -60,7 +60,7 @@ class TCGARnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
         ' Genomic Data Commons'
         ' <a href="https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/Expression_mRNA_Pipeline/">'
         ' mRNA analysis pipeline</a>. Quantifications from this pipeline'
-        ' are produced by HTSeq.'
+        ' are produced by the STAR aligner.'
     )
 
     # a string which will make it obvious where the data has come from. For example, we can use
