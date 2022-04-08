@@ -189,8 +189,9 @@ class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
 
                 # the GCT-format file has two header lines. The third line has the usual
                 # column headers
-                counts = pd.read_table(output_file, sep='\t', skiprows=2, header=0, index_col=0)
+                counts = pd.read_table(output_file, sep='\t', skiprows=2, header=0, index_col=1)
                 counts.drop(['Description'], axis=1, inplace=True)
+                counts.drop(['id'], axis=1, inplace=True)
                 # Remove the version from the ENSG gene ID
                 counts.index = [x.split('.')[0] for x in counts.index]
 
