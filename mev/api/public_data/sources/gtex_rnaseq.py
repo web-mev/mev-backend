@@ -181,7 +181,11 @@ class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
         with pd.HDFStore(counts_output_path) as hdf_out:
             for i, (tissue, tissue_subdf) in enumerate(merged_ann.groupby('tissue')):
                 logger.info('Handling tissue {t}'.format(t=tissue))
-                url = self.TISSUE_TO_FILE_MAP[tissue]
+                try:
+                    url = self.TISSUE_TO_FILE_MAP[tissue]
+                except KeyError as ex:
+                    logger.info('No file exists in the map for {t}. Skipping.'.format(t=tissue))
+                    continue
                 output_file = '{d}/f{i}.gct.gz'.format(d=tmp_dir, i=i)
                 self._download_file(url, output_file)
                 run_shell_command('gunzip {f}'.format(f=output_file))
