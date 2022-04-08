@@ -625,6 +625,8 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
                         count_df = pd.concat([count_df, df], axis=1)
                     else:
                         logger.info('Found file named: {x}'.format(x=t.name))
+                        if t.name != 'MANIFEST.txt':
+                            raise Exception('Found an unexpected file that did not match our expectations.')
 
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
