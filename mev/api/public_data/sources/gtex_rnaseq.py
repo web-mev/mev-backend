@@ -13,7 +13,7 @@ from api.public_data.sources.rnaseq import RnaSeqMixin
 
 logger = logging.getLogger(__name__)
 
-class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
+class GtexRnaseqDataSource(RnaSeqMixin, PublicDataSource):
 
     TAG = 'gtex-rnaseq'
     PUBLIC_NAME = 'GTEx RNA-seq'
@@ -196,6 +196,17 @@ class GtexRnaseqDataSource(PublicDataSource, RnaSeqMixin):
                 counts = pd.read_table(output_file, sep='\t', skiprows=2, header=0, index_col=1)
                 counts.drop(['Description'], axis=1, inplace=True)
                 counts.drop(['id'], axis=1, inplace=True)
+
+                # As of this writing, there are alternate ENSG Ids that are suffixed with _PAR_Y
+                # to denote features that are on the regions of chrY which are identical to those
+                # on chrX.
+                # https://www.gencodegenes.org/pages/faq.html (search "PAR_Y")
+                # We drop those here. 
+                # It appears the mapping does not count to these regions anyway, since the rows are all
+                # zeros (while the canonical transcript is generally non-zero)
+                idx_par = pd.Series([x.endswith('_PAR_Y') for x in counts.index])
+                counts = counts.loc[~idx_par.values]
+                
                 # Remove the version from the ENSG gene ID
                 counts.index = [x.split('.')[0] for x in counts.index]
 
