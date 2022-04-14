@@ -611,22 +611,25 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
             with tarfile.open(f, 'r:gz') as tf:
                 tf.extractall(path=tmpdir)
                 for t in tf.getmembers():
-                    if t.name.endswith(self.STAR_COUNTS_SUFFIX):
-                        # the folder has the name of the file.
-                        # The prefix UUID on the basename is not useful to us.
-                        file_id = t.name.split('/')[0]
-                        df = pd.read_table(
-                            os.path.join(tmpdir, t.path), 
-                            index_col=0, 
-                            sep = '\t',
-                            skiprows = 6,
-                            usecols =[0,3],
-                            names=['gene', file_to_aliquot_mapping[file_id]])
-                        count_df = pd.concat([count_df, df], axis=1)
-                    else:
-                        logger.info('Found file named: {x}'.format(x=t.name))
-                        if t.name != 'MANIFEST.txt':
-                            raise Exception('Found an unexpected file that did not match our expectations.')
+                    if t.isfile():
+                        if t.name.endswith(self.STAR_COUNTS_SUFFIX):
+                            # the folder has the name of the file.
+                            # The prefix UUID on the basename is not useful to us.
+                            file_id = t.name.split('/')[0]
+                            df = pd.read_table(
+                                os.path.join(tmpdir, t.path), 
+                                index_col=0, 
+                                sep = '\t',
+                                skiprows = 6,
+                                usecols =[0,3],
+                                names=['gene', file_to_aliquot_mapping[file_id]])
+                            count_df = pd.concat([count_df, df], axis=1)
+                        else:
+                            logger.info('Found file named: {x}'.format(x=t.name))
+                            if t.name != 'MANIFEST.txt':
+                                print(t.name)
+                                raise Exception('Found an unexpected file ({x}) '
+                                    'that did not match our expectations.'.format(x=t.name))
 
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]

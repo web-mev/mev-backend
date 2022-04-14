@@ -411,7 +411,7 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
             "format": "JSON",
             "size": "100",
             "expand": "cases.demographic,cases.diagnoses,cases.exposures,cases.tissue_source_site,cases.project",
-            "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-FOO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"HTSeq - Counts\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"RNA-Seq\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.data_type\", \"value\": [\"Gene Expression Quantification\"]}}]}"
+            "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-FOO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"STAR - Counts\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"RNA-Seq\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.data_type\", \"value\": [\"Gene Expression Quantification\"]}}]}"
         }
         self.assertDictEqual(d, expected_query_filters)      
 
@@ -424,7 +424,7 @@ class TestGDCRnaSeqMixin(BaseAPITestCase):
         }
         expected_matrix = pd.DataFrame(
             [[509, 1446, 2023],[0,2,22],[1768, 2356, 1768]],
-            index=['ENSG00000000003','ENSG00000000005','ENSG00000000419'],
+            index=['ENSG00000000003','ENSG00000000005','ENSG0000000000419'],
             columns = ['x1', 'x2', 'x3']
         )
         expected_matrix.index.name = 'gene'
