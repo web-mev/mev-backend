@@ -634,6 +634,16 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         # remove the skipped rows which don't correspond to actual gene features
         count_df = count_df.loc[~count_df.index.isin(self.SKIPPED_FEATURES)]
 
+        # As of this writing, there are alternate ENSG Ids that are suffixed with _PAR_Y
+        # to denote features that are on the regions of chrY which are identical to those
+        # on chrX.
+        # https://www.gencodegenes.org/pages/faq.html (search "PAR_Y")
+        # We drop those here. 
+        # It appears the mapping does not count to these regions anyway, since the rows are all
+        # zeros (while the canonical transcript is generally non-zero)
+        idx_par = pd.Series([x.endswith('_PAR_Y') for x in count_df.index])
+        count_df = count_df.loc[~idx_par.values]
+
         # The count matrices have Ensembl identifiers like ENSG0000122345.11
         # The 'version' suffix interferes with database lookups (such as for GO terms, etc.)
         # so we strip that off
