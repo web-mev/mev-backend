@@ -3342,7 +3342,7 @@ class ResourceContentTransformTests(BaseAPITestCase):
         self.assertEqual(j['error'], 'not found')
 
     @mock.patch('api.views.resource_views.get_transformation_function')
-    def test_xx(self, mock_get_transformation_function):
+    def test_missing_transform_name_param(self, mock_get_transformation_function):
         '''
         Test that we respond appropriately if the "transform-name" 
         query param is not given.

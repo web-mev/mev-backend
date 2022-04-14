@@ -67,6 +67,16 @@ def subset_PANDA_net(resource, query_params):
     if not axis in [0,1]:
         raise Exception('The parameter "axis" must be 0 or 1.')
 
+    # instead of providing the subset based on the top edge weights, we can start
+    # from a user-supplied list of genes
+    try:
+        # a delimited string:
+        init_nodes = query_params['initial_nodes']
+        init_nodes = [x.strip() for x in init_nodes.split('///')]
+    except KeyError:
+        # this is an optional parameter, so it's not a problem if it's not provided
+        init_nodes = None
+
     # Import file as pandas dataframe
     df = pd.read_table(path_to_fname, header=0, index_col=0)
 
@@ -79,7 +89,22 @@ def subset_PANDA_net(resource, query_params):
     # Get the top N nodes as determined by the sum of the 
     # "attached" weights.
     summing_axis = int(not axis)
-    nodes = df.sum(axis = summing_axis).nlargest(N).index
+
+    if init_nodes is not None:
+        if axis == 0:
+            difference_set = set(init_nodes).difference(df.index)
+        else:
+            difference_set = set(init_nodes).difference(df.columns)
+        if len(difference_set) > 0:
+            msg = 'The following identifiers were not found in your {axis}: {id_list}'.format(
+                axis= 'rows' if axis==0 else 'columns',
+                id_list = ','.join(difference_set)
+            )
+            raise Exception(msg)
+        # If we are here, then we are OK
+        nodes = init_nodes
+    else:
+        nodes = df.sum(axis = summing_axis).nlargest(N).index
 
     # Find subsequent layers up to max_depth
     while current_level < max_depth:

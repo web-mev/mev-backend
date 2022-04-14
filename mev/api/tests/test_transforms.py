@@ -132,3 +132,131 @@ class ResourceTransformTests(BaseAPITestCase):
         }
         with self.assertRaisesRegex(Exception, 'must be 0 or 1'):
             subset_PANDA_net(self.resource, query_params)
+
+    def test_panda_subset_by_genes(self):
+        fp = os.path.join(self.TESTDIR, 'example_panda_output.tsv')
+        self.resource.path = fp
+
+        expected_result = {
+            "initial_axis": 0,
+            "nodes": [
+                {
+                "ENSG_1": {
+                    "axis": 0,
+                    "children": [
+                    {
+                        "TF_2": 80
+                    },
+                    {
+                        "TF_4": 87
+                    }
+                    ]
+                }
+                },
+                {
+                "ENSG_9": {
+                    "axis": 0,
+                    "children": [
+                    {
+                        "TF_7": 68
+                    },
+                    {
+                        "TF_4": 73
+                    }
+                    ]
+                }
+                },
+                {
+                "TF_2": {
+                    "axis": 1,
+                    "children": [
+                    {
+                        "ENSG_1": 80
+                    },
+                    {
+                        "ENSG_4": 95
+                    }
+                    ]
+                }
+                },
+                {
+                "TF_4": {
+                    "axis": 1,
+                    "children": [
+                    {
+                        "ENSG_1": 87
+                    },
+                    {
+                        "ENSG_10": 91
+                    }
+                    ]
+                }
+                },
+                {
+                "TF_7": {
+                    "axis": 1,
+                    "children": [
+                    {
+                        "ENSG_5": 89
+                    },
+                    {
+                        "ENSG_2": 90
+                    }
+                    ]
+                }
+                }
+            ]
+        }
+        expected_nodes = ['ENSG_1', 'ENSG_9', 'TF_2', 'TF_4', 'TF_7']
+        query_params = {
+            'maxdepth': 2,
+            'children': 2,
+            'axis': 0,
+            'initial_nodes': 'ENSG_1///ENSG_9'
+        }
+        result = subset_PANDA_net(self.resource, query_params)
+        nodes = list(set(chain.from_iterable([x.keys() for x in result['nodes']])))
+        self.assertCountEqual(expected_nodes, nodes)
+
+        # test with a bad gene
+        query_params = {
+            'maxdepth': 2,
+            'children': 2,
+            'axis': 0,
+            'initial_nodes': 'ENSG_1///ENSG_666'
+        }
+        with self.assertRaisesRegex(Exception, 'ENSG_666'):
+            subset_PANDA_net(self.resource, query_params)
+
+        # test with a bad delimiter
+        query_params = {
+            'maxdepth': 2,
+            'children': 2,
+            'axis': 0,
+            'initial_nodes': 'ENSG_1,ENSG_666'
+        }
+        with self.assertRaisesRegex(Exception, 'ENSG_1,ENSG_666'):
+            subset_PANDA_net(self.resource, query_params)
+
+        # test other direction (TFs, axis=1), but keep (by accident)
+        # a query on the genes
+        query_params = {
+            'maxdepth': 2,
+            'children': 2,
+            'axis': 1,
+            'initial_nodes': 'ENSG_1///ENSG_9'
+        }
+        with self.assertRaisesRegex(Exception, 'ENSG_1'):
+            result = subset_PANDA_net(self.resource, query_params)
+
+        # now try a correct query for the TFs
+        query_params = {
+            'maxdepth': 2,
+            'children': 2,
+            'axis': 1,
+            'initial_nodes': 'TF_2///TF_4'
+        }
+        result = subset_PANDA_net(self.resource, query_params)
+        nodes = list(set(chain.from_iterable([x.keys() for x in result['nodes']])))
+        expected_nodes = ['TF_2', 'TF_4', 'ENSG_1', 'ENSG_4', 'ENSG_10']
+        self.assertCountEqual(expected_nodes, nodes)
