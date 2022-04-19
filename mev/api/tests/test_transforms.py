@@ -212,7 +212,7 @@ class ResourceTransformTests(BaseAPITestCase):
             'maxdepth': 2,
             'children': 2,
             'axis': 0,
-            'initial_nodes': 'ENSG_1///ENSG_9'
+            'initial_nodes': 'ENSG_1,ENSG_9'
         }
         result = subset_PANDA_net(self.resource, query_params)
         nodes = list(set(chain.from_iterable([x.keys() for x in result['nodes']])))
@@ -223,7 +223,7 @@ class ResourceTransformTests(BaseAPITestCase):
             'maxdepth': 2,
             'children': 2,
             'axis': 0,
-            'initial_nodes': 'ENSG_1///ENSG_666'
+            'initial_nodes': 'ENSG_1,ENSG_666'
         }
         with self.assertRaisesRegex(Exception, 'ENSG_666'):
             subset_PANDA_net(self.resource, query_params)
@@ -233,9 +233,9 @@ class ResourceTransformTests(BaseAPITestCase):
             'maxdepth': 2,
             'children': 2,
             'axis': 0,
-            'initial_nodes': 'ENSG_1,ENSG_666'
+            'initial_nodes': 'ENSG_1:ENSG_666'
         }
-        with self.assertRaisesRegex(Exception, 'ENSG_1,ENSG_666'):
+        with self.assertRaisesRegex(Exception, 'ENSG_1:ENSG_666'):
             subset_PANDA_net(self.resource, query_params)
 
         # test other direction (TFs, axis=1), but keep (by accident)
@@ -244,7 +244,7 @@ class ResourceTransformTests(BaseAPITestCase):
             'maxdepth': 2,
             'children': 2,
             'axis': 1,
-            'initial_nodes': 'ENSG_1///ENSG_9'
+            'initial_nodes': 'ENSG_1,ENSG_9'
         }
         with self.assertRaisesRegex(Exception, 'ENSG_1'):
             result = subset_PANDA_net(self.resource, query_params)
@@ -254,7 +254,7 @@ class ResourceTransformTests(BaseAPITestCase):
             'maxdepth': 2,
             'children': 2,
             'axis': 1,
-            'initial_nodes': 'TF_2///TF_4'
+            'initial_nodes': 'TF_2,TF_4'
         }
         result = subset_PANDA_net(self.resource, query_params)
         nodes = list(set(chain.from_iterable([x.keys() for x in result['nodes']])))

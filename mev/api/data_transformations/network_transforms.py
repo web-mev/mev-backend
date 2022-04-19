@@ -72,7 +72,7 @@ def subset_PANDA_net(resource, query_params):
     try:
         # a delimited string:
         init_nodes = query_params['initial_nodes']
-        init_nodes = [x.strip() for x in init_nodes.split('///')]
+        init_nodes = [x.strip() for x in init_nodes.split(',')]
     except KeyError:
         # this is an optional parameter, so it's not a problem if it's not provided
         init_nodes = None
