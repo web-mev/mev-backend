@@ -209,6 +209,21 @@ class ElementSerializerTester(object):
         element_serializer = self.element_serializer_class(data=data)
         testcase.assertFalse(element_serializer.is_valid())
 
+    def test_long_identifier_rejection_handled(self, testcase):
+        long_id = 'x'*200 # something longer than we permit
+        demo_element_w_long_id = {
+            'id': long_id,
+            'attributes':{
+                'keyA': {
+                    'attribute_type':'Integer', 
+                    'value': 3
+                }
+            } 
+        }
+        element_serializer = self.element_serializer_class(data=demo_element_w_long_id)
+        with testcase.assertRaisesRegex(ValidationError, long_id) as ex:
+            element_serializer.is_valid(raise_exception=True)
+
     def test_serialization(self, testcase):
         '''
         Check that Observation instances are correctly
@@ -356,6 +371,7 @@ class TestObservationSerializer(unittest.TestCase):
                 }
             }
         }
+
         # the class that will execute the tests
         self.tester_class = ElementSerializerTester(ObservationSerializer)
 

@@ -545,6 +545,38 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertIsNone(getattr(metadata, DataResource.OBSERVATION_SET))
         self.assertEqual(getattr(metadata, DataResource.RESOURCE), r)
 
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.add_metadata_to_resource')
+    def test_metadata_addition_failure(self, 
+        mock_add_metadata_to_resource,
+        mock_move_resource_to_final_location):
+        '''
+        Check that we do the proper things if the addition of the metadata
+        to the resource fails.
+
+        For instance, we had a case where the metadata extraction worked,
+        but the sample IDs were too long. In that case, the `add_metadata_to_resource`
+        function raised an uncaught exception and the Resource.path attribute
+        was not set correctly.
+        '''
+        mock_move_resource_to_final_location.return_value = '/a/b/c.txt'
+        mock_add_metadata_to_resource.side_effect = ValidationError('ack')
+
+        all_resources = Resource.objects.all()
+        r = all_resources[0]
+        # doesn't matter what this is. However, setting the
+        # performs_validation method to return False
+        # avoids having to mock out a bunch of
+        # other functions.
+        rc = mock.MagicMock()
+        rc.performs_validation.return_value = False
+        rc.extract_metadata.return_value = {}
+        handle_valid_resource(r, rc, WILDCARD)
+
+        self.assertEqual(r.path, '/a/b/c.txt')
+        mock_move_resource_to_final_location.assert_called()
+        self.assertTrue('ack' in r.status)
+        self.assertTrue(r.resource_type == WILDCARD)
 
     def test_add_metadata(self):
         '''

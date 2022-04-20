@@ -9,6 +9,7 @@ import copy
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
+from rest_framework.serializers import ValidationError
 
 from api.models import Resource, ResourceMetadata
 
@@ -666,6 +667,28 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=d)
         self.assertFalse(rms.is_valid())
 
+        long_name = 'x'*200
+        bad_obs_set = {
+            'multiple': True,
+            'elements':[
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': long_name # the name is too long
+                }
+            ]
+        }        
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: bad_obs_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        with self.assertRaisesRegex(ValidationError, long_name) as ex:
+            rms.is_valid(raise_exception=True)
+
     def test_good_feature_set(self):
         '''
         Tests that good featire sets are accepted when creating
@@ -744,6 +767,27 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=d)
         self.assertFalse(rms.is_valid())
 
+        long_name = 'x'*200
+        bad_feature_set = {
+            'multiple': True,
+            'elements':[
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': long_name # the name is too long
+                }
+            ]
+        }        
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: bad_feature_set,
+            PARENT_OP_KEY:None
+        }
+        rms = ResourceMetadataSerializer(data=d)
+        with self.assertRaisesRegex(ValidationError, long_name) as ex:
+            rms.is_valid(raise_exception=True)
     def test_missing_keys_in_resource_metadata(self):
         '''
         Tests

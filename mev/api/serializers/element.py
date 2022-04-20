@@ -9,10 +9,19 @@ class BaseElementSerializer(serializers.Serializer):
     Serializer for the `api.data_structures.BaseElement` class
     and its derived children.
     '''
-    id = serializers.CharField(max_length=50)
+
+    # Prohibit identifiers for Elements to be longer than this
+    MAX_LENGTH_ID = 100
+
+    id = serializers.CharField()
     attributes = AttributeSerializer(required=False)
 
     def validate_id(self, id):
+        if len(id) > self.MAX_LENGTH_ID:
+            raise serializers.ValidationError('The identifier {x} must be shorter than {n}'.format(
+                x = id,
+                n = self.MAX_LENGTH_ID
+            ))
         return id
 
     def validate(self, data):

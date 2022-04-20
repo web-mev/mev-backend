@@ -236,7 +236,6 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
 
         # delete the "original" resource, if the standardization ended up making
         # a different file
-
         if new_path != local_path:
             logger.info('The standardization changed the path. '
                 'Go delete the non-standardized file: {p}'.format(p=resource.path)
@@ -288,7 +287,11 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
         resource.resource_type = None
         return
 
-    add_metadata_to_resource(resource, metadata)
+    try:
+        add_metadata_to_resource(resource, metadata)
+        resource.status = Resource.READY
+    except Exception as ex:
+        resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
 
     # have to send the file to the final storage. If we are using local storage
     # this is trivial. However, if we are using remote storage, the data saved
@@ -297,7 +300,6 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
 
     resource.path = final_path
     resource.resource_type = requested_resource_type
-    resource.status = Resource.READY
 
 
 def check_extension(resource, requested_resource_type):
