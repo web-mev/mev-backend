@@ -32,7 +32,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertTrue(os.path.exists(path))
         os.remove(path)
 
-    @mock.patch('api.uploaders.base.validate_resource_and_store')
+    @mock.patch('api.views.resource_upload_views.validate_resource_and_store')
     def upload_and_cleanup(self, 
         payload, 
         client,

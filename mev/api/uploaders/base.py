@@ -10,8 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.serializers.resource import ResourceSerializer
 from api.models import Resource
-from api.utilities.resource_utilities import set_resource_to_inactive
-from api.async_tasks.async_resource_tasks import validate_resource_and_store
+
 
 from resource_types import extension_is_consistent_with_type
 
@@ -26,7 +25,6 @@ class BaseUpload(object):
         # populate the other required members:
         self.filepath = None
         self.filename = None
-        self.resource_type = None
         self.size = 0
 
     def check_request_and_owner(self, payload, request):
@@ -74,17 +72,12 @@ class BaseUpload(object):
             })
         self.is_public = is_public
 
-        # The resource type is NOT required, but may be specified.
-        # If it's not explicitly set, we skip validation-- don't want
-        # to guess at types.
-        self.resource_type = serialized_data.get('resource_type')
-
     def create_resource_from_upload(self):
 
         # create a serialized representation so we can use the validation
         # contained there.  Note that since we are creating a new Resource
         # we have NOT validated it.  Hence, we explicitly set resource_type 
-        # to be None
+        # to be None. 
         if self.owner:
             owner_email = self.owner.email
         else:
@@ -132,33 +125,6 @@ class LocalUpload(BaseUpload):
             tmp_name
         )
         return tmp_path
-
-
-    def validate_and_store(self, resource_instance):
-        '''
-        Handles validation of Resources that are located locally 
-        on the server.  Regardless of validation outcome, moves the
-        uploaded Resource into its final storage.
-
-        Note that we keep the validation and final storage operations 
-        together so we don't spawn multiple async jobs which end up causing
-        race conditions on updating the Resource instance's attributes. 
-        '''
-
-        # set and save attributes to prevent "use" of this Resource
-        # before it is validated and in its final storage location:
-        set_resource_to_inactive(resource_instance)
-
-        # since the async method doesn't have a defined time to operate,
-        # set a generic status on the Resource.
-        resource_instance.status = Resource.PROCESSING
-        resource_instance.save()
-
-        # call the validation/storage methods async
-        validate_resource_and_store.delay(
-            resource_instance.pk, 
-            self.resource_type 
-        )
 
 
 class RemoteUpload(BaseUpload):

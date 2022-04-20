@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 
+from api.models import Resource
 from api.serializers.upload_serializer import UploadSerializer, DropboxUploadSerializer
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
@@ -20,8 +21,8 @@ from api.uploaders import ServerLocalUpload, \
     get_async_uploader, \
     DROPBOX
 from api.async_tasks.operation_tasks import submit_async_job
-
-User = get_user_model()
+from api.utilities.resource_utilities import set_resource_to_inactive
+from api.async_tasks.async_resource_tasks import validate_resource_and_store
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +48,20 @@ class ServerLocalResourceUpload(APIView):
             # get the file on the server:
             resource = upload_handler.handle_upload(request, serializer.data)
 
-            # validate the resource, if applicable, and copy the file to 
-            # the storage backend (async process, so response can return quickly)
-            upload_handler.validate_and_store(resource)
+            # set and save attributes to prevent "use" of this Resource
+            # before it is (potentially) validated and in its final storage location:
+            set_resource_to_inactive(resource)
+
+            # since the async function below doesn't have a defined time to operate,
+            # set a generic status on the Resource.
+            resource.status = Resource.PROCESSING
+            resource.save()
+
+            # call the validation/storage methods async
+            validate_resource_and_store.delay(
+                resource.pk, 
+                serializer.data.get('resource_type')
+            )
 
             resource_serializer = ResourceSerializer(resource, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
