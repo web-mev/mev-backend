@@ -48,8 +48,8 @@ class Resource(AbstractResource):
     UNKNOWN_EXTENSION_ERROR = ('File extension for file "{filename}" is not consistent'
         ' with the requested resource type ({readable_resource_type}).'
         ' Acceptable extensions are: {extensions_csv}')
-    UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation.'
-    UNEXPECTED_STORAGE_ERROR = 'An unexpected error occurred during upload and storage.'
+    UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation. An administrator has been notified.'
+    UNEXPECTED_STORAGE_ERROR = 'An unexpected error occurred during upload and storage. An administrator has been notified.'
     ERROR_WITH_REASON = 'An error ocurred: {ex}'
 
     # the name of the directory (relative to the storage root) where we will store

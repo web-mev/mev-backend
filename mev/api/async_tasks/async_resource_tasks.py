@@ -1,10 +1,11 @@
 import logging
 
-#from celery.decorators import task
 from celery import shared_task
+
 import api.utilities.resource_utilities as resource_utilities
 from api.storage_backends import get_storage_backend
 from api.models import Resource
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +26,12 @@ def validate_resource(resource_pk, requested_resource_type):
 
     try:
         resource_utilities.validate_resource(resource, requested_resource_type)
+        resource.is_active = True
     except Exception as ex:
-        resource.status = Resource.UNEXPECTED_VALIDATION_ERROR
-
-    # regardless of what happened above, set the 
-    # status to be active (so changes can be made)
-    # and save the instance
-    resource.is_active = True
+        logger.info('Caught an exception raised by the validate_resource function.')
+        print(ex)
+        print('?'*200)
+        alert_admins(str(ex))
     resource.save()
 
 
@@ -48,4 +48,5 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     try:
         resource_utilities.validate_and_store_resource(resource, requested_resource_type)
     except Exception as ex:
-        resource.status = Resource.UNEXPECTED_VALIDATION_ERROR
+        logger.info('Caught an exception raised by the validate_and_store_resource function.')
+        alert_admins(str(ex))

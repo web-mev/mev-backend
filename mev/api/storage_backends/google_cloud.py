@@ -15,6 +15,7 @@ from django.conf import settings
 from .remote_bucket import RemoteBucketStorageBackend
 from api.exceptions import StorageException
 from api.utilities.basic_utils import make_local_directory, get_with_retry
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,12 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         '''
         Returns a google storage Blob object given the path in 
         google storage.  Should be a full path (e.g. gs://bucket/object.txt)
+
+        Note that this relies on the get_bucket method. Failures to get the bucket
+        will raise an exception which we catch. HOWEVER, consistent with the 
+        google storage sdk, failure to get the actual blob itself do NOT raise
+        exceptions and instead return `None` for the blob object. We respect
+        that convention here.
         '''
         logger.info('Get blob at {path}'.format(path=path))
         path_contents = path[len(self.BUCKET_PREFIX):].split('/')
@@ -149,6 +156,11 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
                     path=path,
                     bucket_name = bucket_name
                 ))
+            raise ex
+        except Exception as ex:
+            logger.info('Could not retrieve the desired bucket due to'
+                ' an unexpected error.'
+            )
             raise ex
         try:
             return bucket.get_blob(object_name)
@@ -199,12 +211,12 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             try:
                 self.upload_blob(blob, resource_instance.path)
             except Exception as ex:
-                logger.error('Failed to upload to bucket.  File will'
+                message = ('Failed to upload to bucket.  File will'
                     ' remain local on the server at path: {path}'.format(
                         path=resource_instance.path
                     )
                 )
-                return resource_instance.path
+                raise Exception(message)
         else: # if it's not on our filesystem, assume it's in another bucket.
             # This assumes we are not "mixing" different cloud providers like AWS and GCP
             try:
@@ -226,7 +238,13 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         logger.info('Requesting deletion of file at {path}'.format(
             path=path
         ))
-        blob = self.get_blob(path)
+        if self.resource_exists(path):
+            blob = self.get_blob(path)
+        else:
+            logger.error('Requested deletion of bucket-based file at {f}'
+                ' which does not exist.'.format(f=path)
+            )
+            return
         try:
             blob.delete()
             logger.info('Successfully deleted file at {path}'.format(
@@ -290,6 +308,11 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         if not os.path.exists(local_cache_location):
             logger.info('Did not locate file in local cache. Download it.')
             blob = self.get_blob(resource_instance.path)
+            if blob is None:
+                raise Exception('The object located at {p} did not exist.'.format(
+                        p = resource_instance.path
+                    )
+                )
             try:
                 self.download_blob(blob, local_cache_location)
             except Exception as ex:

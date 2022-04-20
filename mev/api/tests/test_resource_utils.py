@@ -189,11 +189,24 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_proper_invalid_handler_called(self, mock_get_storage_backend, mock_handle_valid_resource, mock_get_resource_type_instance):
+    def test_proper_valid_handler_called(self, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
         '''
         Here we test that a successful validation calls the proper
         handler function.
         '''
+        mock_local_path = '/some/local/path.txt'
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = mock_local_path
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.performs_validation.return_value = True
+        mock_resource_class_instance.validate_type.return_value = (True, 'some string')
+        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+
         all_resources = Resource.objects.all()
         unset_resources = []
         for r in all_resources:
@@ -207,13 +220,214 @@ class TestResourceUtilities(BaseAPITestCase):
 
         unset_resource = unset_resources[0]
 
-        mock_resource_class_instance = mock.MagicMock()
-        mock_resource_class_instance.validate_type.return_value = (True, 'some string')
-        mock_get_resource_type_instance.return_value = mock_resource_class_instance
 
         validate_resource(unset_resource, 'MTX')
 
         mock_handle_valid_resource.assert_called()
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_proper_exceptions_raised_case1(self, \
+        mock_check_extension, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
+        '''
+        If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
+        that provide helpful errors.
+
+        Here, we test if the `check_extension` function raises an exception
+        '''
+        mock_check_extension.side_effect = [Exception('something unexpected!')]
+
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        with self.assertRaisesRegex(Exception, 'file extension'):
+            validate_resource(unset_resource, 'MTX')
+        mock_handle_valid_resource.assert_not_called()
+        mock_get_storage_backend.assert_not_called()
+        mock_get_resource_type_instance.assert_not_called()
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_proper_exceptions_raised_case2(self, \
+        mock_check_extension, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
+        '''
+        If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
+        that provide helpful errors.
+
+        Here, we test if the `get_resource_type` function raises an exception from something
+        unexpected
+        '''
+        mock_check_extension.return_value = True
+        mock_get_resource_type_instance.side_effect = [Exception('ack'),]
+
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        with self.assertRaisesRegex(Exception, 'retrieving the validator'):
+            validate_resource(unset_resource, 'MTX')
+        mock_handle_valid_resource.assert_not_called()
+        mock_get_storage_backend.assert_not_called()
+        mock_get_resource_type_instance.assert_called()
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_proper_exceptions_raised_case3(self, \
+        mock_check_extension, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
+        '''
+        If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
+        that provide helpful errors.
+
+        Here, we test if the `get_resource_type` function raises an exception from an unknown
+        resource type (a keyError). 
+        '''
+        mock_check_extension.return_value = True
+        mock_get_resource_type_instance.side_effect = [KeyError('abc'),]
+
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        with self.assertRaisesRegex(Exception, 'ZZZ'):
+            validate_resource(unset_resource, 'ZZZ')
+        mock_handle_valid_resource.assert_not_called()
+        mock_get_storage_backend.assert_not_called()
+        mock_get_resource_type_instance.assert_called()
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_proper_exceptions_raised_case4(self, \
+        mock_check_extension, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
+        '''
+        If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
+        that provide helpful errors.
+
+        Here, we test if the get_local_resource_path (a method of the storage backend) fails
+        for some unexpected reason, such as failure to connect to cloud storage
+        '''
+        mock_check_extension.return_value = True
+
+        # here we mock there being a problem with the storage backend (maybe bucket storage
+        # service is temporarily offline?)
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.side_effect = [Exception('something bad')]
+        mock_get_storage_backend.return_value = mock_storage_backend
+
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.performs_validation.return_value = True
+        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        expected_message_partial = ('An unexpected issue occurred when'
+            ' moving the file for inspection')
+        with self.assertRaisesRegex(Exception, expected_message_partial):
+            validate_resource(unset_resource, 'MTX')
+    
+        mock_resource_class_instance.validate_type.assert_not_called()
+        mock_handle_valid_resource.assert_not_called()
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_proper_exceptions_raised_case5(self, \
+        mock_check_extension, \
+        mock_get_storage_backend, \
+        mock_handle_valid_resource, \
+        mock_get_resource_type_instance):
+        '''
+        If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
+        that provide helpful errors.
+
+        Here, we test if the validation method fails unexpectedly.
+        '''
+        mock_check_extension.return_value = True
+        mock_local_path = '/some/local/path.txt'
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.get_local_resource_path.return_value = mock_local_path
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.performs_validation.return_value = True
+        mock_resource_class_instance.validate_type.side_effect = [Exception('something unexpected.')]
+        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+
+        unset_resource = unset_resources[0]
+
+        with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_VALIDATION_ERROR):
+            validate_resource(unset_resource, 'MTX')
+
+        mock_handle_valid_resource.assert_not_called()
 
     def test_unset_resource_type_does_not_change_if_validation_fails(self):
         '''
@@ -564,6 +778,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         all_resources = Resource.objects.all()
         r = all_resources[0]
+        expected_path = r.path
         # doesn't matter what this is. However, setting the
         # performs_validation method to return False
         # avoids having to mock out a bunch of
@@ -571,12 +786,12 @@ class TestResourceUtilities(BaseAPITestCase):
         rc = mock.MagicMock()
         rc.performs_validation.return_value = False
         rc.extract_metadata.return_value = {}
-        handle_valid_resource(r, rc, WILDCARD)
+        with self.assertRaisesRegex(Exception, 'adding metadata'):
+            handle_valid_resource(r, rc, WILDCARD)
 
-        self.assertEqual(r.path, '/a/b/c.txt')
-        mock_move_resource_to_final_location.assert_called()
-        self.assertTrue('ack' in r.status)
-        self.assertTrue(r.resource_type == WILDCARD)
+        self.assertEqual(r.path, expected_path)
+        mock_move_resource_to_final_location.assert_not_called()
+        self.assertIsNone(r.resource_type)
 
     def test_add_metadata(self):
         '''

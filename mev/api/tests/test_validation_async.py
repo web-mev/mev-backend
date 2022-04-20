@@ -52,7 +52,11 @@ class TestValidateResource(BaseAPITestCase):
             junk_uuid = uuid.uuid4()
             validate_resource(junk_uuid, 'MTX')
 
-    def test_unknown_resource_type_raises_exception(self):
+    @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities')
+    @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
+    def test_unknown_resource_type_raises_exception(self, \
+        mock_alert_admins, \
+        mock_resource_utilities):
         '''
         If someone how an unknown resource type is passed to 
         the async validation function, raise an exception.
@@ -62,10 +66,11 @@ class TestValidateResource(BaseAPITestCase):
         '''
         all_resources = Resource.objects.all()
         r = all_resources[0]
-        #with self.assertRaises(KeyError):
+        mock_resource_utilities.get_resource_by_pk.return_value = r
+        
         validate_resource(r.pk, 'ABC')
-        r = Resource.objects.get(pk=r.pk)
-        self.assertTrue('ABC' in r.status) # error  message could vary, but will report 'ABC'
+
+        mock_alert_admins.assert_called()
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
@@ -469,7 +474,9 @@ class TestValidateResource(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.validate_resource')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
     def test_storage_failure_handled_gracefully(self,
+        mock_alert_admins,
         mock_get_resource_size, 
         mock_validate_resource, mock_get_storage_backend):
         '''
@@ -507,12 +514,13 @@ class TestValidateResource(BaseAPITestCase):
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX')
 
+        mock_alert_admins.assert_called()
         mock_validate_resource.assert_not_called()
         mock_get_resource_size.assert_not_called()
         
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)
-        self.assertTrue(current_resource.is_active)
+        self.assertFalse(current_resource.is_active)
         self.assertIsNone(current_resource.resource_type)
         self.assertEqual(current_resource.status, Resource.UNEXPECTED_STORAGE_ERROR)
 
@@ -520,7 +528,9 @@ class TestValidateResource(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
-    def test_validation_failure_handled_gracefully(self, 
+    @mock.patch('api.utilities.resource_utilities.alert_admins')
+    def test_validation_failure_handled_gracefully(self,
+        mock_alert_admins,
         mock_get_resource_size,
         mock_move_resource_to_final_location,
         mock_get_resource_type_instance, mock_get_storage_backend):
@@ -551,9 +561,10 @@ class TestValidateResource(BaseAPITestCase):
 
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX')
+        mock_alert_admins.assert_called()
 
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)
-        self.assertTrue(current_resource.is_active)
+        self.assertFalse(current_resource.is_active) # since an unexpected error was raised, don't activate
         self.assertIsNone(current_resource.resource_type)
         self.assertEqual(current_resource.status, Resource.UNEXPECTED_VALIDATION_ERROR)

@@ -32,6 +32,7 @@ from resource_types import get_contents, \
 from api.exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +207,19 @@ def move_resource_to_final_location(resource_instance):
     '''
     resource_instance is the database object
     '''
-    return get_storage_backend().store(resource_instance)
+    try:
+        return get_storage_backend().store(resource_instance)
+    except Exception as ex:
+        alert_admins('A backend storage failure occurred for resource'
+            ' with pk={x}'.format(x=resource_instance.pk)
+        )
+        resource_instance.status = Resource.UNEXPECTED_STORAGE_ERROR
+        # Since this was an unexpected issue with storing the item, we
+        # effectively disable the resource. Otherwise, unexpected things
+        # can happen downstream
+        resource_instance.is_active = False
+        resource_instance.save()
+        raise ex
 
 def get_resource_size(resource_instance):
     return get_storage_backend().get_filesize(resource_instance.path)
@@ -228,7 +241,16 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     if resource_class_instance.performs_validation():
 
         # Actions below require local access to the file:
-        local_path = get_storage_backend().get_local_resource_path(resource)
+        try:
+            local_path = get_storage_backend().get_local_resource_path(resource)
+        except Exception as ex:
+            # We know something went wrong, but here modify the error message to be more user
+            # friendly for display purposes.
+            raise Exception('Failed following successful validation. An unexpected issue occurred when'
+                ' moving the file. An administrator has been notified. This may be a temporary error,'
+                ' so you may try again to validate.'
+            )
+
         logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
 
         # the resource was valid, so first save it in our standardized format
@@ -263,7 +285,7 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     # Note that the metadata could fail for type issues and we have to plan
     # for failures there. For instance, a table can be compliant, but the 
     # resulting metadata could violate a type constraint (e.g. if a string-based
-    # attribute does not match our regex)
+    # attribute does not match our regex, is too long, etc.)
     try:
         metadata = resource_class_instance.extract_metadata(new_path)
     except ValidationError as ex:
@@ -276,31 +298,50 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
             msg = v['message']
             err_str = '{k}:{s}'.format(k=k, s = str(msg))
             err_list.append(err_str)
-        resource.status = Resource.ERROR_WITH_REASON.format(ex=','.join(err_list))
+        # don't want to set the resource type since the metadata failed as it sets up 
+        # inconsistencies between the validation of a format and its "usability" in WebMeV
+        # For instance, a compliant matrix could have excessively long sample names and we don't
+        # want to permit that.
         resource.resource_type = None
-        return
+        raise Exception(
+            Resource.ERROR_WITH_REASON.format(ex=','.join(err_list))
+        )
     except Exception as ex:
         logger.info('Encountered an exception when extracting metadata: {ex}'.format(
             ex = ex
         ))
-        resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
         resource.resource_type = None
-        return
+        raise Exception('Encountered an unexpected issue when extracting metadata.'
+            ' An administrator has been notified.'
+        )
 
     try:
         add_metadata_to_resource(resource, metadata)
         resource.status = Resource.READY
     except Exception as ex:
-        resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
+        resource.resource_type = None
+        raise Exception('Encountered an unexpected issue when adding metadata to the resource.'
+            ' An administrator has been notified.'
+        )
 
-    # have to send the file to the final storage. If we are using local storage
-    # this is trivial. However, if we are using remote storage, the data saved
-    # in the standardized format needs to be pushed there also.
-    final_path = move_resource_to_final_location(resource)
+    try:
+        # have to send the file to the final storage. If we are using local storage
+        # this is trivial. However, if we are using remote storage, the data saved
+        # in the standardized format needs to be pushed there also.
+        final_path = move_resource_to_final_location(resource)
 
-    resource.path = final_path
-    resource.resource_type = requested_resource_type
-
+        # Only at this point (when we have successfully validated, moved, extracted metadata, etc.)
+        # do we set the new path and resource type on the database object.
+        resource.path = final_path
+        resource.resource_type = requested_resource_type
+    except Exception as ex:
+        logger.info('Exception when moving valid final resource after extracting/appending metadata.'
+            ' Exception was {ex}'.format(ex=str(ex))
+        )
+        resource.resource_type = None
+        raise Exception('Encountered an unexpected issue when moving your validated resource.'
+            ' An administrator has been notified. You may also attempt to validate again.'
+        )
 
 def check_extension(resource, requested_resource_type):
     '''
@@ -328,7 +369,7 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
     # If resource_type has not been set (i.e. it is None), then this   
     # Resource has NEVER been verified.  We report a failure
     # via the status message and set the appropriate flags
-    if not resource_instance.resource_type:
+    if resource_instance.resource_type is None:
         status_msg = Resource.FAILED.format(
             requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[
                 requested_resource_type]
@@ -382,25 +423,30 @@ def validate_resource(resource_instance, requested_resource_type):
         # check the file extension is consistent with the requested type:
         try:
             type_is_consistent = check_extension(resource_instance, requested_resource_type)
+            if not type_is_consistent:
+                logger.info('The requested type was not consistent with the file extension. Skipping validation.')
+                resource_instance.status = Resource.ERROR_WITH_REASON.format(ex='Requested resource type'
+                    ' was not consistent with the file extension'
+                )
+                return
         except Exception as ex:
-            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex=ex)
-            return
-
-        if not type_is_consistent:
-            logger.info('The requested type was not consistent with the file extension. Skipping validation.')
-            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex='Requested resource type'
-                ' was not consistent with the file extension'
+            raise Exception('There as an unexpected problem that occurred when parsing the file'
+                ' extension. Please check that the file extension (csv, tsv, etc.) does not'
+                ' contain unexpected content. It may be easiest to rename the file and upload again.'
             )
-            return
 
-        # The resource type is the shorthand identifier.
+        # The `requested_resource_type` is the shorthand identifier.
         # This returns an actual resource class implementation
         try:
             resource_class_instance = get_resource_type_instance(requested_resource_type)
         except KeyError as ex:
-            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex=ex)
-            return
-
+            raise Exception('The key {k} was not a known resource type.'.format(
+                k=requested_resource_type)
+            )
+        except Exception as ex:
+            raise Exception('There was an unexpected error when retrieving the validator'
+                ' for the requested resource type.'
+            )
         if resource_class_instance.performs_validation():
 
             logger.info('Since the resource class permits validation, go and'
@@ -411,18 +457,32 @@ def validate_resource(resource_instance, requested_resource_type):
             # which is dependent on the storage backend.  Now, if the storage backend
             # is remote (e.g. bucket storage), we need to pull the file locally to 
             # perform validation.
-            local_path = get_storage_backend().get_local_resource_path(resource_instance)
+            # Note that failures to pull the file locally will raise an exception, which we 
+            # catch and respond to
+            try:
+                local_path = get_storage_backend().get_local_resource_path(resource_instance)
+            except Exception as ex:
+                # We know something went wrong, but here modify the error message to be more user
+                # friendly for display purposes.
+                raise Exception('Failed during validation. An unexpected issue occurred when'
+                    ' moving the file for inspection. An administrator has been notified. You may'
+                    ' attempt to validate again.'
+                )
+
             try:
                 is_valid, message = resource_class_instance.validate_type(local_path)
             except Exception as ex:
-                logger.error('An exception was raised when attempting to validate'
+                # It's expected that files can be invalid. What is NOT expected, however,
+                # are general Exceptions that can be raised due to unforeseen issues 
+                # that could occur duing the validation. Catch those
+                logger.info('An exception was raised when attempting to validate'
                     ' the Resource {pk} located at {local_path}'.format(
                         pk = str(resource_instance.pk),
                         local_path = local_path
                     )
                 )
-                resource_instance.status = Resource.UNEXPECTED_VALIDATION_ERROR
-                return
+                raise Exception(Resource.UNEXPECTED_VALIDATION_ERROR)   
+
         else: # resource type does not include validation
             is_valid = True
 
@@ -445,36 +505,19 @@ def validate_and_store_resource(resource, requested_resource_type):
     # have to contain different steps for handling new uploads or requests to
     # change the type of a Resource.  By immediately moving the file to its 
     # final storage backend, we can handle all the variations in the same manner.
+    # If the `move_resource_to_final_location` function does not succeed, it will
+    # raise an exception which we allow to percolate. The proper attributes
+    # are set on `resource` to properly denote that failure, so we don't do anything here
+    resource.path = move_resource_to_final_location(resource)
+   
     try:
-        resource.path = move_resource_to_final_location(resource)
-    except StorageException as ex:
-        # this exception 
-        logger.info('In validate_and_store, the resource {pk} failed to store.'.format(
-            pk = str(resource.pk)
-        ))
-        raise ex
-    except Exception as ex:
-        # Catch other unexpected storage errors here
-        logger.error('Caught an exception when moving the Resource {pk} to its'
-            ' final location.  Exception was: {ex}'.format(
-                pk = str(resource.pk),
-                ex = ex
-            )
-        )
-        resource.status = Resource.UNEXPECTED_STORAGE_ERROR
-    else:
-        try:
-            validate_resource(resource, requested_resource_type)
-        except Exception as ex:
-            resource.status = Resource.ERROR_WITH_REASON.format(ex=ex)
+        validate_resource(resource, requested_resource_type)
         # save the filesize as well
         resource.size = get_resource_size(resource)
-
-    # regardless of what happened above, set the 
-    # status to be active (so changes can be made)
-    # and save the instance
-    resource.is_active = True
-
+        resource.is_active = True
+    except Exception as ex:
+        resource.status = str(ex)
+        alert_admins('Encountered an issue during resource validation and storage. See logs.')
     resource.save()
 
 def resource_supports_pagination(resource_type_str):

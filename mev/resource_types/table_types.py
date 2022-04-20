@@ -234,7 +234,6 @@ class TableResource(DataResource):
                 self.table.dropna(axis=0, how='all', inplace=True)
                 self.table.dropna(axis=1, how='all', inplace=True)
 
-                # call a method to 
             except Exception as ex:
                 logger.info('Could not use {reader} to parse the file'
                 ' at {path}'.format(
