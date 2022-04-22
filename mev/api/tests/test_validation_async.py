@@ -54,7 +54,7 @@ class TestValidateResource(BaseAPITestCase):
 
     @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities')
     @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
-    def test_unknown_resource_type_raises_exception(self, \
+    def test_exception_handled(self, \
         mock_alert_admins, \
         mock_resource_utilities):
         '''
@@ -67,47 +67,10 @@ class TestValidateResource(BaseAPITestCase):
         all_resources = Resource.objects.all()
         r = all_resources[0]
         mock_resource_utilities.get_resource_by_pk.return_value = r
-        
+        mock_resource_utilities.validate_resource.side_effect = [Exception('ex!')]
+
         validate_resource(r.pk, 'ABC')
-
-        mock_alert_admins.assert_called()
-
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_invalid_type_remains_invalid_case1(self, mock_get_storage_backend, mock_get_resource_type_instance):
-        '''
-        Here we test that a "unset" Resource (one where a resource_type
-        has NEVER been set) remains unset if the validation fails
-        '''
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
-
-        unset_resource = unset_resources[0]
-
-        mock_resource_instance = mock.MagicMock()
-        failure_msg = 'Failed for this reason.'
-        mock_resource_instance.validate_type.return_value = (False, failure_msg)
-        mock_get_resource_type_instance.return_value = mock_resource_instance
-
-        validate_resource(unset_resource.pk, 'MTX')
-
-        # query the resource to see any changes:
-        current_resource = Resource.objects.get(pk=unset_resource.pk)
-        self.assertTrue(current_resource.is_active)
-        self.assertIsNone(current_resource.resource_type)
-        expected_status = Resource.FAILED.format(
-            requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE['MTX']
-        )
-        expected_status = expected_status + ' ' + failure_msg
-        self.assertEqual(current_resource.status, expected_status)
+        mock_alert_admins.assert_called_with('ex!')
 
     @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')

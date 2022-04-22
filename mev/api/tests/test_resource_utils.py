@@ -447,11 +447,19 @@ class TestResourceUtilities(BaseAPITestCase):
             )
 
         unset_resource = unset_resources[0]
+        with self.assertRaises(ResourceMetadata.DoesNotExist):
+            metadata = ResourceMetadata.objects.get(resource=unset_resource)
 
         handle_invalid_resource(unset_resource, 'MTX')
         self.assertIsNone(unset_resource.resource_type)
+        # now the metadata query should succeed
+        metadata = ResourceMetadata.objects.get(resource=unset_resource)
+        self.assertTrue(metadata)
 
-    def test_resource_type_does_not_change_if_validation_fails(self):
+    @mock.patch('api.utilities.resource_utilities.add_metadata_to_resource')
+    def test_resource_type_does_not_change_if_validation_fails(self, \
+        mock_add_metadata_to_resource
+    ):
         '''
         If we had previously validated a resource successfully, requesting
         a change that fails validation results in NO change to the resource_type
@@ -480,6 +488,7 @@ class TestResourceUtilities(BaseAPITestCase):
             requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
             original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[original_type])
         ))
+        mock_add_metadata_to_resource.assert_not_called()
 
     @mock.patch.dict('api.utilities.resource_utilities.DB_RESOURCE_STRING_TO_HUMAN_READABLE', \
         {'foo_type': 'Table'})
