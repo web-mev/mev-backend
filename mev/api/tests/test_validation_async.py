@@ -71,6 +71,7 @@ class TestValidateResource(BaseAPITestCase):
 
         validate_resource(r.pk, 'ABC')
         mock_alert_admins.assert_called_with('ex!')
+        self.assertTrue(r.status == 'ex!')
 
     @mock.patch('api.utilities.resource_utilities.check_extension')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')

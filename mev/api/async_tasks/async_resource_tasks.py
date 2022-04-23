@@ -33,6 +33,7 @@ def validate_resource(resource_pk, requested_resource_type):
     except Exception as ex:
         logger.info('Caught an exception raised by the validate_resource function.')
         alert_admins(str(ex))
+        resource.status = str(ex)
     resource.save()
 
 
