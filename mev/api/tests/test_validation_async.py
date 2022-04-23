@@ -529,6 +529,6 @@ class TestValidateResource(BaseAPITestCase):
 
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)
-        self.assertFalse(current_resource.is_active) # since an unexpected error was raised, don't activate
+        self.assertTrue(current_resource.is_active) # since an unexpected error was raised, don't activate
         self.assertIsNone(current_resource.resource_type)
         self.assertEqual(current_resource.status, Resource.UNEXPECTED_VALIDATION_ERROR)

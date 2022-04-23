@@ -217,7 +217,6 @@ def move_resource_to_final_location(resource_instance):
         # Since this was an unexpected issue with storing the item, we
         # effectively disable the resource. Otherwise, unexpected things
         # can happen downstream
-        resource_instance.is_active = False
         resource_instance.save()
         raise ex
 
@@ -514,10 +513,10 @@ def validate_and_store_resource(resource, requested_resource_type):
         validate_resource(resource, requested_resource_type)
         # save the filesize as well
         resource.size = get_resource_size(resource)
-        resource.is_active = True
     except Exception as ex:
         resource.status = str(ex)
         alert_admins('Encountered an issue during resource validation and storage. See logs.')
+    resource.is_active = True
     resource.save()
 
 def resource_supports_pagination(resource_type_str):
