@@ -26,6 +26,8 @@ def subset_PANDA_net(resource, query_params):
     The input file is a gene-by-TF matrix. Each entry is a float
     '''
 
+    MAX_NODES = 20
+
     def get_top_edges(df, nodes, axis, N):
         '''Sub-function for returning a single layer of sub-net.'''
         node_children_map = {}
@@ -105,6 +107,11 @@ def subset_PANDA_net(resource, query_params):
         nodes = init_nodes
     else:
         nodes = df.sum(axis = summing_axis).nlargest(N).index
+
+    if len(nodes) > MAX_NODES:
+        raise Exception('Please choose fewer than {n} nodes to start. Networks with greater'
+            ' numbers can be challenging to visualize.'.format(n=MAX_NODES)
+        )
 
     # Find subsequent layers up to max_depth
     while current_level < max_depth:
