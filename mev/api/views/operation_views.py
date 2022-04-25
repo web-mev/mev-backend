@@ -518,7 +518,7 @@ class OperationRun(APIView):
             # the job name can be explicitly assigned by the user, but otherwise
             # it will simply be the UUID of the job
             try:
-                job_name = payload[self.JOB_NAME]
+                job_name = str(payload[self.JOB_NAME]) # add string cast since numbers can be passed
                 job_name = job_name.strip() 
 
                 if (job_name is None) or (len(job_name) == 0):

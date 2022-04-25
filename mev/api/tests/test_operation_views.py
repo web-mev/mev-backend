@@ -1521,6 +1521,32 @@ class OperationRunTests(BaseAPITestCase):
             payload[OperationRun.INPUTS]
         )
 
+        # now an integer.
+        mock_submit_async_job.delay.reset_mock()
+        # non-english unicode characters. Not meant to be sensible. Hopefully not vulgar...
+        job_name = 2
+        job_name_as_str = str(job_name)
+        payload = {
+            OperationRun.OP_UUID: str(op.id),
+            OperationRun.INPUTS: {
+                'some_string': 'abc'
+            },
+            OperationRun.WORKSPACE_UUID: str(workspace.id),
+            OperationRun.JOB_NAME: job_name
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            job_name_as_str,
+            payload[OperationRun.INPUTS]
+        )
+
 
 class OperationUpdateTests(BaseAPITestCase):
 
