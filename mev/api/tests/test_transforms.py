@@ -260,3 +260,15 @@ class ResourceTransformTests(BaseAPITestCase):
         nodes = list(set(chain.from_iterable([x.keys() for x in result['nodes']])))
         expected_nodes = ['TF_2', 'TF_4', 'ENSG_1', 'ENSG_4', 'ENSG_10']
         self.assertCountEqual(expected_nodes, nodes)
+
+        # test that too many requested nodes causes an error
+        # The 0 axis has 40 entries. If it had fewer entries (e.g. 10),
+        # then the top N function would just select 10 if given a
+        # large number
+        query_params = {
+            'maxdepth': 3,
+            'children': 30,
+            'axis': 0
+        }
+        with self.assertRaisesRegex(Exception, 'choose fewer'):
+            result = subset_PANDA_net(self.resource, query_params)
