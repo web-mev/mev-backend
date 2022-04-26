@@ -35,6 +35,14 @@ class AbstractResource(models.Model):
         default = ''
     )
 
+    # This is a string that provides a cue for how to parse
+    # a file. We only work with a set of "conventional" 
+    # extensions, but this field does not care about that.
+    file_extension = models.CharField(
+        max_length = 25,
+        default = ''
+    )
+
     # The size of the resource in bytes.
     # Converters will handle conversion to human-readable form
     size = models.BigIntegerField(default=0)
