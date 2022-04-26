@@ -29,21 +29,7 @@ class ServerLocalUpload(LocalUpload):
         self.upload_resource_uuid = uuid.uuid4()
         logger.info('Upload resource UUID={x}'.format(x=str(self.upload_resource_uuid)))
 
-        # grab the suffix from the file name. This extension will be appeneded
-        # to the UUID-based filepath below. Using our own "simple" paths (e.g.
-        # alpha-numeric paths can help to avoid issues with third-party packages, etc.
-        # failing to work with paths containing unicode chars)
-        name_split = upload.name.split('.')
-
-        if len(name_split) > 1: 
-            extension = name_split[-1]
-            logger.info('Filename could be split. The inferred'
-                ' extension is {x}'.format(x=extension))
-        else:
-            logger.info('No file extension found.')
-            extension = None
-
-        tmp_path = LocalUpload.create_local_path(self.upload_resource_uuid, extension)
+        tmp_path = LocalUpload.create_local_path(self.upload_resource_uuid)
         logger.info('Temporary file upload will be placed at {t}'.format(
             t = tmp_path
         ))

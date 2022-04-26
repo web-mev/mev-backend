@@ -398,13 +398,10 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
         self.assertTrue(r.name == orig_name)
-        # the full 'temporary filename is {uuid}.tsv. The uuid is random,
-        # so we can't compare the full basename (unless we mocked that, which
-        # is more involved)
         basename = os.path.basename(r.path)
-        name_without_extension = basename.split('.')[0]
-        self.assertEqual(str(u), name_without_extension)
+        self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
+        self.assertEqual(r.file_extension, 'tsv')
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -426,13 +423,10 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
         self.assertTrue(r.name == orig_name)
-        # the full 'temporary filename is {uuid}. The uuid is random,
-        # so we can't compare the full basename (unless we mocked that, which
-        # is more involved)
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
-
+        self.assertEqual(r.file_extension, '')
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -458,14 +452,11 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
         self.assertTrue(r.name == orig_name)
-        # the full 'temporary filename is {uuid}. The uuid is random,
-        # so we can't compare the full basename (unless we mocked that, which
-        # is more involved)
         self.assertEqual(u, r.pk)
         basename = os.path.basename(r.path)
-        split_name = basename.split('.')
-        self.assertEqual(str(u), split_name[0])
-        self.assertEqual(split_name[1], 'name')
+        self.assertEqual(str(u), basename)
+        split_name = r.name.split('.')
+        self.assertEqual(r.file_extension, 'name')
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -492,6 +483,8 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         basename = os.path.basename(resource_path)
         name_without_extension = basename.split('.')[0]
         self.assertEqual(str(u), name_without_extension)
+        self.assertEqual(r.name, filename)
+        self.assertEqual(r.file_extension, 'tsv')
 
         # try a name with a unicode char:
         u2 = uuid.uuid4()
@@ -515,6 +508,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # double-check that the path does NOT contain that special char:
         self.assertFalse(char in resource_path)
         self.assertEqual(filename, r.name)
+        self.assertEqual(r.file_extension, 'tsv')
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 

@@ -23,6 +23,7 @@ class ResourceSerializer(serializers.ModelSerializer):
     owner_email = serializers.EmailField(source='owner.email', required=False, allow_null=True)
     workspaces = WorkspaceSerializer(many=True, required=False, read_only=True)
     path = serializers.CharField(write_only=True, required=False)
+    file_extension = serializers.CharField(read_only=True)
     size = serializers.IntegerField(read_only=True)
     readable_resource_type = serializers.SerializerMethodField()
 
@@ -32,6 +33,7 @@ class ResourceSerializer(serializers.ModelSerializer):
             'id',
             'url',
             'name',
+            'file_extension',
             'resource_type',
             'owner_email',
             'is_active',
