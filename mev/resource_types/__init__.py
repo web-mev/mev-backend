@@ -123,7 +123,7 @@ def get_resource_type_instance(resource_type_str):
         )
         raise ex
 
-def get_contents(resource_path, resource_type_str, query_params={}):
+def get_contents(resource_path, resource_type_str, file_extension, query_params={}):
     '''
     Returns a "view" of the data underlying a Resource. The actual
     implementation of that view is prepared by the class corresponding
@@ -151,7 +151,7 @@ def get_contents(resource_path, resource_type_str, query_params={}):
         
     # instantiate the proper class for this type:
     resource_type = resource_class()
-    return resource_type.get_contents(resource_path, query_params)
+    return resource_type.get_contents(resource_path, file_extension, query_params)
 
 def get_resource_paginator(resource_type_str):
     '''
@@ -193,12 +193,14 @@ def get_acceptable_extensions(resource_type):
     resource_class = RESOURCE_MAPPING[resource_type]
     return resource_class.ACCEPTABLE_EXTENSIONS
 
-def extension_is_consistent_with_type(filename, resource_type):
+def extension_is_consistent_with_type(file_extension, resource_type):
     '''
     Checks that the file extension is consistent with the 
     resource type.  Matching is case-insensitive
 
-    `filename` is the name of the uploaded file (not a full path)
+    `file_extension` is the final part of a resource instance's
+    "name" attribute. This file extension field is actually set during the
+    saving of a Resource instance in the DB.
     `resource_type` is one of the keys in RESOURCE_MAPPING.  It 
     is assumed to have already been checked (the serializer from the 
     request validated it already)
@@ -219,8 +221,6 @@ def extension_is_consistent_with_type(filename, resource_type):
     for ext in acceptable_extensions:
         if ext == WILDCARD:
             return True
-        n = len(ext)
-        suffix = filename[(-n-1):].lower()
-        if suffix == '.' + ext.lower():
+        if file_extension.lower() == ext.lower():
             return True
     return False

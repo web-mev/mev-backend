@@ -27,7 +27,9 @@ class DataResource(object):
     PARENT_OP = 'parent_operation'
     RESOURCE = 'resource'
 
-    def validate_type(self, resource_path):
+    STANDARD_FORMAT = ''
+
+    def validate_type(self, resource_path, file_extension):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
@@ -46,11 +48,11 @@ class DataResource(object):
         return False
 
 
-    def get_contents(self, resource_path, query_params={}):
+    def get_contents(self, resource_path, file_extension, query_params={}):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
         
@@ -79,7 +81,7 @@ class DataResource(object):
             DataResource.RESOURCE: None
         }
 
-    def save_in_standardized_format(self, resource_path, resource_name):
+    def save_in_standardized_format(self, resource_path, resource_name, file_extension):
         '''
         This method is used for saving user-supplied resources/files as something
         we can consistently refer to. For instance, users may load csv, tsv, excel, etc.

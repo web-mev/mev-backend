@@ -99,7 +99,7 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_dict = {'a': 1, 'b':2}
 
         class mock_resource_type_class(object):
-            def get_contents(self, path, query_params={}):
+            def get_contents(self, path, file_extension, query_params={}):
                 return expected_dict
 
         mock_resource_mapping.__getitem__.return_value = mock_resource_type_class
@@ -154,7 +154,9 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_invalid_handler_called(self, mock_get_storage_backend, \
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_invalid_handler_called(self, mock_check_extension, \
+            mock_get_storage_backend, \
             mock_handle_invalid_resource, mock_get_resource_type_instance):
         '''
         Here we test that a failure to validate the resource calls the proper
@@ -180,6 +182,7 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = 'foo'
         mock_get_storage_backend.return_value = mock_storage_backend
+        mock_check_extension.return_value = True
 
         validate_resource(unset_resource, 'MTX')
 
@@ -189,7 +192,9 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
     def test_proper_valid_handler_called(self, \
+        mock_check_extension, \
         mock_get_storage_backend, \
         mock_handle_valid_resource, \
         mock_get_resource_type_instance):
@@ -206,6 +211,8 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_resource_class_instance.performs_validation.return_value = True
         mock_resource_class_instance.validate_type.return_value = (True, 'some string')
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
+
+        mock_check_extension.return_value = True
 
         all_resources = Resource.objects.all()
         unset_resources = []
@@ -513,6 +520,7 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_status = Resource.UNKNOWN_EXTENSION_ERROR.format(
             readable_resource_type = human_readable_type,
             filename = resource.name,
+            ext = resource.file_extension,
             extensions_csv = 'tsv,csv,abc'
         )
         self.assertEqual(resource.status, expected_status)
@@ -954,7 +962,9 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_metadata_when_type_changed(self, mock_get_storage_backend, mock_move_resource_to_final_location):
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_metadata_when_type_changed(self, mock_check_extension, \
+        mock_get_storage_backend, mock_move_resource_to_final_location):
         '''
         Checks that the update of resource metadata is updated. Related to a bug where
         a file was initially set to a general type (and thus the metadata was effectively empty).
@@ -962,7 +972,7 @@ class TestResourceUtilities(BaseAPITestCase):
         '''
         resource_path = os.path.join(VAL_TESTDIR, 'test_annotation_valid.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
-
+        mock_check_extension.return_value = True
         mock_f = mock.MagicMock()
         mock_f.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
@@ -983,13 +993,17 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_metadata_when_type_changed_case2(self, mock_get_storage_backend, mock_move_resource_to_final_location):
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_metadata_when_type_changed_case2(self, mock_check_extension, \
+        mock_get_storage_backend, mock_move_resource_to_final_location):
+
         resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
 
         mock_f = mock.MagicMock()
         mock_f.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
+        mock_check_extension.return_value = True
         
         r = Resource.objects.create(
             name = 'test_annotation_valid.tsv',

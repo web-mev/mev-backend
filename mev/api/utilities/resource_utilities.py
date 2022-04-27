@@ -159,7 +159,10 @@ def get_resource_view(resource_instance, query_params={}):
         return None
     else:
         local_path = get_storage_backend().get_local_resource_path(resource_instance)
-        return get_contents(local_path, resource_instance.resource_type, query_params)
+        return get_contents(local_path,
+                resource_instance.resource_type,
+                resource_instance.file_extension, 
+                query_params)
 
 def get_resource_paginator(resource_type):
     '''
@@ -253,7 +256,13 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
         logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
 
         # the resource was valid, so first save it in our standardized format
-        new_path, new_name = resource_class_instance.save_in_standardized_format(local_path, resource.name)
+        new_path, new_name = resource_class_instance.save_in_standardized_format(local_path, \
+            resource.name, resource.file_extension)
+        print(new_path, new_name)
+        print('????????????')
+
+        # need to know the "updated" file extension
+        file_extension = resource_class_instance.STANDARD_FORMAT
 
         # delete the "original" resource, if the standardization ended up making
         # a different file
@@ -268,17 +277,23 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
             # sent to the final storage location. Once the file is in the 'final' 
             # storage location, the path member will be edited to reflect that
             resource.path = new_path
+
+            
         else:
             logger.info('Standardization did not change the path...')
 
         if new_name != resource.name:
             # change the name of the resource
+            # Recall that upon saving, this will also change the file_extension field.
             resource.name = new_name
+
+
     else:
         # since we did not have to perform any standardization, etc. simply
         # set the necessary variables without change.
         new_path = resource.path
         new_name = resource.name
+        file_extension = resource.file_extension
 
     # since the resource was valid, we can also fill-in the metadata
     # Note that the metadata could fail for type issues and we have to plan
@@ -286,7 +301,7 @@ def handle_valid_resource(resource, resource_class_instance, requested_resource_
     # resulting metadata could violate a type constraint (e.g. if a string-based
     # attribute does not match our regex, is too long, etc.)
     try:
-        metadata = resource_class_instance.extract_metadata(new_path)
+        metadata = resource_class_instance.extract_metadata(new_path, file_extension)
     except ValidationError as ex:
         logger.info('Caught a ValidationError when extracting metadata from'
             ' resource at path: {p}'.format(p=new_path)
@@ -350,13 +365,14 @@ def check_extension(resource, requested_resource_type):
     instance if there is a problem.
     '''
         
-    consistent_extension = extension_is_consistent_with_type(resource.name, requested_resource_type)
+    consistent_extension = extension_is_consistent_with_type(resource.file_extension, requested_resource_type)
 
     if not consistent_extension:
         acceptable_extensions = ','.join(get_acceptable_extensions(requested_resource_type))
         resource.status = Resource.UNKNOWN_EXTENSION_ERROR.format(
             readable_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[requested_resource_type],
             filename = resource.name,
+            ext = resource.file_extension,
             extensions_csv = acceptable_extensions
         )
         return False
@@ -469,7 +485,8 @@ def validate_resource(resource_instance, requested_resource_type):
                 )
 
             try:
-                is_valid, message = resource_class_instance.validate_type(local_path)
+                is_valid, message = resource_class_instance.validate_type(
+                    local_path, resource_instance.file_extension)
             except Exception as ex:
                 # It's expected that files can be invalid. What is NOT expected, however,
                 # are general Exceptions that can be raised due to unforeseen issues 

@@ -77,7 +77,7 @@ class AbstractResource(models.Model):
     def save(self, *args, **kwargs):
         split_name = self.name.split('.')
         if len(split_name) > 1:
-            self.file_extension = split_name[-1]
+            self.file_extension = split_name[-1].lower()
         super().save(*args, **kwargs)
 
     class Meta:

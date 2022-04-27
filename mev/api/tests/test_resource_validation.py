@@ -33,25 +33,25 @@ class TestBasicTable(unittest.TestCase):
         The method is just examining the file extension.
         '''
         t = TableResource()
-        reader = t.get_reader('test_general_table.tsv')
+        reader = t.get_reader('test_general_table.tsv', 'tsv')
         self.assertEqual(reader, pd.read_table)
 
-        reader = t.get_reader('test_integer_matrix.csv')
+        reader = t.get_reader('test_integer_matrix.csv', 'csv')
         self.assertEqual(reader, pd.read_csv)
 
-        reader = t.get_reader('test_integer_matrix.CSV')
+        reader = t.get_reader('test_integer_matrix.CSV', 'csv')
         self.assertEqual(reader, pd.read_csv)       
 
-        reader = t.get_reader('example_bed.bed')
+        reader = t.get_reader('example_bed.bed', 'bed')
         self.assertEqual(reader, pd.read_table)
 
-        reader = t.get_reader('something.xls')
+        reader = t.get_reader('something.xls', 'xls')
         self.assertEqual(reader, pd.read_excel)
 
-        reader = t.get_reader('junk.abc')
+        reader = t.get_reader('junk.abc', 'abc')
         self.assertIsNone(reader)
 
-        reader = t.get_reader('junk.odc')
+        reader = t.get_reader('junk.odc', 'odc')
         self.assertIsNone(reader)
 
     def test_fails_at_empty_table(self):
@@ -60,7 +60,7 @@ class TestBasicTable(unittest.TestCase):
         '''
         t = TableResource()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'test_empty.tsv'))
+            TESTDIR, 'test_empty.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, PARSE_ERROR)
         
@@ -71,28 +71,28 @@ class TestBasicTable(unittest.TestCase):
         '''
         t = TableResource()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'test_general_table.tsv'))
+            TESTDIR, 'test_general_table.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
     def test_reports_unknown_parser(self):
         t = TableResource()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'something.abc'))
+            TESTDIR, 'something.abc'), 'abc')
         self.assertFalse(is_valid)
         self.assertEqual(err, PARSER_NOT_FOUND_ERROR) 
 
     def test_fails_malformatted_basic_table(self):
         t = TableResource()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'test_malformatted_table.tsv'))
+            TESTDIR, 'test_malformatted_table.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, PARSE_ERROR)
 
     def test_handles_comment_headerlines_appropriately(self):
         t = TableResource()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'test_general_table.with_comment.tsv'))
+            TESTDIR, 'test_general_table.with_comment.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
@@ -109,7 +109,7 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_matrix.tsv'))
+            TESTDIR, 'test_matrix.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -119,7 +119,7 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.tsv'))
+            TESTDIR, 'test_integer_matrix.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -129,7 +129,7 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.no_gene_label.tsv'))
+            TESTDIR, 'test_integer_matrix.no_gene_label.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -139,7 +139,7 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_incorrect_matrix.tsv'))
+            TESTDIR, 'test_incorrect_matrix.tsv'), 'tsv')
         self.assertFalse(is_valid)
         bad_col_str = 'SW2_Control (column 2)'
         expected_err_str = NON_NUMERIC_ERROR.format(cols=bad_col_str)
@@ -151,7 +151,7 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.no_header.tsv'))
+            TESTDIR, 'test_integer_matrix.no_header.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, NUMBERED_COLUMN_NAMES_ERROR)
 
@@ -161,14 +161,14 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.no_rownames.tsv'))
+            TESTDIR, 'test_integer_matrix.no_rownames.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, NUMBERED_ROW_NAMES_ERROR)
 
     def test_duplicate_rownames_fails(self):
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_matrix.duplicate_rownames.tsv'))
+            TESTDIR, 'test_matrix.duplicate_rownames.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, NONUNIQUE_ROW_NAMES_ERROR)
 
@@ -179,7 +179,7 @@ class TestMatrix(unittest.TestCase):
         '''
         m = Matrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_matrix.with_na.tsv'))
+            TESTDIR, 'test_matrix.with_na.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -194,7 +194,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_matrix.tsv'))
+            TESTDIR, 'test_matrix.tsv'), 'tsv')
         self.assertFalse(is_valid)
 
     def test_reads_integer_table(self):
@@ -203,13 +203,13 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.tsv'))
+            TESTDIR, 'test_integer_matrix.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.csv'))
+            TESTDIR, 'test_integer_matrix.csv'), 'csv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -219,7 +219,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.no_header.tsv'))
+            TESTDIR, 'test_integer_matrix.no_header.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, NUMBERED_COLUMN_NAMES_ERROR)
 
@@ -229,7 +229,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.no_gene_label.tsv'))
+            TESTDIR, 'test_integer_matrix.no_gene_label.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -239,14 +239,14 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.no_rownames.tsv'))
+            TESTDIR, 'test_integer_matrix.no_rownames.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, NUMBERED_ROW_NAMES_ERROR)
 
     def test_duplicate_rownames_fails(self):
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_matrix.duplicate_rownames.tsv'))
+            TESTDIR, 'test_matrix.duplicate_rownames.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, NONUNIQUE_ROW_NAMES_ERROR)
 
@@ -259,7 +259,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.with_na.csv'))
+            TESTDIR, 'test_integer_matrix.with_na.csv'), 'csv')
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
@@ -272,7 +272,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.with_na_and_float.csv'))
+            TESTDIR, 'test_integer_matrix.with_na_and_float.csv'), 'csv')
         self.assertFalse(is_valid)
 
     def test_fails_parsing_int_table_with_na_and_float(self):
@@ -285,7 +285,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.with_multiple_na_and_float.csv'))
+            TESTDIR, 'test_integer_matrix.with_multiple_na_and_float.csv'), 'csv')
         self.assertFalse(is_valid)
         bad_col_str = 'SW5_Treated (column 5)'
         expected_err_str = NON_INTEGER_ERROR.format(cols=bad_col_str)
@@ -298,7 +298,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.xlsx'))
+            TESTDIR, 'test_integer_matrix.xlsx'), 'xlsx')
         self.assertTrue(is_valid)
 
     def test_excel_fails_if_not_in_first_sheet(self):
@@ -309,7 +309,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_integer_matrix.second_sheet.xlsx'))
+            TESTDIR, 'test_integer_matrix.second_sheet.xlsx'), 'xlsx')
         self.assertFalse(is_valid)
         self.assertEqual(err, EMPTY_TABLE_ERROR)
 
@@ -324,7 +324,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_tsv_integer_matrix_labeled_as_csv.csv'))
+            TESTDIR, 'test_tsv_integer_matrix_labeled_as_csv.csv'), 'csv')
         self.assertFalse(is_valid)
 
     def test_fails_if_filetype_incorrect_case2(self):
@@ -338,7 +338,7 @@ class TestIntegerMatrix(unittest.TestCase):
         '''
         m = IntegerMatrix()
         is_valid, err = m.validate_type(os.path.join(
-            TESTDIR, 'test_csv_integer_matrix_labeled_as_tsv.tsv'))
+            TESTDIR, 'test_csv_integer_matrix_labeled_as_tsv.tsv'), 'tsv')
         self.assertFalse(is_valid)
 
 
@@ -351,7 +351,7 @@ class TestAnnotationMatrix(unittest.TestCase):
         '''
         t = AnnotationTable()
         is_valid, msg = t.validate_type(os.path.join(
-            TESTDIR, 'test_annotation.no_header.tsv'))
+            TESTDIR, 'test_annotation.no_header.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertEqual(msg, MISSING_HEADER_WARNING)
 
@@ -363,9 +363,9 @@ class TestAnnotationMatrix(unittest.TestCase):
         '''
         t = AnnotationTable()
         p = os.path.join(TESTDIR, 'annotation_with_extra_cols_and_rows.csv')
-        is_valid, msg = t.validate_type(p)
+        is_valid, msg = t.validate_type(p, 'csv')
         self.assertTrue(is_valid)
-        metadata = t.extract_metadata(p)
+        metadata = t.extract_metadata(p, 'csv')
 
     def test_table_with_single_column_fails(self):
         '''
@@ -374,7 +374,7 @@ class TestAnnotationMatrix(unittest.TestCase):
         '''
         t = AnnotationTable()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'single_column_annotation.tsv'))
+            TESTDIR, 'single_column_annotation.tsv'), 'tsv')
         self.assertFalse(is_valid)
         self.assertEqual(err, EMPTY_TABLE_ERROR)
 
@@ -383,15 +383,17 @@ class TestAnnotationMatrix(unittest.TestCase):
         Cannot have more than one annotation per 'sample'
         '''
         t = AnnotationTable()
-        is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'two_column_annotation.duplicate_rows.tsv'))
+        is_valid, err = t.validate_type(
+            os.path.join(TESTDIR, 'two_column_annotation.duplicate_rows.tsv'),
+            'tsv'
+        )
         self.assertFalse(is_valid)
         self.assertEqual(err, NONUNIQUE_ROW_NAMES_ERROR)
 
     def test_parses_proper_annotations(self):
         t = AnnotationTable()
         is_valid, err = t.validate_type(os.path.join(
-            TESTDIR, 'two_column_annotation.tsv'))
+            TESTDIR, 'two_column_annotation.tsv'), 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
@@ -405,10 +407,10 @@ class TestAnnotationMatrix(unittest.TestCase):
         t = AnnotationTable()
         p = os.path.join(
             TESTDIR, 'test_annotation_with_noncompliant_str.tsv')
-        is_valid, err = t.validate_type(p)
+        is_valid, err = t.validate_type(p, 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err)
-        metadata = t.extract_metadata(p)
+        metadata = t.extract_metadata(p, 'tsv')
 
 class TestBed(unittest.TestCase):
 
@@ -420,7 +422,7 @@ class TestBed(unittest.TestCase):
         '''
         b = BEDFile()
         is_valid, err = b.validate_type(os.path.join(
-            TESTDIR, 'bed_with_header.bed'))
+            TESTDIR, 'bed_with_header.bed'), 'bed')
         self.assertFalse(is_valid)
         self.assertEqual(err, BED_FORMAT_ERROR.format(cols='2,3'))
 
@@ -431,7 +433,7 @@ class TestBed(unittest.TestCase):
         '''
         b = BEDFile()
         is_valid, err = b.validate_type(os.path.join(
-            TESTDIR, 'five_column.bed'))
+            TESTDIR, 'five_column.bed'), 'bed')
         self.assertTrue(is_valid)
 
 

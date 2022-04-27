@@ -372,14 +372,14 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         resource_path = os.path.join(TESTDIR, 'deseq_results_example_concat.tsv')
         self.assertTrue(os.path.exists(resource_path))
         t = FeatureTable()
-        metadata0 = t.extract_metadata(resource_path)
+        metadata0 = t.extract_metadata(resource_path, 'tsv')
         r0 = all_resources[0]
         add_metadata_to_resource(r0, metadata0)
 
         resource_path = os.path.join(TESTDIR, 'test_matrix.tsv')
         self.assertTrue(os.path.exists(resource_path))
         m = Matrix()
-        metadata1 = m.extract_metadata(resource_path)
+        metadata1 = m.extract_metadata(resource_path, 'tsv')
         r1 = all_resources[1]
         add_metadata_to_resource(r1, metadata1)
         url = reverse(

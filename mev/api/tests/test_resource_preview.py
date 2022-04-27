@@ -34,7 +34,7 @@ class TestResourcePreview(unittest.TestCase):
 
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
-        contents = mtx_type.get_contents(path)
+        contents = mtx_type.get_contents(path, 'tsv')
         self.assertCountEqual(contents, expected_return)
 
     def test_empty_table_preview(self):
@@ -48,4 +48,4 @@ class TestResourcePreview(unittest.TestCase):
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
         with self.assertRaises(Exception):
-            mtx_type.get_contents(path)
+            mtx_type.get_contents(path, 'tsv')

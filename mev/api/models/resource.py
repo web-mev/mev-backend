@@ -45,7 +45,7 @@ class Resource(AbstractResource):
     FAILED = 'Failed validation for resource type "{requested_resource_type}".'
     REVERTED = ('Failed validation for type "{requested_resource_type}".'
         ' Reverting back to the valid type of "{original_resource_type}".')
-    UNKNOWN_EXTENSION_ERROR = ('File extension for file "{filename}" is not consistent'
+    UNKNOWN_EXTENSION_ERROR = ('File extension "{ext}" for file "{filename}" is not consistent'
         ' with the requested resource type ({readable_resource_type}).'
         ' Acceptable extensions are: {extensions_csv}')
     UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation. An administrator has been notified.'

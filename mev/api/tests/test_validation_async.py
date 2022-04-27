@@ -345,7 +345,7 @@ class TestValidateResource(BaseAPITestCase):
         # note that we can't mock the class implementing the resource type, as
         # we need its implementation to get the metadata. HOWEVER, we need to ensure
         # that the file type above is ALREADY in the standardized format.
-        file_extension = DataResource.get_extension(resource_path)
+        file_extension = 'tsv'
         self.assertTrue(file_extension == IntegerMatrix.STANDARD_FORMAT)
 
         resource_type = 'I_MTX'
@@ -381,7 +381,9 @@ class TestValidateResource(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_metadata_updated_in_db(self, mock_get_storage_backend, mock_move):
+    @mock.patch('api.utilities.resource_utilities.check_extension')
+    def test_resource_metadata_updated_in_db(self, mock_check_extension, \
+        mock_get_storage_backend, mock_move):
         '''
         Here we test that an instance of ResourceMetadata is updated
         when it previously existed (for instance, upon update of a
@@ -395,12 +397,12 @@ class TestValidateResource(BaseAPITestCase):
         # give that Resource our test integer matrix
         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
         r.path = resource_path
+        r.name = 'test_integer_matris.tsv'
         r.save()
         # note that we can't mock the class implementing the resource type, as
         # we need its implementation to get the metadata. HOWEVER, we need to ensure
         # that the file type above is ALREADY in the standardized format.
-        file_extension = DataResource.get_extension(resource_path)
-        self.assertTrue(file_extension == IntegerMatrix.STANDARD_FORMAT)
+        self.assertTrue(r.file_extension == IntegerMatrix.STANDARD_FORMAT)
 
         # create a ResourceMetadata instance associated with that Resource
         ResourceMetadata.objects.create(
@@ -414,6 +416,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_storage_backend
+        mock_check_extension.return_value = True
 
         # check the original count for ResourceMetadata
         rm = ResourceMetadata.objects.filter(resource=r)
@@ -493,7 +496,9 @@ class TestValidateResource(BaseAPITestCase):
     @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     @mock.patch('api.utilities.resource_utilities.alert_admins')
+    @mock.patch('api.utilities.resource_utilities.check_extension')
     def test_validation_failure_handled_gracefully(self,
+        mock_check_extension, 
         mock_alert_admins,
         mock_get_resource_size,
         mock_move_resource_to_final_location,
@@ -522,6 +527,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_storage_backend.get_local_resource_path.return_value = '/some/path/bar.txt'
         mock_get_storage_backend.return_value = mock_storage_backend
         mock_get_resource_size.return_value = 100
+        mock_check_extension.return_value = True
 
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX')
