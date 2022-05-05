@@ -40,17 +40,17 @@ Vagrant.configure("2") do |config|
     if ENV['FROM_EMAIL']
       puppet.facter['from_email'] = ENV['FROM_EMAIL']
     end
-    if ENV['GMAIL_ACCESS_TOKEN']
-      puppet.facter['gmail_access_token'] = ENV['GMAIL_ACCESS_TOKEN']
+    if ENV['EMAIL_HOST']
+      puppet.facter['email_host'] = ENV['EMAIL_HOST']
     end
-    if ENV['GMAIL_REFRESH_TOKEN']
-      puppet.facter['gmail_refresh_token'] = ENV['GMAIL_REFRESH_TOKEN']
+    if ENV['EMAIL_PORT']
+      puppet.facter['email_port'] = ENV['EMAIL_PORT']
     end
-    if ENV['GMAIL_CLIENT_ID']
-      puppet.facter['gmail_client_id'] = ENV['GMAIL_CLIENT_ID']
+    if ENV['EMAIL_HOST_USER']
+      puppet.facter['email_host_user'] = ENV['EMAIL_HOST_USER']
     end
-    if ENV['GMAIL_CLIENT_SECRET']
-      puppet.facter['gmail_client_secret'] = ENV['GMAIL_CLIENT_SECRET']
+    if ENV['EMAIL_HOST_PASSWORD']
+      puppet.facter['email_host_password'] = ENV['EMAIL_HOST_PASSWORD']
     end
     if ENV['ADMIN_EMAIL_CSV']
       puppet.facter['admin_email_csv'] = ENV['ADMIN_EMAIL_CSV']

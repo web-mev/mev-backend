@@ -27,7 +27,7 @@ django_superuser_passwd = ""
 
 storage_location = "remote"
 
-email_backend = "GMAIL"
+email_backend = "SMTP"
 from_email = ""
 email_host = ""
 email_port = ""
