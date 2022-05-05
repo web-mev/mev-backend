@@ -30,7 +30,7 @@ class Command(BaseCommand):
 
         parser.add_argument(
             '-e',
-            '--email_csv'
+            '--email_csv',
             required=True,
             help='One or more email addresses as a comma-delimited string'
         )
