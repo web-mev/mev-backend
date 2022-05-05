@@ -3,7 +3,8 @@ resource "google_compute_instance" "mev_server" {
   machine_type = var.api_machine_config.machine_type
   tags         = [
     var.ssh_tag,
-    "${var.resource_name_prefix}-webmev-api-allow-health-check"
+    "${var.resource_name_prefix}-webmev-api-allow-health-check",
+    "${var.resource_name_prefix}-webmev-api-allow-ses"
   ]
 
   metadata_startup_script = templatefile("${path.module}/mev_provision.sh", 
@@ -29,10 +30,10 @@ resource "google_compute_instance" "mev_server" {
         storage_location = var.storage_location,
         email_backend = var.email_backend,
         from_email = var.from_email,
-        gmail_access_token = var.gmail_access_token,
-        gmail_refresh_token = var.gmail_refresh_token,
-        gmail_client_id = var.gmail_client_id,
-        gmail_client_secret = var.gmail_client_secret,
+        email_host = var.email_host
+        email_port = var.email_port
+        email_host_user = var.email_host_user
+        email_host_password = var.email_host_password
         admin_email_csv = var.admin_email_csv,
         sentry_url = var.sentry_url,
         container_registry = var.container_registry,
@@ -87,6 +88,20 @@ resource "google_compute_firewall" "allow_hc_firewall" {
   direction = "INGRESS"
   source_ranges = ["130.211.0.0/22","35.191.0.0/16"]
   target_tags = ["${var.resource_name_prefix}-webmev-api-allow-health-check"]
+}
+
+# Allows us to reach AWS SES for email functionality
+resource "google_compute_firewall" "ses_outgoing" {
+  name    = "${var.resource_name_prefix}-webmev-api-allow-ses"
+  network = var.network
+
+  allow {
+    protocol = "tcp"
+    ports    = ["${var.email_port}"]
+  }
+
+  direction = "EGRESS"
+  target_tags = ["${var.resource_name_prefix}-webmev-api-allow-ses"]
 }
 
 resource "google_compute_global_address" "lb-static-ip" {

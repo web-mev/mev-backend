@@ -31,10 +31,10 @@ node /api/ {
     cromwell_bucket           => $facts['cromwell_bucket'],
     email_backend_choice      => $facts['email_backend_choice'],
     from_email                => $facts['from_email'],
-    gmail_access_token        => $facts['gmail_access_token'],
-    gmail_refresh_token       => $facts['gmail_refresh_token'],
-    gmail_client_id           => $facts['gmail_client_id'],
-    gmail_client_secret       => $facts['gmail_client_secret'],
+    email_host                => $facts['email_host'],
+    email_port                => $facts['email_port'],
+    email_host_user           => $facts['email_host_user'],
+    email_host_password       => $facts['email_host_password'],
     admin_email_csv           => $facts['admin_email_csv']
   }
 }

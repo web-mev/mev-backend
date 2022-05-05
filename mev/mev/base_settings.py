@@ -168,7 +168,7 @@ SIMPLE_JWT = {
 #  All available backends for sending emails:
 EMAIL_BACKEND_SELECTIONS = {
     'CONSOLE': 'django.core.mail.backends.console.EmailBackend',
-    'GMAIL': 'mev.gmail_backend.GmailBackend'
+    'SMTP': 'django.core.mail.backends.smtp.EmailBackend'
 }
 
 # Users can optionally specify an environment variable 
@@ -190,9 +190,13 @@ except KeyError:
         )
     )
 
-# Import the module to test that any dependencies (i.e. credentials)
-# are correctly specified as environment variables:
-import_string(EMAIL_BACKEND)
+# Whether we need these parameters or not (e.g. if using the console backend for local dev),
+# we require them:
+EMAIL_HOST = os.environ['EMAIL_HOST']
+EMAIL_PORT = os.environ['EMAIL_PORT']
+EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
+EMAIL_USE_TLS = True
 
 # When emails are sent, this will be the "From" field
 # If None, emails are sent as ""

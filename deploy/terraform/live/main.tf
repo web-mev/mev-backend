@@ -86,10 +86,10 @@ module "api" {
     django_superuser_passwd = var.django_superuser_passwd
     email_backend = var.email_backend
     from_email = var.from_email
-    gmail_access_token = var.gmail_access_token
-    gmail_refresh_token = var.gmail_refresh_token
-    gmail_client_id = var.gmail_client_id
-    gmail_client_secret = var.gmail_client_secret
+    email_host = var.email_host
+    email_port = var.email_port
+    email_host_user = var.email_host_user
+    email_host_password = var.email_host_password
     admin_email_csv = var.admin_email_csv
     sentry_url = var.sentry_url
     container_registry = var.container_registry

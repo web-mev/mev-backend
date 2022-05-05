@@ -33,10 +33,10 @@ class mevapi (
   String                    $cromwell_bucket,
   String                    $email_backend_choice,
   String                    $from_email,
-  String                    $gmail_access_token,
-  String                    $gmail_refresh_token,
-  String                    $gmail_client_id,
-  String                    $gmail_client_secret,
+  String                    $email_host,
+  String                    $email_port,
+  String                    $email_host_user,
+  String                    $email_host_password,
   String                    $admin_email_csv
 ) {
   $app_group = $app_user

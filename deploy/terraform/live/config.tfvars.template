@@ -29,10 +29,10 @@ storage_location = "remote"
 
 email_backend = "GMAIL"
 from_email = ""
-gmail_access_token = ""
-gmail_refresh_token = ""
-gmail_client_id = ""
-gmail_client_secret = ""
+email_host = ""
+email_port = ""
+email_host_user = ""
+email_host_password = ""
 
 sentry_url = ""
 

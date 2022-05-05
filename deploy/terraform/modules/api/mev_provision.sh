@@ -164,7 +164,7 @@ SERVICE_ACCOUNT=${service_account_email}
 ############################ Email-related parameters ######################################
 
 # How to send email-- by default, we print emails to the console for dev
-# If you would like to set another email backend (e.g. gmail), set this accordingly.
+# If you would like to set another email backend (e.g. SMTP), set this accordingly.
 # See the docs and/or base_settings.py in the relevant section regarding email.
 FACTER_EMAIL_BACKEND_CHOICE=${email_backend}
 
@@ -173,10 +173,10 @@ FACTER_FROM_EMAIL="${from_email}"
 
 # If using Gmail for your email service, specify the following:
 # See docs for how to get these values.
-FACTER_GMAIL_ACCESS_TOKEN=${gmail_access_token}
-FACTER_GMAIL_REFRESH_TOKEN=${gmail_refresh_token}
-FACTER_GMAIL_CLIENT_ID=${gmail_client_id}
-FACTER_GMAIL_CLIENT_SECRET=${gmail_client_secret}
+FACTER_EMAIL_HOST=${email_host}
+FACTER_EMAIL_PORT=${email_port}
+FACTER_EMAIL_HOST_USER=${email_host_user}
+FACTER_EMAIL_HOST_PASSWORD=${email_host_password}
 
 # A comma-delimited string of administrator email addresses
 FACTER_ADMIN_EMAIL_CSV=${admin_email_csv}
@@ -374,5 +374,8 @@ service nginx restart
 # Startup the application server:
 supervisorctl start gunicorn
 
-env > /data/env_vars.txt
-chown $MEV_USER:$MEV_USER /data/env_vars.txt
+# Send an email to the admins to let them know we are online.
+/usr/bin/python3 /opt/software/mev-backend/mev/manage.py send_mail \
+  -s "WebMeV is provisioned" \
+  -m "WebMeV has completed deploying to $FACTER_BACKEND_DOMAIN" \
+  -e $FACTER_ADMIN_EMAIL_CSV

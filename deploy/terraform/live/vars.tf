@@ -127,27 +127,27 @@ variable "storage_location" {
 
 variable "email_backend" {
   description = "The backend email service we use to send emails."
-  default = "GMAIL"
+  default = "SMTP"
 }
 
 variable "from_email" {
   description = "When registration emails are sent, this will be used for the sender. Format like: Name <account@domain>"
 }
 
-variable "gmail_access_token" {
-  description = "For using Gmail API to send messages"
+variable "email_host" {
+  description = "Your SMTP host."
 }
 
-variable "gmail_refresh_token" {
-  description = "For using Gmail API to send messages"
+variable "email_port" {
+  description = "SMTP port"
 }
 
-variable "gmail_client_id" {
-  description = "For using Gmail API to send messages"
+variable "email_host_user" {
+  description = "Username for the SMTP host"
 }
 
-variable "gmail_client_secret" {
-  description = "For using Gmail API to send messages"
+variable "email_host_password" {
+  description = "Password for the SMTP host"
 }
 
 variable "admin_email_csv" {
