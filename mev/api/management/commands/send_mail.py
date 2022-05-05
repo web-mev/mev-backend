@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from django.conf import setttings
+from django.conf import settings
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
 
@@ -36,7 +36,7 @@ class Command(BaseCommand):
         )
         
     def handle(self, *args, **options):
-        emails = [x.strip() for x in options['email_csv']]
+        emails = [x.strip() for x in options['email_csv'].split(',')]
         try:
             send_mail(
                 options['subject'],
@@ -45,5 +45,5 @@ class Command(BaseCommand):
                 emails,
             )
         except Exception as ex:
-            logger.info('Failed to send email: {ex}'.format(ex))
+            logger.info('Failed to send email: {ex}'.format(ex=ex))
             sys.stderr.write('Failed to send email. See logs')
