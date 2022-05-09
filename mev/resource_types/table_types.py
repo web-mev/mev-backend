@@ -924,6 +924,51 @@ class RnaSeqCountMatrix(IntegerMatrix):
 
     EXAMPLE = IntegerMatrix.EXAMPLE
 
+
+class Network(Matrix):
+    '''
+    An explicit class that helps users disambiguate matrices that are
+    intended to represent graph data structures (e.g. an adajacency matrix)
+    '''
+
+    DESCRIPTION = 'A table that represents a network or graph.'\
+        ' Both the first column and first row provide the names of the graph\'s nodes' \
+        ' which can be different, in general. Each cell of the table provides information' \
+        ' about the connection between the nodes given by the corresponding row and column.' \
+        ' An example is an adjacency matrix, where a value of 1 indicates a direct connection/edge' \
+        ' between the nodes of interest (and zero indicates no connection).'\
+        ' Alternatively, a general numeric value can represent the' \
+        ' strength of connection/evidence as might be the case for an inferred regulatory network.' \
+        ' Acceptable file extensions include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_EXTENSIONS))
+
+    EXAMPLE = [
+        {
+            "rowname":"gene1",
+            "values": {
+                "geneA": 1.1,
+                "geneB": 2.2,
+                "geneC": 3.3,
+            }
+        },
+        {
+            "rowname":"gene2",
+            "values": {
+                "geneA": 11.1,
+                "geneB": 22.2,
+                "geneC": 33.3,
+            }
+        },
+        {
+            "rowname":"gene3",
+            "values": {
+                "geneA": 111.1,
+                "geneB": 222.2,
+                "geneC": 333.3,
+            }
+        }
+    ]
+
+
 class ElementTable(TableResource):
     '''
     An ElementTable captures common behavior of tables which

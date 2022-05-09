@@ -9,6 +9,7 @@ from .sequence_types import FastAResource, \
 from .table_types import TableResource, \
     Matrix, \
     IntegerMatrix, \
+    Network, \
     AnnotationTable, \
     FeatureTable, \
     BEDFile
@@ -42,6 +43,7 @@ DATABASE_RESOURCE_TYPES = [
     ('I_MTX','Integer table'),
     ('EXP_MTX','Expression matrix'),
     ('RNASEQ_COUNT_MTX','RNA-seq count matrix'),
+    ('NS', 'Network descriptor'),
     ('ANN','Annotation table'),
     ('BED','BED-format file'),
     ('JSON','JSON-format file'),
@@ -69,6 +71,7 @@ RESOURCE_MAPPING = {
     'I_MTX': IntegerMatrix,
     'EXP_MTX': Matrix,
     'RNASEQ_COUNT_MTX': IntegerMatrix,
+    'NS': Network,
     'ANN': AnnotationTable,
     'BED': BEDFile,
     'JSON': JsonResource,

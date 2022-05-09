@@ -5,6 +5,7 @@ import pandas as pd
 from resource_types.table_types import TableResource, \
     Matrix, \
     IntegerMatrix, \
+    Network, \
     AnnotationTable, \
     BEDFile, \
     PARSE_ERROR, \
@@ -437,3 +438,17 @@ class TestBed(unittest.TestCase):
         self.assertTrue(is_valid)
 
 
+class TestNetworkStructure(unittest.TestCase):
+    '''
+    Specific tests for network data structures. Since these mirror
+    many of the specific tests we perform on `Matrix` types above, 
+    this test suite is pretty sparse.
+
+    We do, however, have a specific test file for a network as a double-check.
+    '''
+    def test_validates_network_file(self):
+        m = Network()
+        is_valid, err = m.validate_type(os.path.join(
+            TESTDIR, 'test_network_file.tsv'), 'tsv')
+        self.assertTrue(is_valid)
+        self.assertIsNone(err) 
