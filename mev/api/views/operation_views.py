@@ -339,26 +339,9 @@ class ExecutedOperationCheck(APIView):
                         )
                         return Response(status=status.HTTP_208_ALREADY_REPORTED)
                 else:
-                    logger.info('No finalization process reported. Check job status.')
+                    logger.info('No finalization process reported. Job still running.')
                     # not finalizing. Check if the job is running:
-                    runner_class = get_runner(matching_op.mode)
-                    runner = runner_class()
-                    has_completed = runner.check_status(matching_op.job_id)
-                    if has_completed:
-                        logger.info('Job ({id}) has completed. Kickoff'
-                            ' finalization.'.format(
-                                id=exec_op_uuid
-                            )
-                        )
-                        # kickoff the finalization. Set the flag for
-                        # blocking multiple attempts to finalize.
-                        matching_op.is_finalizing = True
-                        matching_op.status = ExecutedOperation.FINALIZING
-                        matching_op.save()
-                        finalize_executed_op.delay(exec_op_uuid)
-                        return Response(status=status.HTTP_202_ACCEPTED)
-                    else: # job still running- just return no content
-                        return Response(status=status.HTTP_204_NO_CONTENT)
+                    return Response(status=status.HTTP_204_NO_CONTENT)
             else:
                 response_payload = ExecutedOperationSerializer(matching_op).data
                 
