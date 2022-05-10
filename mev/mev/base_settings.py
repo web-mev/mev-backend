@@ -489,6 +489,10 @@ if not os.path.exists(OPERATION_EXECUTION_DIR):
         )
     )
 
+# To check on the status of both local and remote-based jobs, we have a celery-
+# based task that polls for status. This sets how frequently this happens
+JOB_STATUS_CHECK_INTERVAL = 3 # seconds
+
 ###############################################################################
 # END Settings for Operation executions
 ###############################################################################

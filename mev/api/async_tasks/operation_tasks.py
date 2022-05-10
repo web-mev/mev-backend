@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib.auth import get_user_model
-#from celery.decorators import task
+from django.conf import settings
 from celery import shared_task
 
 from api.models import Operation, \
@@ -104,7 +104,7 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
     # also start a task that will watch for job status changes
     check_executed_op.delay(executed_op_pk)
 
-@shared_task(name='check_executed_op', bind=True)
+@shared_task(name='check_executed_op', bind=True, max_retries=None)
 def check_executed_op(task_self, exec_op_uuid):
     '''
     After jobs are submitted, this task tracks their status by 
@@ -116,7 +116,7 @@ def check_executed_op(task_self, exec_op_uuid):
     runner_class = get_runner(executed_op.mode)
     runner = runner_class()
     try:
-        has_completed = runner.check_status(exec_op_uuid)
+        has_completed = runner.check_status(executed_op.job_id)
     except Exception as ex:
         # Since it takes some time for the runner to start (e.g.
         # cromwell takes some time to parse inputs, etc.) the
@@ -136,7 +136,7 @@ def check_executed_op(task_self, exec_op_uuid):
         executed_op.save()
         finalize_executed_op.delay(exec_op_uuid)
     else: # job still running
-        task_self.retry()
+        task_self.retry(countdown=settings.JOB_STATUS_CHECK_INTERVAL)
         
 
 @shared_task(name='finalize_executed_op')
