@@ -9,7 +9,7 @@ from api.models import Operation, \
     WorkspaceExecutedOperation, \
     Workspace
 from api.utilities.ingest_operation import perform_operation_ingestion
-from api.runners import submit_job, finalize_job
+from api.runners import submit_job, finalize_job, get_runner
 from api.utilities.operations import get_operation_instance_data
 
 logger = logging.getLogger(__name__)
@@ -100,6 +100,43 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
             status = ExecutedOperation.SUBMITTED
         )
     submit_job(executed_op, op_data, validated_inputs)
+
+    # also start a task that will watch for job status changes
+    check_executed_op.delay(executed_op_pk)
+
+@shared_task(name='check_executed_op', bind=True)
+def check_executed_op(task_self, exec_op_uuid):
+    '''
+    After jobs are submitted, this task tracks their status by 
+    polling the job runner. In this way, we don't depend on API
+    requests to initiate the job status checks.
+    '''
+    logger.info('Check on status of {id}'.format(id=exec_op_uuid))
+    executed_op = ExecutedOperation.objects.get(pk=exec_op_uuid)
+    runner_class = get_runner(executed_op.mode)
+    runner = runner_class()
+    try:
+        has_completed = runner.check_status(exec_op_uuid)
+    except Exception as ex:
+        # Since it takes some time for the runner to start (e.g.
+        # cromwell takes some time to parse inputs, etc.) the
+        # call to check_status might return an error
+        # do something here
+    if has_completed:
+        logger.info('Job ({id}) has completed. Kickoff'
+            ' finalization.'.format(
+                id=exec_op_uuid
+            )
+        )
+        # kickoff the finalization. Set the flag for
+        # blocking multiple attempts to finalize.
+        executed_op.is_finalizing = True
+        executed_op.status = ExecutedOperation.FINALIZING
+        executed_op.save()
+        finalize_executed_op.delay(exec_op_uuid)
+    else: # job still running
+        task_self.retry()
+        
 
 @shared_task(name='finalize_executed_op')
 def finalize_executed_op(exec_op_uuid):
