@@ -340,7 +340,7 @@ class ExecutedOperationCheck(APIView):
                         return Response(status=status.HTTP_208_ALREADY_REPORTED)
                 else:
                     logger.info('No finalization process reported. Job still running.')
-                    # not finalizing. Check if the job is running:
+                    # not finalizing. The job is still running:
                     return Response(status=status.HTTP_204_NO_CONTENT)
             else:
                 response_payload = ExecutedOperationSerializer(matching_op).data
