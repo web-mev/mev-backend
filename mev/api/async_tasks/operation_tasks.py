@@ -122,6 +122,7 @@ def check_executed_op(task_self, exec_op_uuid):
         # cromwell takes some time to parse inputs, etc.) the
         # call to check_status might return an error
         # do something here
+        pass
     if has_completed:
         logger.info('Job ({id}) has completed. Kickoff'
             ' finalization.'.format(
