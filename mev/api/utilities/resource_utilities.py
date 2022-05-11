@@ -58,25 +58,9 @@ def check_resource_request_validity(user, resource_pk):
 def check_that_resource_exists(path):
     '''
     Given a path, return a boolean indicating whether
-    the resource exists.
-
-    Typically used by the ingestion process to check the
-    existence of operation-specific/user-independent resources.
+    the file at the specified path exists.
     '''
-
-    # note that this is NOT necessarily the storage backend we are using.
-    # Instead, this class exposes an interface through which we can check the 
-    # existence of a file on that storage system.
-    # For instance, we may wish to have a user-independent file that is 
-    # associated with an Operation. That file can be saved in the git repository
-    # with the rest of the operation files. Ultimately, however, we want to take
-    # that file and make an `OperationResource` instance, saving it to our actual
-    # storage backend. Thus, while WebMEV may be using a bucket-based storage backend
-    # we need to use the LocalStorage backend to verify the existence of the file
-    # in the repository. 
-    # TODO: implement when we need it.
-    pass
-    
+    return get_storage_backend().resource_exists(path) 
 
 def get_resource_by_pk(resource_pk):
 
@@ -213,9 +197,9 @@ def move_resource_to_final_location(resource_instance):
     try:
         return get_storage_backend().store(resource_instance)
     except Exception as ex:
-        alert_admins('A backend storage failure occurred for resource'
-            ' with pk={x}'.format(x=resource_instance.pk)
-        )
+        # alert_admins('A backend storage failure occurred for resource'
+        #     ' with pk={x}'.format(x=resource_instance.pk)
+        # )
         resource_instance.status = Resource.UNEXPECTED_STORAGE_ERROR
         # Since this was an unexpected issue with storing the item, we
         # effectively disable the resource. Otherwise, unexpected things
