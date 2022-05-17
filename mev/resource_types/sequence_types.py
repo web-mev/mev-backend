@@ -14,10 +14,10 @@ class SequenceResource(DataResource):
     remotely
     '''
     @classmethod
-    def validate_type(cls, resource_path, file_extension):
+    def validate_type(cls, resource_path, file_format):
         pass
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
         '''
         For sequence-based types, we implement a trivial metadata
         extraction, as these resource types are not typically amenable
@@ -52,14 +52,14 @@ class FastAResource(SequenceResource):
     '''
     DESCRIPTION = 'FASTA-format sequence file.'
 
-    ACCEPTABLE_EXTENSIONS = [
+    ACCEPTABLE_FORMATS = [
         'fasta',
         'fasta.gz',
         'fa',
         'fa.gz'
     ]
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
         pass
 
 class FastQResource(SequenceResource):
@@ -77,14 +77,14 @@ class FastQResource(SequenceResource):
     DESCRIPTION = 'FASTQ-format sequence file.  The most common format'\
         ' used for sequencing experiments.'
 
-    ACCEPTABLE_EXTENSIONS = [
+    ACCEPTABLE_FORMATS = [
         'fastq',
         'fastq.gz',
         'fq',
         'fq.gz'
     ]
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
         pass
 
 
@@ -101,10 +101,10 @@ class AlignedSequenceResource(SequenceResource):
         ' output of an alignment process.'
 
 
-    ACCEPTABLE_EXTENSIONS = [
+    ACCEPTABLE_FORMATS = [
         'bam',
         'sam'
     ]
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
         pass

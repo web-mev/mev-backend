@@ -520,7 +520,7 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_status = Resource.UNKNOWN_EXTENSION_ERROR.format(
             readable_resource_type = human_readable_type,
             filename = resource.name,
-            ext = resource.file_extension,
+            fmt = resource.file_format,
             extensions_csv = 'tsv,csv,abc'
         )
         self.assertEqual(resource.status, expected_status)

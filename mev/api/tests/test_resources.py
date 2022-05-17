@@ -2614,11 +2614,9 @@ class ResourceDetailTests(BaseAPITestCase):
         Users may change the Resource name.  This does NOT
         change anything about the path, etc.
 
-        Note that it DOES, however, modify the file_extension
-        field.
         '''
         original_name = self.active_resource.name
-
+        original_format = self.active_resource.file_format
         payload = {'name': 'newname.txt'}
         response = self.authenticated_regular_client.put(
             self.url_for_active_resource, payload, format='json'
@@ -2630,7 +2628,33 @@ class ResourceDetailTests(BaseAPITestCase):
         # just double check that the original name wasn't the same
         # by chance
         self.assertTrue(original_name != 'newname.txt')
-        self.assertTrue(self.active_resource.file_extension != json_obj['file_extension'])
+
+        # check that this did NOT change anything about the file format
+        self.assertTrue(self.active_resource.file_format != json_obj['file_format'])
+
+    def test_user_can_change_resource_format(self):
+        '''
+        Users may change the Resource format.  This does NOT
+        change anything about the name, path, etc.
+
+        '''
+        original_name = self.active_resource.name
+        original_format = self.active_resource.file_format
+
+        payload = {'file_format': 'TSV'}
+        response = self.authenticated_regular_client.put(
+            self.url_for_active_resource, payload, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        json_obj = response.json()
+        self.assertTrue(json_obj['name'], 'newname.txt')
+
+        # just double check that the original name wasn't the same
+        # by chance
+        self.assertTrue(original_name != 'newname.txt')
+
+        # check that this did NOT change anything about the file format
+        self.assertTrue(self.active_resource.file_format != json_obj['file_format'])
 
     @mock.patch('api.serializers.resource.api_tasks')
     def test_changing_resource_type_resets_status(self,  

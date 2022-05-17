@@ -27,7 +27,6 @@ from api.exceptions import NonIterableContentsException
 from resource_types import ParseException
 
 
-
 logger = logging.getLogger(__name__)
 
 class ResourceList(generics.ListCreateAPIView):
@@ -74,7 +73,6 @@ class ResourceList(generics.ListCreateAPIView):
         # until the validation is complete, the resource_type should
         # be None.  Pop that field off the validated data:
         requested_resource_type = serializer.validated_data.pop('resource_type')
-
 
         resource = serializer.save(requesting_user=self.request.user)
         if requested_resource_type:

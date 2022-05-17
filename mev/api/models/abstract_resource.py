@@ -37,8 +37,8 @@ class AbstractResource(models.Model):
 
     # This is a string that provides a cue for how to parse
     # a file. We only work with a set of "conventional" 
-    # extensions, but this field does not care about that.
-    file_extension = models.CharField(
+    # formats, but this field does not care about that.
+    file_format = models.CharField(
         max_length = 25,
         default = ''
     )
@@ -73,12 +73,6 @@ class AbstractResource(models.Model):
     creation_datetime = models.DateTimeField(
         auto_now_add = True
     )
-
-    def save(self, *args, **kwargs):
-        split_name = self.name.split('.')
-        if len(split_name) > 1:
-            self.file_extension = split_name[-1].lower()
-        super().save(*args, **kwargs)
 
     class Meta:
         abstract = True

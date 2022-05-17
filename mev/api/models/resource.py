@@ -42,12 +42,13 @@ class Resource(AbstractResource):
     VALIDATING = 'Validating...'
     PROCESSING = 'Processing...'
     READY = ''
+    UNABLE_TO_VALIDATE = 'Could not validate the resource given the information provided.'
     FAILED = 'Failed validation for resource type "{requested_resource_type}".'
     REVERTED = ('Failed validation for type "{requested_resource_type}".'
         ' Reverting back to the valid type of "{original_resource_type}".')
-    UNKNOWN_EXTENSION_ERROR = ('File extension "{ext}" for file "{filename}" is not consistent'
+    UNKNOWN_FORMAT_ERROR = ('File format "{fmt}" for file "{filename}" is not consistent'
         ' with the requested resource type ({readable_resource_type}).'
-        ' Acceptable extensions are: {extensions_csv}')
+        ' Acceptable formats/extensions are: {extensions_csv}')
     UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation. An administrator has been notified.'
     UNEXPECTED_STORAGE_ERROR = 'An unexpected error occurred during upload and storage. An administrator has been notified.'
     ERROR_WITH_REASON = 'An error ocurred: {ex}'

@@ -29,7 +29,7 @@ class DataResource(object):
 
     STANDARD_FORMAT = ''
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
@@ -48,16 +48,16 @@ class DataResource(object):
         return False
 
 
-    def get_contents(self, resource_path, file_extension, query_params={}):
+    def get_contents(self, resource_path, file_format, query_params={}):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
         
     @staticmethod
-    def get_extension(path):
+    def get_file_extension(path):
         '''
         A single method to return the extension of the file. By convention,
         the lower-cased contents AFTER the final dot/period.
@@ -81,7 +81,7 @@ class DataResource(object):
             DataResource.RESOURCE: None
         }
 
-    def save_in_standardized_format(self, resource_path, resource_name, file_extension):
+    def save_in_standardized_format(self, resource_path, resource_name, file_format):
         '''
         This method is used for saving user-supplied resources/files as something
         we can consistently refer to. For instance, users may load csv, tsv, excel, etc.

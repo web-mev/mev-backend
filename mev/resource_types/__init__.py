@@ -80,12 +80,12 @@ RESOURCE_MAPPING = {
 
 # These types are skipped when files are validated.
 # Files are inferred to be of these types based on 
-# their file extensions.  Each resource type has a set
-# of canonical extensions as a class member.  We check
+# their file formats.  Each resource type has a set
+# of canonical formats as a class member.  We check
 # against those types when determining whether to skip
 # validation. For example, if a file ends with "fastq.gz"
 # we infer that it is a FastQResource as "fastq.gz" is one
-# of the canonical extensions of the FastQResource class.
+# of the canonical formats of the FastQResource class.
 RESOURCE_TYPES_WITHOUT_VALIDATION = set([
     FastAResource,
     FastQResource,
@@ -126,7 +126,7 @@ def get_resource_type_instance(resource_type_str):
         )
         raise ex
 
-def get_contents(resource_path, resource_type_str, file_extension, query_params={}):
+def get_contents(resource_path, resource_type_str, file_format, query_params={}):
     '''
     Returns a "view" of the data underlying a Resource. The actual
     implementation of that view is prepared by the class corresponding
@@ -154,7 +154,7 @@ def get_contents(resource_path, resource_type_str, file_extension, query_params=
         
     # instantiate the proper class for this type:
     resource_type = resource_class()
-    return resource_type.get_contents(resource_path, file_extension, query_params)
+    return resource_type.get_contents(resource_path, file_format, query_params)
 
 def get_resource_paginator(resource_type_str):
     '''
@@ -188,42 +188,36 @@ def resource_supports_pagination(resource_type_str):
         )
         return False
 
-def get_acceptable_extensions(resource_type):
+def get_acceptable_formats(resource_type):
     '''
     Given the resource type "string", return a list of
-    acceptable file extensions for that type.
+    acceptable file formats for that type.
     '''
     resource_class = RESOURCE_MAPPING[resource_type]
-    return resource_class.ACCEPTABLE_EXTENSIONS
+    return resource_class.ACCEPTABLE_FORMATS
 
-def extension_is_consistent_with_type(file_extension, resource_type):
+def format_is_consistent_with_type(file_format, resource_type):
     '''
-    Checks that the file extension is consistent with the 
+    Checks that the file format (as denoted by a string) is consistent with the 
     resource type.  Matching is case-insensitive
 
-    `file_extension` is the final part of a resource instance's
-    "name" attribute. This file extension field is actually set during the
-    saving of a Resource instance in the DB.
+    `file_format` is a string which denotes a resource's format,
+    e.g. "tsv" for tab-delimited format.
     `resource_type` is one of the keys in RESOURCE_MAPPING.  It 
     is assumed to have already been checked (the serializer from the 
     request validated it already)
-
-    Also checks for a period/dot prior to the suffix.  Thus,
-    if the filename was foobartsv and we were checking the "tsv"
-    extension, this function would return False.  foobar.tsv would
-    return True
     '''
     try:
-        acceptable_extensions = get_acceptable_extensions(resource_type)
+        acceptable_formats = get_acceptable_formats(resource_type)
     except KeyError as ex:
         logger.info('Received an unacceptable resource type {t}'
-            ' when checking file extension.'.format(t=ex)
+            ' when checking file format.'.format(t=ex)
         )
         message = 'Resource type {t} is not among the accepted types.'.format(t=ex)
         raise Exception(message)
-    for ext in acceptable_extensions:
+    for ext in acceptable_formats:
         if ext == WILDCARD:
             return True
-        if file_extension.lower() == ext.lower():
+        if file_format.lower() == ext.lower():
             return True
     return False

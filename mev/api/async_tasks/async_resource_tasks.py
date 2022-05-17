@@ -18,7 +18,7 @@ def delete_file(path):
     get_storage_backend().delete(path)
 
 @shared_task(name='validate_resource')
-def validate_resource(resource_pk, requested_resource_type):
+def validate_resource(resource_pk, requested_resource_type, file_format):
     '''
     This function only performs validation of the resource.
     Note that it calls the `resource_utilities.validate_resource` 
@@ -26,9 +26,10 @@ def validate_resource(resource_pk, requested_resource_type):
     instance
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
-
+    resource.status = Resource.VALIDATING
+    resource.save()
     try:
-        resource_utilities.validate_resource(resource, requested_resource_type)
+        resource_utilities.validate_resource(resource, requested_resource_type, file_format)
     except Exception as ex:
         logger.info('Caught an exception raised by the validate_resource function.')
         alert_admins(str(ex))
@@ -38,7 +39,7 @@ def validate_resource(resource_pk, requested_resource_type):
 
 
 @shared_task(name='validate_resource_and_store')
-def validate_resource_and_store(resource_pk, requested_resource_type):
+def validate_resource_and_store(resource_pk, requested_resource_type, file_format):
     '''
     This function handles the background validation of uploaded
     files.
@@ -50,6 +51,8 @@ def validate_resource_and_store(resource_pk, requested_resource_type):
     function performs a save on the passed Resource
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
+    resource.status = Resource.VALIDATING
+    resource.save()
     try:
         resource_utilities.validate_and_store_resource(resource, requested_resource_type)
     except Exception as ex:

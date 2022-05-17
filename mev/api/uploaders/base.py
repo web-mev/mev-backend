@@ -74,8 +74,9 @@ class BaseUpload(object):
 
     def create_resource_from_upload(self):
 
-        # create a serialized representation so we can use the validation
-        # contained there.  Note that since we are creating a new Resource
+        # create a serialized representation of the Resource we are creating
+        # so we can use the validation contained in the ResourceSerializer.
+        # Note that since we are creating a new Resource
         # we have NOT validated it.  Hence, we explicitly set resource_type 
         # to be None. 
         if self.owner:
@@ -88,6 +89,7 @@ class BaseUpload(object):
             'path': self.filepath,
             'name': self.filename,
             'resource_type': None,
+            'file_format': None,
             'is_public': self.is_public
         }
         rs = ResourceSerializer(data=d)

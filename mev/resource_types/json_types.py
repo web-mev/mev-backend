@@ -88,7 +88,7 @@ def create_closure(op, filter_val):
 
 class JsonResource(DataResource):
 
-    ACCEPTABLE_EXTENSIONS = [JSON]
+    ACCEPTABLE_FORMATS = [JSON]
     DESCRIPTION = 'A JSON-format file.'
 
     @staticmethod
@@ -103,7 +103,7 @@ class JsonResource(DataResource):
         '''
         return True
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
 
         try:
             logger.info('Using python-native JSON loader to read resource: {p}'.format(
@@ -127,7 +127,7 @@ class JsonResource(DataResource):
                 ' to parse the file was JSON. The reported error was: {ex}'.format(ex=ex)
             )
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
         # call the super method to initialize the self.metadata
         # dictionary
         super().setup_metadata()
@@ -138,7 +138,7 @@ class JsonResource(DataResource):
         return self.metadata
 
 
-    def get_contents(self, resource_path, file_extension, query_params={}):
+    def get_contents(self, resource_path, file_format, query_params={}):
 
         # since the pagination query params are among the general query parameters, we DON'T
         # want to pass them to the filtering.
