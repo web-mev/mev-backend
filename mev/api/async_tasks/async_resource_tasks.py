@@ -54,7 +54,7 @@ def validate_resource_and_store(resource_pk, requested_resource_type, file_forma
     resource.status = Resource.VALIDATING
     resource.save()
     try:
-        resource_utilities.validate_and_store_resource(resource, requested_resource_type)
+        resource_utilities.validate_and_store_resource(resource, requested_resource_type, file_format)
     except Exception as ex:
         logger.info('Caught an exception raised by the validate_and_store_resource function.')
         alert_admins(str(ex))

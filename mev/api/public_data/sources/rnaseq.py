@@ -43,10 +43,11 @@ class RnaSeqMixin(object):
     def create_from_query(self, database_record, query_filter, output_name=''):
         '''
         subsets the dataset based on the query_filter.
-        Returns a 3-tuple of lists:
+        Returns a 4-tuple of lists:
         - a list of paths
         - a list of names for the files 
         - a list of resource types
+        - a list of the formats
         '''
         # Look at the database object to get the path for the count matrix
         file_mapping = database_record.file_mapping
@@ -161,4 +162,5 @@ class RnaSeqMixin(object):
             ann_name = output_name + '_ann.' + self.TAG + '.tsv'
         return [count_filepath, ann_filepath], \
                 [count_matrix_name, ann_name], \
-                ['RNASEQ_COUNT_MTX', 'ANN']
+                ['RNASEQ_COUNT_MTX', 'ANN'], \
+                ['tsv','tsv']

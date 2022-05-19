@@ -73,6 +73,7 @@ class Command(BaseCommand):
             owner=user_dict[USER1],
             name='fileA.tsv',
             resource_type = 'MTX',
+            file_format = 'tsv',
             path='/path/to/fileA.txt',
             is_active = True,
             is_public = True,
@@ -81,6 +82,7 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileB.csv',
+            file_format = 'csv',
             resource_type = 'ANN',
             path='/path/to/fileB.txt',
             size = random.randint(size_low, size_high)
@@ -89,6 +91,7 @@ class Command(BaseCommand):
             owner=user_dict[USER1],
             name='public_file.csv',
             resource_type = 'I_MTX',
+            file_format = 'csv',
             path='/path/to/public_file.txt',
             is_public = True,
             size = random.randint(size_low, size_high)
@@ -97,6 +100,7 @@ class Command(BaseCommand):
             owner=user_dict[USER1],
             name='abc.csv',
             resource_type = None,
+            file_format = '',
             path='/path/to/abc.csv',
             is_active = True,
             size = random.randint(size_low, size_high)
@@ -105,6 +109,7 @@ class Command(BaseCommand):
             owner=user_dict[USER2],
             name='fileC.tsv',
             resource_type = 'MTX',
+            file_format = 'tsv',
             path='/path/to/fileC.txt',
             size = random.randint(size_low, size_high)
         )
@@ -123,6 +128,7 @@ class Command(BaseCommand):
             owner=user_dict[USER1],
             name='fileA.tsv',
             resource_type = 'MTX',
+            file_format = 'tsv',
             path='/path/to/fileA.txt',
             is_active = True,
             is_public = True,
@@ -144,6 +150,7 @@ class Command(BaseCommand):
             owner=user_dict[USER1],
             name='file1_in_workspace.tsv',
             resource_type = 'I_MTX',
+            file_format = 'tsv',
             path='/path/to/file1_in_workspace.tsv',
             is_active = True
         )
@@ -151,6 +158,7 @@ class Command(BaseCommand):
             owner=user_dict[USER1],
             name='file2_in_workspace.tsv',
             resource_type = 'I_MTX',
+            file_format = 'tsv',
             path='/path/to/file2_in_workspace.tsv',
             is_active = True
         )

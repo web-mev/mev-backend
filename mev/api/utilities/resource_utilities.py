@@ -16,12 +16,12 @@ from .basic_utils import make_local_directory, \
 from api.data_structures.attributes import DataResourceAttribute
 from api.storage_backends import get_storage_backend
 from api.storage_backends.helpers import get_storage_implementation
+from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     format_is_consistent_with_type, \
     resource_supports_pagination as _resource_supports_pagination, \
     get_acceptable_formats, \
-    DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
     get_resource_type_instance, \
     PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
@@ -297,7 +297,7 @@ def handle_valid_resource(
             ' resource at path: {p}'.format(p=new_path)
         )
         err_list = []
-        for k,v in ex.get_full_details().items():fi
+        for k,v in ex.get_full_details().items():
             # v is a nested dict
             msg = v['message']
             err_str = '{k}:{s}'.format(k=k, s = str(msg))
@@ -364,7 +364,7 @@ def check_file_format_against_type(resource, requested_resource_type, file_forma
     if not consistent_extension:
         acceptable_extensions = ','.join(get_acceptable_formats(requested_resource_type))
         resource.status = Resource.UNKNOWN_FORMAT_ERROR.format(
-            readable_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[requested_resource_type],
+            readable_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[requested_resource_type],
             filename = resource.name,
             fmt = file_format,
             extensions_csv = acceptable_extensions
@@ -381,7 +381,7 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
     # via the status message and set the appropriate flags
     if resource_instance.resource_type is None:
         status_msg = Resource.FAILED.format(
-            requested_resource_type=DB_RESOURCE_STRING_TO_HUMAN_READABLE[
+            requested_resource_type=DB_RESOURCE_KEY_TO_HUMAN_READABLE[
                 requested_resource_type]
         )
         status_msg = status_msg + ' ' + message
@@ -403,9 +403,9 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
         # previously valid type.
 
         # get the "human-readable" types:
-        hr_requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[
+        hr_requested_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[
             requested_resource_type]
-        hr_original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[
+        hr_original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[
             resource_instance.resource_type]
 
         # ...and compose the status message
@@ -497,10 +497,6 @@ def validate_resource(resource_instance, requested_resource_type, file_format):
             handle_invalid_resource(resource_instance, requested_resource_type, message)
         else:
             handle_invalid_resource(resource_instance, requested_resource_type)
-
-    else: # requested_resource_type was None
-        resource_instance.resource_type = None
-        resource_instance.status = Resource.READY
 
 def validate_and_store_resource(resource, requested_resource_type, file_format):
 

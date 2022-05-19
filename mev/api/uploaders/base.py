@@ -11,9 +11,6 @@ from rest_framework.exceptions import ValidationError
 from api.serializers.resource import ResourceSerializer
 from api.models import Resource
 
-
-from resource_types import extension_is_consistent_with_type
-
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
@@ -95,6 +92,12 @@ class BaseUpload(object):
         rs = ResourceSerializer(data=d)
 
         # values were checked prior to this, but we enforce this again
+        print('about to check if valid...')
+        print(rs.is_valid())
+        try:
+            rs.is_valid(raise_exception=True)
+        except Exception as ex:
+            print(ex)
         if rs.is_valid(raise_exception=True):
             r = rs.save()
             # set the size here since the ResourceSerializer has size

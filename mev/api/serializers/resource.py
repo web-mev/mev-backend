@@ -9,7 +9,7 @@ from api.serializers.workspace import WorkspaceSerializer
 import api.async_tasks.async_resource_tasks as api_tasks
 from api.storage_backends import get_storage_backend
 
-from resource_types import DB_RESOURCE_STRING_TO_HUMAN_READABLE
+from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         "Expression matrix" instead of "MTX")
         '''
         if obj.resource_type:
-            return DB_RESOURCE_STRING_TO_HUMAN_READABLE[obj.resource_type]
+            return DB_RESOURCE_KEY_TO_HUMAN_READABLE[obj.resource_type]
         else:
             return None
 
@@ -107,7 +107,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data): 
-
+        print('increate'*300)
         logger.info('Received validated data: %s' % validated_data)
         
         # In addition to creating Resource instances from payloads submitted

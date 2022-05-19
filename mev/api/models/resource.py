@@ -5,7 +5,6 @@ from django.db import models
 
 from api.models.abstract_resource import AbstractResource
 from api.models import Workspace
-from resource_types import DATABASE_RESOURCE_TYPES
 
 class Resource(AbstractResource):
     '''

@@ -50,6 +50,6 @@ class ServerLocalUpload(LocalUpload):
             logger.error('An exception was raised when writing a local upload to the tmp directory.')
             logger.error(ex)
             raise APIException('The upload process experienced an error.')
-
+        print('about to create....')
         return self.create_resource_from_upload()
         

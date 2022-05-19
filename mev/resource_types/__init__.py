@@ -25,37 +25,6 @@ FEATURE_SET_KEY = DataResource.FEATURE_SET
 PARENT_OP_KEY = DataResource.PARENT_OP
 RESOURCE_KEY = DataResource.RESOURCE
 
-# A list of tuples for use in the database.
-# The first item in each tuple is the stored value
-# in the database.  The second is the "human-readable"
-# strings that will be used in the UI:
-
-# Note that some of the types are redundant (e.g. integer table
-# and rna-seq count matrix).  This is so users can have an easier selection
-# if they know they have rna-seq abundance, but do not recognize it as a 
-# integer count matrix
-DATABASE_RESOURCE_TYPES = [
-    ('FQ', 'Fastq'),
-    ('FA','Fasta'),
-    ('ALN','Alignment (SAM/BAM)'),
-    ('FT', 'Feature table'),
-    ('MTX','Numeric table'),
-    ('I_MTX','Integer table'),
-    ('EXP_MTX','Expression matrix'),
-    ('RNASEQ_COUNT_MTX','RNA-seq count matrix'),
-    ('NS', 'Network descriptor'),
-    ('ANN','Annotation table'),
-    ('BED','BED-format file'),
-    ('JSON','JSON-format file'),
-    (WILDCARD, 'General file')
-]
-
-
-DB_RESOURCE_STRING_TO_HUMAN_READABLE = {
-    x[0]:x[1] for x in DATABASE_RESOURCE_TYPES
-}
-
-
 HUMAN_READABLE_TO_DB_STRINGS = {
     x[1]:x[0] for x in DATABASE_RESOURCE_TYPES
 }

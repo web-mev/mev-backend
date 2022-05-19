@@ -3,7 +3,6 @@ import os
 import logging
 
 from api.models import PublicDataset, Resource
-#from api.utilities.resource_utilities import validate_and_store_resource
 from api.async_tasks.async_resource_tasks import validate_resource_and_store
 from .sources.gdc.tcga import TCGARnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
@@ -151,7 +150,7 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
             ' does not resolve, please contact an administrator.'
         )
     try:
-        path_list, name_list, resource_type_list = ds.create_from_query(
+        path_list, name_list, resource_type_list, file_format_list = ds.create_from_query(
             dataset_db_instance,
             request_payload,
             output_name
@@ -164,7 +163,7 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
 
     # create the Resource instances.
     resource_list = []
-    for path, name, resource_type in zip(path_list, name_list, resource_type_list):
+    for path, name, resource_type, file_format in zip(path_list, name_list, resource_type_list, file_format_list):
         r = Resource.objects.create(
             name = name,
             owner = user,
@@ -179,7 +178,8 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
         # it was bypassing this call
         validate_resource_and_store.delay(
             r.pk, 
-            resource_type 
+            resource_type,
+            file_format
         )
 
         resource_list.append(r)

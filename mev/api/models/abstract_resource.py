@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from resource_types import DATABASE_RESOURCE_TYPES
+from constants import DATABASE_RESOURCE_TYPES
 
 class AbstractResource(models.Model):
     '''

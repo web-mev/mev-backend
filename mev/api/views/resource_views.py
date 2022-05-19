@@ -73,6 +73,7 @@ class ResourceList(generics.ListCreateAPIView):
         # until the validation is complete, the resource_type should
         # be None.  Pop that field off the validated data:
         requested_resource_type = serializer.validated_data.pop('resource_type')
+        requested_file_format = serializer.validated_data.pop('file_format')
 
         resource = serializer.save(requesting_user=self.request.user)
         if requested_resource_type:
@@ -80,7 +81,8 @@ class ResourceList(generics.ListCreateAPIView):
 
             async_validate_resource.delay(
                 resource.pk, 
-                requested_resource_type 
+                requested_resource_type,
+                requested_file_format
             )
 
 
@@ -256,6 +258,11 @@ class AddBucketResourceView(APIView):
         except KeyError as ex:
             resource_type = None
 
+        try:
+            file_format = request.data['file_format']
+        except KeyError as ex:
+            file_format = None
+
         # We require the ability to interact with our storage backend.
         storage_backend = get_storage_backend()
 
@@ -280,7 +287,7 @@ class AddBucketResourceView(APIView):
                 name = basename
             )
             if resource_type:
-                async_validate_resource_and_store.delay(r.pk, resource_type)
+                async_validate_resource_and_store.delay(r.pk, resource_type, file_format)
             else:
                 # no resource type was requested, so we just directly store it.
                 final_path = storage_backend.store(r)
