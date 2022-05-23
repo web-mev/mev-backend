@@ -23,7 +23,7 @@ from api.utilities.operations import read_operation_json, \
     get_operation_instance_data
 from api.utilities import normalize_identifier
 from api.async_tasks.operation_tasks import ingest_new_operation as async_ingest_new_operation    
-from api.async_tasks.operation_tasks import submit_async_job, finalize_executed_op
+from api.async_tasks.operation_tasks import submit_async_job
 from api.runners import get_runner
 from api.exceptions import StringIdentifierException
 
