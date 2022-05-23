@@ -1,4 +1,7 @@
-WILDCARD = '*'
+from constants import RESOURCE_KEY, \
+    OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY, \
+    PARENT_OP_KEY
 
 class ParseException(Exception):
     '''
@@ -19,13 +22,6 @@ class UnexpectedTypeValidationException(Exception):
     pass
 
 class DataResource(object):
-
-    # these are the keys of the dict that is submitted to the
-    # ResourceMetadata deserializer.
-    OBSERVATION_SET = 'observation_set'
-    FEATURE_SET = 'feature_set'
-    PARENT_OP = 'parent_operation'
-    RESOURCE = 'resource'
 
     STANDARD_FORMAT = ''
 
@@ -75,10 +71,10 @@ class DataResource(object):
         fill-in the fields as appropriate.
         '''
         self.metadata = {
-            DataResource.PARENT_OP: None,
-            DataResource.OBSERVATION_SET: None,
-            DataResource.FEATURE_SET: None,
-            DataResource.RESOURCE: None
+            PARENT_OP_KEY: None,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None,
+            RESOURCE_KEY: None
         }
 
     def save_in_standardized_format(self, resource_path, resource_name, file_format):

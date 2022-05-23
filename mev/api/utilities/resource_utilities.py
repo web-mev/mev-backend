@@ -16,17 +16,17 @@ from .basic_utils import make_local_directory, \
 from api.data_structures.attributes import DataResourceAttribute
 from api.storage_backends import get_storage_backend
 from api.storage_backends.helpers import get_storage_implementation
-from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE
+from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
+    RESOURCE_KEY, \
+    PARENT_OP_KEY, \
+    OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY, \
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     format_is_consistent_with_type, \
     resource_supports_pagination as _resource_supports_pagination, \
     get_acceptable_formats, \
     get_resource_type_instance, \
-    PARENT_OP_KEY, \
-    OBSERVATION_SET_KEY, \
-    FEATURE_SET_KEY, \
-    RESOURCE_KEY, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
 from api.exceptions import NoResourceFoundException, \

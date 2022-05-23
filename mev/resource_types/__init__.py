@@ -25,10 +25,6 @@ FEATURE_SET_KEY = DataResource.FEATURE_SET
 PARENT_OP_KEY = DataResource.PARENT_OP
 RESOURCE_KEY = DataResource.RESOURCE
 
-HUMAN_READABLE_TO_DB_STRINGS = {
-    x[1]:x[0] for x in DATABASE_RESOURCE_TYPES
-}
-
 # A mapping of the database strings to the classes
 # needed to implement the validation.
 RESOURCE_MAPPING = {

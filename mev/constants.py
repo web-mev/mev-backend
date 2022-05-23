@@ -44,3 +44,10 @@ DATABASE_RESOURCE_TYPES = [
 DB_RESOURCE_KEY_TO_HUMAN_READABLE = {
     x[0]:x[1] for x in DATABASE_RESOURCE_TYPES
 }
+
+# These constants are related to metadata (api.models.ResourceMetadata)
+# which can be associated with api.models.Resource instances
+OBSERVATION_SET_KEY = 'observation_set'
+FEATURE_SET_KEY = 'feature_set'
+PARENT_OP_KEY = 'parent_operation'
+RESOURCE_KEY = 'resource'
