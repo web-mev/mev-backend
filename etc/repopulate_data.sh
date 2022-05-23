@@ -11,9 +11,9 @@ BUCKET=$1
 MEV_DATA_DIR="/data"
 
 # Copy the operation-related folders
-gsutil -m cp -r $BUCKET/operations/* $MEV_DATA_DIR"/operations/"
-gsutil -m cp -r $BUCKET/operation_executions/* $MEV_DATA_DIR"/operation_executions/"
-gsutil -m cp -r $BUCKET/public_data/* $MEV_DATA_DIR"/public_data/"
+gsutil -m cp -n -r $BUCKET/operations/* $MEV_DATA_DIR"/operations/"
+gsutil -m cp -n -r $BUCKET/operation_executions/* $MEV_DATA_DIR"/operation_executions/"
+gsutil -m cp -n -r $BUCKET/public_data/* $MEV_DATA_DIR"/public_data/"
 
 # Pull the Docker images after getting the file that lists the docker images
 gsutil cp $BUCKET/docker_images.txt $MEV_DATA_DIR/
