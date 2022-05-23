@@ -17,6 +17,7 @@ from resource_types.table_types import TableResource, \
     NUMBERED_COLUMN_NAMES_ERROR, \
     NUMBERED_ROW_NAMES_ERROR, \
     NONUNIQUE_ROW_NAMES_ERROR, \
+    NA_ROW_NAMES_ERROR, \
     MISSING_HEADER_WARNING, \
     EMPTY_TABLE_ERROR
 
@@ -184,6 +185,15 @@ class TestMatrix(unittest.TestCase):
         self.assertTrue(is_valid)
         self.assertIsNone(err) 
 
+    def test_table_with_empty_rowname_fails(self):
+        '''
+        Tests that a table with an empty rowname fails
+        '''
+        m = Matrix()
+        is_valid, err = m.validate_type(os.path.join(
+            TESTDIR, 'test_matrix_with_na_rowname.tsv'), 'tsv')
+        self.assertFalse(is_valid)
+        self.assertEqual(err, NA_ROW_NAMES_ERROR)
 
 
 class TestIntegerMatrix(unittest.TestCase):

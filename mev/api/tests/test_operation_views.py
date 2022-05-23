@@ -464,24 +464,6 @@ class ExecutedOperationTests(BaseAPITestCase):
         response = self.authenticated_admin_client.get(self.good_workspace_exec_op_url)
         self.assertTrue(response.status_code == 204)
 
-    @mock.patch('api.views.operation_views.get_runner')
-    @mock.patch('api.views.operation_views.finalize_executed_op')
-    def test_completed_job_starts_finalizing(self, 
-        mock_finalize_executed_op, mock_get_runner):
-        '''
-        Tests the case where a job has completed, but
-        nothing has happened as far as "finalization".
-        Requests to this endpoint should start that process
-        '''
-        mock_runner_class = mock.MagicMock()
-        mock_runner = mock.MagicMock()
-        # mocks that process is still running so it shoudl return 204 status
-        mock_runner.check_status.return_value = True 
-        mock_runner_class.return_value = mock_runner
-        mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
-        mock_finalize_executed_op.delay.assert_called_with(str(self.workspace_exec_op_uuid))
-        self.assertTrue(response.status_code == 202)
 
     def test_request_to_finalizing_process_returns_208(self):
         '''
@@ -539,87 +521,13 @@ class ExecutedOperationTests(BaseAPITestCase):
         self.assertTrue(response.status_code == 204)
 
     @mock.patch('api.views.operation_views.get_runner')
-    @mock.patch('api.views.operation_views.finalize_executed_op')
-    def test_multiple_requests_case1(self, 
-        mock_finalize_executed_op, mock_get_runner):
+    def test_completed_job_returns_proper_response(self, mock_get_runner):
         '''
-        In this test, the first request kicks off the process to finalize the 
-        ExecutedOperation. A secondary request arrives before that process
-        is complete, and the API should respond with the 208 code to let it 
-        know that things are still processing.
+        In this test, the operation has completed so we check that we get info 
+        about the completed job
         '''
-        # query the op to start to ensure the test is setup properly
-        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
-        self.assertFalse(op.is_finalizing)
-
-        mock_runner_class = mock.MagicMock()
-        mock_runner = mock.MagicMock()
-        # mocks that process has completed
-        mock_runner.check_status.return_value = True 
-        mock_runner_class.return_value = mock_runner
-        mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
-        #mock_finalize_executed_op.delay.assert_called_with(str(self.workspace_exec_op_uuid))
-        self.assertTrue(response.status_code == 202)
-
         # query the op:
         op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
-        self.assertTrue(op.is_finalizing)
-
-        # make a second query. since the process is finalizing, should return 208
-        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
-        self.assertTrue(response.status_code == 208)
-
-        # check that the finalization was only called once.
-        mock_finalize_executed_op.delay.assert_called_once_with(str(self.workspace_exec_op_uuid))
-
-        # now check for the non-workspace ExecOp
-        mock_finalize_executed_op.reset_mock()
-        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
-        self.assertFalse(op.is_finalizing)
-
-        response = self.authenticated_regular_client.get(self.good_exec_op_url)
-        self.assertTrue(response.status_code == 202)
-
-        # query the op:
-        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
-        self.assertTrue(op.is_finalizing)
-
-        # make a second query. since the process is finalizing, should return 208
-        response = self.authenticated_regular_client.get(self.good_exec_op_url)
-        self.assertTrue(response.status_code == 208)
-
-        # check that the finalization was only called once.
-        mock_finalize_executed_op.delay.assert_called_once_with(str(self.exec_op_uuid))
-
-
-
-    @mock.patch('api.views.operation_views.get_runner')
-    @mock.patch('api.views.operation_views.finalize_executed_op')
-    def test_multiple_requests_case2(self,
-        mock_finalize_executed_op, mock_get_runner):
-        '''
-        In this test, the first request kicks off the process to finalize the 
-        ExecutedOperation. A secondary request after that process
-        is complete, and the API should respond with the outputs
-        '''
-        # query the op to start to ensure the test is setup properly
-        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
-        self.assertFalse(op.is_finalizing)
-
-        mock_runner_class = mock.MagicMock()
-        mock_runner = mock.MagicMock()
-        # mocks that process is complete
-        mock_runner.check_status.return_value = True 
-        mock_runner_class.return_value = mock_runner
-        mock_get_runner.return_value = mock_runner_class
-        response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
-        mock_finalize_executed_op.delay.assert_called_with(str(self.workspace_exec_op_uuid))
-        self.assertTrue(response.status_code == 202)
-
-        # query the op:
-        op = WorkspaceExecutedOperation.objects.get(id=self.workspace_exec_op_uuid)
-        self.assertTrue(op.is_finalizing)
 
         # mock the finalization is complete by assigning the
         # `execution_stop_datetime` field:
@@ -627,31 +535,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         op.is_finalizing = False
         op.save()
 
-        # make a second query. since the process is finalizing, should return 208
         response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
-        self.assertTrue(response.status_code == 200)
-
-        # check the non-workspace ExecOp:
-        mock_finalize_executed_op.reset_mock()
-        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
-        self.assertFalse(op.is_finalizing)
-
-        response = self.authenticated_regular_client.get(self.good_exec_op_url)
-        mock_finalize_executed_op.delay.assert_called_with(str(self.exec_op_uuid))
-        self.assertTrue(response.status_code == 202)
-
-        # query the op:
-        op = ExecutedOperation.objects.get(id=self.exec_op_uuid)
-        self.assertTrue(op.is_finalizing)
-
-        # mock the finalization is complete by assigning the
-        # `execution_stop_datetime` field:
-        op.execution_stop_datetime = datetime.datetime.now()
-        op.is_finalizing = False
-        op.save()
-
-        # make a second query. since the process is finalizing, should return 208
-        response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 200)
 
 

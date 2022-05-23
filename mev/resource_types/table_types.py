@@ -81,6 +81,10 @@ NUMBERED_ROW_NAMES_ERROR = ('All the row names were numbers.  We use the first c
 NONUNIQUE_ROW_NAMES_ERROR = ('Your row names were not unique, which could cause'
     ' unexpected behavior.')
 
+NA_ROW_NAMES_ERROR = ('One or more of your row names (items in the first column) was empty'
+    ' or contained invalid values. If you wish to keep the row, simply provide any unique'
+    ' value so that it\'s not empty.')
+
 MISSING_HEADER_WARNING = ('One of your column names matched the values in the'
     ' corresponding problem.  This is not an error, but may indicate that a'
     ' proper header line was missing.  Please check to ensure the file was'
@@ -282,9 +286,16 @@ class TableResource(DataResource):
             if rows_all_numbers:
                 return (False, NUMBERED_ROW_NAMES_ERROR)
 
+            # check that all the row names were valid (e.g. not NAs)
+            if pd.isnull(self.table.index).any():
+                return (False, NA_ROW_NAMES_ERROR)
+
             # check for duplicate row names
             if self.table.index.has_duplicates:
                 return (False, NONUNIQUE_ROW_NAMES_ERROR)
+
+            # passed the basic checks-- looks good so far. Derived classes
+            # can apply more specific checks.
             return (True, None)
 
         except ParserNotFoundException as ex:
