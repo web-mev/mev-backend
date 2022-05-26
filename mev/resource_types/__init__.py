@@ -1,6 +1,25 @@
 import logging
 
-from .base import DataResource, ParseException, WILDCARD
+from constants import FASTQ_KEY, \
+    FASTA_KEY, \
+    ALIGNMENTS_KEY, \
+    FEATURE_TABLE_KEY, \
+    MATRIX_KEY, \
+    INTEGER_MATRIX_KEY, \
+    EXPRESSION_MATRIX_KEY, \
+    RNASEQ_COUNT_MATRIX_KEY, \
+    NETWORK_DESCRIPTOR_KEY, \
+    ANNOTATION_TABLE_KEY, \
+    BED_FILE_KEY, \
+    JSON_FILE_KEY, \
+    GENERAL_FILE_KEY, \
+    WILDCARD, \
+    OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY, \
+    PARENT_OP_KEY, \
+    RESOURCE_KEY
+
+from .base import DataResource, ParseException
 
 from .sequence_types import FastAResource, \
     FastQResource, \
@@ -19,27 +38,21 @@ from .json_types import JsonResource
 
 logger = logging.getLogger(__name__)
 
-# expose these keys for consistent reference outside of this package:
-OBSERVATION_SET_KEY = DataResource.OBSERVATION_SET
-FEATURE_SET_KEY = DataResource.FEATURE_SET
-PARENT_OP_KEY = DataResource.PARENT_OP
-RESOURCE_KEY = DataResource.RESOURCE
-
 # A mapping of the database strings to the classes
 # needed to implement the validation.
 RESOURCE_MAPPING = {
-    'FQ': FastQResource, 
-    'FA': FastAResource,
-    'ALN': AlignedSequenceResource,
-    'FT': FeatureTable,
-    'MTX': Matrix,
-    'I_MTX': IntegerMatrix,
-    'EXP_MTX': Matrix,
-    'RNASEQ_COUNT_MTX': IntegerMatrix,
-    'NS': Network,
-    'ANN': AnnotationTable,
-    'BED': BEDFile,
-    'JSON': JsonResource,
+    FASTQ_KEY: FastQResource, 
+    FASTA_KEY: FastAResource,
+    ALIGNMENTS_KEY: AlignedSequenceResource,
+    FEATURE_TABLE_KEY: FeatureTable,
+    MATRIX_KEY: Matrix,
+    INTEGER_MATRIX_KEY: IntegerMatrix,
+    EXPRESSION_MATRIX_KEY: Matrix,
+    RNASEQ_COUNT_MATRIX_KEY: IntegerMatrix,
+    NETWORK_DESCRIPTOR_KEY: Network,
+    ANNOTATION_TABLE_KEY: AnnotationTable,
+    BED_FILE_KEY: BEDFile,
+    JSON_FILE_KEY: JsonResource,
     WILDCARD: GeneralResource
 } 
 
@@ -65,18 +78,12 @@ RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW = RESOURCE_TYPES_WITHOUT_VALIDATION
 
 def get_resource_type_instance(resource_type_str):
     '''
-    When a `Resource.resource_type` is set or edited, we need
-    to validate that the type "agrees" with the file format.
+    This function takes a shorthand identifier (e.g. "MTX") as an
+    argument and returns an instantiated instance of the resource 
+    type corresponding to that identifier.
 
-    This function is the entrypoint for this validation.
-
-    - `resource_type_class` is the implementation class which performs
-    the validation
-    - `resource_path` is the path to the file we are validating.
-
-    Returns a tuple of (bool, str).
-    The bool indicates whether the type was valid for the resource
-    The string is a message providing an explanation for any failures.
+    That resource type class provides methods that allow validation, 
+    viewing of the resource contents, etc.
     '''
     try:
         resource_type_class = RESOURCE_MAPPING[resource_type_str]
