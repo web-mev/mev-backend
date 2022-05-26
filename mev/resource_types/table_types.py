@@ -1039,7 +1039,13 @@ class ElementTable(TableResource):
         self.replace_special_values()
 
         element_list = []
-        for id, row_series in self.table.iterrows():
+        # Note that we do the `astype('object')` cast to address
+        # the following pandas issue:
+        # https://github.com/pandas-dev/pandas/issues/12859
+        # Namely, columns known to be integers can have their
+        # values cast to floats, which can violate the type
+        # constraints.
+        for id, row_series in self.table.astype('object').iterrows():
             d = row_series.to_dict()
             attr_dict = {}
             for key, val in d.items():
@@ -1138,7 +1144,6 @@ class AnnotationTable(ElementTable):
         which we incorporate
         '''
         super().extract_metadata(resource_path, file_extension, parent_op_pk)
-
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)
         self.metadata[DataResource.OBSERVATION_SET] = ObservationSetSerializer(o_set).data
