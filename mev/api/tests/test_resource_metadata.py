@@ -445,7 +445,27 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
+
 class TestAnnotationTableMetadata(unittest.TestCase):
+
+    def test_metadata_handles_type_conversion(self):
+        '''
+        Note that annotation/element tables can have
+        columns that are incorrectly handled due to
+        pandas conversion issues.  See
+        https://github.com/pandas-dev/pandas/issues/12859
+        '''
+        resource_path = os.path.join(TESTDIR, 'test_ann_with_int_column.tsv')
+        t = AnnotationTable()
+        meta = t.extract_metadata(resource_path, 'tsv')
+        expected_results = [1,2]
+        actual_results = []
+        for x in meta['observation_set']['elements']:
+            attr = x['attributes']
+            actual_results.append(attr['int_col']['value'])
+        self.assertCountEqual(expected_results, actual_results)
+
+
 
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'three_column_annotation.tsv')
