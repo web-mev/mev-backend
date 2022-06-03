@@ -7,12 +7,17 @@ import logging
 
 from django.conf import settings
 
+from constants import TSV_FORMAT, \
+    CSV_FORMAT, \
+    RNASEQ_COUNT_MATRIX_KEY, \
+    ANNOTATION_TABLE_KEY
 from api.utilities.basic_utils import make_local_directory
 
 class RnaSeqMixin(object):
 
     # A common feature of RNA-seq is that we will have annotation
-    # and count files
+    # and count files. These constants are used track which file
+    # is which for saving, indexing, etc.
     ANNOTATION_FILE_KEY = 'annotations'
     COUNTS_FILE_KEY = 'counts'
     DATASET_FILES = [
@@ -21,7 +26,7 @@ class RnaSeqMixin(object):
     ]
 
     # A format-string for the annotation file
-    ANNOTATION_OUTPUT_FILE_TEMPLATE = 'annotations.{tag}.{date}.csv'
+    ANNOTATION_OUTPUT_FILE_TEMPLATE = 'annotations.{tag}.{date}.{file_format}'
 
     # A format-string for the count file
     COUNT_OUTPUT_FILE_TEMPLATE = 'counts.{tag}.{date}.hd5'
@@ -112,7 +117,10 @@ class RnaSeqMixin(object):
             )
 
         # write the file to a temp location:
-        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+        filename = '{u}.{file_format}'.format(
+            u=str(uuid.uuid4()),
+            file_format=TSV_FORMAT
+        )
         dest_dir = os.path.join(settings.DATA_DIR, 'tmp')
         if not os.path.exists(dest_dir):
             make_local_directory(dest_dir)
@@ -141,7 +149,10 @@ class RnaSeqMixin(object):
         # drop columns which are completely empty:
         subset_ann = subset_ann.dropna(axis=1, how='all')
 
-        filename = '{u}.tsv'.format(u=str(uuid.uuid4()))
+        filename = '{u}.{file_format}'.format(
+            u=str(uuid.uuid4()),
+            file_format=TSV_FORMAT
+        )
 
         ann_filepath = os.path.join(dest_dir, filename)
         try:
@@ -155,12 +166,12 @@ class RnaSeqMixin(object):
         # finally make some names for these files, which we return
         if output_name == '':
             u = str(uuid.uuid4())
-            count_matrix_name = self.TAG + '_counts.' + u + '.tsv'
-            ann_name = self.TAG + '_ann.' + u + '.tsv'
+            count_matrix_name = self.TAG + '_counts.' + u + '.' + TSV_FORMAT
+            ann_name = self.TAG + '_ann.' + u + '.' + TSV_FORMAT
         else:
-            count_matrix_name = output_name + '_counts.' + self.TAG + '.tsv'
-            ann_name = output_name + '_ann.' + self.TAG + '.tsv'
+            count_matrix_name = output_name + '_counts.' + self.TAG + '.' + TSV_FORMAT
+            ann_name = output_name + '_ann.' + self.TAG + '.' + TSV_FORMAT
         return [count_filepath, ann_filepath], \
                 [count_matrix_name, ann_name], \
-                ['RNASEQ_COUNT_MTX', 'ANN'], \
-                ['tsv','tsv']
+                [RNASEQ_COUNT_MATRIX_KEY, ANNOTATION_TABLE_KEY], \
+                [TSV_FORMAT,TSV_FORMAT]

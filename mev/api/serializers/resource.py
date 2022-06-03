@@ -107,7 +107,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data): 
-        print('increate'*300)
+
         logger.info('Received validated data: %s' % validated_data)
         
         # In addition to creating Resource instances from payloads submitted

@@ -92,8 +92,6 @@ class BaseUpload(object):
         rs = ResourceSerializer(data=d)
 
         # values were checked prior to this, but we enforce this again
-        print('about to check if valid...')
-        print(rs.is_valid())
         try:
             rs.is_valid(raise_exception=True)
         except Exception as ex:

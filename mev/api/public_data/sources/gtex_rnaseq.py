@@ -6,6 +6,7 @@ import uuid
 
 from django.conf import settings
 
+from constants import TSV_FORMAT
 from api.utilities.basic_utils import make_local_directory, \
     run_shell_command
 from api.public_data.sources.base import PublicDataSource
@@ -129,14 +130,14 @@ class GtexRnaseqDataSource(RnaSeqMixin, PublicDataSource):
             raise ex
 
     def _get_sample_annotations(self, tmp_dir):
-        sample_attr_file = '{d}/samples.{tag}.{date}.tsv'.format(
-            d=tmp_dir, date=self.date_str, tag=self.TAG)
+        sample_attr_file = '{d}/samples.{tag}.{date}.{ff}'.format(
+            d=tmp_dir, date=self.date_str, tag=self.TAG, ff=TSV_FORMAT)
         self._download_file(self.SAMPLE_ATTRIBUTES, sample_attr_file)
         return pd.read_table(sample_attr_file, sep='\t')
 
     def _get_phenotype_data(self, tmp_dir):
-        phenotypes_file = '{d}/phenotypes.{tag}.{date}.tsv'.format(
-            d=tmp_dir, date=self.date_str, tag=self.TAG)
+        phenotypes_file = '{d}/phenotypes.{tag}.{date}.{ff}'.format(
+            d=tmp_dir, date=self.date_str, tag=self.TAG, ff=TSV_FORMAT)
         self._download_file(self.PHENOTYPES, phenotypes_file)
         return pd.read_table(phenotypes_file, sep='\t')
 
@@ -220,7 +221,8 @@ class GtexRnaseqDataSource(RnaSeqMixin, PublicDataSource):
         final_ann.to_csv(os.path.join(self.ROOT_DIR,
             self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
                 tag = self.TAG,
-                date = self.date_str
+                date = self.date_str,
+                file_format = TSV_FORMAT
             )),
             sep=',',
             index_label = 'sample_id'

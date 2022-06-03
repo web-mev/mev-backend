@@ -17,10 +17,7 @@ from api.data_structures.attributes import DataResourceAttribute
 from api.storage_backends import get_storage_backend
 from api.storage_backends.helpers import get_storage_implementation
 from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
-    RESOURCE_KEY, \
-    PARENT_OP_KEY, \
-    OBSERVATION_SET_KEY, \
-    FEATURE_SET_KEY, \
+    RESOURCE_KEY
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     format_is_consistent_with_type, \
@@ -438,6 +435,18 @@ def validate_resource(resource_instance, requested_resource_type, file_format):
         f = file_format
     ))
 
+    # check the file format is consistent with the requested type:
+    try:
+        type_is_consistent = check_file_format_against_type(resource_instance, requested_resource_type)
+        if not type_is_consistent:
+            message = 'The requested type was not consistent with the file format. Skipping validation.'
+            logger.info(message)
+            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex=message)
+            return
+    except Exception as ex:
+        raise Exception('There as an unexpected problem when checking if the file format is consistent'
+            ' with the requested resource type. Please check your inputs.'
+        )
     # The `requested_resource_type` is the shorthand identifier.
     # This returns an actual resource class implementation
     try:

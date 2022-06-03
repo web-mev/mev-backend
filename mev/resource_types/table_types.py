@@ -13,6 +13,16 @@ from django.conf import settings
 from django.core.paginator import Paginator, Page
 from rest_framework.pagination import PageNumberPagination
 
+from constants import CSV_FORMAT, \
+    TSV_FORMAT, \
+    TAB_FORMAT, \
+    BED_FORMAT, \
+    VCF_FORMAT, \
+    XLS_FORMAT, \
+    XLSX_FORMAT, \
+    JSON_FORMAT, \
+    OBSERVATION_SET_KEY
+
 from .base import DataResource, ParseException, UnexpectedTypeValidationException
 from api.data_structures import Feature, \
     FeatureSet, \
@@ -27,18 +37,14 @@ from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
 
-# acceptable file extensions which give us a
-# clue about how to parse the files.
-CSV = 'csv'
-TSV = 'tsv'
-TAB = 'tab'
-BED = 'bed'
-VCF = 'vcf'
-XLS = 'xls'
-XLSX = 'xlsx'
-TAB_DELIMITED_EXTENSIONS = [TSV, TAB, BED, VCF]
-COMMA_DELIMITED_EXTENSIONS = [CSV]
-EXCEL_EXTENSIONS = [XLS, XLSX]
+TAB_DELIMITED_EXTENSIONS = [
+    TSV_FORMAT,
+    TAB_FORMAT,
+    BED_FORMAT,
+    VCF_FORMAT
+]
+COMMA_DELIMITED_EXTENSIONS = [CSV_FORMAT]
+EXCEL_EXTENSIONS = [XLS_FORMAT, XLSX_FORMAT]
 
 class ParserNotFoundException(Exception):
     '''
@@ -167,17 +173,17 @@ class TableResource(DataResource):
     as columns.
     '''
     ACCEPTABLE_EXTENSIONS = [
-        CSV,
-        TSV,
-        TAB,
-        BED,
-        VCF,
-        XLS,
-        XLSX
+        CSV_FORMAT,
+        TSV_FORMAT,
+        TAB_FORMAT,
+        BED_FORMAT,
+        VCF_FORMAT,
+        XLS_FORMAT,
+        XLSX_FORMAT
     ]
 
     # the "standardized" format we will save all table-based files as:
-    STANDARD_FORMAT = TSV
+    STANDARD_FORMAT = TSV_FORMAT
 
     # Create a list of query params that are "reserved" and we ignore when
     # attempting to filter on the actual table content (e.g. the column/rows)
@@ -656,11 +662,11 @@ class Matrix(TableResource):
     These types can be mixed, like floats and integers
     '''
     ACCEPTABLE_EXTENSIONS = [
-        CSV,
-        TSV,
-        TAB,
-        XLS,
-        XLSX
+        CSV_FORMAT,
+        TSV_FORMAT,
+        TAB_FORMAT,
+        XLS_FORMAT,
+        XLSX_FORMAT
     ]
 
     DESCRIPTION = 'A table of where all the entries are numbers'\
@@ -756,7 +762,7 @@ class Matrix(TableResource):
 
         # the ObservationSet comes from the cols:
         o_set = ObservationSet([Observation(x) for x in self.table.columns])
-        self.metadata[DataResource.OBSERVATION_SET] = ObservationSetSerializer(o_set).data
+        self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
         return self.metadata
 
     def _resource_specific_modifications(self):
@@ -990,11 +996,11 @@ class ElementTable(TableResource):
     '''
 
     ACCEPTABLE_EXTENSIONS = [
-        CSV,
-        TSV,
-        TAB,
-        XLS,
-        XLSX
+        CSV_FORMAT,
+        TSV_FORMAT,
+        TAB_FORMAT,
+        XLS_FORMAT,
+        XLSX_FORMAT
     ]
 
     def validate_type(self, resource_path, file_extension):
@@ -1146,7 +1152,7 @@ class AnnotationTable(ElementTable):
         super().extract_metadata(resource_path, file_extension, parent_op_pk)
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)
-        self.metadata[DataResource.OBSERVATION_SET] = ObservationSetSerializer(o_set).data
+        self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
         return self.metadata
 
 
@@ -1232,7 +1238,7 @@ class BEDFile(TableResource):
     By default, BED files do NOT contain headers and we enforce that here.
     '''
 
-    ACCEPTABLE_EXTENSIONS = [BED,]
+    ACCEPTABLE_EXTENSIONS = [BED_FORMAT,]
 
     DESCRIPTION = 'A three-column BED-format file. https://ensembl.org/info/website/upload/bed.html'\
         ' BED files do NOT have column headers.' \
@@ -1266,4 +1272,3 @@ class BEDFile(TableResource):
     def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
         super().extract_metadata(resource_path, file_extension, parent_op_pk)
         return self.metadata
-                                                                                                                                    

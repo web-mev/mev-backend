@@ -25,8 +25,7 @@ from .sequence_types import FastAResource, \
     FastQResource, \
     AlignedSequenceResource
 
-from .table_types import TableResource, \
-    Matrix, \
+from .table_types import Matrix, \
     IntegerMatrix, \
     Network, \
     AnnotationTable, \

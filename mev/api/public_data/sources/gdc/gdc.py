@@ -11,6 +11,7 @@ import pandas as pd
 
 from django.conf import settings
 
+from constants import TSV_FORMAT
 from api.utilities.basic_utils import get_with_retry
 from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.rnaseq import RnaSeqMixin
@@ -590,7 +591,11 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         # Write all the metadata to a file
         ann_output_path = os.path.join(
             self.ROOT_DIR,
-            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(tag = tag, date=self.date_str)
+            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
+                tag = tag, 
+                date=self.date_str,
+                file_format = TSV_FORMAT
+            )
         )
         total_annotation_df.to_csv(
             ann_output_path, 

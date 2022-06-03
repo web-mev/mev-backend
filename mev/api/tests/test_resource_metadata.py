@@ -465,8 +465,6 @@ class TestAnnotationTableMetadata(unittest.TestCase):
             actual_results.append(attr['int_col']['value'])
         self.assertCountEqual(expected_results, actual_results)
 
-
-
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'three_column_annotation.tsv')
         t = AnnotationTable()

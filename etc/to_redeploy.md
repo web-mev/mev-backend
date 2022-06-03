@@ -106,3 +106,23 @@ source /data/env_vars.txt
 set +o allexport
 /usr/bin/python3 /opt/software/mev-backend/mev/manage.py migrate
 ```
+
+### Additional things
+
+- Check that jobs are "wrapped up" by pinging the finalization process
+- Then run the extract script to copy everything over.
+- Re-run the public dataset files BEFORE everything and save to a bucket for shorter downtime
+- Ensure the db migration happens after we do the db overwrite
+    - check that the proper file extension is added, rather than the default. what about those without file extensions???
+- Don't overwrite the "static" ops
+
+Steps:
+On the existing server:
+- Check for running jobs. Complete them as needed.
+- Run extract script
+- Shutdown stack
+- Change commit ID and tf apply
+- (Wait...)
+- Run repopulate
+- overwreite DB
+- run migrate (again)

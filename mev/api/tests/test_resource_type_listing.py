@@ -4,7 +4,8 @@ import unittest.mock as mock
 from django.urls import reverse
 from rest_framework import status
 
-from resource_types import DATABASE_RESOURCE_TYPES, RESOURCE_MAPPING
+from constants import DATABASE_RESOURCE_TYPES
+from resource_types import RESOURCE_MAPPING
 from api.tests.base import BaseAPITestCase
 
 

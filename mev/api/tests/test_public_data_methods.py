@@ -12,6 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from api.tests.base import BaseAPITestCase
 
+from constants import TSV_FORMAT
 
 from api.public_data import DATASETS, \
     index_dataset, \
@@ -232,8 +233,9 @@ class TestPublicDatasets(BaseAPITestCase):
         pk=1111
         mock_resource_instance.pk = pk
         filetype = 'MTX'
+        file_format = TSV_FORMAT
 
-        mock_dataset.create_from_query.return_value = (['a'], [mock_name], [filetype])
+        mock_dataset.create_from_query.return_value = (['a'], [mock_name], [filetype], [file_format])
 
         mock_resource_class.objects.create.return_value =  mock_resource_instance
         validate_str = 'validating...'
@@ -254,7 +256,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload, '')
-        mock_validate_and_store_resource.delay.assert_called_with(mock_resource_instance.pk, filetype)
+        mock_validate_and_store_resource.delay.assert_called_with(mock_resource_instance.pk, filetype, file_format)
         mock_resource_class.objects.create.assert_called_with(
             name = mock_name,
             owner=mock_user,
@@ -489,11 +491,13 @@ class TestGTExRnaseq(BaseAPITestCase):
         data_src.prepare()
         f = RnaSeqMixin.COUNT_OUTPUT_FILE_TEMPLATE.format(
             tag = data_src.TAG,
-            date = data_src.date_str
+            date = data_src.date_str,
+            file_format = TSV_FORMAT
         )
         ann_output = RnaSeqMixin.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
             tag = data_src.TAG,
-            date = data_src.date_str
+            date = data_src.date_str,
+            file_format = TSV_FORMAT
         )
         expected_output_hdf = os.path.join(tmp_testing_dir, f)
         expected_output_ann = os.path.join(tmp_testing_dir, ann_output)
@@ -593,12 +597,13 @@ class TestRnaSeqMixin(BaseAPITestCase):
         tag = 'foo'
         data_src.TAG = tag
         output_name = 'abc'
-        paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query, output_name)
+        paths, filenames, resource_types, file_formats = data_src.create_from_query(mock_db_record, query, output_name)
 
         # The order of these doesn't matter in practice, but to check the file contents,
         # we need to be sure we're looking at the correct files for this test.
         self.assertTrue(resource_types[0] == 'RNASEQ_COUNT_MTX')
         self.assertTrue(resource_types[1] == 'ANN')
+        self.assertCountEqual(file_formats, [TSV_FORMAT, TSV_FORMAT])
         expected_df = pd.DataFrame(
             [[26,86,67],[54,59,29],[24,12,37]],
             index = ['gA', 'gB', 'gC'],
@@ -618,11 +623,14 @@ class TestRnaSeqMixin(BaseAPITestCase):
         self.assertEqual(filenames[0], '{x}_counts.{t}.tsv'.format(x=output_name, t=tag))
         self.assertEqual(filenames[1], '{x}_ann.{t}.tsv'.format(x=output_name, t=tag))
 
-        # use index 4 below as 2 uuid.uuid4 calls were 'consumed' by the first call to `create_From_query`
-        # while the second call  (the one we are testing now) uses 3 calls to
-        paths, filenames, resource_types = data_src.create_from_query(mock_db_record, query)
+        # use index 4 below as 2 uuid.uuid4 calls were 'consumed' by the first call to `create_from_query`
+        # while the second call  (the one we are testing now) uses 3 calls to the mock UUID method
+        # since there the `output_name` arg was not supplied
+        paths, filenames, resource_types, file_formats = data_src.create_from_query(mock_db_record, query)
         self.assertEqual(filenames[0], '{t}_counts.{u}.tsv'.format(u=mock_uuids[4], t=tag))
         self.assertEqual(filenames[1], '{t}_ann.{u}.tsv'.format(u=mock_uuids[4], t=tag))
+        self.assertCountEqual(file_formats, [TSV_FORMAT, TSV_FORMAT])
+
 
     def test_rejects_whole_dataset_with_null_filter(self):
         '''

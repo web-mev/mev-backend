@@ -39,7 +39,7 @@ class ServerLocalResourceUpload(APIView):
         return self.serializer_class()
 
     def post(self, request, *args, **kwargs):
-        print('?'*200)
+
         serializer = self.serializer_class(
             data=request.data, 
             context={'requesting_user': request.user})
@@ -47,9 +47,8 @@ class ServerLocalResourceUpload(APIView):
             upload_handler = self.upload_handler_class()
 
             # get the file on the server:
-            print('hereA'*200)
             resource = upload_handler.handle_upload(request, serializer.data)
-            print('here?'*200)
+            
             # set and save attributes to prevent "use" of this Resource
             # before it is (potentially) validated and in its final storage location:
             set_resource_to_inactive(resource)
@@ -69,8 +68,6 @@ class ServerLocalResourceUpload(APIView):
             resource_serializer = ResourceSerializer(resource, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:
-            print('!'*300)
-            print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

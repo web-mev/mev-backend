@@ -11,7 +11,7 @@ from django.conf import settings
 
 
 from api.models import OperationResource, Operation
-from resource_types import DATABASE_RESOURCE_TYPES
+from constants import DATABASE_RESOURCE_TYPES
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 

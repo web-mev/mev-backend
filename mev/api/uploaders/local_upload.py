@@ -15,6 +15,7 @@ class ServerLocalUpload(LocalUpload):
     and we have to parse it out of the request payload.
     '''
     def handle_upload(self, request, serialized_data):
+
         super().handle_upload(request, serialized_data)
 
         # get the remainder of the payload parameters
@@ -50,6 +51,6 @@ class ServerLocalUpload(LocalUpload):
             logger.error('An exception was raised when writing a local upload to the tmp directory.')
             logger.error(ex)
             raise APIException('The upload process experienced an error.')
-        print('about to create....')
+
         return self.create_resource_from_upload()
         

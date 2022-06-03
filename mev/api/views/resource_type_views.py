@@ -7,7 +7,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from api.serializers.resource_types import ResourceTypeSerializer
-from resource_types import DATABASE_RESOURCE_TYPES, RESOURCE_MAPPING
+from constants import DATABASE_RESOURCE_TYPES
+from resource_types import RESOURCE_MAPPING
 
 
 logger = logging.getLogger(__name__)

@@ -51,3 +51,14 @@ OBSERVATION_SET_KEY = 'observation_set'
 FEATURE_SET_KEY = 'feature_set'
 PARENT_OP_KEY = 'parent_operation'
 RESOURCE_KEY = 'resource'
+
+# These are "format" strings which dictate how a file should be parsed
+# Generally, these correspond with conventional file extensions
+CSV_FORMAT = 'csv'
+TSV_FORMAT = 'tsv'
+TAB_FORMAT = 'tab'
+BED_FORMAT = 'bed'
+VCF_FORMAT = 'vcf'
+XLS_FORMAT = 'xls'
+XLSX_FORMAT = 'xlsx'
+JSON_FORMAT = 'json'

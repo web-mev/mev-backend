@@ -8,6 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
+from constants import TSV_FORMAT
 from api.models import Resource
 from api.utilities import normalize_filename
 
@@ -22,7 +23,9 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         self.url = reverse('resource-upload')
         self.establish_clients()
-        self.test_upload = os.path.join(settings.BASE_DIR, 'api', 'tests', 'upload_test_files', 'test_upload.tsv')
+        self.test_upload = os.path.join(
+            settings.BASE_DIR, 
+            'api', 'tests', 'upload_test_files', 'test_upload.tsv')
         TEST_UPLOAD_WITH_INVALID_NAME = os.path.join(settings.BASE_DIR, 'api', 'tests', 'upload_test_files', '5x.tsv')
         self.upload_test_dir = 'upload_test_files' # relative to the testing dir
 
@@ -54,13 +57,12 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         j = response.json()
 
+        rt = payload.get('resource_type', None)
+        ff = payload.get('file_format', None)
+
         # check that the validation async task was called
-        if 'resource_type' in payload:
-            mock_validate_resource_and_store.delay.assert_called_with(
-                uuid.UUID(j['id']), payload['resource_type'])
-        else:
-            mock_validate_resource_and_store.delay.assert_called_with(
-                uuid.UUID(j['id']), None)
+        mock_validate_resource_and_store.delay.assert_called_with(
+            uuid.UUID(j['id']), rt, ff)
 
         # assert that we have more Resources now:
         num_current_resources = len(Resource.objects.all())
@@ -173,6 +175,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': self.regular_user_1.email,
             'resource_type': 'MTX',
+            'file_format':TSV_FORMAT,
             'upload_file': open(self.test_upload, 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -182,6 +185,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         payload = {
             'owner_email': test_settings.JUNK_EMAIL,
             'resource_type': 'MTX',
+            'file_format':TSV_FORMAT,
             'upload_file': open(self.test_upload, 'rb')
         }
         response = self.authenticated_regular_client.post(
@@ -314,73 +318,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     @mock.patch('api.serializers.resource.api_tasks')
-    def test_admin_can_set_public_status(self, mock_api_tasks):
-        '''
-        Test that admins can upload and set a file to be public.
-        Used for exposing common files that many users would be using, 
-        such as a pathway files, etc.
-
-        One tricky issue is that admins can also act as "regular" users in the 
-        sense that they can run analyses and have private files. To prevent admin
-        users can inadvertedly exposing their own files, one has to specifically request
-        a null owner if they set is_public to true.
-        '''
-
-        # even admins need to explicitly send 'is_ownerless'
-        # to set a resource to public
-        payload = {
-            'resource_type': 'MTX',
-            'is_public': True,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        response = self.authenticated_admin_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-        # to set it to a public Resource, we have to explicitly pass
-        # is_ownerless
-        payload = {
-            #'owner_email': None,
-            'resource_type': 'MTX',
-            'is_public': True,
-            'is_ownerless': True,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        response = self.authenticated_admin_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        j = response.json()
-        r = Resource.objects.get(pk=j['id'])
-        self.assertTrue(r.is_public)
-        self.assertIsNone(r.owner)
-
-        # to set it to a public Resource, we have to explicitly pass
-        # is_ownerless
-        payload = {
-            'owner_email': '',
-            'resource_type': 'MTX',
-            'is_public': True,
-            'is_ownerless': True,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        response = self.authenticated_admin_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        j = response.json()
-        r = Resource.objects.get(pk=j['id'])
-        self.assertTrue(r.is_public)
-        self.assertIsNone(r.owner)
-
-    @mock.patch('api.serializers.resource.api_tasks')
     @mock.patch('api.uploaders.local_upload.uuid')
     def test_uploaded_filename_with_space(self, mock_uuid, mock_api_tasks):
         '''
@@ -401,7 +338,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
-        self.assertEqual(r.file_extension, 'tsv')
+        self.assertEqual(r.file_format, '') # was not set upon upload
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -426,23 +363,20 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
-        self.assertEqual(r.file_extension, '')
+        self.assertEqual(r.file_format, '')
 
 
     @mock.patch('api.serializers.resource.api_tasks')
     @mock.patch('api.uploaders.local_upload.uuid')
-    def test_uploaded_filename_with_dots(self, mock_uuid, mock_api_tasks):
+    def test_uploaded_filename_with_atypical_extension(self, mock_uuid, mock_api_tasks):
         '''
-        Test a filename with a strange arrangement. This shouldn't violate
-        anything, but WILL lead to a file extension we don't necessarily recognize.
-        However, there's really nothing else to do. After all, a file name like
-        abc.123.tsv is perfectly valid and we want to retain the TSV suffix.
+        Test a filename with a strange arrangement and an unconventional
+        file extension. There should be no problem, as the "name" is a string
+        which has no bearing on the resource type or how it's parsed.
         '''
         u = uuid.uuid4()
         mock_uuid.uuid4.return_value = u
 
-        # no way around this- if someone names it like this, then the "extension"
-        # will be 'name'
         orig_name = 'some.file.name'
         payload = {
             'owner_email': self.regular_user_1.email,
@@ -455,8 +389,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(u, r.pk)
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
-        split_name = r.name.split('.')
-        self.assertEqual(r.file_extension, 'name')
+        self.assertEqual(r.file_format, '') # has not been set, so empty
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -476,15 +409,13 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
             'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, filename), 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-
-        resource_path = r.path
-        # check that the path is all UUIDs:
         self.assertEqual(u, r.pk)
+        resource_path = r.path
         basename = os.path.basename(resource_path)
-        name_without_extension = basename.split('.')[0]
-        self.assertEqual(str(u), name_without_extension)
+        self.assertEqual(str(u), basename)
         self.assertEqual(r.name, filename)
-        self.assertEqual(r.file_extension, 'tsv')
+        # the upload has not set a file format, so that is just an empty string
+        self.assertEqual(r.file_format, '')
 
         # try a name with a unicode char:
         u2 = uuid.uuid4()
@@ -500,15 +431,14 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         self.assertEqual(u2, r.pk)
         resource_path = r.path
-        # check that the path is all UUIDs:
         basename = os.path.basename(resource_path)
-        name_without_extension = basename.split('.')[0]
         # this would raise an exception if it's not a UUID
-        self.assertEqual(str(u2), name_without_extension)
+        self.assertEqual(str(u2), basename)
         # double-check that the path does NOT contain that special char:
         self.assertFalse(char in resource_path)
         self.assertEqual(filename, r.name)
-        self.assertEqual(r.file_extension, 'tsv')
+        # the upload has not set a file format, so that is just an empty string
+        self.assertEqual(r.file_format, '')
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 

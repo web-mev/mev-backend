@@ -1,6 +1,7 @@
 import logging
 
-from .base import DataResource, WILDCARD
+from constants import WILDCARD
+from .base import DataResource
 
 logger = logging.getLogger(__name__)
 
