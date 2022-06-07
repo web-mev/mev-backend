@@ -233,7 +233,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
 
-        validate_resource(unset_resource, 'MTX')
+        validate_resource(unset_resource, 'MTX', TSV_FORMAT)
 
         mock_handle_valid_resource.assert_called()
 
@@ -306,7 +306,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, 'retrieving the validator'):
-            validate_resource(unset_resource, 'MTX')
+            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
         mock_get_resource_type_instance.assert_called()
@@ -344,7 +344,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, 'ZZZ'):
-            validate_resource(unset_resource, 'ZZZ')
+            validate_resource(unset_resource, 'ZZZ', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
         mock_get_resource_type_instance.assert_called()
@@ -393,7 +393,7 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_message_partial = ('An unexpected issue occurred when'
             ' moving the file for inspection')
         with self.assertRaisesRegex(Exception, expected_message_partial):
-            validate_resource(unset_resource, 'MTX')
+            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
     
         mock_resource_class_instance.validate_type.assert_not_called()
         mock_handle_valid_resource.assert_not_called()
@@ -437,7 +437,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_VALIDATION_ERROR):
-            validate_resource(unset_resource, 'MTX')
+            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
 
         mock_handle_valid_resource.assert_not_called()
 
@@ -743,7 +743,7 @@ class TestResourceUtilities(BaseAPITestCase):
         g = GeneralResource()
         mock_get_resource_type_instance.return_value = g
 
-        validate_resource(r, WILDCARD)
+        validate_resource(r, WILDCARD, '')
 
         mock_handle_valid_resource.assert_called()
         mock_get_storage_backend.assert_not_called()

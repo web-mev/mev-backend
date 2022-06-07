@@ -37,14 +37,14 @@ from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
 
-TAB_DELIMITED_EXTENSIONS = [
+TAB_DELIMITED_FORMATS = [
     TSV_FORMAT,
     TAB_FORMAT,
     BED_FORMAT,
     VCF_FORMAT
 ]
-COMMA_DELIMITED_EXTENSIONS = [CSV_FORMAT]
-EXCEL_EXTENSIONS = [XLS_FORMAT, XLSX_FORMAT]
+COMMA_DELIMITED_FORMATS = [CSV_FORMAT]
+EXCEL_FORMATS = [XLS_FORMAT, XLSX_FORMAT]
 
 class ParserNotFoundException(Exception):
     '''
@@ -172,7 +172,7 @@ class TableResource(DataResource):
     for a BED file), then we assume you have features as rows and observables
     as columns.
     '''
-    ACCEPTABLE_EXTENSIONS = [
+    ACCEPTABLE_FORMATS = [
         CSV_FORMAT,
         TSV_FORMAT,
         TAB_FORMAT,
@@ -203,11 +203,11 @@ class TableResource(DataResource):
         Returns a pandas "reader" (e.g. `read_csv` or `read_table`)
         '''
 
-        if file_extension in COMMA_DELIMITED_EXTENSIONS:
+        if file_extension in COMMA_DELIMITED_FORMATS:
             return pd.read_csv
-        elif file_extension in TAB_DELIMITED_EXTENSIONS:
+        elif file_extension in TAB_DELIMITED_FORMATS:
             return pd.read_table
-        elif file_extension in EXCEL_EXTENSIONS:
+        elif file_extension in EXCEL_FORMATS:
             return pd.read_excel
         else:
             logger.error('Could not infer the file format from the file'
@@ -661,7 +661,7 @@ class Matrix(TableResource):
     A `Matrix` is a delimited table-based file that has only numeric types.
     These types can be mixed, like floats and integers
     '''
-    ACCEPTABLE_EXTENSIONS = [
+    ACCEPTABLE_FORMATS = [
         CSV_FORMAT,
         TSV_FORMAT,
         TAB_FORMAT,
@@ -673,7 +673,7 @@ class Matrix(TableResource):
         ' except the first column (which names the rows) and the' \
         ' first line (which gives the column names). The cell at the' \
         ' first row and column may be left blank. Acceptable file extensions' \
-        ' include: {s}.'.format(s = ', '.join(ACCEPTABLE_EXTENSIONS))
+        ' include: {s}.'.format(s = ', '.join(ACCEPTABLE_FORMATS))
 
     EXAMPLE = [
         {
@@ -863,7 +863,7 @@ class IntegerMatrix(Matrix):
         ' except the first column (which names the rows) and the' \
         ' first line (which gives the column names). The cell at the' \
         ' first row and column may be left blank. Acceptable extensions' \
-        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_EXTENSIONS))
+        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_FORMATS))
 
     EXAMPLE = [
         {
@@ -937,7 +937,7 @@ class RnaSeqCountMatrix(IntegerMatrix):
     DESCRIPTION = 'A table of integer-based counts corresponding to'\
         ' the number of sequencing reads associated with a particular' \
         ' gene or transcript. Acceptable file extensions' \
-        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_EXTENSIONS))
+        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_FORMATS))
 
     EXAMPLE = IntegerMatrix.EXAMPLE
 
@@ -956,7 +956,7 @@ class Network(Matrix):
         ' between the nodes of interest (and zero indicates no connection).'\
         ' Alternatively, a general numeric value can represent the' \
         ' strength of connection/evidence as might be the case for an inferred regulatory network.' \
-        ' Acceptable file extensions include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_EXTENSIONS))
+        ' Acceptable file extensions include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_FORMATS))
 
     EXAMPLE = [
         {
@@ -995,7 +995,7 @@ class ElementTable(TableResource):
     the specific behavior for `Observation`s or `Feature`s.
     '''
 
-    ACCEPTABLE_EXTENSIONS = [
+    ACCEPTABLE_FORMATS = [
         CSV_FORMAT,
         TSV_FORMAT,
         TAB_FORMAT,
@@ -1084,7 +1084,7 @@ class AnnotationTable(ElementTable):
         ' The first column has the sample name and the remaining columns contain' \
         ' metadata about each sample (for instance, experimental group,'\
         ' treatment, or similar. Acceptable file extensions' \
-        ' include: {s}.'.format(s = ', '.join(ElementTable.ACCEPTABLE_EXTENSIONS))
+        ' include: {s}.'.format(s = ', '.join(ElementTable.ACCEPTABLE_FORMATS))
 
     EXAMPLE = [
         {
@@ -1176,7 +1176,7 @@ class FeatureTable(ElementTable):
         ' oncogene status, or similar.  Each row contains information about a single gene.' \
         ' Note, however, that this concept is completely general and not restricted' \
         ' to information about genes or transcripts. Acceptable file extensions' \
-        ' include: {s}'.format(s = ', '.join(ElementTable.ACCEPTABLE_EXTENSIONS))
+        ' include: {s}'.format(s = ', '.join(ElementTable.ACCEPTABLE_FORMATS))
 
     EXAMPLE = [
         {
@@ -1238,11 +1238,11 @@ class BEDFile(TableResource):
     By default, BED files do NOT contain headers and we enforce that here.
     '''
 
-    ACCEPTABLE_EXTENSIONS = [BED_FORMAT,]
+    ACCEPTABLE_FORMATS = [BED_FORMAT,]
 
     DESCRIPTION = 'A three-column BED-format file. https://ensembl.org/info/website/upload/bed.html'\
         ' BED files do NOT have column headers.' \
-        ' Acceptable file extensions include: {s}'.format(s=', '.join(ACCEPTABLE_EXTENSIONS))
+        ' Acceptable file extensions include: {s}'.format(s=', '.join(ACCEPTABLE_FORMATS))
 
 
     def validate_type(self, resource_path, file_extension):

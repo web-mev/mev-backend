@@ -72,11 +72,12 @@ class ResourceList(generics.ListCreateAPIView):
 
         # until the validation is complete, the resource_type should
         # be None.  Pop that field off the validated data:
-        requested_resource_type = serializer.validated_data.pop('resource_type')
-        requested_file_format = serializer.validated_data.pop('file_format')
+
+        requested_resource_type = serializer.validated_data.pop('resource_type', None)
+        requested_file_format = serializer.validated_data.pop('file_format', None)
 
         resource = serializer.save(requesting_user=self.request.user)
-        if requested_resource_type:
+        if requested_resource_type or requested_file_format:
             set_resource_to_inactive(resource)
 
             async_validate_resource.delay(

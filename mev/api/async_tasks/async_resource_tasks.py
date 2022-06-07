@@ -27,6 +27,8 @@ def validate_resource(resource_pk, requested_resource_type, file_format):
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
     resource.status = Resource.VALIDATING
+    print('RESOURCE')
+    print(resource)
     resource.save()
     try:
         resource_utilities.validate_resource(resource, requested_resource_type, file_format)

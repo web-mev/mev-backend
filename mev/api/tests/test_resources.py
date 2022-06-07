@@ -11,7 +11,14 @@ from django.conf import settings
 
 
 from api.models import Resource, Workspace
-from resource_types import DATABASE_RESOURCE_TYPES, HUMAN_READABLE_TO_DB_STRINGS
+from constants import DATABASE_RESOURCE_TYPES, \
+    FEATURE_TABLE_KEY, \
+    INTEGER_MATRIX_KEY, \
+    MATRIX_KEY, \
+    TSV_FORMAT, \
+    CSV_FORMAT, \
+    JSON_FORMAT
+
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -367,7 +374,7 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'demo_file1.tsv')
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = f
@@ -434,7 +441,7 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Integer table']
+        self.resource.resource_type = INTEGER_MATRIX_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -833,7 +840,7 @@ class ResourceContentTests(BaseAPITestCase):
         # for the pagination to be general
         self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.resource_type = MATRIX_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -948,7 +955,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 155 # the number of records in our demo file
 
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.resource_type = MATRIX_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1196,7 +1203,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1315,7 +1322,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1369,7 +1376,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
         N = 3 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1433,7 +1440,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1583,7 +1590,7 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'rowmeans_test_file.tsv')
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.resource_type = MATRIX_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1771,7 +1778,7 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'rowmeans_test_file_with_na.tsv')
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Numeric table']
+        self.resource.resource_type = MATRIX_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1951,7 +1958,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2005,7 +2012,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2103,7 +2110,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
         N = 3 # the number of rows in the table
         self.resource.path = f
-        self.resource.resource_type = HUMAN_READABLE_TO_DB_STRINGS['Feature table']
+        self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2630,31 +2637,40 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertTrue(original_name != 'newname.txt')
 
         # check that this did NOT change anything about the file format
-        self.assertTrue(self.active_resource.file_format != json_obj['file_format'])
+        self.assertTrue(self.active_resource.file_format == json_obj['file_format'])
 
-    def test_user_can_change_resource_format(self):
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_user_can_change_resource_format(self, mock_api_tasks):
         '''
         Users may change the Resource format.  This does NOT
         change anything about the name, path, etc.
 
         '''
-        original_name = self.active_resource.name
-        original_format = self.active_resource.file_format
+        original_format = CSV_FORMAT
+        self.active_resource.file_format = original_format
+        self.active_resource.save()
+        requested_format = TSV_FORMAT
+        # just ensure we are actually making a change
+        self.assertTrue(original_format != requested_format)
+        
 
-        payload = {'file_format': 'TSV'}
+        payload = {'file_format': requested_format}
         response = self.authenticated_regular_client.put(
             self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         json_obj = response.json()
-        self.assertTrue(json_obj['name'], 'newname.txt')
-
-        # just double check that the original name wasn't the same
-        # by chance
-        self.assertTrue(original_name != 'newname.txt')
 
         # check that this did NOT change anything about the file format
-        self.assertTrue(self.active_resource.file_format != json_obj['file_format'])
+        # since it has only entered the validation phase.
+        self.assertTrue(requested_format != json_obj['file_format'])
+
+        # check that the validation method was called.
+        mock_api_tasks.validate_resource.delay.assert_called_with(
+            self.active_resource.pk, 
+            self.active_resource.resource_type, 
+            requested_format
+        )
 
     @mock.patch('api.serializers.resource.api_tasks')
     def test_changing_resource_type_resets_status(self,  
@@ -2689,7 +2705,8 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertFalse(r.is_active)
 
         # check that the validation method was called.
-        mock_api_tasks.validate_resource.delay.assert_called_with(self.active_resource.pk, newtype)
+        mock_api_tasks.validate_resource.delay.assert_called_with(
+            self.active_resource.pk, newtype, self.active_resource.file_format)
 
 
     def test_setting_workspace_to_null_fails(self):

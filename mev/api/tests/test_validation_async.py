@@ -9,15 +9,16 @@ from django.contrib.auth import get_user_model
 
 from api.async_tasks.async_resource_tasks import validate_resource, validate_resource_and_store
 from api.models import Resource, ResourceMetadata
-from resource_types import RESOURCE_MAPPING, \
-    DB_RESOURCE_STRING_TO_HUMAN_READABLE, \
+from resource_types.base import DataResource
+from resource_types import RESOURCE_MAPPING, IntegerMatrix
+
+from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
     PARENT_OP_KEY, \
     RESOURCE_KEY, \
-    IntegerMatrix
-from resource_types.base import DataResource
-    
+    TSV_FORMAT
+        
 from api.utilities.resource_utilities import handle_valid_resource
 from api.tests.base import BaseAPITestCase
 from resource_types import get_resource_type_instance
@@ -50,7 +51,7 @@ class TestValidateResource(BaseAPITestCase):
         '''
         with self.assertRaises(NoResourceFoundException):
             junk_uuid = uuid.uuid4()
-            validate_resource(junk_uuid, 'MTX')
+            validate_resource(junk_uuid, 'MTX', '')
 
     @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities')
     @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
@@ -69,15 +70,15 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_utilities.get_resource_by_pk.return_value = r
         mock_resource_utilities.validate_resource.side_effect = [Exception('ex!')]
 
-        validate_resource(r.pk, 'ABC')
+        validate_resource(r.pk, 'ABC', TSV_FORMAT)
         mock_alert_admins.assert_called_with('ex!')
         self.assertTrue(r.status == 'ex!')
 
-    @mock.patch('api.utilities.resource_utilities.check_extension')
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_invalid_type_remains_invalid_case2(self, mock_get_storage_backend, mock_get_resource_type_instance,
-        mock_check_extension):
+        mock_check_file_format_against_type):
         '''
         Here we test that a Resource change request fails.  The Resource previously
         had a valid type (or it would not have been set) and we check that a failed
@@ -109,21 +110,21 @@ class TestValidateResource(BaseAPITestCase):
         failure_msg = 'Failed for this reason.'
         mock_resource_instance.validate_type.return_value = (False, failure_msg)
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_extension.return_value = True
-        validate_resource(resource.pk, other_type)
+        mock_check_file_format_against_type.return_value = True
+        validate_resource(resource.pk, other_type, TSV_FORMAT)
 
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=resource.pk)
         self.assertTrue(current_resource.is_active)
         self.assertEqual(current_resource.resource_type, current_type)
         expected_status = Resource.REVERTED.format(
-            requested_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[other_type],
-            original_resource_type = DB_RESOURCE_STRING_TO_HUMAN_READABLE[current_type]
+            requested_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[other_type],
+            original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[current_type]
         )
         expected_status = expected_status + ' ' + failure_msg
         self.assertEqual(current_resource.status, expected_status)
 
-    @mock.patch('api.utilities.resource_utilities.check_extension')
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
@@ -131,7 +132,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_storage_backend,
         mock_get_resource_type_instance,
         mock_move,
-        mock_check_extension):
+        mock_check_file_format_against_type):
         '''
         Here we test that a Resource change request succeeds on a Resource
         that had an existing type.
@@ -162,6 +163,7 @@ class TestValidateResource(BaseAPITestCase):
         new_path = '/some/mock/path.tsv'
         mock_move.return_value = new_path
         mock_resource_instance = mock.MagicMock()
+        mock_resource_instance.STANDARD_FORMAT = TSV_FORMAT
         mock_resource_instance.validate_type.return_value = (True, 'some string')
         mock_resource_instance.extract_metadata.return_value = {
             PARENT_OP_KEY: None,
@@ -170,11 +172,11 @@ class TestValidateResource(BaseAPITestCase):
         }
         mock_resource_instance.save_in_standardized_format.return_value = ('/some/path.txt', 'newname')
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_extension.return_value = True
+        mock_check_file_format_against_type.return_value = True
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = new_path
         mock_get_storage_backend.return_value = mock_storage_backend
-        validate_resource(resource.pk, new_type)
+        validate_resource(resource.pk, new_type, TSV_FORMAT)
         
 
         # query the resource to see any changes:
@@ -187,7 +189,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_move.assert_called()
 
 
-    @mock.patch('api.utilities.resource_utilities.check_extension')
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
@@ -197,7 +199,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_storage_backend, 
         mock_get_resource_type_instance,
         mock_move,
-        mock_check_extension):
+        mock_check_file_format_against_type):
         '''
         Here we test that a "unset" Resource (one where a resource_type
         has NEVER been set) changes once the validation succeeds
@@ -227,6 +229,7 @@ class TestValidateResource(BaseAPITestCase):
             OBSERVATION_SET_KEY: None,
             FEATURE_SET_KEY: None
         }
+        mock_resource_instance.STANDARD_FORMAT = TSV_FORMAT
 
 
         # given the strings below (which is different from the resource.path attr)
@@ -234,7 +237,7 @@ class TestValidateResource(BaseAPITestCase):
         # of the path (as would happen if we saved in a standardized format)
         mock_resource_instance.save_in_standardized_format.return_value = ('','')
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_extension.return_value = True
+        mock_check_file_format_against_type.return_value = True
         
         fake_final_path = '/some/final_path/foo.tsv'
         mock_move.return_value = fake_final_path
@@ -246,7 +249,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_resource_size.return_value = 100
 
         # call the tested function
-        validate_resource_and_store(unset_resource.pk, 'MTX')
+        validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
 
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)
@@ -259,7 +262,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance.extract_metadata.assert_called()
         mock_storage_backend.delete.assert_called()
 
-    @mock.patch('api.utilities.resource_utilities.check_extension')
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
@@ -269,7 +272,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_storage_backend, 
         mock_get_resource_type_instance,
         mock_move,
-        mock_check_extension):
+        mock_check_file_format_against_type):
         '''
         Here we test that a "unset" Resource (one where a resource_type
         has NEVER been set) changes once the validation succeeds.
@@ -293,6 +296,7 @@ class TestValidateResource(BaseAPITestCase):
         # set the mock return values
         mock_resource_instance = mock.MagicMock()
         mock_resource_instance.validate_type.return_value = (True, 'some string')
+        mock_resource_instance.STANDARD_FORMAT = TSV_FORMAT
         mock_resource_instance.extract_metadata.return_value = {
             PARENT_OP_KEY: None,
             OBSERVATION_SET_KEY: None,
@@ -304,7 +308,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance.save_in_standardized_format.return_value = (unset_resource.path,
             unset_resource.name)
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_extension.return_value = True
+        mock_check_file_format_against_type.return_value = True
         
         fake_final_path = '/some/final_path/foo.tsv'
         mock_move.return_value = fake_final_path
@@ -316,7 +320,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_resource_size.return_value = 100
 
         # call the tested function
-        validate_resource_and_store(unset_resource.pk, 'MTX')
+        validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
 
         # query the resource to see any changes:
         current_resource = Resource.objects.get(pk=unset_resource.pk)
@@ -345,14 +349,16 @@ class TestValidateResource(BaseAPITestCase):
         # note that we can't mock the class implementing the resource type, as
         # we need its implementation to get the metadata. HOWEVER, we need to ensure
         # that the file type above is ALREADY in the standardized format.
-        file_extension = 'tsv'
-        self.assertTrue(file_extension == IntegerMatrix.STANDARD_FORMAT)
+        file_format = TSV_FORMAT
+        self.assertTrue(file_format == IntegerMatrix.STANDARD_FORMAT)
 
         resource_type = 'I_MTX'
+        file_format = TSV_FORMAT
         r = Resource.objects.create(
             path = resource_path,
             name = 'foo.tsv',
             resource_type = None,
+            file_format = TSV_FORMAT,
             size = 1000,
             owner = get_user_model().objects.all()[0]
         )
@@ -369,7 +375,7 @@ class TestValidateResource(BaseAPITestCase):
 
         # call the tested function
         resource_class_instance = get_resource_type_instance(resource_type)
-        handle_valid_resource(r, resource_class_instance, resource_type)
+        handle_valid_resource(r, resource_class_instance, resource_type, file_format)
 
         self.assertTrue(r.resource_type == resource_type)
         rm = ResourceMetadata.objects.filter(resource=r)
@@ -381,8 +387,8 @@ class TestValidateResource(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    @mock.patch('api.utilities.resource_utilities.check_extension')
-    def test_resource_metadata_updated_in_db(self, mock_check_extension, \
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+    def test_resource_metadata_updated_in_db(self, mock_check_file_format_against_type, \
         mock_get_storage_backend, mock_move):
         '''
         Here we test that an instance of ResourceMetadata is updated
@@ -398,11 +404,12 @@ class TestValidateResource(BaseAPITestCase):
         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
         r.path = resource_path
         r.name = 'test_integer_matris.tsv'
+        r.file_format = TSV_FORMAT
         r.save()
         # note that we can't mock the class implementing the resource type, as
         # we need its implementation to get the metadata. HOWEVER, we need to ensure
         # that the file type above is ALREADY in the standardized format.
-        self.assertTrue(r.file_extension == IntegerMatrix.STANDARD_FORMAT)
+        self.assertTrue(r.file_format == IntegerMatrix.STANDARD_FORMAT)
 
         # create a ResourceMetadata instance associated with that Resource
         ResourceMetadata.objects.create(
@@ -416,7 +423,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_storage_backend
-        mock_check_extension.return_value = True
+        mock_check_file_format_against_type.return_value = True
 
         # check the original count for ResourceMetadata
         rm = ResourceMetadata.objects.filter(resource=r)
@@ -425,7 +432,7 @@ class TestValidateResource(BaseAPITestCase):
         rm_original = rm[0]
 
         # call the tested function
-        validate_resource(r.pk, 'I_MTX')
+        validate_resource(r.pk, 'I_MTX', TSV_FORMAT)
 
         rm = ResourceMetadata.objects.filter(resource=r)
         n1 = len(rm)  
@@ -479,7 +486,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # call the tested function
-        validate_resource_and_store(unset_resource.pk, 'MTX')
+        validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
 
         mock_alert_admins.assert_called()
         mock_validate_resource.assert_not_called()
@@ -496,9 +503,9 @@ class TestValidateResource(BaseAPITestCase):
     @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     @mock.patch('api.utilities.resource_utilities.alert_admins')
-    @mock.patch('api.utilities.resource_utilities.check_extension')
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_validation_failure_handled_gracefully(self,
-        mock_check_extension, 
+        mock_check_file_format_against_type, 
         mock_alert_admins,
         mock_get_resource_size,
         mock_move_resource_to_final_location,
@@ -527,10 +534,10 @@ class TestValidateResource(BaseAPITestCase):
         mock_storage_backend.get_local_resource_path.return_value = '/some/path/bar.txt'
         mock_get_storage_backend.return_value = mock_storage_backend
         mock_get_resource_size.return_value = 100
-        mock_check_extension.return_value = True
+        mock_check_file_format_against_type.return_value = True
 
         # call the tested function
-        validate_resource_and_store(unset_resource.pk, 'MTX')
+        validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
         mock_alert_admins.assert_called()
 
         # query the resource to see any changes:

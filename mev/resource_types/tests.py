@@ -6,17 +6,17 @@ import uuid
 import os
 
 from resource_types import RESOURCE_MAPPING, \
-    extension_is_consistent_with_type
+    format_is_consistent_with_type
 
 class TestResourceTypes(unittest.TestCase):    
     
-    def test_all_resources_have_acceptable_extensions(self):
+    def test_all_resources_have_acceptable_formats(self):
         '''
-        If any of the resource types are missing the ACCEPTABLE_EXTENSIONS
+        If any of the resource types are missing the ACCEPTABLE_FORMATS
         key, then this test will raise an AttributeError
         '''
         for k,v in RESOURCE_MAPPING.items():
-            v.ACCEPTABLE_EXTENSIONS
+            v.ACCEPTABLE_FORMATS
 
 class TestTableResource(unittest.TestCase):
 
@@ -87,30 +87,30 @@ class TestTableResource(unittest.TestCase):
 
 class TestResourcePkgFunctions(unittest.TestCase):
 
-    @mock.patch('resource_types.get_acceptable_extensions')
-    def test_extension_consistent_function(self, mock_get_acceptable_extensions):
+    @mock.patch('resource_types.get_acceptable_formats')
+    def test_format_consistent_function(self, mock_get_acceptable_formats):
 
-        mock_get_acceptable_extensions.return_value = ['tsv','csv']
+        mock_get_acceptable_formats.return_value = ['tsv','csv']
 
-        # an unacceptable extension:
-        self.assertFalse(extension_is_consistent_with_type('abc', ''))
+        # an unacceptable format:
+        self.assertFalse(format_is_consistent_with_type('abc', ''))
 
-        # tests an exact match to the accepted extensions
-        self.assertTrue(extension_is_consistent_with_type('csv', ''))
+        # tests an exact match to the accepted formats
+        self.assertTrue(format_is_consistent_with_type('csv', ''))
 
         # tests the case-insensitivity
-        self.assertTrue(extension_is_consistent_with_type('TsV', ''))
+        self.assertTrue(format_is_consistent_with_type('TsV', ''))
 
         # Test an empty string when we have no allowance for wildcards
-        self.assertFalse(extension_is_consistent_with_type('', ''))
+        self.assertFalse(format_is_consistent_with_type('', ''))
 
-        # Add a wildcard and check that the bogus extension is fine
-        mock_get_acceptable_extensions.return_value = ['tsv','csv', '*']
-        self.assertTrue(extension_is_consistent_with_type('abc', ''))
+        # Add a wildcard and check that the bogus format is fine
+        mock_get_acceptable_formats.return_value = ['tsv','csv', '*']
+        self.assertTrue(format_is_consistent_with_type('abc', ''))
 
-        # Test an empty string for extension is ok for wildcards
-        self.assertTrue(extension_is_consistent_with_type('', ''))
+        # Test an empty string for format is ok for wildcards
+        self.assertTrue(format_is_consistent_with_type('', ''))
 
-        mock_get_acceptable_extensions.side_effect = KeyError('xyz')
+        mock_get_acceptable_formats.side_effect = KeyError('xyz')
         with self.assertRaisesRegex(Exception, "type 'xyz' is not among the accepted types"):
-            extension_is_consistent_with_type('abc', 'garbage')
+            format_is_consistent_with_type('abc', 'garbage')
