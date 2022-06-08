@@ -9,11 +9,13 @@ from django.conf import settings
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
+from constants import JSON_FILE_KEY, \
+    JSON_FORMAT
+
 from .base import DataResource, ParseException
 from api.exceptions import NonIterableContentsException
 
-JSON = 'json'
-STANDARD_FORMAT = JSON
+STANDARD_FORMAT = JSON_FORMAT
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +90,7 @@ def create_closure(op, filter_val):
 
 class JsonResource(DataResource):
 
-    ACCEPTABLE_FORMATS = [JSON]
+    ACCEPTABLE_FORMATS = [JSON_FORMAT]
     DESCRIPTION = 'A JSON-format file.'
 
     @staticmethod
@@ -217,8 +219,6 @@ class JsonResource(DataResource):
             else:
                 ordering = ordering[::-1]
         return [j[k] for k in ordering]
-
-
 
 
     def filter_based_on_query_params(self, j, query_params):

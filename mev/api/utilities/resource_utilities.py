@@ -233,7 +233,6 @@ def handle_valid_resource(
     # skip this part as we have no need to pull the file locally (if the storage
     # backend is remote)
     if resource_class_instance.performs_validation():
-
         # Actions below require local access to the file:
         try:
             local_path = get_local_resource_path(resource)
@@ -280,7 +279,6 @@ def handle_valid_resource(
         # we simply set the necessary variables without change.
         new_path = resource.path
         new_name = resource.name
-        file_format = file_format
 
     # since the resource was valid, we can also fill-in the metadata
     # Note that the metadata could fail for type issues and we have to plan

@@ -8,6 +8,12 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
+from constants import TSV_FORMAT, \
+    CSV_FORMAT, \
+    MATRIX_KEY, \
+    INTEGER_MATRIX_KEY, \
+    ANNOTATION_TABLE_KEY
+
 from api.models import Workspace, \
     Resource, \
     ResourceMetadata, \
@@ -72,8 +78,8 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileA.tsv',
-            resource_type = 'MTX',
-            file_format = 'tsv',
+            resource_type = MATRIX_KEY,
+            file_format = TSV_FORMAT,
             path='/path/to/fileA.txt',
             is_active = True,
             is_public = True,
@@ -82,16 +88,23 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileB.csv',
-            file_format = 'csv',
-            resource_type = 'ANN',
+            file_format = CSV_FORMAT,
+            resource_type = ANNOTATION_TABLE_KEY,
             path='/path/to/fileB.txt',
             size = random.randint(size_low, size_high)
-        )   
+        )  
+        Resource.objects.create(
+            owner=user_dict[USER1],
+            name='unset_file.tsv',
+            path='/path/to/unset_file.txt',
+            is_public = True,
+            size = random.randint(size_low, size_high)
+        ) 
         Resource.objects.create(
             owner=user_dict[USER1],
             name='public_file.csv',
-            resource_type = 'I_MTX',
-            file_format = 'csv',
+            resource_type = INTEGER_MATRIX_KEY,
+            file_format = CSV_FORMAT,
             path='/path/to/public_file.txt',
             is_public = True,
             size = random.randint(size_low, size_high)
@@ -108,8 +121,8 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER2],
             name='fileC.tsv',
-            resource_type = 'MTX',
-            file_format = 'tsv',
+            resource_type = MATRIX_KEY,
+            file_format = TSV_FORMAT,
             path='/path/to/fileC.txt',
             size = random.randint(size_low, size_high)
         )
@@ -127,8 +140,8 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER1],
             name='fileA.tsv',
-            resource_type = 'MTX',
-            file_format = 'tsv',
+            resource_type = MATRIX_KEY,
+            file_format = TSV_FORMAT,
             path='/path/to/fileA.txt',
             is_active = True,
             is_public = True,
@@ -149,16 +162,16 @@ class Command(BaseCommand):
         r1 = Resource.objects.create(
             owner=user_dict[USER1],
             name='file1_in_workspace.tsv',
-            resource_type = 'I_MTX',
-            file_format = 'tsv',
+            resource_type = INTEGER_MATRIX_KEY,
+            file_format = TSV_FORMAT,
             path='/path/to/file1_in_workspace.tsv',
             is_active = True
         )
         r2 = Resource.objects.create(
             owner=user_dict[USER1],
             name='file2_in_workspace.tsv',
-            resource_type = 'I_MTX',
-            file_format = 'tsv',
+            resource_type = INTEGER_MATRIX_KEY,
+            file_format = TSV_FORMAT,
             path='/path/to/file2_in_workspace.tsv',
             is_active = True
         )

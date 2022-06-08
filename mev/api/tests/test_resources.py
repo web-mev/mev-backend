@@ -167,7 +167,7 @@ class ResourceListTests(BaseAPITestCase):
     def test_invalid_resource_type_raises_exception(self):
         """
         Test that a bad resource_type specification generates
-        an error
+        a 400 response
         """
         payload = {
             'owner_email': self.regular_user_1.email,
@@ -375,6 +375,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_file1.tsv')
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = f
@@ -437,11 +438,12 @@ class ResourceContentTests(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_expected_response(self, mock_get_storage_backend, mock_check_request_validity):
         '''
-        Test 
+        Test that the returned payload matches our expectations
         '''
         f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
         self.resource.path = f
         self.resource.resource_type = INTEGER_MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -771,6 +773,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
         self.resource.path = f
         self.resource.resource_type = 'JSON'
+        self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -841,6 +844,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
         self.resource.path = f
         self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -956,6 +960,7 @@ class ResourceContentTests(BaseAPITestCase):
 
         self.resource.path = f
         self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1204,6 +1209,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 39 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1323,6 +1329,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 39 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1377,6 +1384,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 3 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1441,6 +1449,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 39 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1591,6 +1600,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'rowmeans_test_file.tsv')
         self.resource.path = f
         self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1779,6 +1789,7 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'rowmeans_test_file_with_na.tsv')
         self.resource.path = f
         self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -1959,6 +1970,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 39 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2013,6 +2025,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 39 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2111,6 +2124,7 @@ class ResourceContentTests(BaseAPITestCase):
         N = 3 # the number of rows in the table
         self.resource.path = f
         self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2619,7 +2633,7 @@ class ResourceDetailTests(BaseAPITestCase):
     def test_user_can_change_resource_name(self):
         '''
         Users may change the Resource name.  This does NOT
-        change anything about the path, etc.
+        change anything about the path, file format, etc.
 
         '''
         original_name = self.active_resource.name
@@ -2646,13 +2660,15 @@ class ResourceDetailTests(BaseAPITestCase):
         change anything about the name, path, etc.
 
         '''
+        # set the format explicitly and save
         original_format = CSV_FORMAT
         self.active_resource.file_format = original_format
         self.active_resource.save()
+
+        # Set the requested format and also ensure we 
+        # are actually making a change
         requested_format = TSV_FORMAT
-        # just ensure we are actually making a change
         self.assertTrue(original_format != requested_format)
-        
 
         payload = {'file_format': requested_format}
         response = self.authenticated_regular_client.put(
@@ -2664,6 +2680,9 @@ class ResourceDetailTests(BaseAPITestCase):
         # check that this did NOT change anything about the file format
         # since it has only entered the validation phase.
         self.assertTrue(requested_format != json_obj['file_format'])
+
+        # active state set to False
+        self.assertFalse(json_obj['is_active'])
 
         # check that the validation method was called.
         mock_api_tasks.validate_resource.delay.assert_called_with(
@@ -2708,6 +2727,54 @@ class ResourceDetailTests(BaseAPITestCase):
         mock_api_tasks.validate_resource.delay.assert_called_with(
             self.active_resource.pk, newtype, self.active_resource.file_format)
 
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_change_both_resource_type_and_format(self,  
+        mock_api_tasks):
+        '''
+        Test that we can simultaneously set the resource type and format
+        as one might do upon an initial upload
+
+        Since the validation can take some time, it will call
+        the asynchronous validation process.
+        '''
+        current_resource_type = self.active_resource.resource_type
+        other_types = set(
+            [x[0] for x in DATABASE_RESOURCE_TYPES]
+            ).difference(set([current_resource_type]))
+        newtype = list(other_types)[0]
+
+        # verify that we are actually changing the type 
+        # in this request (i.e. not a trivial test)
+        self.assertFalse(
+            newtype == current_resource_type
+        )
+
+        # set the format explicitly and save
+        original_format = CSV_FORMAT
+        self.active_resource.file_format = original_format
+        self.active_resource.save()
+
+        # Set the requested format and also ensure we 
+        # are actually making a change
+        requested_format = TSV_FORMAT
+        self.assertTrue(original_format != requested_format)
+
+        payload = {
+            'resource_type': newtype,
+            'file_format': requested_format
+        }
+        response = self.authenticated_regular_client.put(
+            self.url_for_active_resource, payload, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        r = Resource.objects.get(pk=self.active_resource.pk)
+
+        # active state set to False
+        self.assertFalse(r.is_active)
+
+        # check that the validation method was called.
+        mock_api_tasks.validate_resource.delay.assert_called_with(
+            self.active_resource.pk, newtype, requested_format)
 
     def test_setting_workspace_to_null_fails(self):
         '''

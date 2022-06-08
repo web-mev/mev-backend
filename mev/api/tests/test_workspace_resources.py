@@ -5,6 +5,9 @@ from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
+from constants import MATRIX_KEY, \
+    TSV_FORMAT
+
 from api.models import Resource, Workspace
 from api.tests.base import BaseAPITestCase
 
@@ -280,7 +283,55 @@ class WorkspaceResourceAddTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_resource_without_format_cannot_be_added(self):
+        '''
+        Test the situation where a Resource is active but does not have a format set
+        (such as when the upload succeeds, but they have not validated it).  
+        We can't add this Resource to a workspace
+        '''
+        active_and_unset_resources = Resource.objects.filter(
+            is_active=True,
+            owner = self.regular_user_1,
+        )
+        print(active_and_unset_resources)
+        print('*'*200)
+        active_unattached_and_unset_resources = []
+        for r in active_and_unset_resources:
+            if len(r.workspaces.all()) == 0:
+                print(r.file_format)
+                active_unattached_and_unset_resources.append(r)
 
+        if len(active_unattached_and_unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' active, unattached, and unset Resource to run'
+                ' this test.'
+            )
+        r = active_unattached_and_unset_resources[0]
+
+        # explicitly set the resource_type attribute to something so 
+        # that we are testing the file_format attribute
+        r.resource_type = MATRIX_KEY
+        r.file_format = ''
+        r.save()
+        
+        payload = {'resource_uuid': r.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        r.file_format = None
+        r.save()
+        
+        payload = {'resource_uuid': r.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        r.resource_type = MATRIX_KEY
+        r.file_format = TSV_FORMAT
+        r.save()
+        
+        payload = {'resource_uuid': r.pk}
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_workspace_and_resource_owner_different_raises_ex(self):
         '''

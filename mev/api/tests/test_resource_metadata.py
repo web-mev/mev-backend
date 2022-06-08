@@ -113,9 +113,20 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         if len(inactive_resources) == 0:
             raise ImproperlyConfigured('Need at least one inactive '
                 'Resource to run this test')
-        r = inactive_resources[0]
 
-        # check that there was, in fact, metadata for this
+        usable_records = []
+        for r in inactive_resources:
+            rm = ResourceMetadata.objects.filter(resource=r)
+            if len(rm) == 1:
+                usable_records.append(r)
+
+        if len(usable_records) == 0:
+            raise ImproperlyConfigured('Need at least one inactive '
+                'Resource with associated metadata to run this test')
+
+        r = usable_records[0]
+
+        # double-check that there was, in fact, metadata for this
         # resource.  
         rm = ResourceMetadata.objects.filter(resource=r)
         self.assertTrue(len(rm) == 1)

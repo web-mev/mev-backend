@@ -16,11 +16,12 @@ from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     FEATURE_SET_KEY, \
     PARENT_OP_KEY, \
     RESOURCE_KEY, \
-    TSV_FORMAT
+    TSV_FORMAT, \
+    WILDCARD
 from resource_types import RESOURCE_MAPPING, \
     GeneralResource, \
     AnnotationTable, \
-    WILDCARD, \
+    Matrix, \
     DataResource
 from api.models import Resource, \
     Workspace, \
@@ -969,7 +970,11 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    def test_metadata_when_type_changed(self, mock_check_file_format_against_type, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.get_local_resource_path')
+    def test_metadata_when_type_changed(self, mock_get_local_resource_path, \
+        mock_get_resource_type_instance, \
+        mock_check_file_format_against_type, \
         mock_get_storage_backend, mock_move_resource_to_final_location):
         '''
         Checks that the update of resource metadata is updated. Related to a bug where
@@ -977,6 +982,23 @@ class TestResourceUtilities(BaseAPITestCase):
         After trying to validate it as an annotation type, it was raising json serializer errors.
         '''
         resource_path = os.path.join(VAL_TESTDIR, 'test_annotation_valid.tsv')
+
+        # define this mock function so we can patch the class
+        # implementing the validation methods
+        def mock_save_in_standardized_format(local_path, name, format):
+            return resource_path, 'some_name'
+
+        patched_ann_table_instance = AnnotationTable()
+        patched_ann_table_instance.save_in_standardized_format = mock_save_in_standardized_format
+        mock_get_resource_type_instance.side_effect = [
+            # note that we don't need to patch this since GeneralResource instances
+            # do not perform validation
+            GeneralResource(),
+            patched_ann_table_instance
+        ]
+
+        mock_get_local_resource_path.return_value = resource_path
+
         mock_move_resource_to_final_location.return_value = resource_path
         mock_check_file_format_against_type.return_value = True
         mock_f = mock.MagicMock()
@@ -990,29 +1012,47 @@ class TestResourceUtilities(BaseAPITestCase):
             path = resource_path,
             resource_type = '*'
         )
-        validate_resource(r, '*', 'txt')
+        validate_resource(r, '*', '')
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertTrue(rm.observation_set is None)
-        validate_resource(r, 'ANN', 'tsv')
+        validate_resource(r, 'ANN', TSV_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertFalse(rm.observation_set is None)
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    def test_metadata_when_type_changed_case2(self, mock_check_file_format_against_type, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.get_local_resource_path')
+    def test_metadata_when_type_changed_case2(self, mock_get_local_resource_path, \
+        mock_get_resource_type_instance, \
+        mock_check_file_format_against_type, \
         mock_get_storage_backend, mock_move_resource_to_final_location):
 
         resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
+        mock_get_local_resource_path.return_value = resource_path
 
+        # define this mock function so we can patch the class
+        # implementing the validation methods
+        def mock_save_in_standardized_format(local_path, name, format):
+            return resource_path, 'some_name'
+
+        patched_mtx_instance = Matrix()
+        patched_mtx_instance.save_in_standardized_format = mock_save_in_standardized_format
+        mock_get_resource_type_instance.side_effect = [
+            # note that we don't need to patch this since GeneralResource instances
+            # do not perform validation
+            GeneralResource(),
+            patched_mtx_instance
+        ]
         mock_f = mock.MagicMock()
         mock_f.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
         mock_check_file_format_against_type.return_value = True
         
         r = Resource.objects.create(
-            name = 'test_annotation_valid.tsv',
+            name = 'test_matrix',
             owner = self.regular_user_1,
             is_active=True,
             path = resource_path,
@@ -1021,7 +1061,6 @@ class TestResourceUtilities(BaseAPITestCase):
         validate_resource(r, '*', 'txt')
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertTrue(rm.observation_set is None)
-        r.save()
         validate_resource(r, 'MTX', TSV_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         obs_set = rm.observation_set
