@@ -248,8 +248,8 @@ cd /opt/software && \
 
 # install Puppet
 CODENAME=$(/usr/bin/lsb_release -sc)
-/usr/bin/curl -sO "https://apt.puppetlabs.com/puppet6-release-$CODENAME.deb"
-/usr/bin/dpkg -i "puppet6-release-$CODENAME.deb"
+/usr/bin/curl -sO "https://apt.puppetlabs.com/puppet7-release-$CODENAME.deb"
+/usr/bin/dpkg -i "puppet7-release-$CODENAME.deb"
 /usr/bin/apt-get -qq update
 /usr/bin/apt-get -qq -y install puppet-agent
 # install and configure librarian-puppet
