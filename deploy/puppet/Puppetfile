@@ -3,11 +3,11 @@
 
 forge "https://forgeapi.puppetlabs.com"
 
-mod 'landcareresearch-solr', '6.0.9'
-mod 'puppet-nginx', '3.2.0'
-mod 'puppet-python', '6.1.0'
-mod 'puppet-rabbitmq', '11.1.0'
-mod 'puppetlabs-docker', '4.1.0'
+mod 'landcareresearch-solr', '7.0.0'
+mod 'puppet-nginx', '3.3.0'
+mod 'puppet-python', '6.2.1'
+mod 'puppet-rabbitmq', '12.0.0'
+mod 'puppetlabs-docker', '4.4.0'
 mod 'puppetlabs-vcsrepo', '5.0.0'
 
 mod 'webmev-mevapi', '0.0.1', :path => './mevapi'
