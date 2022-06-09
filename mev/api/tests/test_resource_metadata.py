@@ -39,10 +39,11 @@ from resource_types.table_types import TableResource, \
     AnnotationTable, \
     FeatureTable, \
     BEDFile
-from resource_types import PARENT_OP_KEY, \
+from constants import PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
-    RESOURCE_KEY
+    RESOURCE_KEY, \
+    TSV_FORMAT
 from api.tests.base import BaseAPITestCase
 from api.utilities.resource_utilities import add_metadata_to_resource
 
@@ -610,7 +611,7 @@ class TestBedFileMetadata(unittest.TestCase):
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'example_bed.bed')
         bf = BEDFile()
-        metadata = bf.extract_metadata(resource_path, 'bed')
+        metadata = bf.extract_metadata(resource_path, TSV_FORMAT)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])

@@ -1,6 +1,10 @@
 # This file contains information about the different 
 # sequence-based file types and methods for validating them
 
+from constants import FASTQ_FORMAT, \
+    FASTA_FORMAT, \
+    BAM_FORMAT
+
 from .base import DataResource
 
 
@@ -40,23 +44,12 @@ class SequenceResource(DataResource):
 
 class FastAResource(SequenceResource):
     '''
-    This type is for validating Fasta files,
-    compressed or not.  Fasta files are recognized using
-    the following formats:
-
-    - fasta
-    - fasta.gz
-    - fa
-    - fa.gz
-
+    This type is for compressed Fasta files
     '''
     DESCRIPTION = 'FASTA-format sequence file.'
 
     ACCEPTABLE_FORMATS = [
-        'fasta',
-        'fasta.gz',
-        'fa',
-        'fa.gz'
+        FASTA_FORMAT
     ]
 
     def validate_type(self, resource_path, file_format):
@@ -64,24 +57,14 @@ class FastAResource(SequenceResource):
 
 class FastQResource(SequenceResource):
     '''
-    This resource type is for Fastq files,
-    compressed or not. Fastq files are recognized using
-    the following formats:
-
-    - fastq
-    - fastq.gz
-    - fq
-    - fq.gz
-
+    This resource type is for gzip-compressed Fastq files
     '''
     DESCRIPTION = 'FASTQ-format sequence file.  The most common format'\
-        ' used for sequencing experiments.'
+        ' used for sequencing experiments. Should be GZIP compressed'\
+        ' which is typically denoted with a "fastq.gz" file extension.'
 
     ACCEPTABLE_FORMATS = [
-        'fastq',
-        'fastq.gz',
-        'fq',
-        'fq.gz'
+        FASTQ_FORMAT
     ]
 
     def validate_type(self, resource_path, file_format):
@@ -90,20 +73,14 @@ class FastQResource(SequenceResource):
 
 class AlignedSequenceResource(SequenceResource):
     '''
-    This resource type is for SAM/BAM files.  We accept
-    both SAM and BAM files named using their canonical extensions:
-
-    - ".bam" for BAM files
-    - ".sam" for SAM files
-    
+    This resource type is for SAM/BAM files. 
     '''
-    DESCRIPTION = 'BAM or SAM-format aligned sequence files.  Typically the' \
+    DESCRIPTION = 'BAM-format aligned sequence files.  Typically the' \
         ' output of an alignment process.'
 
 
     ACCEPTABLE_FORMATS = [
-        'bam',
-        'sam'
+        BAM_FORMAT
     ]
 
     def validate_type(self, resource_path, file_format):

@@ -1,14 +1,16 @@
 import logging
 
-from constants import WILDCARD
+from constants import UNSPECIFIED_FORMAT, GENERAL_DESCRIPTION
 from .base import DataResource
 
 logger = logging.getLogger(__name__)
 
 class GeneralResource(DataResource):
 
-    ACCEPTABLE_FORMATS = [WILDCARD,]
-    DESCRIPTION = 'A general file. Typically used to denote an unspecified type.'
+    ACCEPTABLE_FORMATS = [
+        UNSPECIFIED_FORMAT
+    ]
+    DESCRIPTION = GENERAL_DESCRIPTION
     
     def validate_type(self, resource_path, file_format):
         '''

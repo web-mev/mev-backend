@@ -15,9 +15,6 @@ from rest_framework.pagination import PageNumberPagination
 
 from constants import CSV_FORMAT, \
     TSV_FORMAT, \
-    TAB_FORMAT, \
-    BED_FORMAT, \
-    VCF_FORMAT, \
     XLS_FORMAT, \
     XLSX_FORMAT, \
     JSON_FORMAT, \
@@ -36,15 +33,6 @@ from api.serializers.feature_set import FeatureSetSerializer
 from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
-
-TAB_DELIMITED_FORMATS = [
-    TSV_FORMAT,
-    TAB_FORMAT,
-    BED_FORMAT,
-    VCF_FORMAT
-]
-COMMA_DELIMITED_FORMATS = [CSV_FORMAT]
-EXCEL_FORMATS = [XLS_FORMAT, XLSX_FORMAT]
 
 class ParserNotFoundException(Exception):
     '''
@@ -165,9 +153,6 @@ class TableResource(DataResource):
     saved in CSV, TSV, or Excel (xls/xlsx) format.  If in Excel format, the 
     data of interest must reside in the first sheet of the workbook.
 
-    Special tab-delimited files like BED or VCF files are recognized by
-    their canonical extension (e.g. ".bed" or ".vcf").
-
     Note that unless you create a "specialized" implementation (e.g. like
     for a BED file), then we assume you have features as rows and observables
     as columns.
@@ -175,9 +160,6 @@ class TableResource(DataResource):
     ACCEPTABLE_FORMATS = [
         CSV_FORMAT,
         TSV_FORMAT,
-        TAB_FORMAT,
-        BED_FORMAT,
-        VCF_FORMAT,
         XLS_FORMAT,
         XLSX_FORMAT
     ]
@@ -197,22 +179,22 @@ class TableResource(DataResource):
         return TableResourcePageNumberPagination()
 
     @staticmethod
-    def get_reader(resource_path, file_extension):
+    def get_reader(resource_path, file_format):
         '''
         By using the file extension, we infer the delimiter
         Returns a pandas "reader" (e.g. `read_csv` or `read_table`)
         '''
 
-        if file_extension in COMMA_DELIMITED_FORMATS:
+        if file_format == CSV_FORMAT:
             return pd.read_csv
-        elif file_extension in TAB_DELIMITED_FORMATS:
+        elif file_format == TSV_FORMAT:
             return pd.read_table
-        elif file_extension in EXCEL_FORMATS:
+        elif file_format in [XLS_FORMAT, XLSX_FORMAT]:
             return pd.read_excel
         else:
             logger.error('Could not infer the file format from the file'
             ' extension of {ext}.  Full resource path was {path}'.format(
-                ext = file_extension,
+                ext = file_format,
                 path = resource_path
             ))
             return None
@@ -228,11 +210,11 @@ class TableResource(DataResource):
         else:
             return False
 
-    def read_resource(self, resource_path, file_extension):
+    def read_resource(self, resource_path, file_format):
         '''
         One common spot to define how the file is read
         '''
-        reader = TableResource.get_reader(resource_path, file_extension)
+        reader = TableResource.get_reader(resource_path, file_format)
         if reader is None:
             raise ParserNotFoundException('')
         else:
@@ -260,7 +242,7 @@ class TableResource(DataResource):
         '''
         return True
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
         '''
         In this base method, we determine attempt to parse the file.
         If there are no restrictions on content, succesful parsing
@@ -271,7 +253,7 @@ class TableResource(DataResource):
         which is then accessible to children.
         '''
         try:
-            self.read_resource(resource_path, file_extension)
+            self.read_resource(resource_path, file_format)
             if self.table.shape == (0,0):
                 return (False, EMPTY_TABLE_ERROR )
 
@@ -517,7 +499,7 @@ class TableResource(DataResource):
         d['rowname'] = row.name
         return d
 
-    def get_contents(self, resource_path, file_extension, query_params={}):
+    def get_contents(self, resource_path, file_format, query_params={}):
         '''
         Returns a dataframe of the table contents
 
@@ -527,7 +509,7 @@ class TableResource(DataResource):
 
         try:
             logger.info('Read resource at {p}'.format(p=resource_path))
-            self.read_resource(resource_path, file_extension)
+            self.read_resource(resource_path, file_format)
             self.additional_exported_cols = []
 
             # if there were any filtering params requested, apply those
@@ -561,7 +543,7 @@ class TableResource(DataResource):
                 ))
             raise ex
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
         '''
         This method extracts metadata from the Resource in question and 
         saves it to the database.
@@ -584,7 +566,7 @@ class TableResource(DataResource):
                     path=resource_path
                 )
             )
-            is_valid, message = self.validate_type(resource_path, file_extension)
+            is_valid, message = self.validate_type(resource_path, file_format)
             if not is_valid:
                 raise UnexpectedTypeValidationException(message)
         else:
@@ -603,7 +585,7 @@ class TableResource(DataResource):
         if parent_op_pk:
             self.metadata[DataResource.PARENT_OP] = parent_op_pk
 
-    def save_in_standardized_format(self, resource_path, resource_name, file_extension):
+    def save_in_standardized_format(self, resource_path, resource_name, file_format):
         '''
         To avoid all the analyses having to concern themselves with data formats
         like csv, tsv, xlsx, etc. we just save table-based formats as a TSV.
@@ -617,7 +599,7 @@ class TableResource(DataResource):
         # was used to successfully validate the file.
         # If it happens that this is also our standard format (tsv)
         # then we can just return immediately
-        if file_extension.lower() == self.STANDARD_FORMAT.lower():
+        if file_format.lower() == self.STANDARD_FORMAT.lower():
             return resource_path, resource_name
 
         # If we are here, then the uploaded file extension did not match our
@@ -633,7 +615,7 @@ class TableResource(DataResource):
             )
             try:
                 # this call will set the self.table member
-                self.read_resource(resource_path, file_extension)
+                self.read_resource(resource_path, file_format)
             except Exception as ex:
                 logger.error('Failed when trying to save in standard format.'
                     ' Specifically, failed when reading the resource, as self.table'
@@ -664,7 +646,6 @@ class Matrix(TableResource):
     ACCEPTABLE_FORMATS = [
         CSV_FORMAT,
         TSV_FORMAT,
-        TAB_FORMAT,
         XLS_FORMAT,
         XLSX_FORMAT
     ]
@@ -672,8 +653,7 @@ class Matrix(TableResource):
     DESCRIPTION = 'A table of where all the entries are numbers'\
         ' except the first column (which names the rows) and the' \
         ' first line (which gives the column names). The cell at the' \
-        ' first row and column may be left blank. Acceptable file extensions' \
-        ' include: {s}.'.format(s = ', '.join(ACCEPTABLE_FORMATS))
+        ' first row and column may be left blank.' 
 
     EXAMPLE = [
         {
@@ -735,8 +715,8 @@ class Matrix(TableResource):
         return problem_columns
 
 
-    def validate_type(self, resource_path, file_extension):
-        is_valid, error_msg = super().validate_type(resource_path, file_extension)
+    def validate_type(self, resource_path, file_format):
+        is_valid, error_msg = super().validate_type(resource_path, file_format)
         if not is_valid:
             return (False, error_msg)
 
@@ -750,9 +730,9 @@ class Matrix(TableResource):
 
         return (True, None)
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
 
-        super().extract_metadata(resource_path, file_extension, parent_op_pk)
+        super().extract_metadata(resource_path, file_format, parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -830,7 +810,7 @@ class Matrix(TableResource):
         elif len(filters) == 1:
             self.table = self.table.loc[filters[0]]            
 
-    def get_contents(self, resource_path, file_extension, query_params={}):
+    def get_contents(self, resource_path, file_format, query_params={}):
         '''
         This method allows us to add on additional content that is
         allowable for matrix types, as they are all numeric.
@@ -848,7 +828,7 @@ class Matrix(TableResource):
 
         # additional filtering/behavior specific to a Matrix (if requested)
         # is handled in the _resource_specific_modifications method
-        return super().get_contents(resource_path, file_extension, query_params)
+        return super().get_contents(resource_path, file_format, query_params)
 
 
 class IntegerMatrix(Matrix):
@@ -862,8 +842,7 @@ class IntegerMatrix(Matrix):
     DESCRIPTION = 'A table where all the entries are integers'\
         ' except the first column (which names the rows) and the' \
         ' first line (which gives the column names). The cell at the' \
-        ' first row and column may be left blank. Acceptable extensions' \
-        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_FORMATS))
+        ' first row and column may be left blank.'
 
     EXAMPLE = [
         {
@@ -892,11 +871,11 @@ class IntegerMatrix(Matrix):
         }
     ]
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
 
         # first check that it has all numeric types.  If that fails
         # immediately return--
-        is_valid, error_message = super().validate_type(resource_path, file_extension)
+        is_valid, error_message = super().validate_type(resource_path, file_format)
         if not is_valid:
             return (False, error_message)
 
@@ -936,8 +915,7 @@ class RnaSeqCountMatrix(IntegerMatrix):
     '''
     DESCRIPTION = 'A table of integer-based counts corresponding to'\
         ' the number of sequencing reads associated with a particular' \
-        ' gene or transcript. Acceptable file extensions' \
-        ' include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_FORMATS))
+        ' gene or transcript.'
 
     EXAMPLE = IntegerMatrix.EXAMPLE
 
@@ -955,8 +933,7 @@ class Network(Matrix):
         ' An example is an adjacency matrix, where a value of 1 indicates a direct connection/edge' \
         ' between the nodes of interest (and zero indicates no connection).'\
         ' Alternatively, a general numeric value can represent the' \
-        ' strength of connection/evidence as might be the case for an inferred regulatory network.' \
-        ' Acceptable file extensions include: {s}'.format(s = ', '.join(Matrix.ACCEPTABLE_FORMATS))
+        ' strength of connection/evidence as might be the case for an inferred regulatory network.'
 
     EXAMPLE = [
         {
@@ -998,15 +975,14 @@ class ElementTable(TableResource):
     ACCEPTABLE_FORMATS = [
         CSV_FORMAT,
         TSV_FORMAT,
-        TAB_FORMAT,
         XLS_FORMAT,
         XLSX_FORMAT
     ]
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
 
         # check that file can be parsed:
-        is_valid, error_message = super().validate_type(resource_path, file_extension)
+        is_valid, error_message = super().validate_type(resource_path, file_format)
         if not is_valid:
             return (False, error_message)
         
@@ -1083,8 +1059,7 @@ class AnnotationTable(ElementTable):
     DESCRIPTION = 'This type of file is used to add metadata to your samples.' \
         ' The first column has the sample name and the remaining columns contain' \
         ' metadata about each sample (for instance, experimental group,'\
-        ' treatment, or similar. Acceptable file extensions' \
-        ' include: {s}.'.format(s = ', '.join(ElementTable.ACCEPTABLE_FORMATS))
+        ' treatment, or similar).' 
 
     EXAMPLE = [
         {
@@ -1110,10 +1085,10 @@ class AnnotationTable(ElementTable):
         }
     ]
 
-    def validate_type(self, resource_path, file_extension):
+    def validate_type(self, resource_path, file_format):
 
         # check that file can be parsed:
-        is_valid, error_message = super().validate_type(resource_path, file_extension)
+        is_valid, error_message = super().validate_type(resource_path, file_format)
         if not is_valid:
             return (False, error_message)
 
@@ -1141,7 +1116,7 @@ class AnnotationTable(ElementTable):
 
         return (True, None)
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
         '''
         When we extract the metadata from an AnnotationTable, we 
         expect the Observation instances to be the rows.  
@@ -1149,7 +1124,7 @@ class AnnotationTable(ElementTable):
         Additional columns specify attributes of each Observation,
         which we incorporate
         '''
-        super().extract_metadata(resource_path, file_extension, parent_op_pk)
+        super().extract_metadata(resource_path, file_format, parent_op_pk)
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)
         self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
@@ -1175,8 +1150,7 @@ class FeatureTable(ElementTable):
         ' to give additional information about each gene, such as alternative symbols,' \
         ' oncogene status, or similar.  Each row contains information about a single gene.' \
         ' Note, however, that this concept is completely general and not restricted' \
-        ' to information about genes or transcripts. Acceptable file extensions' \
-        ' include: {s}'.format(s = ', '.join(ElementTable.ACCEPTABLE_FORMATS))
+        ' to information about genes or transcripts.'
 
     EXAMPLE = [
         {
@@ -1205,7 +1179,7 @@ class FeatureTable(ElementTable):
         }
     ]
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
         '''
         When we extract the metadata from a FeatureTable, we 
         expect the Feature instances to be the rows.  
@@ -1214,7 +1188,7 @@ class FeatureTable(ElementTable):
         which we incorporate
         '''
         logger.info('Extract metadata from a FeatureTable')
-        super().extract_metadata(resource_path, file_extension, parent_op_pk)
+        super().extract_metadata(resource_path, file_format, parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -1238,15 +1212,15 @@ class BEDFile(TableResource):
     By default, BED files do NOT contain headers and we enforce that here.
     '''
 
-    ACCEPTABLE_FORMATS = [BED_FORMAT,]
+    ACCEPTABLE_FORMATS = [TSV_FORMAT,]
 
     DESCRIPTION = 'A three-column BED-format file. https://ensembl.org/info/website/upload/bed.html'\
-        ' BED files do NOT have column headers.' \
-        ' Acceptable file extensions include: {s}'.format(s=', '.join(ACCEPTABLE_FORMATS))
+        ' BED files do NOT have column headers and are expected to be stored' \
+        ' in a tab-delimited format.'
 
 
-    def validate_type(self, resource_path, file_extension):
-        reader = TableResource.get_reader(resource_path, file_extension)
+    def validate_type(self, resource_path, file_format):
+        reader = TableResource.get_reader(resource_path, file_format)
 
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
@@ -1269,6 +1243,6 @@ class BEDFile(TableResource):
             error_message = BED_FORMAT_ERROR.format(cols=cols)
             return (False, error_message)
 
-    def extract_metadata(self, resource_path, file_extension, parent_op_pk=None):
-        super().extract_metadata(resource_path, file_extension, parent_op_pk)
+    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+        super().extract_metadata(resource_path, file_format, parent_op_pk)
         return self.metadata

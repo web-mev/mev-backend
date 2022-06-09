@@ -56,9 +56,57 @@ RESOURCE_KEY = 'resource'
 # Generally, these correspond with conventional file extensions
 CSV_FORMAT = 'csv'
 TSV_FORMAT = 'tsv'
-TAB_FORMAT = 'tab'
-BED_FORMAT = 'bed'
-VCF_FORMAT = 'vcf'
 XLS_FORMAT = 'xls'
 XLSX_FORMAT = 'xlsx'
 JSON_FORMAT = 'json'
+FASTA_FORMAT = 'fa'
+FASTQ_FORMAT = 'fq'
+BAM_FORMAT = 'bam'
+UNSPECIFIED_FORMAT = WILDCARD
+
+# These are text descriptions for each of the formats. Used to assist
+# clients in choosing the appropriate file format
+CSV_DESCRIPTION = ('Comma-delimited format. Each field is separated'
+    ' by a comma character.'
+)
+TSV_DESCRIPTION = ('Tab-delimited format. Each field is separated'
+    ' by a tab character.'
+)
+XLS_DESCRIPTION = ('Excel file, typically denoted by the "XLS" file'
+    ' extension. Used by Microsoft Excel 97, Microsoft Excel 2000,'
+    '  Microsoft Excel 2002, and Microsoft Office Excel 2003.'
+)
+XLSX_DESCRIPTION = ('Excel file, typically denoted by the "XLSX" file'
+    ' extension. This is common for spreadsheets created by recent'
+    ' versions of MS Office.'
+)
+JSON_DESCRIPTION = ('A plain-text file conforming to JavaScript object'
+    ' notation, a flexible format for encoding diverse data.'
+)
+FASTA_DESCRIPTION = ('FASTA-format sequence file, typically'
+    ' denoted with a "fa" file extension.'
+)
+FASTQ_DESCRIPTION = ('FASTQ-format sequence file, typically'
+    ' denoted with a "fq" or "fastq" file extension.'
+)
+BAM_DESCRIPTION = ('Binary alignment file. This a compressed version'
+    ' of the standard SAM file format.'
+)
+GENERAL_DESCRIPTION = ('A file of undetermined format. This is typically used'
+    ' for proprietary formats (e.g. 10x Genomics CellRanger outputs).'
+    ' Certain WebMeV tools will require this resource type and will mention'
+    ' this in the tool\'s help fields.'
+)
+
+# Link the shorthand format ID to the description
+FORMATS_MAPPING = {
+    CSV_FORMAT: CSV_DESCRIPTION,
+    TSV_FORMAT: TSV_DESCRIPTION,
+    XLS_FORMAT: XLS_DESCRIPTION,
+    XLSX_FORMAT: XLSX_DESCRIPTION,
+    JSON_FORMAT: JSON_DESCRIPTION,
+    FASTA_FORMAT: FASTA_DESCRIPTION,
+    FASTQ_FORMAT: FASTQ_DESCRIPTION,
+    BAM_FORMAT: BAM_DESCRIPTION,
+    UNSPECIFIED_FORMAT: GENERAL_DESCRIPTION
+}
