@@ -2776,6 +2776,48 @@ class ResourceDetailTests(BaseAPITestCase):
         mock_api_tasks.validate_resource.delay.assert_called_with(
             self.active_resource.pk, newtype, requested_format)
 
+
+    @mock.patch('api.serializers.resource.api_tasks')
+    def test_initial_resource_validation_with_incomplete_data(self,  
+        mock_api_tasks):
+        '''
+        Upon the initial upload, a user has not set the resource_type
+        or the file_format fields. Once those have values, a user can
+        change one or the other independently. However, prior to that, 
+        the initial validation needs to get BOTH fields or it will never
+        validate.
+        '''
+
+        r = Resource.objects.create(
+            name = 'some_file',
+            owner = self.regular_user_1,
+            is_active=True,
+            path = '',
+        )
+        resource_pk = r.pk
+        url = reverse(
+            'resource-detail', 
+            kwargs={'pk':resource_pk}
+        )
+        self.assertIsNone(r.resource_type)
+        self.assertIsNone(r.file_format)
+        resource_type = MATRIX_KEY
+        payload = {
+            'resource_type': resource_type
+        }
+        response = self.authenticated_regular_client.put(
+            url, payload, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # r = Resource.objects.get(pk=self.active_resource.pk)
+
+        # # active state set to False
+        # self.assertFalse(r.is_active)
+
+        # # check that the validation method was called.
+        mock_api_tasks.validate_resource.delay.assert_called_with(
+            resource_pk, resource_type, None)
+
     def test_setting_workspace_to_null_fails(self):
         '''
         Test that directly setting the workspace to null fails.

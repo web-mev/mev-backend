@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='operationresource',
             name='file_format',
-            field=models.CharField(default='', max_length=25, null=True),
+            field=models.CharField(blank=True, max_length=25, null=True),
         ),
         migrations.AlterField(
             model_name='resource',
             name='file_format',
-            field=models.CharField(default='', max_length=25, null=True),
+            field=models.CharField(blank=True, max_length=25, null=True),
         ),
     ]

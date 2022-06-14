@@ -40,7 +40,7 @@ class AbstractResource(models.Model):
     # formats, but this field does not care about that.
     file_format = models.CharField(
         max_length = 25,
-        default = '',
+        blank = True,
         null = True
     )
 

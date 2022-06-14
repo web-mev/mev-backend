@@ -338,7 +338,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
-        self.assertEqual(r.file_format, '') # was not set upon upload
+        self.assertIsNone(r.file_format) # was not set upon upload
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -363,7 +363,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
-        self.assertEqual(r.file_format, '')
+        self.assertIsNone(r.file_format)
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -389,7 +389,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(u, r.pk)
         basename = os.path.basename(r.path)
         self.assertEqual(str(u), basename)
-        self.assertEqual(r.file_format, '') # has not been set, so empty
+        self.assertIsNone(r.file_format) # has not been set, so empty
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -415,7 +415,7 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(str(u), basename)
         self.assertEqual(r.name, filename)
         # the upload has not set a file format, so that is just an empty string
-        self.assertEqual(r.file_format, '')
+        self.assertIsNone(r.file_format, None)
 
         # try a name with a unicode char:
         u2 = uuid.uuid4()
@@ -437,8 +437,8 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         # double-check that the path does NOT contain that special char:
         self.assertFalse(char in resource_path)
         self.assertEqual(filename, r.name)
-        # the upload has not set a file format, so that is just an empty string
-        self.assertEqual(r.file_format, '')
+        # the upload has not set a file format, so that is just None
+        self.assertIsNone(r.file_format)
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 
