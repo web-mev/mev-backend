@@ -6,7 +6,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, APIException
 
 from constants import TSV_FORMAT
 from api.models import Resource
@@ -158,6 +158,49 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(filename, r.name)
         # the upload has not set a file format, so that is just None
         self.assertIsNone(r.file_format)
+
+    @mock.patch('api.views.resource_upload_views.ServerLocalResourceUpload.upload_handler_class')
+    def test_api_exception_returns_500(self, mock_handler_class):
+        '''
+        Test the situation where the upload fails and the upload handler 
+        raises an api exception
+        '''
+        mock_handler = mock.MagicMock()
+        mock_handler.handle_upload.side_effect = APIException('oh no!')
+        mock_handler_class.return_value = mock_handler
+
+        payload = {
+            'upload_file': open(self.test_upload, 'rb')
+        }
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data=payload, 
+            format='multipart'
+        )
+        self.assertEqual(response.status_code, 500)
+
+    @mock.patch('api.views.resource_upload_views.ServerLocalResourceUpload.upload_handler_class')
+    def test_resource_create_failure_returns_500(self, mock_handler_class):
+        '''
+        Test the situation where the upload completes, but there is an unexpected
+        issue when creating/saving the api.models.Resource instance
+        '''
+        mock_handler = mock.MagicMock()
+        # If we are unable to create an instance of api.models.Resource in the 
+        # api.uploaders.base.BaseUpload.create_resource_from_upload method,
+        # it will return None:
+        mock_handler.handle_upload.return_value = None
+        mock_handler_class.return_value = mock_handler
+
+        payload = {
+            'upload_file': open(self.test_upload, 'rb')
+        }
+        response = self.authenticated_regular_client.post(
+            self.url, 
+            data=payload, 
+            format='multipart'
+        )
+        self.assertEqual(response.status_code, 500)
 
 class ServerLocalResourceUploadProgressTests(BaseAPITestCase):
 
