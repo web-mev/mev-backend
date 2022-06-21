@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework import status
 
 from api.uploaders.base import BaseUpload
+from api.models import Resource
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
@@ -26,34 +27,80 @@ class BaseUploadTests(BaseAPITestCase):
         mock_request = mock.MagicMock()
         mock_request.user = self.regular_user_1
 
-        # due to the endpoint being a multi-part, the
-        # owner_email key needs to either be:
-        # - absent
-        # - empty string
-        # - some email
-
-        # first check empty string. Should responsd by returning the requester
-        payload = {
-            'owner_email': ''
-        }
-        o = b.check_request_and_owner(payload, mock_request)
+        # check payload lacking the key. should return the 
+        # requesting user.
+        o = b.check_request_and_owner({}, mock_request)
         self.assertEqual(o, self.regular_user_1)
 
-        # check payload lacking the key. should self-assign
-        payload = {}
-        o = b.check_request_and_owner(payload, mock_request)
-        self.assertEqual(o, self.regular_user_1)
+    def test_create_resource_from_upload(self):
+        '''
+        Tests that the `create_resource_from_upload` method does what it should...
+        '''
+        b = BaseUpload()
 
-        # check email that correctly identifies themself
-        payload = {
-            'owner_email': self.regular_user_1.email
-        }
-        o = b.check_request_and_owner(payload, mock_request)
-        self.assertEqual(o, self.regular_user_1)
+        mock_path = '/some/path'
+        mock_name = 'some_name'
+        mock_size = 100
 
-        # check email of someone else 
-        payload = {
-            'owner_email': self.regular_user_2.email
-        }
-        with self.assertRaises(ValidationError):
-            b.check_request_and_owner(payload, mock_request)
+        # set some attributes on that class that are set by other methods:
+        u = uuid.uuid4()
+        b.upload_resource_uuid = u
+        b.owner = self.regular_user_1
+        b.filepath = mock_path
+        b.filename = mock_name
+        b.is_public = False
+        b.size = mock_size
+
+        # count the original resources
+        original_resources = Resource.objects.filter(owner=self.regular_user_1)
+        n0 = len(original_resources)
+
+        # call the method and check that we are returned a proper Resource instance.
+        new_resource = b.create_resource_from_upload()
+        final_resources = Resource.objects.filter(owner=self.regular_user_1)
+        n1 = len(final_resources)
+        self.assertTrue((n1-n0) ==1)
+        self.assertEqual(new_resource.path, mock_path)
+        self.assertEqual(new_resource.name, mock_name)
+        self.assertEqual(new_resource.size, mock_size)
+
+    @mock.patch('api.uploaders.base.ResourceSerializer')
+    @mock.patch('api.uploaders.base.alert_admins')
+    def test_create_resource_from_upload_failure(self, mock_alert_admins, \
+        mock_resource_serializer_class):
+        '''
+        Tests that the `create_resource_from_upload` returns None and alerts
+        the admins if something unexpected happens.
+        '''
+        b = BaseUpload()
+
+        mock_path = '/some/path'
+        mock_name = 'some_name'
+        mock_size = 100
+
+        # set some attributes on that class that are set by other methods:
+        u = uuid.uuid4()
+        b.upload_resource_uuid = u
+        b.owner = self.regular_user_1
+        b.filepath = mock_path
+        b.filename = mock_name
+        b.is_public = False
+        b.size = mock_size
+
+        # count the original Resource instances for this user.
+        original_resources = Resource.objects.filter(owner=self.regular_user_1)
+        n0 = len(original_resources)
+
+        mock_resource_serializer_instance = mock.MagicMock()
+        mock_resource_serializer_instance.is_valid.return_value = False
+        mock_resource_serializer_class.return_value = mock_resource_serializer_instance
+
+        # call the method
+        new_resource = b.create_resource_from_upload()
+        self.assertIsNone(new_resource)
+        final_resources = Resource.objects.filter(owner=self.regular_user_1)
+        n1 = len(final_resources)
+        self.assertTrue((n1-n0) ==0)
+
+        mock_alert_admins.assert_called()
+        

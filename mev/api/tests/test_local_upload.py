@@ -35,11 +35,11 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertTrue(os.path.exists(path))
         os.remove(path)
 
-    @mock.patch('api.views.resource_upload_views.validate_resource_and_store')
+    @mock.patch('api.views.resource_upload_views.store_resource')
     def upload_and_cleanup(self, 
         payload, 
         client,
-        mock_validate_resource_and_store):
+        mock_store):
         '''
         Same functionality is used by multiple functions, so just
         keep it here
@@ -57,12 +57,9 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         j = response.json()
 
-        rt = payload.get('resource_type', None)
-        ff = payload.get('file_format', None)
-
         # check that the validation async task was called
-        mock_validate_resource_and_store.delay.assert_called_with(
-            uuid.UUID(j['id']), rt, ff)
+        mock_store.delay.assert_called_with(
+            uuid.UUID(j['id']))
 
         # assert that we have more Resources now:
         num_current_resources = len(Resource.objects.all())
@@ -83,239 +80,18 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
 
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_missing_owner_is_ok(self, mock_api_tasks):
+    def test_owner_properly_assigned(self):
         '''
-        Test that a request without an `owner`
-        key is OK and the upload assigns to the 
+        Test that a request properly assigns the Resource to the 
         requesting user
         '''
-
         payload = {
-            'resource_type': 'MTX',
             'upload_file': open(self.test_upload, 'rb')
         }
 
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
         self.assertTrue(r.owner == self.regular_user_1)
 
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_owner_is_empty_string(self, mock_api_tasks):
-        '''
-        Test that a request with `owner`
-        key as an emtpy string is OK and the upload assigns to the 
-        requesting user
-        '''
-
-        payload = {
-            'owner_email':'',
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb')
-        }
-
-        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-        self.assertTrue(r.owner == self.regular_user_1)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_missing_resource_type_is_ok(self, mock_api_tasks):
-        '''
-        Missing the `resource_type` is OK- it's just set to None
-        '''
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-
-        self.upload_and_cleanup(payload, self.authenticated_regular_client)
-
-        
-    def test_incorrect_resource_type_raises_ex(self):
-        '''
-        The request contained the proper keys, but the
-        `resource_type` key was not one of the valid types
-        '''
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'AAAAAAAAAA',
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_proper_upload_creates_pending_resource(self, mock_api_tasks):
-        '''
-        Test that we add a `Resource` to the database when a proper
-        upload is initiated.
-
-        Also check that the background async validation function
-        is called
-        '''
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb')
-        }
-
-        self.upload_and_cleanup(payload, self.authenticated_regular_client)
-
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_bad_owner_email_raises_ex(self, mock_api_tasks):
-        '''
-        Test that a bad email will raise an exception.  Everything else
-        about the request is fine.
-        '''
-        # first check that the payload is correct by initiating a correct
-        # request 
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'file_format':TSV_FORMAT,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-        self.assertTrue(r.owner == self.regular_user_1)
-
-        # ok, now edit the owner_email field so that it's bad:
-        payload = {
-            'owner_email': test_settings.JUNK_EMAIL,
-            'resource_type': 'MTX',
-            'file_format':TSV_FORMAT,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_cannot_upload_for_other_user(self, mock_api_tasks):
-        '''
-        Test that trying to upload a Resource for another user fails
-        '''
-        # first check that the payload is correct by initiating a correct
-        # request 
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-        self.assertTrue(r.owner == self.regular_user_1)
-
-        # ok, now edit the owner_email field so that it's someone else:
-        payload = {
-            'owner_email': self.regular_user_2.email,
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb')
-        }        
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_owner_and_ownerless_conflict(self, mock_api_tasks):
-        '''
-        In this test, we are uploading as a "regular" user. They can't set 
-        the private/public status
-        '''
-        payload = {
-            'owner_email': self.admin_user.email,
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb'),
-            'is_ownerless': True
-        }
-
-        response = self.authenticated_admin_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_ownerless_by_regular_user(self, mock_api_tasks):
-        '''
-        In this test, we are uploading as a "regular" user. They can't set 
-        a resource to ownerless
-        '''
-        # first check that the payload is correct by initiating a correct
-        # request 
-        payload = {
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb'),
-            'is_ownerless': True
-        }
-
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_ownerless_by_admin_user(self, mock_api_tasks):
-        '''
-        admin users can set an upload to be ownerless
-        '''
-        # first check that the payload is correct by initiating a correct
-        # request 
-        payload = {
-            'resource_type': 'MTX',
-            'upload_file': open(self.test_upload, 'rb'),
-            'is_ownerless': True
-        }
-
-        response = self.authenticated_admin_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        j = response.json()
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        r = Resource.objects.get(pk=j['id'])
-        self.cleanup(r)
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    def test_cannot_set_public_status(self, mock_api_tasks):
-        '''
-        In this test, we are uploading as a "regular" user. They can't set 
-        the private/public status
-        '''
-        # first check that the payload is correct by initiating a correct
-        # request 
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'is_public': False,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-        self.assertTrue(r.owner == self.regular_user_1)
-
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'is_public': True,
-            'upload_file': open(self.test_upload, 'rb')
-        }
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data=payload, 
-            format='multipart'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     @mock.patch('api.serializers.resource.api_tasks')
     @mock.patch('api.uploaders.local_upload.uuid')
@@ -328,8 +104,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         orig_name = 'test name with spaces.tsv'
         payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
             'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, orig_name), 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -339,57 +113,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(str(u), basename)
         self.assertEqual(u, r.pk)
         self.assertIsNone(r.file_format) # was not set upon upload
-
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    @mock.patch('api.uploaders.local_upload.uuid')
-    def test_uploaded_filename_with_no_extension(self, mock_uuid, mock_api_tasks):
-        '''
-        Test that files without extensions are named appropriately. 
-        '''
-
-        u = uuid.uuid4()
-        mock_uuid.uuid4.return_value = u
-
-        orig_name = 'file_without_extension'
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, orig_name), 'rb')
-        }
-        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-        self.assertTrue(r.owner == self.regular_user_1)
-        self.assertTrue(r.name == orig_name)
-        basename = os.path.basename(r.path)
-        self.assertEqual(str(u), basename)
-        self.assertEqual(u, r.pk)
-        self.assertIsNone(r.file_format)
-
-
-    @mock.patch('api.serializers.resource.api_tasks')
-    @mock.patch('api.uploaders.local_upload.uuid')
-    def test_uploaded_filename_with_atypical_extension(self, mock_uuid, mock_api_tasks):
-        '''
-        Test a filename with a strange arrangement and an unconventional
-        file extension. There should be no problem, as the "name" is a string
-        which has no bearing on the resource type or how it's parsed.
-        '''
-        u = uuid.uuid4()
-        mock_uuid.uuid4.return_value = u
-
-        orig_name = 'some.file.name'
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
-            'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, orig_name), 'rb')
-        }
-        r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
-        self.assertTrue(r.owner == self.regular_user_1)
-        self.assertTrue(r.name == orig_name)
-        self.assertEqual(u, r.pk)
-        basename = os.path.basename(r.path)
-        self.assertEqual(str(u), basename)
-        self.assertIsNone(r.file_format) # has not been set, so empty
 
 
     @mock.patch('api.serializers.resource.api_tasks')
@@ -404,8 +127,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
 
         filename = '?5x.tsv'
         payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
             'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, filename), 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)
@@ -423,8 +144,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         char = 'ゑ'
         filename = char + '.tsv'
         payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'MTX',
             'upload_file': open(os.path.join(TESTDIR, self.upload_test_dir, filename), 'rb')
         }
         r = self.upload_and_cleanup(payload, self.authenticated_regular_client)

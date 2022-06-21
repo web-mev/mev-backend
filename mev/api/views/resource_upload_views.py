@@ -22,7 +22,7 @@ from api.uploaders import ServerLocalUpload, \
     DROPBOX
 from api.async_tasks.operation_tasks import submit_async_job
 from api.utilities.resource_utilities import set_resource_to_inactive
-from api.async_tasks.async_resource_tasks import validate_resource_and_store
+from api.async_tasks.async_resource_tasks import store_resource
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +40,18 @@ class ServerLocalResourceUpload(APIView):
 
     def post(self, request, *args, **kwargs):
 
-        serializer = self.serializer_class(
-            data=request.data, 
-            context={'requesting_user': request.user})
+        serializer = self.serializer_class(data=request.data)
+
         if serializer.is_valid():
             upload_handler = self.upload_handler_class()
 
             # get the file on the server:
             resource = upload_handler.handle_upload(request, serializer.data)
             
+            # if we somehow did not create an api.models.Resource instance, bail out.
+            if resource is None:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             # set and save attributes to prevent "use" of this Resource
             # before it is (potentially) validated and in its final storage location:
             set_resource_to_inactive(resource)
@@ -58,12 +61,8 @@ class ServerLocalResourceUpload(APIView):
             resource.status = Resource.PROCESSING
             resource.save()
 
-            # call the validation/storage methods async
-            validate_resource_and_store.delay(
-                resource.pk, 
-                serializer.data.get('resource_type'),
-                serializer.data.get('file_format')
-            )
+            # send to the final storage backend
+            store_resource.delay(resource.pk)
 
             resource_serializer = ResourceSerializer(resource, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)

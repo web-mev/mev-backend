@@ -17,6 +17,11 @@ def delete_file(path):
     logger.info('Requesting deletion of {path}'.format(path=path))
     get_storage_backend().delete(path)
 
+@shared_task(name='store_resource')
+def store_resource(resource_pk):
+    resource = resource_utilities.get_resource_by_pk(resource_pk)
+    resource_utilities.move_resource_to_final_location(resource)
+
 @shared_task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type, file_format):
     '''
