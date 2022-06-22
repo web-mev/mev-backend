@@ -33,7 +33,7 @@ from api.models import Resource, \
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_view, \
-    validate_resource, \
+    initiate_resource_validation, \
     handle_valid_resource, \
     handle_invalid_resource, \
     check_file_format_against_type, \
@@ -112,7 +112,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         mock_resource_mapping.__getitem__.return_value = mock_resource_type_class
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = '/foo'
+        mock_storage_backend.localize_resource.return_value = '/foo'
         mock_get_storage_backend.return_value = mock_storage_backend
         preview_dict = get_resource_view(r)
         self.assertDictEqual(expected_dict, preview_dict)
@@ -156,7 +156,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         preview_dict = get_resource_view(resource)
         self.assertIsNone(preview_dict)
-        mock_storage_backend.get_local_resource_path.assert_not_called()
+        mock_storage_backend.localize_resource.assert_not_called()
         mock_get_contents.assert_not_called()
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
@@ -188,10 +188,10 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
         
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = 'foo'
+        mock_storage_backend.localize_resource.return_value = 'foo'
         mock_get_storage_backend.return_value = mock_storage_backend
 
-        validate_resource(unset_resource, 'MTX', 'csv')
+        initiate_resource_validation(unset_resource, 'MTX', 'csv')
 
         mock_handle_invalid_resource.assert_called()
 
@@ -211,7 +211,7 @@ class TestResourceUtilities(BaseAPITestCase):
         '''
         mock_local_path = '/some/local/path.txt'
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = mock_local_path
+        mock_storage_backend.localize_resource.return_value = mock_local_path
         mock_get_storage_backend.return_value = mock_storage_backend
 
         mock_resource_class_instance = mock.MagicMock()
@@ -233,7 +233,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
 
-        validate_resource(unset_resource, 'MTX', TSV_FORMAT)
+        initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
 
         mock_handle_valid_resource.assert_called()
 
@@ -271,7 +271,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, 'something unexpected'):
-            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
+            initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
         mock_get_resource_type_instance.assert_not_called()
@@ -308,7 +308,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, 'ack'):
-            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
+            initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
         mock_get_resource_type_instance.assert_called()
@@ -345,7 +345,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, 'ZZZ'):
-            validate_resource(unset_resource, 'ZZZ', TSV_FORMAT)
+            initiate_resource_validation(unset_resource, 'ZZZ', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
         mock_get_resource_type_instance.assert_called()
@@ -363,14 +363,14 @@ class TestResourceUtilities(BaseAPITestCase):
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
 
-        Here, we test if the get_local_resource_path (a method of the storage backend) fails
+        Here, we test if the localize_resource (a method of the storage backend) fails
         for some unexpected reason, such as failure to connect to cloud storage
         '''
 
         # here we mock there being a problem with the storage backend (maybe bucket storage
         # service is temporarily offline?)
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.side_effect = [Exception('something bad')]
+        mock_storage_backend.localize_resource.side_effect = [Exception('something bad')]
         mock_get_storage_backend.return_value = mock_storage_backend
 
         mock_resource_class_instance = mock.MagicMock()
@@ -393,7 +393,7 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_message_partial = ('An unexpected issue occurred when'
             ' moving the file for inspection')
         with self.assertRaisesRegex(Exception, expected_message_partial):
-            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
+            initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
     
         mock_resource_class_instance.validate_type.assert_not_called()
         mock_handle_valid_resource.assert_not_called()
@@ -415,7 +415,7 @@ class TestResourceUtilities(BaseAPITestCase):
         '''
         mock_local_path = '/some/local/path.txt'
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = mock_local_path
+        mock_storage_backend.localize_resource.return_value = mock_local_path
         mock_get_storage_backend.return_value = mock_storage_backend
         mock_resource_class_instance = mock.MagicMock()
         mock_resource_class_instance.performs_validation.return_value = True
@@ -436,7 +436,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = unset_resources[0]
 
         with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_VALIDATION_ERROR):
-            validate_resource(unset_resource, 'MTX', TSV_FORMAT)
+            initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
 
         mock_handle_valid_resource.assert_not_called()
 
@@ -784,7 +784,7 @@ class TestResourceUtilities(BaseAPITestCase):
         g = GeneralResource()
         mock_get_resource_type_instance.return_value = g
 
-        validate_resource(r, WILDCARD, '')
+        initiate_resource_validation(r, WILDCARD, '')
 
         mock_handle_valid_resource.assert_called()
         mock_get_storage_backend.assert_not_called()
@@ -1009,8 +1009,8 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    @mock.patch('api.utilities.resource_utilities.get_local_resource_path')
-    def test_metadata_when_type_changed(self, mock_get_local_resource_path, \
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
+    def test_metadata_when_type_changed(self, mock_localize_resource, \
         mock_get_resource_type_instance, \
         mock_check_file_format_against_type, \
         mock_get_storage_backend, mock_move_resource_to_final_location):
@@ -1035,11 +1035,11 @@ class TestResourceUtilities(BaseAPITestCase):
             patched_ann_table_instance
         ]
 
-        mock_get_local_resource_path.return_value = resource_path
+        mock_localize_resource.return_value = resource_path
 
         mock_move_resource_to_final_location.return_value = resource_path
         mock_f = mock.MagicMock()
-        mock_f.get_local_resource_path.return_value = resource_path
+        mock_f.localize_resource.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
 
         r = Resource.objects.create(
@@ -1049,10 +1049,10 @@ class TestResourceUtilities(BaseAPITestCase):
             path = resource_path,
             resource_type = '*'
         )
-        validate_resource(r, '*', '')
+        initiate_resource_validation(r, '*', '')
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertTrue(rm.observation_set is None)
-        validate_resource(r, 'ANN', TSV_FORMAT)
+        initiate_resource_validation(r, 'ANN', TSV_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertFalse(rm.observation_set is None)
 
@@ -1060,15 +1060,15 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    @mock.patch('api.utilities.resource_utilities.get_local_resource_path')
-    def test_metadata_when_type_changed_case2(self, mock_get_local_resource_path, \
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
+    def test_metadata_when_type_changed_case2(self, mock_localize_resource, \
         mock_get_resource_type_instance, \
         mock_check_file_format_against_type, \
         mock_get_storage_backend, mock_move_resource_to_final_location):
 
         resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
-        mock_get_local_resource_path.return_value = resource_path
+        mock_localize_resource.return_value = resource_path
 
         # define this mock function so we can patch the class
         # implementing the validation methods
@@ -1084,7 +1084,7 @@ class TestResourceUtilities(BaseAPITestCase):
             patched_mtx_instance
         ]
         mock_f = mock.MagicMock()
-        mock_f.get_local_resource_path.return_value = resource_path
+        mock_f.localize_resource.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
         
         r = Resource.objects.create(
@@ -1094,10 +1094,10 @@ class TestResourceUtilities(BaseAPITestCase):
             path = resource_path,
             resource_type = '*'
         )
-        validate_resource(r, '*', 'txt')
+        initiate_resource_validation(r, '*', 'txt')
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertTrue(rm.observation_set is None)
-        validate_resource(r, 'MTX', TSV_FORMAT)
+        initiate_resource_validation(r, 'MTX', TSV_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         obs_set = rm.observation_set
         samples = [x['id'] for x in obs_set['elements']]

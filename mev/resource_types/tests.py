@@ -5,6 +5,8 @@ import pandas as pd
 import uuid
 import os
 
+from constants import TSV_FORMAT
+
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type
 
@@ -45,7 +47,7 @@ class TestTableResource(unittest.TestCase):
 
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
-        new_path, new_name = mtx_type.save_in_standardized_format(path, 'test_matrix.csv', 'csv')
+        new_path = mtx_type.save_in_standardized_format(path, 'csv')
         
         self.assertEqual('/tmp/{x}'.format(x=str(u)), new_path)
         self.assertEqual('test_matrix.tsv', new_name)
@@ -74,9 +76,11 @@ class TestTableResource(unittest.TestCase):
         path = os.path.join('/tmp', orig_name)
         df.to_csv(path, sep='\t')
 
+
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
-        new_path, new_name = mtx_type.save_in_standardized_format(path, 'test_matrix.tsv', 'tsv')
+        self.assertTrue(TSV_FORMAT == mtx_type.STANDARD_FORMAT)
+        new_path = mtx_type.save_in_standardized_format(path, TSV_FORMAT)
         
         self.assertEqual(path, new_path)
         self.assertEqual(orig_name, new_name)

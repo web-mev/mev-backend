@@ -277,9 +277,10 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
         except Exception:
             return False
 
-    def get_local_resource_path(self, resource_instance):
+    def localize_resource(self, resource_instance):
         '''
-        Returns the path to the file resource on the local machine.
+        Localizes the file and returns the path to the file
+        on the local machine.
         
         For this case of Google bucket-based storage, we download
         the blob to the local cache dir if it does not already exist
@@ -309,7 +310,7 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             logger.info('Did not locate file in local cache. Download it.')
             blob = self.get_blob(resource_instance.path)
             if blob is None:
-                raise Exception('The object located at {p} did not exist.'.format(
+                raise FileNotFoundError('The object located at {p} did not exist.'.format(
                         p = resource_instance.path
                     )
                 )

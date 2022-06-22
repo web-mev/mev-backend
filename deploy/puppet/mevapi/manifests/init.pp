@@ -45,6 +45,7 @@ class mevapi (
   $data_root = '/data'
   $data_dirs = [
     "${data_root}/pending_user_uploads",
+    "${data_root}/resource_validation_tmp",
     "${data_root}/resource_cache",
     "${data_root}/operation_staging",
     "${data_root}/operations",

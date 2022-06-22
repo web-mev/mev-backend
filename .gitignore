@@ -21,5 +21,6 @@ terraform.tfvars
 /mev/dump.rdb
 /mev/operations/
 /mev/pending_user_uploads/
+/mev/resource_validation_tmp/
 /mev/static/
 /mev/user_resources/

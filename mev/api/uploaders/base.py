@@ -88,7 +88,7 @@ class LocalUpload(BaseUpload):
     def create_local_path(upload_resource_uuid):
         tmp_name = str(upload_resource_uuid)
         tmp_path = os.path.join(
-            settings.PENDING_FILES_DIR, 
+            settings.PENDING_UPLOADS_DIR, 
             tmp_name
         )
         return tmp_path

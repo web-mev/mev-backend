@@ -193,9 +193,9 @@ class TestElementSetConverter(BaseAPITestCase):
 
 class TestDataResourceConverter(BaseAPITestCase):
 
-    @mock.patch('api.converters.data_resource.get_storage_backend')
+    @mock.patch('api.converters.data_resource.localize_resource')
     @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_single_local_converter(self, mock_copy_local_resource, mock_get_storage_backend):
+    def test_single_local_converter(self, mock_copy_local_resource, mock_localize_resource):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path
@@ -203,9 +203,7 @@ class TestDataResourceConverter(BaseAPITestCase):
         p = '/foo/bar.txt'
         mock_staging_dir = '/some/staging_dir'
         dest = os.path.join(mock_staging_dir, 'bar.txt')
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = p
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.return_value = p
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -218,9 +216,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_copy_local_resource.assert_called_with(p, dest)
         self.assertDictEqual(x, {'foo':  dest})
 
-    @mock.patch('api.converters.data_resource.get_storage_backend')
+    @mock.patch('api.converters.data_resource.localize_resource')
     @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_single_local_with_rt_converter(self, mock_copy_local_resource, mock_get_storage_backend):
+    def test_single_local_with_rt_converter(self, mock_copy_local_resource, mock_localize_resource):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path AND resource type as a special delimited string
@@ -228,9 +226,7 @@ class TestDataResourceConverter(BaseAPITestCase):
         p = '/foo/bar.txt'
         mock_staging_dir = '/some/staging_dir'
         dest = os.path.join(mock_staging_dir, 'bar.txt')
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = p
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.return_value = p
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -287,9 +283,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         self.assertDictEqual(x, {'foo':expected})
 
 
-    @mock.patch('api.converters.data_resource.get_storage_backend')
+    @mock.patch('api.converters.data_resource.localize_resource')
     @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_csv_local_converter_case1(self, mock_copy_local_resource, mock_get_storage_backend):
+    def test_csv_local_converter_case1(self, mock_copy_local_resource, mock_localize_resource):
         '''
         Tests that the converter can take a list of Resource instances
         and return a properly formatted comma-delim list 
@@ -297,9 +293,7 @@ class TestDataResourceConverter(BaseAPITestCase):
         p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
         mock_staging_dir = '/some/staging_dir'
         final_paths = [x.replace('/foo', mock_staging_dir) for x in p]
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.side_effect = p
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.side_effect = p
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -334,9 +328,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
-    @mock.patch('api.converters.data_resource.get_storage_backend')
+    @mock.patch('api.converters.data_resource.localize_resource')
     @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_csv_local_converter_case2(self, mock_copy_local_resource, mock_get_storage_backend):
+    def test_csv_local_converter_case2(self, mock_copy_local_resource, mock_localize_resource):
         '''
         Tests that the CSV converter can take a single Resource instance
         and return a properly formatted string 
@@ -344,9 +338,7 @@ class TestDataResourceConverter(BaseAPITestCase):
         p = '/foo/bar1.txt'
         mock_staging_dir = '/some/staging_dir'
         final_path = os.path.join(mock_staging_dir, os.path.basename(p))
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = p
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.return_value = p
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -377,9 +369,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
-    @mock.patch('api.converters.data_resource.get_storage_backend')
+    @mock.patch('api.converters.data_resource.localize_resource')
     @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_space_delim_local_converter_case1(self, mock_copy_local_resource, mock_get_storage_backend):
+    def test_space_delim_local_converter_case1(self, mock_copy_local_resource, mock_localize_resource):
         '''
         Tests that the converter can take a list of Resource instances
         and return a properly formatted space-delimited list.
@@ -387,9 +379,7 @@ class TestDataResourceConverter(BaseAPITestCase):
         p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
         mock_staging_dir = '/some/staging_dir'
         final_paths = [os.path.join(mock_staging_dir, os.path.basename(x)) for x in p]
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.side_effect = p
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.side_effect = p
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
@@ -423,9 +413,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
         self.assertDictEqual(x, {'foo':expected})
 
-    @mock.patch('api.converters.data_resource.get_storage_backend')
+    @mock.patch('api.converters.data_resource.localize_resource')
     @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_space_delim_local_converter_case2(self, mock_copy_local_resource, mock_get_storage_backend):
+    def test_space_delim_local_converter_case2(self, mock_copy_local_resource, mock_localize_resource):
         '''
         Tests that the converter can take a single Resource instance
         and return a properly formatted space-delimited list.
@@ -433,9 +423,7 @@ class TestDataResourceConverter(BaseAPITestCase):
         p = '/foo/bar1.txt'
         mock_staging_dir = '/some/staging_dir'
         final_path = os.path.join(mock_staging_dir, os.path.basename(p))
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = p
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.return_value = p
 
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test

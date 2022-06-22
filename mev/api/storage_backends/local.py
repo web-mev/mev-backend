@@ -74,7 +74,7 @@ class LocalStorage(BaseStorageBackend):
         '''
         return os.path.exists(path)
 
-    def get_local_resource_path(self, resource_instance):
+    def localize_resource(self, resource_instance):
         '''
         Returns the path to the file resource on the local machine.
         Trivial for this implementation of local storage
@@ -85,4 +85,4 @@ class LocalStorage(BaseStorageBackend):
         '''
         Returns a url that will allow download of this resource.
         '''
-        return self.get_local_resource_path(resource_instance)
+        return self.localize_resource(resource_instance)

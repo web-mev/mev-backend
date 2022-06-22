@@ -68,7 +68,7 @@ class TestValidateResource(BaseAPITestCase):
         all_resources = Resource.objects.all()
         r = all_resources[0]
         mock_resource_utilities.get_resource_by_pk.return_value = r
-        mock_resource_utilities.validate_resource.side_effect = [Exception('ex!')]
+        mock_resource_utilities.initiate_resource_validation.side_effect = [Exception('ex!')]
 
         validate_resource(r.pk, 'ABC', TSV_FORMAT)
         mock_alert_admins.assert_called_with('ex!')
@@ -172,7 +172,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance.save_in_standardized_format.return_value = ('/some/path.txt', 'newname')
         mock_get_resource_type_instance.return_value = mock_resource_instance
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = new_path
+        mock_storage_backend.localize_resource.return_value = new_path
         mock_get_storage_backend.return_value = mock_storage_backend
         validate_resource(resource.pk, new_type, TSV_FORMAT)
         
@@ -240,7 +240,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_move.return_value = fake_final_path
 
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = fake_final_path
+        mock_storage_backend.localize_resource.return_value = fake_final_path
         mock_get_storage_backend.return_value = mock_storage_backend
 
         mock_get_resource_size.return_value = 100
@@ -310,7 +310,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_move.return_value = fake_final_path
 
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = unset_resource.path
+        mock_storage_backend.localize_resource.return_value = unset_resource.path
         mock_get_storage_backend.return_value = mock_storage_backend
 
         mock_get_resource_size.return_value = 100
@@ -366,7 +366,7 @@ class TestValidateResource(BaseAPITestCase):
 
         # set some mock vals:
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = resource_path
+        mock_storage_backend.localize_resource.return_value = resource_path
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # call the tested function
@@ -417,7 +417,7 @@ class TestValidateResource(BaseAPITestCase):
 
         mock_move.return_value = resource_path
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = resource_path
+        mock_storage_backend.localize_resource.return_value = resource_path
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # check the original count for ResourceMetadata
@@ -441,13 +441,13 @@ class TestValidateResource(BaseAPITestCase):
 
 
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    @mock.patch('api.utilities.resource_utilities.validate_resource')
+    @mock.patch('api.utilities.resource_utilities.initiate_resource_validation')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
     def test_storage_failure_handled_gracefully(self,
         mock_alert_admins,
         mock_get_resource_size, 
-        mock_validate_resource, mock_get_storage_backend):
+        mock_initiate_resource_validation, mock_get_storage_backend):
         '''
         Here we test that we handle storage failures gracefully.
 
@@ -484,7 +484,7 @@ class TestValidateResource(BaseAPITestCase):
         validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
 
         mock_alert_admins.assert_called()
-        mock_validate_resource.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
         mock_get_resource_size.assert_not_called()
         
         # query the resource to see any changes:
@@ -526,7 +526,7 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_class_instance.validate_type.side_effect = Exception('validation ex!')
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = '/some/path/bar.txt'
+        mock_storage_backend.localize_resource.return_value = '/some/path/bar.txt'
         mock_get_storage_backend.return_value = mock_storage_backend
         mock_get_resource_size.return_value = 100
 

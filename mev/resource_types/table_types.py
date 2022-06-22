@@ -543,7 +543,7 @@ class TableResource(DataResource):
                 ))
             raise ex
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
         '''
         This method extracts metadata from the Resource in question and 
         saves it to the database.
@@ -566,7 +566,9 @@ class TableResource(DataResource):
                     path=resource_path
                 )
             )
-            is_valid, message = self.validate_type(resource_path, file_format)
+            # if we are extracting metadata, then the file should have been deemed "valid"
+            # and hence saved into the standardized format.
+            is_valid, message = self.validate_type(resource_path, self.STANDARD_FORMAT)
             if not is_valid:
                 raise UnexpectedTypeValidationException(message)
         else:
@@ -585,10 +587,11 @@ class TableResource(DataResource):
         if parent_op_pk:
             self.metadata[DataResource.PARENT_OP] = parent_op_pk
 
-    def save_in_standardized_format(self, resource_path, resource_name, file_format):
+    def save_in_standardized_format(self, resource_path, file_format):
         '''
         To avoid all the analyses having to concern themselves with data formats
-        like csv, tsv, xlsx, etc. we just save table-based formats as a TSV.
+        like csv, tsv, xlsx, etc. we just save table-based formats in a standard
+        format, determind by self.STANDARD_FORMAT
         '''
         logger.info('Saving resource with path ({path}) to the standard format.'
             ' for a table-based resource'.format(
@@ -600,9 +603,9 @@ class TableResource(DataResource):
         # If it happens that this is also our standard format (tsv)
         # then we can just return immediately
         if file_format.lower() == self.STANDARD_FORMAT.lower():
-            return resource_path, resource_name
+            return resource_path
 
-        # If we are here, then the uploaded file extension did not match our
+        # If we are here, then the selected file format did not match our
         # "standard" format.  Have to parse and rewrite to that standard format.
 
         # If the self.table field was not already filled, we need to 
@@ -623,20 +626,18 @@ class TableResource(DataResource):
                         path=resource_path
                     )
                 )
-        # ok, self.table is set-- save it.
-        file_dir =  os.path.dirname(resource_path)
-        new_path = os.path.join(file_dir, str(uuid.uuid4()))
-        name_contents = resource_name.split('.')
-        name_contents[-1] = self.STANDARD_FORMAT
-        new_name = '.'.join(name_contents)
+                raise ex
 
-        logger.info('Writing the reformatted table-based resource to: {p}.'
-            ' The new name is {n}.'.format(
-            p = new_path,
-            n = new_name
+        # ok, self.table is set-- save it.
+        new_path = os.path.join(settings.VALIDATION_TMP_DIR, str(uuid.uuid4()))
+
+        logger.info('Writing the reformatted table-based resource to'
+            ' the temporary location: {p}.'.format(
+            p = new_path
         ))
         self.table.to_csv(new_path, sep='\t')
-        return new_path, new_name   
+        return new_path
+
 
 class Matrix(TableResource):
     '''
@@ -730,9 +731,9 @@ class Matrix(TableResource):
 
         return (True, None)
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
 
-        super().extract_metadata(resource_path, file_format, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -1116,7 +1117,7 @@ class AnnotationTable(ElementTable):
 
         return (True, None)
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
         '''
         When we extract the metadata from an AnnotationTable, we 
         expect the Observation instances to be the rows.  
@@ -1124,7 +1125,7 @@ class AnnotationTable(ElementTable):
         Additional columns specify attributes of each Observation,
         which we incorporate
         '''
-        super().extract_metadata(resource_path, file_format, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk)
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)
         self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
@@ -1179,7 +1180,7 @@ class FeatureTable(ElementTable):
         }
     ]
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
         '''
         When we extract the metadata from a FeatureTable, we 
         expect the Feature instances to be the rows.  
@@ -1188,7 +1189,7 @@ class FeatureTable(ElementTable):
         which we incorporate
         '''
         logger.info('Extract metadata from a FeatureTable')
-        super().extract_metadata(resource_path, file_format, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -1243,6 +1244,6 @@ class BEDFile(TableResource):
             error_message = BED_FORMAT_ERROR.format(cols=cols)
             return (False, error_message)
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
-        super().extract_metadata(resource_path, file_format, parent_op_pk)
+    def extract_metadata(self, resource_path, parent_op_pk=None):
+        super().extract_metadata(resource_path, parent_op_pk)
         return self.metadata

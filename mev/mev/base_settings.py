@@ -211,13 +211,24 @@ ADMIN_EMAIL_LIST = [x for x in os.environ.get('ADMIN_EMAIL_CSV', '').split(',') 
 MAIN_DOC_YAML = os.path.join(BASE_DIR, 'api', 'docs', 'mkdocs.yml')
 
 
-# A directory where we hold user uploads while they are validated.
-# After validation, they are moved to a users' own storage
-PENDING_FILES_DIR = os.path.join(DATA_DIR, 'pending_user_uploads')
-if not os.path.exists(PENDING_FILES_DIR):
+# A directory where we temporarily write uploads send to the server
+# After completion, they are moved to a users' own storage based 
+# on the storage backend
+PENDING_UPLOADS_DIR = os.path.join(DATA_DIR, 'pending_user_uploads')
+if not os.path.exists(PENDING_UPLOADS_DIR):
     raise ImproperlyConfigured('Please create a directory for the'
     ' pending uploaded files at {path}.'.format(
-        path = PENDING_FILES_DIR)
+        path = PENDING_UPLOADS_DIR)
+    )
+
+# A tmp dir where we place files that are in the process of being validated.
+# We perform the work there so as not to potentially corrupt the "real"
+# user files in our local cache.
+VALIDATION_TMP_DIR = os.path.join(DATA_DIR, 'resource_validation_tmp')
+if not os.path.exists(VALIDATION_TMP_DIR):
+    raise ImproperlyConfigured('Please create a directory for'
+    ' resource validation at {path}.'.format(
+        path = VALIDATION_TMP_DIR)
     )
 
 # A local directory to be used as a tmp dir

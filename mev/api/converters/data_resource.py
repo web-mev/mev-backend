@@ -3,9 +3,9 @@ import logging
 
 from api.models import Resource
 from api.utilities.basic_utils import copy_local_resource
-from api.utilities.resource_utilities import get_resource_by_pk
+from api.utilities.resource_utilities import get_resource_by_pk, \
+    localize_resource
 from api.converters.mixins import CsvMixin, SpaceDelimMixin
-from api.storage_backends import get_storage_backend
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,7 @@ class LocalDataResourceConverter(BaseDataResourceConverter):
         on the local filesystem
         '''
         r = self.get_resource(resource_uuid)
-        local_path = get_storage_backend().get_local_resource_path(r)
-        return local_path
+        return localize_resource(r)
 
     def copy_local_resource_to_staging(self, resource_uuid, staging_dir):
         '''

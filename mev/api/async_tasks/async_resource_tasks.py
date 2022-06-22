@@ -26,19 +26,15 @@ def store_resource(resource_pk):
 def validate_resource(resource_pk, requested_resource_type, file_format):
     '''
     This function only performs validation of the resource.
-    Note that it calls the `resource_utilities.validate_resource` 
-    function which does NOT perform a save on the passed Resource
-    instance
+    
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
     resource.status = Resource.VALIDATING
-    print('RESOURCE')
-    print(resource)
     resource.save()
     try:
-        resource_utilities.validate_resource(resource, requested_resource_type, file_format)
+        resource_utilities.initiate_resource_validation(resource, requested_resource_type, file_format)
     except Exception as ex:
-        logger.info('Caught an exception raised by the validate_resource function.')
+        logger.info('Caught an exception raised during resource validation.')
         alert_admins(str(ex))
         resource.status = str(ex)
     resource.is_active = True

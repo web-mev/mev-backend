@@ -334,7 +334,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = 'JSON'
         self.resource.save()
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # check that full file works without query params
@@ -378,7 +378,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
         response = self.authenticated_regular_client.get(
             self.url, format='json'
@@ -447,7 +447,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
         response = self.authenticated_regular_client.get(
             self.url, format='json'
@@ -498,7 +498,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -591,7 +591,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -727,7 +727,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -777,7 +777,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -848,7 +848,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -964,7 +964,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -1213,7 +1213,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
         
         # the base url (no query params) should return all the records
@@ -1333,7 +1333,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -1388,7 +1388,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -1453,7 +1453,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -1604,7 +1604,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -1793,7 +1793,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -1974,7 +1974,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -2029,7 +2029,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
@@ -2128,7 +2128,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.get_local_resource_path.return_value = f
+        mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records

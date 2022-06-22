@@ -2,26 +2,27 @@ import pandas as pd
 from itertools import chain
 from collections import defaultdict
 
-from api.storage_backends import get_storage_backend
+from api.utilities.resource_utilities import localize_resource
 from api.data_structures import PositiveIntegerAttribute
 
 def subset_PANDA_net(resource, query_params):
     '''
 
     Given a Resource (database row) and query params,
-    perform the following:
+    returns a subset of top interacting feat/obs in matrix.
 
-    Returns a subset of top interacting feat/obs in matrix.
-        Parameters:
-            path_to_fname (str): Path to matrix file.
-            max_depth (int): Max depth layers to traverse.
-            N (int): Top N children to return.
-            axis (int): Initial axis to start
+    `query_params` is a dict and has the following required keys:
+    - maxdepth: how many levels deep to go 
+    - children: how many children are investigated at each level (breadth)
+    - axis: whether to start by looking at genes (0) or TFs (1)
 
-        Returns:
-            node_children_map (dict): Flattened map of nodes and children.
-                keys = tuple of (node, axis)
-                list = tuples of (child, edge weight)
+    Additionally, one can start from a list of query genes to perform the subsequent
+    walk down the network. That key is "initial_nodes"
+
+    Returns:
+        node_children_map (dict): Flattened map of nodes and children.
+            keys = tuple of (node, axis)
+            list = tuples of (child, edge weight)
 
     The input file is a gene-by-TF matrix. Each entry is a float
     '''
@@ -41,7 +42,7 @@ def subset_PANDA_net(resource, query_params):
             )
         return node_children_map
 
-    path_to_fname = get_storage_backend().get_local_resource_path(resource)
+    local_path = localize_resource(resource)
 
     try:
         p = PositiveIntegerAttribute(int(query_params['maxdepth']))
@@ -80,7 +81,7 @@ def subset_PANDA_net(resource, query_params):
         init_nodes = None
 
     # Import file as pandas dataframe
-    df = pd.read_table(path_to_fname, header=0, index_col=0)
+    df = pd.read_table(local_path, header=0, index_col=0)
 
     # Set initial variables
     initial_axis = axis
