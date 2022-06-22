@@ -90,3 +90,10 @@ class StorageException(Exception):
     it's not a generic catch-all failure that we did not expect)
     '''
     pass
+
+class ResourceValidationException(Exception):
+    '''
+    This is raised if any part of the resource validation process fails. This helps
+    distinguish predictable validation errors from those that are unexpected.
+    '''
+    pass

@@ -6,7 +6,7 @@ import uuid
 import os
 
 from resource_types import RESOURCE_MAPPING, \
-    format_is_consistent_with_type
+    format_is_acceptable_for_type
 
 class TestResourceTypes(unittest.TestCase):    
     
@@ -93,24 +93,24 @@ class TestResourcePkgFunctions(unittest.TestCase):
         mock_get_acceptable_formats.return_value = ['tsv','csv']
 
         # an unacceptable format:
-        self.assertFalse(format_is_consistent_with_type('abc', ''))
+        self.assertFalse(format_is_acceptable_for_type('abc', ''))
 
         # tests an exact match to the accepted formats
-        self.assertTrue(format_is_consistent_with_type('csv', ''))
+        self.assertTrue(format_is_acceptable_for_type('csv', ''))
 
         # tests the case-insensitivity
-        self.assertTrue(format_is_consistent_with_type('TsV', ''))
+        self.assertTrue(format_is_acceptable_for_type('TsV', ''))
 
         # Test an empty string when we have no allowance for wildcards
-        self.assertFalse(format_is_consistent_with_type('', ''))
+        self.assertFalse(format_is_acceptable_for_type('', ''))
 
         # Add a wildcard and check that the bogus format is fine
         mock_get_acceptable_formats.return_value = ['tsv','csv', '*']
-        self.assertTrue(format_is_consistent_with_type('abc', ''))
+        self.assertTrue(format_is_acceptable_for_type('abc', ''))
 
         # Test an empty string for format is ok for wildcards
-        self.assertTrue(format_is_consistent_with_type('', ''))
+        self.assertTrue(format_is_acceptable_for_type('', ''))
 
         mock_get_acceptable_formats.side_effect = KeyError('xyz')
-        with self.assertRaisesRegex(Exception, "type 'xyz' is not among the accepted types"):
-            format_is_consistent_with_type('abc', 'garbage')
+        with self.assertRaises(KeyError):
+            format_is_acceptable_for_type('abc', 'garbage')

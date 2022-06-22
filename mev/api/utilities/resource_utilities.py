@@ -8,7 +8,9 @@ from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
 
 from api.models import Resource, ResourceMetadata, ExecutedOperation, OperationResource
-from api.exceptions import AttributeValueError, StorageException
+from api.exceptions import AttributeValueError, \
+    StorageException, \
+    ResourceValidationException
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory, \
     move_resource, \
@@ -20,7 +22,7 @@ from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     RESOURCE_KEY
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
-    format_is_consistent_with_type, \
+    format_is_acceptable_for_type, \
     resource_supports_pagination as _resource_supports_pagination, \
     get_acceptable_formats, \
     get_resource_type_instance, \
@@ -343,31 +345,49 @@ def handle_valid_resource(
             ' An administrator has been notified. You may also attempt to validate again.'
         )
 
-def check_file_format_against_type(resource, requested_resource_type, file_format):
+def check_file_format_against_type(requested_resource_type, file_format):
     '''
     Checks that the file format is consistent with the requested
     resource type. Each resource type permits a certain set of expected
-    file formats.  
+    file formats.  If not, raise an ResourceValidationException
+
+    If the chosen format and type are acceptable, simply return
     
     `resource` is an instance of the db model (`api.models.Resource`)
     `requested_resource_type` is the shorthand ID (e.g. 'MTX')
     `file_format` is a shorthand for the format (e.g. 'tsv')
     '''
-        
-    consistent_extension = format_is_consistent_with_type(file_format, requested_resource_type)
+    try:
+        acceptable_format = format_is_acceptable_for_type(file_format, requested_resource_type)
+    except KeyError as ex:
+        ex = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
+            requested_resource_type = requested_resource_type
+        )
+        raise ResourceValidationException(ex)
 
-    if not consistent_extension:
+    if not acceptable_format:
         acceptable_extensions = ','.join(get_acceptable_formats(requested_resource_type))
-        resource.status = Resource.UNKNOWN_FORMAT_ERROR.format(
+        ex = Resource.UNKNOWN_FORMAT_ERROR.format(
             readable_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[requested_resource_type],
-            filename = resource.name,
             fmt = file_format,
             extensions_csv = acceptable_extensions
         )
-        resource.save()
-        return False
-    return True
+        raise ResourceValidationException(ex)
 
+def retrieve_resource_class_instance(requested_resource_type):
+    '''
+    This returns an actual resource class implementation from
+    the resource_types package
+    
+    The `requested_resource_type` arg is the shorthand identifier.
+    '''
+    try:
+        return get_resource_type_instance(requested_resource_type)
+    except KeyError as ex:
+        ex = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
+            requested_resource_type = requested_resource_type
+        )
+        raise ResourceValidationException(ex)
 
 def handle_invalid_resource(resource_instance, requested_resource_type, message = ''):
 
@@ -414,8 +434,13 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
 def validate_resource(resource_instance, requested_resource_type, file_format):
     '''
     This function performs validation against the requested resource
-    type and format.  If that fails, reverts to the original type (or remains None
-    if the resource has never been successfully validated).
+    type and format.  
+    
+    If ANY part of the validation fails, the requested changes to
+    the resource will not be persisted.
+
+    Predictable errors in the validation process should raise 
+    ResourceValidationException, providing a helpful reason for that failure.
     '''
 
     # If we do not have BOTH the resource type and file format, then
@@ -434,29 +459,11 @@ def validate_resource(resource_instance, requested_resource_type, file_format):
     ))
 
     # check the file format is consistent with the requested type:
-    try:
-        type_is_consistent = check_file_format_against_type(resource_instance, requested_resource_type)
-        if not type_is_consistent:
-            message = 'The requested type was not consistent with the file format. Skipping validation.'
-            logger.info(message)
-            resource_instance.status = Resource.ERROR_WITH_REASON.format(ex=message)
-            return
-    except Exception as ex:
-        raise Exception('There as an unexpected problem when checking if the file format is consistent'
-            ' with the requested resource type. Please check your inputs.'
-        )
-    # The `requested_resource_type` is the shorthand identifier.
-    # This returns an actual resource class implementation
-    try:
-        resource_class_instance = get_resource_type_instance(requested_resource_type)
-    except KeyError as ex:
-        raise Exception('The key {k} was not a known resource type.'.format(
-            k=requested_resource_type)
-        )
-    except Exception as ex:
-        raise Exception('There was an unexpected error when retrieving the validator'
-            ' for the requested resource type.'
-        )
+    check_file_format_against_type(requested_resource_type, file_format)
+
+    # Get the resource class. If not found, exceptions are raised
+    resource_class_instance = retrieve_resource_class_instance(requested_resource_type)
+    
     if resource_class_instance.performs_validation():
 
         logger.info('Since the resource class permits validation, go and'

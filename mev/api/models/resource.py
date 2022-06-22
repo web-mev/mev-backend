@@ -45,7 +45,9 @@ class Resource(AbstractResource):
     FAILED = 'Failed validation for resource type "{requested_resource_type}".'
     REVERTED = ('Failed validation for type "{requested_resource_type}".'
         ' Reverting back to the valid type of "{original_resource_type}".')
-    UNKNOWN_FORMAT_ERROR = ('File format "{fmt}" for file "{filename}" is not consistent'
+    UNKNOWN_RESOURCE_TYPE_ERROR = ('The requested resource type'
+        ' of {requested_resource_type} is not a known type.')
+    UNKNOWN_FORMAT_ERROR = ('File format "{fmt}" is not consistent'
         ' with the requested resource type ({readable_resource_type}).'
         ' Acceptable formats/extensions are: {extensions_csv}')
     UNEXPECTED_VALIDATION_ERROR = 'There was an unexpected error during validation. An administrator has been notified.'

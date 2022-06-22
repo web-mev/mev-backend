@@ -110,7 +110,6 @@ class TestValidateResource(BaseAPITestCase):
         failure_msg = 'Failed for this reason.'
         mock_resource_instance.validate_type.return_value = (False, failure_msg)
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_file_format_against_type.return_value = True
         validate_resource(resource.pk, other_type, TSV_FORMAT)
 
         # query the resource to see any changes:
@@ -172,7 +171,6 @@ class TestValidateResource(BaseAPITestCase):
         }
         mock_resource_instance.save_in_standardized_format.return_value = ('/some/path.txt', 'newname')
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_file_format_against_type.return_value = True
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = new_path
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -237,7 +235,6 @@ class TestValidateResource(BaseAPITestCase):
         # of the path (as would happen if we saved in a standardized format)
         mock_resource_instance.save_in_standardized_format.return_value = ('','')
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_file_format_against_type.return_value = True
         
         fake_final_path = '/some/final_path/foo.tsv'
         mock_move.return_value = fake_final_path
@@ -308,7 +305,6 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_instance.save_in_standardized_format.return_value = (unset_resource.path,
             unset_resource.name)
         mock_get_resource_type_instance.return_value = mock_resource_instance
-        mock_check_file_format_against_type.return_value = True
         
         fake_final_path = '/some/final_path/foo.tsv'
         mock_move.return_value = fake_final_path
@@ -423,7 +419,6 @@ class TestValidateResource(BaseAPITestCase):
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_storage_backend
-        mock_check_file_format_against_type.return_value = True
 
         # check the original count for ResourceMetadata
         rm = ResourceMetadata.objects.filter(resource=r)
@@ -534,7 +529,6 @@ class TestValidateResource(BaseAPITestCase):
         mock_storage_backend.get_local_resource_path.return_value = '/some/path/bar.txt'
         mock_get_storage_backend.return_value = mock_storage_backend
         mock_get_resource_size.return_value = 100
-        mock_check_file_format_against_type.return_value = True
 
         # call the tested function
         validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)

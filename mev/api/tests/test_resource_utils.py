@@ -39,10 +39,12 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     check_file_format_against_type, \
     add_metadata_to_resource, \
     get_resource_by_pk, \
-    write_resource
+    write_resource, \
+    retrieve_resource_class_instance
 from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
-from api.exceptions import NoResourceFoundException
+from api.exceptions import NoResourceFoundException, \
+    ResourceValidationException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -188,7 +190,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = 'foo'
         mock_get_storage_backend.return_value = mock_storage_backend
-        mock_check_file_format_against_type.return_value = True
 
         validate_resource(unset_resource, 'MTX', 'csv')
 
@@ -217,8 +218,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_resource_class_instance.performs_validation.return_value = True
         mock_resource_class_instance.validate_type.return_value = (True, 'some string')
         mock_get_resource_type_instance.return_value = mock_resource_class_instance
-
-        mock_check_file_format_against_type.return_value = True
 
         all_resources = Resource.objects.all()
         unset_resources = []
@@ -251,7 +250,10 @@ class TestResourceUtilities(BaseAPITestCase):
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
 
-        Here, we test if the `check_file_format_against_type` function raises an exception
+        Here, we test if the `check_file_format_against_type` function raises an exception. Note that
+        a predictable failure there (i.e. an inconsistent resource type and format were specified), then
+        the function raises a ResourceValidationException. Since this exception is not expected, it is NOT
+        of that type.
         '''
         mock_check_file_format_against_type.side_effect = [Exception('something unexpected!')]
 
@@ -268,7 +270,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         unset_resource = unset_resources[0]
 
-        with self.assertRaisesRegex(Exception, 'unexpected problem'):
+        with self.assertRaisesRegex(Exception, 'something unexpected'):
             validate_resource(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
@@ -290,7 +292,6 @@ class TestResourceUtilities(BaseAPITestCase):
         Here, we test if the `get_resource_type` function raises an exception from something
         unexpected
         '''
-        mock_check_file_format_against_type.return_value = True
         mock_get_resource_type_instance.side_effect = [Exception('ack'),]
 
         all_resources = Resource.objects.all()
@@ -306,7 +307,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         unset_resource = unset_resources[0]
 
-        with self.assertRaisesRegex(Exception, 'retrieving the validator'):
+        with self.assertRaisesRegex(Exception, 'ack'):
             validate_resource(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
         mock_get_storage_backend.assert_not_called()
@@ -328,7 +329,6 @@ class TestResourceUtilities(BaseAPITestCase):
         Here, we test if the `get_resource_type` function raises an exception from an unknown
         resource type (a keyError). 
         '''
-        mock_check_file_format_against_type.return_value = True
         mock_get_resource_type_instance.side_effect = [KeyError('abc'),]
 
         all_resources = Resource.objects.all()
@@ -366,7 +366,6 @@ class TestResourceUtilities(BaseAPITestCase):
         Here, we test if the get_local_resource_path (a method of the storage backend) fails
         for some unexpected reason, such as failure to connect to cloud storage
         '''
-        mock_check_file_format_against_type.return_value = True
 
         # here we mock there being a problem with the storage backend (maybe bucket storage
         # service is temporarily offline?)
@@ -414,7 +413,6 @@ class TestResourceUtilities(BaseAPITestCase):
 
         Here, we test if the validation method fails unexpectedly.
         '''
-        mock_check_file_format_against_type.return_value = True
         mock_local_path = '/some/local/path.txt'
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.get_local_resource_path.return_value = mock_local_path
@@ -505,30 +503,73 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch.dict('api.utilities.resource_utilities.DB_RESOURCE_KEY_TO_HUMAN_READABLE', \
         {'foo_type': 'Table'})
-    @mock.patch('api.utilities.resource_utilities.format_is_consistent_with_type')
+    @mock.patch('api.utilities.resource_utilities.format_is_acceptable_for_type')
     @mock.patch('api.utilities.resource_utilities.get_acceptable_formats')
-    def test_inconsistent_file_extension_sets_status(self,
+    def test_inconsistent_file_extension_raises_proper_ex(self,
         mock_get_acceptable_formats,
-        mock_format_is_consistent_with_type):
+        mock_format_is_acceptable_for_type):
         '''
         This tests the case where a user selects a resource type but the
         file does not have a format that is consistent with that type. We need
         to enforce canonical formats so we know how to try parsing files.
         '''
-        mock_format_is_consistent_with_type.return_value = False
+        mock_format_is_acceptable_for_type.return_value = False
         mock_get_acceptable_formats.return_value = ['tsv', 'csv', 'abc']
         requested_type = 'foo_type'
         human_readable_type = 'Table'
-        resource = Resource.objects.all()[0]
-        resource.file_format = 'xyz'
-        check_file_format_against_type(resource, requested_type, resource.file_format)
-        expected_status = Resource.UNKNOWN_FORMAT_ERROR.format(
-            readable_resource_type = human_readable_type,
-            filename = resource.name,
-            fmt = resource.file_format,
-            extensions_csv = 'tsv,csv,abc'
-        )
-        self.assertEqual(resource.status, expected_status)
+        file_format = 'xyz'
+        with self.assertRaises(ResourceValidationException) as ex:
+            check_file_format_against_type(requested_type, file_format)
+            expected_status = Resource.UNKNOWN_FORMAT_ERROR.format(
+                readable_resource_type = human_readable_type,
+                fmt = resource.file_format,
+                extensions_csv = 'tsv,csv,abc'
+            )
+            self.assertEqual(str(ex), expected_status)
+
+    @mock.patch('api.utilities.resource_utilities.format_is_acceptable_for_type')
+    def test_bad_resource_type_when_checking_type_and_format(self,
+        mock_format_is_acceptable_for_type):
+        '''
+        This tests the case where a user selects a resource type that does not
+        exist and the underlying function raises an exception
+        '''
+        mock_format_is_acceptable_for_type.side_effect = KeyError('ack')
+        requested_type = 'foo_type'
+        file_format = 'xyz'
+        with self.assertRaises(ResourceValidationException) as ex:
+            check_file_format_against_type(requested_type, file_format)
+            expected_status = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
+                requested_resource_type = requested_type
+            )
+            self.assertEqual(str(ex), expected_status)
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    def test_bad_resource_type_when_retrieving_resource_type_instance(self,
+        mock_get_resource_type_instance):
+        '''
+        This tests the case where a user selects a resource type that does not
+        exist and the underlying function raises a KeyError
+        '''
+        mock_get_resource_type_instance.side_effect = KeyError('ack')
+        requested_type = 'foo_type'
+        with self.assertRaises(ResourceValidationException) as ex:
+            retrieve_resource_class_instance(requested_type)
+            expected_status = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
+                requested_resource_type = requested_type
+            )
+            self.assertEqual(str(ex), expected_status)
+
+    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    def test_unexpected_exception_when_retrieving_resource_type_instance(self,
+        mock_get_resource_type_instance):
+        '''
+        This tests the case where a user selects a resource type that does not
+        exist and the underlying function raises an exception
+        '''
+        mock_get_resource_type_instance.side_effect = Exception('ack')
+        with self.assertRaises(Exception) as ex:
+            retrieve_resource_class_instance(requested_type)
 
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_check_for_resource_operations_case1(self, mock_get_operation_instance_data):
@@ -740,7 +781,6 @@ class TestResourceUtilities(BaseAPITestCase):
         all_resources = Resource.objects.all()
         r = all_resources[0]
 
-        mock_check_file_format_against_type.return_value = True
         g = GeneralResource()
         mock_get_resource_type_instance.return_value = g
 
@@ -751,12 +791,10 @@ class TestResourceUtilities(BaseAPITestCase):
 
     def test_check_file_format_against_type_for_wildcard_resource(self):
         '''
-        Checks that the extension checking method just returns True
+        Checks that the type + format checking method just returns silently
         since we are trying to set to a wildcard/generic resource type
         '''
-        all_resources = Resource.objects.all()
-        r = all_resources[0]
-        self.assertTrue(check_file_format_against_type(r, WILDCARD, ''))
+        self.assertIsNone(check_file_format_against_type(WILDCARD, ''))
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     def test_check_handle_valid_resource_for_wildcard_type(self, mock_move_resource_to_final_location):
@@ -1000,7 +1038,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_get_local_resource_path.return_value = resource_path
 
         mock_move_resource_to_final_location.return_value = resource_path
-        mock_check_file_format_against_type.return_value = True
         mock_f = mock.MagicMock()
         mock_f.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
@@ -1049,7 +1086,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_f = mock.MagicMock()
         mock_f.get_local_resource_path.return_value = resource_path
         mock_get_storage_backend.return_value = mock_f
-        mock_check_file_format_against_type.return_value = True
         
         r = Resource.objects.create(
             name = 'test_matrix',

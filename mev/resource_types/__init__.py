@@ -167,7 +167,7 @@ def get_acceptable_formats(resource_type):
     resource_class = RESOURCE_MAPPING[resource_type]
     return resource_class.ACCEPTABLE_FORMATS
 
-def format_is_consistent_with_type(file_format, resource_type):
+def format_is_acceptable_for_type(file_format, resource_type):
     '''
     Checks that the file format (as denoted by a string) is consistent with the 
     resource type.  Matching is case-insensitive
@@ -184,8 +184,7 @@ def format_is_consistent_with_type(file_format, resource_type):
         logger.info('Received an unacceptable resource type {t}'
             ' when checking file format.'.format(t=ex)
         )
-        message = 'Resource type {t} is not among the accepted types.'.format(t=ex)
-        raise Exception(message)
+        raise ex
     for ext in acceptable_formats:
         if ext == WILDCARD:
             return True
