@@ -11,7 +11,8 @@ from django.conf import settings
 
 
 from api.models import OperationResource, Operation
-from constants import DATABASE_RESOURCE_TYPES
+from constants import DATABASE_RESOURCE_TYPES, \
+    TSV_FORMAT
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -33,7 +34,8 @@ class OperationResourceViewTests(BaseAPITestCase):
             name = 'foo.txt',
             input_field = 'field_a',
             operation = self.op,
-            resource_type = 'I_MTX'
+            resource_type = 'I_MTX',
+            file_format = TSV_FORMAT
         )
 
         op_r2 = OperationResource.objects.create(
@@ -41,7 +43,8 @@ class OperationResourceViewTests(BaseAPITestCase):
             name = 'bar.txt',
             input_field = 'field_a',
             operation = self.op,
-            resource_type = 'MTX'
+            resource_type = 'MTX',
+            file_format = TSV_FORMAT
         )
 
 
@@ -50,7 +53,8 @@ class OperationResourceViewTests(BaseAPITestCase):
             name = 'baz.txt',
             input_field = 'field_b',
             operation = self.op,
-            resource_type = 'MTX'
+            resource_type = 'MTX',
+            file_format = TSV_FORMAT
         )
 
     def test_list_resource_requires_auth(self):

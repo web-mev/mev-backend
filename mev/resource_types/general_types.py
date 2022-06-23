@@ -19,7 +19,7 @@ class GeneralResource(DataResource):
         '''
         return (True, None)
        
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
         # call the super method to initialize the self.metadata
         # dictionary
         super().setup_metadata()
@@ -30,6 +30,6 @@ class GeneralResource(DataResource):
         return self.metadata
 
 
-    def get_contents(self, resource_path, file_format, query_params={}):
+    def get_contents(self, resource_path, query_params={}):
         logger.info('Cannot use get_contents on an unknown type.')
         return None

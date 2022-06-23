@@ -14,6 +14,7 @@ from api.models import Resource, Workspace
 from constants import DATABASE_RESOURCE_TYPES, \
     FEATURE_TABLE_KEY, \
     INTEGER_MATRIX_KEY, \
+    JSON_FILE_KEY, \
     MATRIX_KEY, \
     TSV_FORMAT, \
     CSV_FORMAT, \
@@ -331,7 +332,8 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'json_file.json')
         self.resource.path = f
-        self.resource.resource_type = 'JSON'
+        self.resource.resource_type = JSON_FILE_KEY
+        self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
@@ -435,8 +437,8 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue('error' in response.json())     
 
     @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_expected_response(self, mock_get_storage_backend, mock_check_request_validity):
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
+    def test_expected_response(self, mock_localize_resource, mock_check_request_validity):
         '''
         Test that the returned payload matches our expectations
         '''
@@ -446,9 +448,8 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_localize_resource.return_value = f
+
         response = self.authenticated_regular_client.get(
             self.url, format='json'
         )
@@ -494,7 +495,8 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'json_array_file_test_filter.json')
         self.resource.path = f
-        self.resource.resource_type = 'JSON'
+        self.resource.resource_type = JSON_FILE_KEY
+        self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -587,7 +589,8 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'json_array_file_test_filter.json')
         self.resource.path = f
-        self.resource.resource_type = 'JSON'
+        self.resource.resource_type = JSON_FILE_KEY
+        self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -723,7 +726,8 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         f = os.path.join(self.TESTDIR, 'json_array_file_with_na.json')
         self.resource.path = f
-        self.resource.resource_type = 'JSON'
+        self.resource.resource_type = JSON_FILE_KEY
+        self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_request_validity.return_value = self.resource
         mock_storage_backend = mock.MagicMock()
@@ -2660,7 +2664,9 @@ class ResourceDetailTests(BaseAPITestCase):
         change anything about the name, path, etc.
 
         '''
-        # set the format explicitly and save
+
+        # set the type + format explicitly and save
+        self.active_resource.resource_type = MATRIX_KEY
         original_format = CSV_FORMAT
         self.active_resource.file_format = original_format
         self.active_resource.save()
@@ -2737,7 +2743,8 @@ class ResourceDetailTests(BaseAPITestCase):
         Since the validation can take some time, it will call
         the asynchronous validation process.
         '''
-        current_resource_type = self.active_resource.resource_type
+        current_resource_type = MATRIX_KEY
+        self.active_resource.resource_type = current_resource_type
         other_types = set(
             [x[0] for x in DATABASE_RESOURCE_TYPES]
             ).difference(set([current_resource_type]))
@@ -2809,12 +2816,11 @@ class ResourceDetailTests(BaseAPITestCase):
             url, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # r = Resource.objects.get(pk=self.active_resource.pk)
 
-        # # active state set to False
-        # self.assertFalse(r.is_active)
-
-        # # check that the validation method was called.
+        # check that the validation method was called.
+        # Note that in practice this call would fail since we are NOT
+        # setting both of the required fields. However, since it's a mock 
+        # here, we are only testing the args which are passed.
         mock_api_tasks.validate_resource.delay.assert_called_with(
             resource_pk, resource_type, None)
 

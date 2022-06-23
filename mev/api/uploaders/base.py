@@ -76,8 +76,6 @@ class BaseUpload(object):
             return
 
 
-
-
 class LocalUpload(BaseUpload):
     '''
     This is a class for uploads that end up temporarily on the server

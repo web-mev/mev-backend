@@ -328,7 +328,7 @@ class TestMatrixMetadata(unittest.TestCase):
         self.assertIsNone(err)
 
         # OK, the validation worked.  Get metadata
-        metadata = m.extract_metadata(resource_path, 'tsv')
+        metadata = m.extract_metadata(resource_path)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -361,7 +361,7 @@ class TestMatrixMetadata(unittest.TestCase):
         '''
         m = Matrix()
         resource_path = os.path.join(TESTDIR, 'test_matrix.tsv')
-        metadata = m.extract_metadata(resource_path, 'tsv')
+        metadata = m.extract_metadata(resource_path)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -400,7 +400,7 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         self.assertIsNone(err)
 
         # OK, the validation worked.  Get metadata
-        metadata = m.extract_metadata(resource_path, 'tsv')
+        metadata = m.extract_metadata(resource_path)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -432,7 +432,7 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         '''
         m = IntegerMatrix()
         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
-        metadata = m.extract_metadata(resource_path, 'tsv')
+        metadata = m.extract_metadata(resource_path)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -469,7 +469,7 @@ class TestAnnotationTableMetadata(unittest.TestCase):
         '''
         resource_path = os.path.join(TESTDIR, 'test_ann_with_int_column.tsv')
         t = AnnotationTable()
-        meta = t.extract_metadata(resource_path, 'tsv')
+        meta = t.extract_metadata(resource_path)
         expected_results = [1,2]
         actual_results = []
         for x in meta['observation_set']['elements']:
@@ -497,7 +497,7 @@ class TestAnnotationTableMetadata(unittest.TestCase):
                 obs = Observation(samplename, attr_dict)
                 obs_list.append(obs)
         expected_obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
-        metadata = t.extract_metadata(resource_path, 'tsv')
+        metadata = t.extract_metadata(resource_path)
         self.assertEqual(metadata[OBSERVATION_SET_KEY], expected_obs_set)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
@@ -533,7 +533,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
                 f = Feature(gene_name, attr_dict)
                 feature_list.append(f)
         expected_feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
-        metadata = t.extract_metadata(resource_path, 'tsv')
+        metadata = t.extract_metadata(resource_path)
         # Commented out when we removed the automatic creation of Feature metadata
         # for FeatureTable resource types. For large files, it was causing issues
         # with exceptionally large JSON failing to store in db table.
@@ -557,7 +557,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         df.to_csv(path, sep='\t')
 
         ft = FeatureTable()
-        m =  ft.extract_metadata(path, 'tsv')
+        m =  ft.extract_metadata(path)
         r = Resource.objects.all()[0]
         m[RESOURCE_KEY] = r.pk
         rms = ResourceMetadataSerializer(data=m)
@@ -572,7 +572,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         resource_path = os.path.join(TESTDIR, 'deseq_results_example.tsv')
         self.assertTrue(os.path.exists(resource_path))
         t = FeatureTable()
-        metadata = t.extract_metadata(resource_path, 'tsv')
+        metadata = t.extract_metadata(resource_path)
         r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
         add_metadata_to_resource(r, metadata)
 
@@ -592,7 +592,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         resource_path = os.path.join(TESTDIR, 'deseq_results_example_concat.tsv')
         self.assertTrue(os.path.exists(resource_path))
         t = FeatureTable()
-        metadata = t.extract_metadata(resource_path, 'tsv')
+        metadata = t.extract_metadata(resource_path)
         r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
         add_metadata_to_resource(r, metadata)
         rmm = ResourceMetadata.objects.get(resource=r)
@@ -611,7 +611,7 @@ class TestBedFileMetadata(unittest.TestCase):
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'example_bed.bed')
         bf = BEDFile()
-        metadata = bf.extract_metadata(resource_path, TSV_FORMAT)
+        metadata = bf.extract_metadata(resource_path)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])

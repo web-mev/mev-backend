@@ -97,6 +97,13 @@ def get_resource_type_instance(resource_type_str):
         )
         raise ex
 
+def get_standard_format(resource_type_str):
+    '''
+    Returns the "standard" format given a resource type identifier
+    '''
+    rtc = get_resource_type_instance(resource_type_str)
+    return rtc.STANDARD_FORMAT
+
 def get_contents(resource_path, resource_type_str, file_format, query_params={}):
     '''
     Returns a "view" of the data underlying a Resource. The actual

@@ -2,6 +2,7 @@ import logging
 
 from celery import shared_task
 
+from api.exceptions import ResourceValidationException
 import api.utilities.resource_utilities as resource_utilities
 from api.storage_backends import get_storage_backend
 from api.models import Resource
@@ -33,6 +34,9 @@ def validate_resource(resource_pk, requested_resource_type, file_format):
     resource.save()
     try:
         resource_utilities.initiate_resource_validation(resource, requested_resource_type, file_format)
+    except ResourceValidationException as ex:
+        logger.info('Resource failed validation')
+        resource.status = str(ex)
     except Exception as ex:
         logger.info('Caught an exception raised during resource validation.')
         alert_admins(str(ex))

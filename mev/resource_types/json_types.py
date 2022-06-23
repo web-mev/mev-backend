@@ -129,7 +129,7 @@ class JsonResource(DataResource):
                 ' to parse the file was JSON. The reported error was: {ex}'.format(ex=ex)
             )
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
         # call the super method to initialize the self.metadata
         # dictionary
         super().setup_metadata()

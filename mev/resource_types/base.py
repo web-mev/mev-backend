@@ -1,7 +1,8 @@
 from constants import RESOURCE_KEY, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
-    PARENT_OP_KEY
+    PARENT_OP_KEY, \
+    UNSPECIFIED_FORMAT
 
 class ParseException(Exception):
     '''
@@ -23,7 +24,7 @@ class UnexpectedTypeValidationException(Exception):
 
 class DataResource(object):
 
-    STANDARD_FORMAT = ''
+    STANDARD_FORMAT = UNSPECIFIED_FORMAT
 
     def validate_type(self, resource_path, file_format):
         raise NotImplementedError('You must'
@@ -48,7 +49,7 @@ class DataResource(object):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
-    def extract_metadata(self, resource_path, file_format, parent_op_pk=None):
+    def extract_metadata(self, resource_path, parent_op_pk=None):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
         
@@ -64,7 +65,7 @@ class DataResource(object):
     def get_paginator():
         raise NotImplementedError('Must override this method in a subclass.')
 
-    def setup_metadata(self, ):
+    def setup_metadata(self):
         '''
         This sets up the basic dict that will eventually be submitted
         to the ResourceMetadata deserializer.  Child classes will

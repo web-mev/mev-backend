@@ -18,7 +18,8 @@ from api.utilities.operations import read_operation_json, \
     validate_operation, \
     resource_operations_file_is_valid
 from api.utilities.resource_utilities import get_resource_size, \
-    move_resource_to_final_location
+    move_resource_to_final_location, \
+    retrieve_resource_class_standard_format
 from api.storage_backends.helpers import get_storage_implementation
 from api.runners import get_runner
 from api.exceptions import OperationResourceFileException
@@ -207,6 +208,10 @@ def create_operation_resource(input_name, op_resource_dict, op_uuid, op_data, st
             ' at {p}'.format(p=path)
         )
 
+    # to create the database object, we need to know the file format.
+    # We only accept resources in the "standard" format
+    standard_file_format = retrieve_resource_class_standard_format(resource_type)
+
     # create the database object
     try:
         op = OperationDbModel.objects.get(pk=op_uuid)
@@ -221,7 +226,8 @@ def create_operation_resource(input_name, op_resource_dict, op_uuid, op_data, st
         operation = op,
         path = path, 
         input_field = input_name,
-        resource_type = resource_type
+        resource_type = resource_type,
+        file_format = standard_file_format
     )
     final_path = move_resource_to_final_location(op_resource)
     op_resource.path = final_path

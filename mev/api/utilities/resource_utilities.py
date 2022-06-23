@@ -26,6 +26,7 @@ from resource_types import get_contents, \
     resource_supports_pagination as _resource_supports_pagination, \
     get_acceptable_formats, \
     get_resource_type_instance, \
+    get_standard_format, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
 from api.exceptions import NoResourceFoundException, \
@@ -169,6 +170,7 @@ def add_metadata_to_resource(resource, metadata):
         logger.info('Resource did not previously have metadata attached.')
         rms = ResourceMetadataSerializer(data=metadata)
     if rms.is_valid(raise_exception=True):
+        logger.info('Resource metadata was valid. Now save it.')
         try:
             rm = rms.save()
             #TODO: check if this is necessary? Does rms.save do everything we need?
@@ -185,7 +187,8 @@ def add_metadata_to_resource(resource, metadata):
             # then just fill in blank metadata.
             rms = ResourceMetadataSerializer(data=d)
             rms.save()
-            raise Exception(message)
+            alert_admins(message)
+
         except Exception as ex:
             message = ('Caught an unexpected error when trying to save metadata'
                 ' for resource with pk={pk}'.format(pk=resource.pk)
@@ -193,7 +196,7 @@ def add_metadata_to_resource(resource, metadata):
             logger.info(message)          
             rms = ResourceMetadataSerializer(data=d)
             rms.save()
-            raise Exception(message)
+            alert_admins(message)
 
 
 def move_resource_to_final_location(resource_instance):
@@ -203,15 +206,8 @@ def move_resource_to_final_location(resource_instance):
     try:
         return get_storage_backend().store(resource_instance)
     except Exception as ex:
-        # alert_admins('A backend storage failure occurred for resource'
-        #     ' with pk={x}'.format(x=resource_instance.pk)
-        # )
-        resource_instance.status = Resource.UNEXPECTED_STORAGE_ERROR
-        # Since this was an unexpected issue with storing the item, we
-        # effectively disable the resource. Otherwise, unexpected things
-        # can happen downstream
-        resource_instance.save()
-        raise ex
+        message = Resource.UNEXPECTED_STORAGE_ERROR
+        raise Exception(message)
 
 def get_resource_size(resource_instance):
     return get_storage_backend().get_filesize(resource_instance.path)
@@ -222,12 +218,12 @@ def localize_resource(resource_instance):
     moving the file to our local cache
     '''
     try:
-        local_path = get_storage_backend().localize_resource(resource_instance)
+        return get_storage_backend().localize_resource(resource_instance)
     except FileNotFoundError:
         message = ('File corresponding to Resource ({pk}) was not found'
             ' in the final storage location ({path}).'
             ' Please check this.'.format(
-                pk = str(resource_instance.pk)
+                pk = str(resource_instance.pk),
                 path = resource_instance.path
             )
         )
@@ -237,7 +233,7 @@ def localize_resource(resource_instance):
         logger.info('Caught an unexpected exception when localizing the resource.')
         raise ex
 
-def retrieve_metadata(resource_path):
+def retrieve_metadata(resource_path, resource_class_instance):
 
     # Note that the metadata could fail for type issues and we have to plan
     # for failures there. For instance, a table can be compliant, but the 
@@ -266,57 +262,27 @@ def retrieve_metadata(resource_path):
             ' An administrator has been notified.'
         )
 
-def handle_valid_resource(
-        resource, 
-        resource_class_instance, 
-        requested_resource_type,
-        file_format):
+def handle_valid_resource(resource,
+        resource_class_instance,
+        local_path):
     '''
     Once a Resource has been successfully validated, this function does some
     final operations such as moving the file and extracting metadata.
 
     `resource` is the database object
-    `resource_class_instance` is one of the DataResource subclasses
+    `resource_class_instance` is an instantiated object that implements 
+        the particular resource type logic
+    `local_path` is a path to the standard-format file which is located
+        on this local filesystem.
     '''
-
-    if resource_class_instance.performs_validation():
         
-        logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
+    # get the metadata. Any problems will raise exceptions which we allow to
+    # percolate up the stack.
+    metadata = retrieve_metadata(local_path, resource_class_instance)
 
-        # the resource was valid, so first save it in our standardized format
-        new_path = resource_class_instance.save_in_standardized_format(local_path, \
-            file_format)
-
-        # need to know the "updated" file extension
-        file_format = resource_class_instance.STANDARD_FORMAT
-
-        # get the metadata. Any problems will raise exceptions which we allow to
-        # percolate up the stack.
-        metadata = retrieve_metadata(new_path)
-
-        # attempt to associate the metadata with the resource. If this fails, an
-        # exception will be raised, which we allow to percolate up.
-        add_metadata_to_resource(resource, metadata)
-
-    try:
-        # have to send the file to the final storage. If we are using local storage
-        # this is trivial. However, if we are using remote storage, the data saved
-        # in the standardized format needs to be pushed there also.
-        final_path = move_resource_to_final_location(resource)
-
-        # Only at this point (when we have successfully validated, moved, extracted metadata, etc.)
-        # do we set the new path and resource type on the database object.
-        resource.path = final_path
-        resource.resource_type = requested_resource_type
-        resource.file_format = file_format
-    except Exception as ex:
-        logger.info('Exception when moving valid final resource after extracting/appending metadata.'
-            ' Exception was {ex}'.format(ex=str(ex))
-        )
-        resource.resource_type = None
-        raise Exception('Encountered an unexpected issue when moving your validated resource.'
-            ' An administrator has been notified. You may also attempt to validate again.'
-        )
+    # attempt to associate the metadata with the resource. If this fails, an
+    # exception will be raised, which we allow to percolate up.
+    add_metadata_to_resource(resource, metadata)
 
 def check_file_format_against_type(requested_resource_type, file_format):
     '''
@@ -357,17 +323,43 @@ def retrieve_resource_class_instance(requested_resource_type):
     try:
         return get_resource_type_instance(requested_resource_type)
     except KeyError as ex:
-        ex = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
+        err = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
             requested_resource_type = requested_resource_type
         )
-        raise ResourceValidationException(ex)
+        raise ResourceValidationException(err)
 
-def handle_invalid_resource(resource_instance, requested_resource_type, message = ''):
+def retrieve_resource_class_standard_format(requested_resource_type):
+    '''
+    This returns the standard format for a resource type
+    
+    The `requested_resource_type` arg is the shorthand identifier.
+    The return value is the standard format (a shorthand ID like "TSV")
+    '''
+    try:
+        return get_standard_format(requested_resource_type)
+    except KeyError as ex:
+        err = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
+            requested_resource_type = requested_resource_type
+        )
+        raise ResourceValidationException(err)
+
+def handle_invalid_resource(resource_instance, requested_resource_type, requested_file_format, message = None):
+
+    # "convert" the None to an empty string
+    message = message if message else ''
+
+    resource_type_set = (resource_instance.resource_type is not None) \
+        and (len(resource_instance.resource_type) > 0)
+
+    file_format_set = (resource_instance.file_format is not None) \
+        and (len(resource_instance.file_format) > 0)
+        
+    previously_unset = (not resource_type_set) and (not file_format_set)
 
     # If resource_type has not been set (i.e. it is None), then this   
     # Resource has NEVER been verified.  We report a failure
     # via the status message and set the appropriate flags
-    if resource_instance.resource_type is None:
+    if previously_unset:
         status_msg = Resource.FAILED.format(
             requested_resource_type=DB_RESOURCE_KEY_TO_HUMAN_READABLE[
                 requested_resource_type]
@@ -381,7 +373,7 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
     else:
         # if a resource_type was previously set, that means
         # it was previously valid and has now been changed to
-        # an INvalid type.  In this case, revert back to the
+        # an INvalid type or format.  In this case, revert back to the
         # valid type and provide a helpful status message
         # so they understand why the request did not succeed.
         # Obviously, we don't alter the resource_type member in this case.
@@ -399,12 +391,15 @@ def handle_invalid_resource(resource_instance, requested_resource_type, message 
         # ...and compose the status message
         status_msg = Resource.REVERTED.format(
             requested_resource_type= hr_requested_resource_type,
-            original_resource_type = hr_original_resource_type
+            requested_file_format = requested_file_format,
+            original_resource_type = hr_original_resource_type,
+            file_format = resource_instance.file_format
         )
         status_msg = status_msg + ' ' + message        
         resource_instance.status = status_msg
 
-def perform_validation(resource_instance, resource_type_class, file_format):
+def perform_validation(resource_instance, 
+    resource_type_class, file_format, local_path):
     '''
     Calls the validation function on the particular resource type.
 
@@ -418,9 +413,6 @@ def perform_validation(resource_instance, resource_type_class, file_format):
     If the file successfully validates, will return a tuple of (True, message)
     where message is typically an empty string since there's nothing to report.
     '''
-    # We need to localize the file to validate it. Exceptions in this call
-    # are allowed to percolate up the call stack
-    local_path = localize_resource(resource_instance)
 
     try:
         is_valid, message = resource_type_class.validate_type(
@@ -473,20 +465,49 @@ def initiate_resource_validation(resource_instance, requested_resource_type, fil
     if resource_class_instance.performs_validation():
         logger.info('Since the resource class permits validation, go and'
             ' validate this resource.')
+            
+        # We need to localize the file to validate it.
+        local_path = localize_resource(resource_instance)
+
         is_valid, message = perform_validation(
-            resource_instance, resource_class_instance, file_format)
+            resource_instance, resource_class_instance, file_format, local_path)
     else:
         # resource type does not include validation. It's "valid" by default
         is_valid = True
+        local_path = resource_instance.path # doesn't matter
 
     if is_valid:
+        # the resource was valid, so first save it in our standardized format
+        # `standardized_format_path` can be the path to the standardized file 
+        # in a tmp location OR equivalent to the existing `local_path` if the 
+        #file is already in the standard format for the resource type
+        logger.info('The local path prior to standardization is: {p}'.format(p=local_path))
+        standardized_format_path = resource_class_instance.save_in_standardized_format(local_path, \
+            file_format)
+        logger.info('The local path after to standardization is: {p}'.format(
+            p=standardized_format_path))
+
         handle_valid_resource(resource_instance, \
-            resource_class_instance, requested_resource_type, file_format)
+            resource_class_instance, \
+            standardized_format_path)
+
+        # set the path attribute since the `move_resource_to_final_location`
+        # function uses that
+        resource_instance.path = standardized_format_path
+        final_path = move_resource_to_final_location(resource_instance)
+
+        # we can now save the api.models.Resource instance since everything
+        # validated and worked properly
+        resource_instance.path = final_path
+        resource_instance.resource_type = requested_resource_type
+        resource_instance.file_format = file_format
     else:
-        if message and len(message) > 0:
-            handle_invalid_resource(resource_instance, requested_resource_type, message)
-        else:
-            handle_invalid_resource(resource_instance, requested_resource_type)
+        handle_invalid_resource(resource_instance, requested_resource_type, file_format, message)
+
+    # save changes    
+    resource_instance.save()
+
+
 
 def validate_and_store_resource(resource, requested_resource_type, file_format):
 

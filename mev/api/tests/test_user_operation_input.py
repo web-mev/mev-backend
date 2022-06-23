@@ -10,6 +10,9 @@ from collections import defaultdict
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
+from constants import MATRIX_KEY, \
+    TSV_FORMAT
+
 from api.utilities.operations import read_operation_json
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 from api.models import Resource, Workspace, Operation, OperationResource
@@ -254,7 +257,7 @@ class UserOperationInputTester(BaseAPITestCase):
         multiple_resource_input_spec = {
             'attribute_type': 'DataResource',
             'many': True,
-            'resource_type': 'MTX'
+            'resource_type': MATRIX_KEY,
         }
         with self.assertRaises(ValidationError):
             submitted_input_or_output_class(self.regular_user_1, None, user_workspace,'xyz', 
@@ -555,19 +558,22 @@ class UserOperationInputTester(BaseAPITestCase):
             operation = op1,
             input_field = 'foo',
             name = 'foo.txt',
-            resource_type = 'MTX'
+            resource_type = MATRIX_KEY,
+            file_format = TSV_FORMAT
         )
         r2 = OperationResource.objects.create(
             operation = op1,
             input_field = 'bar',
             name = 'bar.txt',
-            resource_type = 'MTX'
+            resource_type = MATRIX_KEY,
+            file_format = TSV_FORMAT
         )
         r3 = OperationResource.objects.create(
             operation = op2,
             input_field = 'foo', # same input_field as above, but for a different op
             name = 'baz.txt',
-            resource_type = 'MTX'
+            resource_type = MATRIX_KEY,
+            file_format = TSV_FORMAT
         )
 
         # handle a good case with a single file

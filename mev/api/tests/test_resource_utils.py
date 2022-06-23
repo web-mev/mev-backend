@@ -17,7 +17,8 @@ from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     PARENT_OP_KEY, \
     RESOURCE_KEY, \
     TSV_FORMAT, \
-    WILDCARD
+    WILDCARD, \
+    UNSPECIFIED_FORMAT
 from resource_types import RESOURCE_MAPPING, \
     GeneralResource, \
     AnnotationTable, \
@@ -60,6 +61,18 @@ class TestResourceUtilities(BaseAPITestCase):
     def setUp(self):
         self.establish_clients()
         
+    def get_unset_resource(self):
+        all_resources = Resource.objects.all()
+        unset_resources = []
+        for r in all_resources:
+            if not r.resource_type:
+                unset_resources.append(r)
+        
+        if len(unset_resources) == 0:
+            raise ImproperlyConfigured('Need at least one'
+                ' Resource without a type to test properly.'
+            )
+        return unset_resources[0]
 
     def test_get_resource_by_pk_works_for_all_resources(self):
         '''
@@ -81,7 +94,8 @@ class TestResourceUtilities(BaseAPITestCase):
             operation = op,
             input_field = 'foo',
             name = 'foo.txt',
-            resource_type = 'MTX'
+            resource_type = 'MTX',
+            file_format = TSV_FORMAT
         )
         r4 = get_resource_by_pk(r3.pk)
         self.assertEqual(r3,r4)
@@ -159,206 +173,191 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_storage_backend.localize_resource.assert_not_called()
         mock_get_contents.assert_not_called()
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    def test_invalid_handler_called(self, mock_check_file_format_against_type, \
-            mock_get_storage_backend, \
-            mock_handle_invalid_resource, mock_get_resource_type_instance):
+    @mock.patch('api.utilities.resource_utilities.perform_validation')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    def test_invalid_handler_called(self, mock_handle_valid_resource, \
+            mock_perform_validation, \
+            mock_check_file_format_against_type, \
+            mock_localize_resource, \
+            mock_handle_invalid_resource, \
+            mock_retrieve_resource_class_instance):
         '''
         Here we test that a failure to validate the resource calls the proper
         handler function.
         '''
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
-
-        unset_resource = unset_resources[0]
+        unset_resource = self.get_unset_resource()
 
         mock_resource_class_instance = mock.MagicMock()
-        mock_resource_class_instance.validate_type.return_value = (False, 'some string')
-        mock_get_resource_type_instance.return_value = mock_resource_class_instance
-        
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = 'foo'
-        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource_class_instance.performs_validation.return_value = True
+        mock_msg = 'some error message'
+        mock_perform_validation.return_value = (False, mock_msg)
+        mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
 
         initiate_resource_validation(unset_resource, 'MTX', 'csv')
 
-        mock_handle_invalid_resource.assert_called()
+        mock_handle_invalid_resource.assert_called_with(
+            unset_resource,
+            'MTX',
+            'csv',
+            mock_msg
+        )
+        mock_localize_resource.assert_called_with(unset_resource)
+        mock_retrieve_resource_class_instance.assert_called_with('MTX')
+        mock_handle_valid_resource.assert_not_called()
 
+        # requery the resource
+        r = Resource.objects.get(pk=unset_resource.pk)
+        self.assertTrue(r.path == unset_resource.path)
+        self.assertIsNone(r.resource_type)
+        if unset_resource.file_format == '':
+            self.assertEqual(r.file_format, '')
+        else:
+            self.assertIsNone(r.file_format)
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    def test_proper_valid_handler_called(self, \
-        mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
-        mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+    @mock.patch('api.utilities.resource_utilities.perform_validation')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    def test_valid_handler_called(self, mock_handle_valid_resource, \
+            mock_perform_validation, \
+            mock_check_file_format_against_type, \
+            mock_localize_resource, \
+            mock_handle_invalid_resource, \
+            mock_retrieve_resource_class_instance, \
+            mock_move_resource_to_final_location):
         '''
         Here we test that a successful validation calls the proper
         handler function.
         '''
-        mock_local_path = '/some/local/path.txt'
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = mock_local_path
-        mock_get_storage_backend.return_value = mock_storage_backend
+        unset_resource = self.get_unset_resource()
 
         mock_resource_class_instance = mock.MagicMock()
         mock_resource_class_instance.performs_validation.return_value = True
-        mock_resource_class_instance.validate_type.return_value = (True, 'some string')
-        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+        mock_std_path = '/path/to/standardized.tsv'
+        mock_resource_class_instance.save_in_standardized_format.return_value = mock_std_path
+        mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
 
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
+        mock_final_path = 'some/final/path.txt'
+        mock_move_resource_to_final_location.return_value = mock_final_path
+
+        mock_path = '/some/mock/path.txt'
+        mock_localize_resource.return_value = mock_path
         
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
-
-        unset_resource = unset_resources[0]
-
+        mock_perform_validation.return_value = (True, None)
 
         initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
 
-        mock_handle_valid_resource.assert_called()
+        mock_handle_valid_resource.assert_called_with(
+            unset_resource,
+            mock_resource_class_instance,
+            mock_std_path
+        )
+        mock_handle_invalid_resource.assert_not_called()
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+        # requery the resource
+        r = Resource.objects.get(pk=unset_resource.pk)
+        self.assertTrue(r.path == mock_final_path)
+        self.assertTrue(r.resource_type == 'MTX')
+        self.assertTrue(r.file_format == TSV_FORMAT)
+
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_proper_exceptions_raised_case1(self, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
+        mock_handle_invalid_resource, \
         mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+        mock_retrieve_resource_class_instance):
         '''
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
 
-        Here, we test if the `check_file_format_against_type` function raises an exception. Note that
+        Here, we test if the `check_file_format_against_type` function raises an exception. Note that if
         a predictable failure there (i.e. an inconsistent resource type and format were specified), then
         the function raises a ResourceValidationException. Since this exception is not expected, it is NOT
         of that type.
         '''
         mock_check_file_format_against_type.side_effect = [Exception('something unexpected!')]
 
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
-
-        unset_resource = unset_resources[0]
+        unset_resource = self.get_unset_resource()
 
         with self.assertRaisesRegex(Exception, 'something unexpected'):
             initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
-        mock_get_storage_backend.assert_not_called()
-        mock_get_resource_type_instance.assert_not_called()
+        mock_handle_invalid_resource.assert_not_called()
+        mock_retrieve_resource_class_instance.assert_not_called()
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_proper_exceptions_raised_case2(self, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
+        mock_handle_invalid_resource, \
         mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+        mock_retrieve_resource_class_instance):
         '''
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
 
-        Here, we test if the `get_resource_type` function raises an exception from something
+        Here, we test if the `retrieve_resource_class_instance` function raises an exception from something
         unexpected
         '''
-        mock_get_resource_type_instance.side_effect = [Exception('ack'),]
+        mock_retrieve_resource_class_instance.side_effect = [Exception('ack'),]
 
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
-
-        unset_resource = unset_resources[0]
+        unset_resource = self.get_unset_resource()
 
         with self.assertRaisesRegex(Exception, 'ack'):
             initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
-        mock_get_storage_backend.assert_not_called()
-        mock_get_resource_type_instance.assert_called()
+        mock_handle_invalid_resource.assert_not_called()
+        mock_retrieve_resource_class_instance.assert_called_with('MTX')
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_proper_exceptions_raised_case3(self, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
+        mock_handle_invalid_resource, \
         mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+        mock_retrieve_resource_class_instance):
         '''
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
 
-        Here, we test if the `get_resource_type` function raises an exception from an unknown
+        Here, we test if the `retrieve_resource_class_instance` function raises an exception from an unknown
         resource type (a keyError). 
         '''
-        mock_get_resource_type_instance.side_effect = [KeyError('abc'),]
+        mock_retrieve_resource_class_instance.side_effect = [KeyError('ZZZ'),]
 
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
-
-        unset_resource = unset_resources[0]
+        unset_resource = self.get_unset_resource()
 
         with self.assertRaisesRegex(Exception, 'ZZZ'):
             initiate_resource_validation(unset_resource, 'ZZZ', TSV_FORMAT)
         mock_handle_valid_resource.assert_not_called()
-        mock_get_storage_backend.assert_not_called()
-        mock_get_resource_type_instance.assert_called()
+        mock_handle_invalid_resource.assert_not_called()
+        mock_retrieve_resource_class_instance.assert_called_with('ZZZ')
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
-    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
+    @mock.patch('api.utilities.resource_utilities.perform_validation')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_proper_exceptions_raised_case4(self, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
-        mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+        mock_localize_resource, \
+        mock_perform_validation, \
+        mock_retrieve_resource_class_instance):
         '''
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
@@ -369,76 +368,63 @@ class TestResourceUtilities(BaseAPITestCase):
 
         # here we mock there being a problem with the storage backend (maybe bucket storage
         # service is temporarily offline?)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.side_effect = [Exception('something bad')]
-        mock_get_storage_backend.return_value = mock_storage_backend
+        err_msg = 'something bad...'
+        mock_localize_resource.side_effect = [Exception(err_msg)]
 
         mock_resource_class_instance = mock.MagicMock()
         mock_resource_class_instance.performs_validation.return_value = True
-        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+        mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
 
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
+        unset_resource = self.get_unset_resource()
 
-        unset_resource = unset_resources[0]
-
-        expected_message_partial = ('An unexpected issue occurred when'
-            ' moving the file for inspection')
-        with self.assertRaisesRegex(Exception, expected_message_partial):
+        with self.assertRaisesRegex(Exception, err_msg):
             initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
     
-        mock_resource_class_instance.validate_type.assert_not_called()
-        mock_handle_valid_resource.assert_not_called()
+        mock_perform_validation.assert_not_called()
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
+    @mock.patch('api.utilities.resource_utilities.perform_validation')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_proper_exceptions_raised_case5(self, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
-        mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+        mock_localize_resource, \
+        mock_perform_validation, \
+        mock_retrieve_resource_class_instance, \
+        mock_handle_invalid_resource, \
+        mock_handle_valid_resource):
         '''
         If unexpected errors (like connecting to cloud storage occur), check that we raise exceptions
         that provide helpful errors.
 
         Here, we test if the validation method fails unexpectedly.
         '''
-        mock_local_path = '/some/local/path.txt'
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = mock_local_path
-        mock_get_storage_backend.return_value = mock_storage_backend
+
         mock_resource_class_instance = mock.MagicMock()
         mock_resource_class_instance.performs_validation.return_value = True
-        mock_resource_class_instance.validate_type.side_effect = [Exception('something unexpected.')]
-        mock_get_resource_type_instance.return_value = mock_resource_class_instance
+        mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
 
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
+        mock_local_path = '/some/local/path.txt'
+        mock_localize_resource.return_value = mock_local_path
 
-        unset_resource = unset_resources[0]
+        err_msg = 'something unexpected.'
+        mock_perform_validation.side_effect = [Exception(err_msg)]
 
-        with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_VALIDATION_ERROR):
+        unset_resource = self.get_unset_resource()
+
+        with self.assertRaisesRegex(Exception, err_msg):
             initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
 
+        mock_perform_validation.assert_called_with(
+            unset_resource,
+            mock_resource_class_instance,
+            TSV_FORMAT,
+            mock_local_path
+        )
         mock_handle_valid_resource.assert_not_called()
+        mock_handle_invalid_resource.assert_not_called()
 
     def test_unset_resource_type_does_not_change_if_validation_fails(self):
         '''
@@ -446,26 +432,21 @@ class TestResourceUtilities(BaseAPITestCase):
         a change that fails validation results in NO change to the resource_type
         attribute
         '''
-        all_resources = Resource.objects.all()
-        unset_resources = []
-        for r in all_resources:
-            if not r.resource_type:
-                unset_resources.append(r)
-        
-        if len(unset_resources) == 0:
-            raise ImproperlyConfigured('Need at least one'
-                ' Resource without a type to test properly.'
-            )
+        unset_resource = self.get_unset_resource()
 
-        unset_resource = unset_resources[0]
         with self.assertRaises(ResourceMetadata.DoesNotExist):
             metadata = ResourceMetadata.objects.get(resource=unset_resource)
 
-        handle_invalid_resource(unset_resource, 'MTX')
+        handle_invalid_resource(unset_resource, 'MTX', TSV_FORMAT, 'some error message')
         self.assertIsNone(unset_resource.resource_type)
+
         # now the metadata query should succeed
         metadata = ResourceMetadata.objects.get(resource=unset_resource)
-        self.assertTrue(metadata)
+        metadata = ResourceMetadataSerializer(metadata).data
+        self.assertIsNone(metadata[PARENT_OP_KEY])
+        self.assertIsNone(metadata[OBSERVATION_SET_KEY])
+        self.assertIsNone(metadata[FEATURE_SET_KEY])
+        self.assertEqual(metadata[RESOURCE_KEY], unset_resource.pk)
 
     @mock.patch('api.utilities.resource_utilities.add_metadata_to_resource')
     def test_resource_type_does_not_change_if_validation_fails(self, \
@@ -492,14 +473,20 @@ class TestResourceUtilities(BaseAPITestCase):
         other_type = original_type
         while other_type == original_type:
             other_type = random.choice(list(RESOURCE_MAPPING.keys()))
-        handle_invalid_resource(resource, other_type)
+        handle_invalid_resource(resource, other_type, TSV_FORMAT, 'some error message')
 
+        # we don't query for an 'updated' Resource since the `handle_invalid_resource`
+        # function doesn't save. It only updates attributes.
         self.assertTrue(resource.resource_type == original_type)
         self.assertTrue(resource.status.startswith(Resource.REVERTED.format(
             requested_resource_type=DB_RESOURCE_KEY_TO_HUMAN_READABLE[other_type],
-            original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[original_type])
+            original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[original_type],
+            requested_file_format = TSV_FORMAT,
+            file_format = resource.file_format
+            )
         ))
         mock_add_metadata_to_resource.assert_not_called()
+
 
     @mock.patch.dict('api.utilities.resource_utilities.DB_RESOURCE_KEY_TO_HUMAN_READABLE', \
         {'foo_type': 'Table'})
@@ -766,28 +753,42 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertFalse(was_used)
 
 
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    def test_proper_steps_taken_with_wildcard_resource(self, mock_check_file_format_against_type, \
-        mock_get_storage_backend, \
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
+    def test_proper_steps_taken_with_wildcard_resource(self, \
+        mock_localize_resource, \
+        mock_move_resource_to_final_location, \
+        mock_check_file_format_against_type, \
         mock_handle_valid_resource, \
-        mock_get_resource_type_instance):
+        mock_retrieve_resource_class_instance):
         '''
         Here we test that a esource type with a "wildcard" type goes through the proper
         steps. That is, we should skip the validation, etc.
         '''
         all_resources = Resource.objects.all()
         r = all_resources[0]
+        initial_path = r.path
 
         g = GeneralResource()
-        mock_get_resource_type_instance.return_value = g
+        mock_retrieve_resource_class_instance.return_value = g
+        mock_path = '/mock/final/path.txt'
+        mock_move_resource_to_final_location.return_value = mock_path
 
-        initiate_resource_validation(r, WILDCARD, '')
+        initiate_resource_validation(r, WILDCARD, UNSPECIFIED_FORMAT)
 
-        mock_handle_valid_resource.assert_called()
-        mock_get_storage_backend.assert_not_called()
+        mock_handle_valid_resource.assert_called_with(
+            r, g, initial_path
+        )
+
+        mock_localize_resource.assert_not_called()
+
+        r = Resource.objects.get(pk=r.pk)
+        self.assertTrue(r.resource_type == WILDCARD)
+        self.assertTrue(r.file_format == UNSPECIFIED_FORMAT)
+        self.assertTrue(r.path == mock_path)
 
     def test_check_file_format_against_type_for_wildcard_resource(self):
         '''
@@ -796,34 +797,39 @@ class TestResourceUtilities(BaseAPITestCase):
         '''
         self.assertIsNone(check_file_format_against_type(WILDCARD, ''))
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    def test_check_handle_valid_resource_for_wildcard_type(self, mock_move_resource_to_final_location):
+    @mock.patch('api.utilities.resource_utilities.add_metadata_to_resource')
+    @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
+    def test_check_handle_valid_resource_for_wildcard_type(self, \
+        mock_retrieve_metadata, \
+        mock_add_metadata_to_resource):
         '''
         Check that we do the proper things when we handle the apparently 
         "valid" resource. For wildcard types, they are trivially valid, but
         we need to check that we are not calling any methods that wouldn't 
         make sense in this context.
         '''
-        mock_move_resource_to_final_location.return_value = '/a/b/c.txt'
+        mock_metadata = {
+            'dummy_key': 'dummy_value'
+        }
+        mock_retrieve_metadata.return_value = mock_metadata
 
         all_resources = Resource.objects.all()
         r = all_resources[0]
         g = GeneralResource()
-        handle_valid_resource(r, g, WILDCARD, '')
+        handle_valid_resource(r, g, '')
 
-        self.assertEqual(r.path, '/a/b/c.txt')
+        mock_retrieve_metadata.assert_called()
+        mock_add_metadata_to_resource.assert_called_with(
+            r,
+            mock_metadata
+        )
 
-        metadata = ResourceMetadata.objects.get(resource=r)
-        self.assertIsNone(getattr(metadata, PARENT_OP_KEY))
-        self.assertIsNone(getattr(metadata, FEATURE_SET_KEY))
-        self.assertIsNone(getattr(metadata, OBSERVATION_SET_KEY))
-        self.assertEqual(getattr(metadata, RESOURCE_KEY), r)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
     @mock.patch('api.utilities.resource_utilities.add_metadata_to_resource')
     def test_metadata_addition_failure(self, 
         mock_add_metadata_to_resource,
-        mock_move_resource_to_final_location):
+        mock_retrieve_metadata):
         '''
         Check that we do the proper things if the addition of the metadata
         to the resource fails.
@@ -833,25 +839,23 @@ class TestResourceUtilities(BaseAPITestCase):
         function raised an uncaught exception and the Resource.path attribute
         was not set correctly.
         '''
-        mock_move_resource_to_final_location.return_value = '/a/b/c.txt'
+        mock_metadata = {
+            'mock_key': 'mock_val'
+        }
+        mock_retrieve_metadata.return_value = mock_metadata
         mock_add_metadata_to_resource.side_effect = ValidationError('ack')
 
         all_resources = Resource.objects.all()
         r = all_resources[0]
-        expected_path = r.path
-        # doesn't matter what this is. However, setting the
-        # performs_validation method to return False
-        # avoids having to mock out a bunch of
-        # other functions.
-        rc = mock.MagicMock()
-        rc.performs_validation.return_value = False
-        rc.extract_metadata.return_value = {}
-        with self.assertRaisesRegex(Exception, 'adding metadata'):
-            handle_valid_resource(r, rc, WILDCARD, 'txt')
+        mock_path = '/some/path/to/file.tsv'
+        mock_resource_class_instance = mock.MagicMock()
+        with self.assertRaisesRegex(Exception, 'ack'):
+            handle_valid_resource(r, mock_resource_class_instance, mock_path)
 
-        self.assertEqual(r.path, expected_path)
-        mock_move_resource_to_final_location.assert_not_called()
-        self.assertIsNone(r.resource_type)
+        mock_add_metadata_to_resource.assert_called_with(
+            r, mock_metadata
+        )
+        mock_retrieve_metadata.assert_called_with(mock_path, mock_resource_class_instance)
 
     def test_add_metadata(self):
         '''
@@ -918,7 +922,8 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertCountEqual(rm3.observation_set['elements'], elements)
         
     @mock.patch('api.utilities.resource_utilities.ResourceMetadataSerializer')
-    def test_add_metadata_case2(self, mock_serializer_cls):
+    @mock.patch('api.utilities.resource_utilities.alert_admins')
+    def test_add_metadata_case2(self, mock_alert_admins, mock_serializer_cls):
         '''
         Test that we gracefully handle updates and save failures
         when associating metadata with a resource.
@@ -946,6 +951,7 @@ class TestResourceUtilities(BaseAPITestCase):
             {}
         )
         mock_serializer2.save.assert_called()
+        mock_alert_admins.assert_called()
 
     @mock.patch('api.utilities.resource_utilities.make_local_directory')
     @mock.patch('api.utilities.resource_utilities.os')
@@ -1006,14 +1012,13 @@ class TestResourceUtilities(BaseAPITestCase):
 
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     def test_metadata_when_type_changed(self, mock_localize_resource, \
-        mock_get_resource_type_instance, \
+        mock_retrieve_resource_class_instance, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, mock_move_resource_to_final_location):
+        mock_move_resource_to_final_location):
         '''
         Checks that the update of resource metadata is updated. Related to a bug where
         a file was initially set to a general type (and thus the metadata was effectively empty).
@@ -1023,12 +1028,12 @@ class TestResourceUtilities(BaseAPITestCase):
 
         # define this mock function so we can patch the class
         # implementing the validation methods
-        def mock_save_in_standardized_format(local_path, name, format):
-            return resource_path, 'some_name'
+        def mock_save_in_standardized_format(local_path, format):
+            return resource_path
 
         patched_ann_table_instance = AnnotationTable()
         patched_ann_table_instance.save_in_standardized_format = mock_save_in_standardized_format
-        mock_get_resource_type_instance.side_effect = [
+        mock_retrieve_resource_class_instance.side_effect = [
             # note that we don't need to patch this since GeneralResource instances
             # do not perform validation
             GeneralResource(),
@@ -1036,20 +1041,15 @@ class TestResourceUtilities(BaseAPITestCase):
         ]
 
         mock_localize_resource.return_value = resource_path
-
         mock_move_resource_to_final_location.return_value = resource_path
-        mock_f = mock.MagicMock()
-        mock_f.localize_resource.return_value = resource_path
-        mock_get_storage_backend.return_value = mock_f
 
         r = Resource.objects.create(
             name = 'test_annotation_valid.tsv',
             owner = self.regular_user_1,
             is_active=True,
-            path = resource_path,
-            resource_type = '*'
+            path = resource_path
         )
-        initiate_resource_validation(r, '*', '')
+        initiate_resource_validation(r, WILDCARD, UNSPECIFIED_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertTrue(rm.observation_set is None)
         initiate_resource_validation(r, 'ANN', TSV_FORMAT)
@@ -1057,14 +1057,13 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertFalse(rm.observation_set is None)
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     def test_metadata_when_type_changed_case2(self, mock_localize_resource, \
-        mock_get_resource_type_instance, \
+        mock_retrieve_resource_class_instance, \
         mock_check_file_format_against_type, \
-        mock_get_storage_backend, mock_move_resource_to_final_location):
+        mock_move_resource_to_final_location):
 
         resource_path = os.path.join(VAL_TESTDIR, 'test_matrix.tsv')
         mock_move_resource_to_final_location.return_value = resource_path
@@ -1072,29 +1071,27 @@ class TestResourceUtilities(BaseAPITestCase):
 
         # define this mock function so we can patch the class
         # implementing the validation methods
-        def mock_save_in_standardized_format(local_path, name, format):
-            return resource_path, 'some_name'
+        def mock_save_in_standardized_format(local_path, format):
+            return resource_path
 
         patched_mtx_instance = Matrix()
         patched_mtx_instance.save_in_standardized_format = mock_save_in_standardized_format
-        mock_get_resource_type_instance.side_effect = [
+        mock_retrieve_resource_class_instance.side_effect = [
             # note that we don't need to patch this since GeneralResource instances
             # do not perform validation
             GeneralResource(),
             patched_mtx_instance
         ]
-        mock_f = mock.MagicMock()
-        mock_f.localize_resource.return_value = resource_path
-        mock_get_storage_backend.return_value = mock_f
+        mock_localize_resource.return_value = resource_path
+        mock_move_resource_to_final_location.return_value = resource_path
         
         r = Resource.objects.create(
             name = 'test_matrix',
             owner = self.regular_user_1,
             is_active=True,
             path = resource_path,
-            resource_type = '*'
         )
-        initiate_resource_validation(r, '*', 'txt')
+        initiate_resource_validation(r, WILDCARD, UNSPECIFIED_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertTrue(rm.observation_set is None)
         initiate_resource_validation(r, 'MTX', TSV_FORMAT)
@@ -1103,3 +1100,470 @@ class TestResourceUtilities(BaseAPITestCase):
         samples = [x['id'] for x in obs_set['elements']]
         expected = ['SW1_Control','SW2_Control','SW3_Control','SW4_Treated','SW5_Treated','SW6_Treated']
         self.assertCountEqual(samples, expected)
+
+###########
+# @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+#     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+#     def test_resource_metadata_entered_in_db(self,
+#         mock_get_storage_backend, 
+#         mock_move):
+#         '''
+#         Here we test that an instance of ResourceMetadata is created
+#         and tied to the appropriate resource.
+#         '''
+#         # create a Resource and give it our test integer matrix
+#         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
+
+#         # note that we can't mock the class implementing the resource type, as
+#         # we need its implementation to get the metadata. HOWEVER, we need to ensure
+#         # that the file type above is ALREADY in the standardized format.
+#         file_format = TSV_FORMAT
+#         self.assertTrue(file_format == IntegerMatrix.STANDARD_FORMAT)
+
+#         resource_type = 'I_MTX'
+#         file_format = TSV_FORMAT
+#         r = Resource.objects.create(
+#             path = resource_path,
+#             name = 'foo.tsv',
+#             resource_type = INTEGER_MATRIX_KEY,
+#             file_format = TSV_FORMAT,
+#             size = 1000,
+#             owner = get_user_model().objects.all()[0]
+#         )
+
+#         # check the original count for ResourceMetadata
+#         rm = ResourceMetadata.objects.filter(resource=r)
+#         n0 = len(rm)
+#         self.assertTrue(n0 == 0)
+
+#         # set some mock vals:
+#         mock_storage_backend = mock.MagicMock()
+#         mock_storage_backend.localize_resource.return_value = resource_path
+#         mock_get_storage_backend.return_value = mock_storage_backend
+
+#         # call the tested function
+#         resource_class_instance = get_resource_type_instance(resource_type)
+#         handle_valid_resource(r, resource_class_instance, resource_type, file_format)
+
+#         self.assertTrue(r.resource_type == resource_type)
+#         rm = ResourceMetadata.objects.filter(resource=r)
+#         n1 = len(rm)  
+#         self.assertTrue(n1 == 1)     
+
+#         # since the file above is a TSV (which is the "standardized format" for a table)
+#         mock_storage_backend.delete.assert_not_called() 
+
+#     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+#     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+#     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+#     def test_resource_metadata_updated_in_db(self, mock_check_file_format_against_type, \
+#         mock_get_storage_backend, mock_move):
+#         '''
+#         Here we test that an instance of ResourceMetadata is updated
+#         when it previously existed (for instance, upon update of a
+#         Resource type)
+#         '''
+
+#         # get one of the test resources (which has type of None):
+#         rr = Resource.objects.filter(owner=self.regular_user_1, resource_type=None)
+#         r = rr[0]
+
+#         # give that Resource our test integer matrix
+#         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
+#         r.path = resource_path
+#         r.name = 'test_integer_matris.tsv'
+#         r.file_format = TSV_FORMAT
+#         r.save()
+#         # note that we can't mock the class implementing the resource type, as
+#         # we need its implementation to get the metadata. HOWEVER, we need to ensure
+#         # that the file type above is ALREADY in the standardized format.
+#         self.assertTrue(r.file_format == IntegerMatrix.STANDARD_FORMAT)
+
+#         # create a ResourceMetadata instance associated with that Resource
+#         ResourceMetadata.objects.create(
+#             resource=r,
+#             parent_operation = None,
+#             observation_set = None,
+#             feature_set = None
+#         )
+
+#         mock_move.return_value = resource_path
+#         mock_storage_backend = mock.MagicMock()
+#         mock_storage_backend.localize_resource.return_value = resource_path
+#         mock_get_storage_backend.return_value = mock_storage_backend
+
+#         # check the original count for ResourceMetadata
+#         rm = ResourceMetadata.objects.filter(resource=r)
+#         n0 = len(rm)
+#         self.assertEqual(n0, 1)
+#         rm_original = rm[0]
+
+#         # call the tested function
+#         validate_resource(r.pk, 'I_MTX', TSV_FORMAT)
+
+#         rm = ResourceMetadata.objects.filter(resource=r)
+#         n1 = len(rm)  
+
+#         # check that no new ResourceMetadata objects were created
+#         self.assertEqual(n1-n0, 0)
+#         rm_final = rm[0]
+        
+#         # check that the observation_set changed as expected:
+#         self.assertFalse(rm_original.observation_set == rm_final.observation_set)
+
+    # @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    # @mock.patch('api.utilities.resource_utilities.initiate_resource_validation')
+    # @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    # @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
+    # def test_storage_failure_handled_gracefully(self,
+    #     mock_alert_admins,
+    #     mock_get_resource_size, 
+    #     mock_initiate_resource_validation, mock_get_storage_backend):
+    #     '''
+    #     Here we test that we handle storage failures gracefully.
+
+    #     In our workflow, newly uploaded files are pushed to the storage 
+    #     "backend" before validating.  If we are dependent on an external 
+    #     storage service (e.g. bucket), it is possible that this service
+    #     could be unavailable or fail for some reason.  If an exception
+    #     is raised, we want to set the appropriate fields on the Resource
+    #     so that the Resource cannot be used.
+
+
+    #     '''
+    #     all_resources = Resource.objects.all()
+    #     unset_resources = []
+    #     for r in all_resources:
+    #         if not r.resource_type:
+    #             unset_resources.append(r)
+        
+    #     if len(unset_resources) == 0:
+    #         raise ImproperlyConfigured('Need at least one'
+    #             ' Resource without a type to test properly.'
+    #         )
+
+    #     unset_resource = unset_resources[0]
+    #     self.assertIsNone(unset_resource.resource_type)
+        
+    #     mock_get_resource_size.return_value = 100
+
+    #     mock_storage_backend = mock.MagicMock()
+    #     mock_storage_backend.store.side_effect = Exception('problem!')
+    #     mock_get_storage_backend.return_value = mock_storage_backend
+
+    #     # call the tested function
+    #     validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
+
+    #     mock_alert_admins.assert_called()
+    #     mock_initiate_resource_validation.assert_not_called()
+    #     mock_get_resource_size.assert_not_called()
+        
+    #     # query the resource to see any changes:
+    #     current_resource = Resource.objects.get(pk=unset_resource.pk)
+    #     self.assertFalse(current_resource.is_active)
+    #     self.assertIsNone(current_resource.resource_type)
+    #     self.assertEqual(current_resource.status, Resource.UNEXPECTED_STORAGE_ERROR)
+
+    # @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+    # @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    # @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    # @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    # @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    # def test_resource_type_change_succeeds_for_new_resource_case2(self,
+    #     mock_get_resource_size, 
+    #     mock_get_storage_backend, 
+    #     mock_get_resource_type_instance,
+    #     mock_move,
+    #     mock_check_file_format_against_type):
+    #     '''
+    #     Here we test that a "unset" Resource (one where a resource_type
+    #     has NEVER been set) changes once the validation succeeds.
+
+    #     Here, the "standardization" is trivial and hence no deletion is triggered
+    #     '''
+    #     all_resources = Resource.objects.all()
+    #     unset_resources = []
+    #     for r in all_resources:
+    #         if not r.resource_type:
+    #             unset_resources.append(r)
+        
+    #     if len(unset_resources) == 0:
+    #         raise ImproperlyConfigured('Need at least one'
+    #             ' Resource without a type to test properly.'
+    #         )
+
+    #     unset_resource = unset_resources[0]
+    #     self.assertIsNone(unset_resource.resource_type)
+
+    #     # set the mock return values
+    #     mock_resource_instance = mock.MagicMock()
+    #     mock_resource_instance.validate_type.return_value = (True, 'some string')
+    #     mock_resource_instance.STANDARD_FORMAT = TSV_FORMAT
+    #     mock_resource_instance.extract_metadata.return_value = {
+    #         PARENT_OP_KEY: None,
+    #         OBSERVATION_SET_KEY: None,
+    #         FEATURE_SET_KEY: None
+    #     }
+
+    #     # given the strings below (which are the same as the original db Resource model), 
+    #     # no deletion would be triggered (since the file is not changed by the standardization process)
+    #     mock_resource_instance.save_in_standardized_format.return_value = (unset_resource.path,
+    #         unset_resource.name)
+    #     mock_get_resource_type_instance.return_value = mock_resource_instance
+        
+    #     fake_final_path = '/some/final_path/foo.tsv'
+    #     mock_move.return_value = fake_final_path
+
+    #     mock_storage_backend = mock.MagicMock()
+    #     mock_storage_backend.localize_resource.return_value = unset_resource.path
+    #     mock_get_storage_backend.return_value = mock_storage_backend
+
+    #     mock_get_resource_size.return_value = 100
+
+    #     # call the tested function
+    #     validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
+
+    #     # query the resource to see any changes:
+    #     current_resource = Resource.objects.get(pk=unset_resource.pk)
+    #     self.assertTrue(current_resource.is_active)
+    #     self.assertEqual(current_resource.resource_type, 'MTX')
+    #     self.assertEqual(current_resource.status, Resource.READY)
+    #     self.assertEqual(current_resource.path, fake_final_path)
+
+    #     mock_resource_instance.validate_type.assert_called()
+    #     mock_resource_instance.extract_metadata.assert_called()
+    #     mock_storage_backend.delete.assert_not_called()
+
+    #     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    # @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+    # @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities.move_resource_to_final_location')
+    # @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    # @mock.patch('api.utilities.resource_utilities.alert_admins')
+    # @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+    # def test_validation_failure_handled_gracefully(self,
+    #     mock_check_file_format_against_type, 
+    #     mock_alert_admins,
+    #     mock_get_resource_size,
+    #     mock_move_resource_to_final_location,
+    #     mock_get_resource_type_instance, mock_get_storage_backend):
+    #     '''
+    #     Here we test that we handle validation failures gracefully.
+    #     '''
+    #     all_resources = Resource.objects.all()
+    #     unset_resources = []
+    #     for r in all_resources:
+    #         if not r.resource_type:
+    #             unset_resources.append(r)
+        
+    #     if len(unset_resources) == 0:
+    #         raise ImproperlyConfigured('Need at least one'
+    #             ' Resource without a type to test properly.'
+    #         )
+
+    #     unset_resource = unset_resources[0]
+    #     self.assertIsNone(unset_resource.resource_type)
+    #     mock_move_resource_to_final_location.return_value = '/some/path.foo.txt'
+    #     mock_resource_class_instance = mock.MagicMock()
+    #     mock_resource_class_instance.validate_type.side_effect = Exception('validation ex!')
+    #     mock_get_resource_type_instance.return_value = mock_resource_class_instance
+    #     mock_storage_backend = mock.MagicMock()
+    #     mock_storage_backend.localize_resource.return_value = '/some/path/bar.txt'
+    #     mock_get_storage_backend.return_value = mock_storage_backend
+    #     mock_get_resource_size.return_value = 100
+
+    #     # call the tested function
+    #     validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
+    #     mock_alert_admins.assert_called()
+
+    #     # query the resource to see any changes:
+    #     current_resource = Resource.objects.get(pk=unset_resource.pk)
+    #     self.assertTrue(current_resource.is_active) # since an unexpected error was raised, don't activate
+    #     self.assertIsNone(current_resource.resource_type)
+    #     self.assertEqual(current_resource.status, Resource.UNEXPECTED_VALIDATION_ERROR)
+
+# @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+#     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+#     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+#     def test_invalid_type_remains_invalid_case2(self, mock_get_storage_backend, mock_get_resource_type_instance,
+#         mock_check_file_format_against_type):
+#         '''
+#         Here we test that a Resource change request fails.  The Resource previously
+#         had a valid type (or it would not have been set) and we check that a failed
+#         request "reverts" to the most recent valid resource type
+#         '''
+#         all_resources = Resource.objects.all()
+#         set_resources = []
+#         for r in all_resources:
+#             if r.resource_type:
+#                 set_resources.append(r)
+        
+#         if len(set_resources) == 0:
+#             raise ImproperlyConfigured('Need at least one'
+#                 ' Resource with a defined type to test properly.'
+#             )
+
+#         # just grab the first resource to use for the test
+#         resource = set_resources[0]
+
+#         # need to test the reversion of type, so need to know 
+#         # what it was in the first place.  We then randomly
+#         # choose a different type
+#         current_type = resource.resource_type
+#         other_type = current_type
+#         while other_type == current_type:
+#             other_type = random.choice(list(RESOURCE_MAPPING.keys()))
+
+#         mock_resource_instance = mock.MagicMock()
+#         failure_msg = 'Failed for this reason.'
+#         mock_resource_instance.validate_type.return_value = (False, failure_msg)
+#         mock_get_resource_type_instance.return_value = mock_resource_instance
+#         validate_resource(resource.pk, other_type, TSV_FORMAT)
+
+#         # query the resource to see any changes:
+#         current_resource = Resource.objects.get(pk=resource.pk)
+#         self.assertTrue(current_resource.is_active)
+#         self.assertEqual(current_resource.resource_type, current_type)
+#         expected_status = Resource.REVERTED.format(
+#             requested_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[other_type],
+#             original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[current_type],
+#             requested_file_format = TSV_FORMAT ,
+#             file_format = current_resource.file_format
+#         )
+#         expected_status = expected_status + ' ' + failure_msg
+#         self.assertEqual(current_resource.status, expected_status)
+
+#     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+#     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+#     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+#     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+#     def test_resource_type_change_succeeds(self, 
+#         mock_get_storage_backend,
+#         mock_get_resource_type_instance,
+#         mock_move,
+#         mock_check_file_format_against_type):
+#         '''
+#         Here we test that a Resource change request succeeds on a Resource
+#         that had an existing type.
+#         '''
+#         all_resources = Resource.objects.all()
+#         set_resources = []
+#         for r in all_resources:
+#             if r.resource_type:
+#                 set_resources.append(r)
+        
+#         if len(set_resources) == 0:
+#             raise ImproperlyConfigured('Need at least one'
+#                 ' Resource with a defined type to test properly.'
+#             )
+
+#         # just grab the first resource to use for the test
+#         resource = set_resources[0]
+
+#         # Need to know 
+#         # what it was in the first place.  We then randomly
+#         # choose a different type
+#         original_type = resource.resource_type
+#         new_type = original_type
+#         while new_type == original_type:
+#             new_type = random.choice(list(RESOURCE_MAPPING.keys()))
+
+#         # set the mock return values
+#         new_path = '/some/mock/path.tsv'
+#         mock_move.return_value = new_path
+#         mock_resource_instance = mock.MagicMock()
+#         mock_resource_instance.STANDARD_FORMAT = TSV_FORMAT
+#         mock_resource_instance.validate_type.return_value = (True, 'some string')
+#         mock_resource_instance.extract_metadata.return_value = {
+#             PARENT_OP_KEY: None,
+#             OBSERVATION_SET_KEY: None,
+#             FEATURE_SET_KEY: None
+#         }
+#         mock_resource_instance.save_in_standardized_format.return_value = ('/some/path.txt', 'newname')
+#         mock_get_resource_type_instance.return_value = mock_resource_instance
+#         mock_storage_backend = mock.MagicMock()
+#         mock_storage_backend.localize_resource.return_value = new_path
+#         mock_get_storage_backend.return_value = mock_storage_backend
+#         validate_resource(resource.pk, new_type, TSV_FORMAT)
+        
+
+#         # query the resource to see any changes:
+#         current_resource = Resource.objects.get(pk=resource.pk)
+#         self.assertTrue(current_resource.is_active)
+#         self.assertEqual(current_resource.resource_type, new_type)
+#         self.assertFalse(current_resource.resource_type == original_type)
+#         self.assertEqual(current_resource.status, Resource.READY)
+#         self.assertEqual(current_resource.path, new_path)
+#         mock_move.assert_called()
+
+
+#     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+#     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+#     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
+#     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+#     @mock.patch('api.utilities.resource_utilities.get_resource_size')
+#     def test_resource_type_change_succeeds_for_new_resource_case1(self,
+#         mock_get_resource_size,
+#         mock_get_storage_backend, 
+#         mock_get_resource_type_instance,
+#         mock_move,
+#         mock_check_file_format_against_type):
+#         '''
+#         Here we test that a "unset" Resource (one where a resource_type
+#         has NEVER been set) changes once the validation succeeds
+
+#         Here, the 'standardization' function changes the path, which
+#         will test that the deletion method is called.
+#         '''
+#         all_resources = Resource.objects.all()
+#         unset_resources = []
+#         for r in all_resources:
+#             if not r.resource_type:
+#                 unset_resources.append(r)
+        
+#         if len(unset_resources) == 0:
+#             raise ImproperlyConfigured('Need at least one'
+#                 ' Resource without a type to test properly.'
+#             )
+
+#         unset_resource = unset_resources[0]
+#         self.assertIsNone(unset_resource.resource_type)
+
+#         # set the mock return values
+#         mock_resource_instance = mock.MagicMock()
+#         mock_resource_instance.validate_type.return_value = (True, 'some string')
+#         mock_resource_instance.extract_metadata.return_value = {
+#             PARENT_OP_KEY: None,
+#             OBSERVATION_SET_KEY: None,
+#             FEATURE_SET_KEY: None
+#         }
+#         mock_resource_instance.STANDARD_FORMAT = TSV_FORMAT
+
+
+#         # given the strings below (which is different from the resource.path attr)
+#         # that would trigger a delete as it's mocking there being an alteration
+#         # of the path (as would happen if we saved in a standardized format)
+#         mock_resource_instance.save_in_standardized_format.return_value = ('','')
+#         mock_get_resource_type_instance.return_value = mock_resource_instance
+        
+#         fake_final_path = '/some/final_path/foo.tsv'
+#         mock_move.return_value = fake_final_path
+
+#         mock_storage_backend = mock.MagicMock()
+#         mock_storage_backend.localize_resource.return_value = fake_final_path
+#         mock_get_storage_backend.return_value = mock_storage_backend
+
+#         mock_get_resource_size.return_value = 100
+
+#         # call the tested function
+#         validate_resource_and_store(unset_resource.pk, 'MTX', TSV_FORMAT)
+
+#         # query the resource to see any changes:
+#         current_resource = Resource.objects.get(pk=unset_resource.pk)
+#         self.assertTrue(current_resource.is_active)
+#         self.assertEqual(current_resource.resource_type, 'MTX')
+#         self.assertEqual(current_resource.status, Resource.READY)
+#         self.assertEqual(current_resource.path, fake_final_path)
+
+#         mock_resource_instance.validate_type.assert_called()
+#         mock_resource_instance.extract_metadata.assert_called()
+#         mock_storage_backend.delete.assert_called()

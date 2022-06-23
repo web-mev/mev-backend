@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.core.exceptions import ValidationError
 
 from constants import DATABASE_RESOURCE_TYPES
 
@@ -74,6 +75,29 @@ class AbstractResource(models.Model):
     creation_datetime = models.DateTimeField(
         auto_now_add = True
     )
+
+    def save(self, *args, **kwargs):
+        '''
+        This defines custom behavior to respect upon saving of a AbstractResource
+        instance, including sub-classes.
+        '''
+
+        # a resource's type and format can either be completely unset 
+        # (as it is when initially uploaded) or it needs to have BOTH fields set
+        # (as would follow a successful validation process).
+        # This custom save behavior blocks us from saving 'incomplete' states.
+        resource_type_set = (self.resource_type is not None) and (len(self.resource_type) > 0)
+        file_format_set = (self.file_format is not None) and (len(self.file_format) > 0)
+        both_not_set = (not resource_type_set) and (not file_format_set)
+        both_set = resource_type_set and file_format_set
+
+        if both_not_set or both_set:
+            super().save(*args, **kwargs)
+        else:
+            raise ValidationError('Attempting to set an incomplete state for the combination'
+                ' of resource type and file format.'
+            )
+
 
     class Meta:
         abstract = True

@@ -5,20 +5,45 @@ import pandas as pd
 import uuid
 import os
 
-from constants import TSV_FORMAT
+from django.conf import settings
+
+from constants import TSV_FORMAT, \
+    PARENT_OP_KEY, \
+    FEATURE_SET_KEY, \
+    OBSERVATION_SET_KEY, \
+    RESOURCE_KEY
 
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type
+from resource_types.base import DataResource
 
 class TestResourceTypes(unittest.TestCase):    
     
     def test_all_resources_have_acceptable_formats(self):
         '''
         If any of the resource types are missing the ACCEPTABLE_FORMATS
-        key, then this test will raise an AttributeError
+        attribute, then this test will raise an AttributeError
         '''
         for k,v in RESOURCE_MAPPING.items():
             v.ACCEPTABLE_FORMATS
+
+    def test_all_resources_have_standard_formats(self):
+        '''
+        If any of the resource types are missing the STANDARD_FORMAT
+        attribute, then this test will raise an AttributeError
+        '''
+        for k,v in RESOURCE_MAPPING.items():
+            v.STANDARD_FORMAT
+
+class TestBaseDataResource(unittest.TestCase):
+
+    def test_metadata_setup(self):
+        d = DataResource()
+        d.setup_metadata()
+        self.assertIsNone(d.metadata.get(PARENT_OP_KEY))
+        self.assertIsNone(d.metadata.get(FEATURE_SET_KEY))
+        self.assertIsNone(d.metadata.get(OBSERVATION_SET_KEY))
+        self.assertIsNone(d.metadata.get(RESOURCE_KEY))
 
 class TestTableResource(unittest.TestCase):
 
@@ -48,9 +73,8 @@ class TestTableResource(unittest.TestCase):
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
         new_path = mtx_type.save_in_standardized_format(path, 'csv')
-        
-        self.assertEqual('/tmp/{x}'.format(x=str(u)), new_path)
-        self.assertEqual('test_matrix.tsv', new_name)
+
+        self.assertTrue(os.path.dirname(new_path) == settings.VALIDATION_TMP_DIR)
 
         # check that they have the same content:
         reloaded_df = pd.read_table(new_path, index_col=0)
@@ -76,14 +100,12 @@ class TestTableResource(unittest.TestCase):
         path = os.path.join('/tmp', orig_name)
         df.to_csv(path, sep='\t')
 
-
         mtx_class = RESOURCE_MAPPING['MTX']
         mtx_type = mtx_class()
         self.assertTrue(TSV_FORMAT == mtx_type.STANDARD_FORMAT)
         new_path = mtx_type.save_in_standardized_format(path, TSV_FORMAT)
-        
+
         self.assertEqual(path, new_path)
-        self.assertEqual(orig_name, new_name)
 
         # check that they have the same content:
         reloaded_df = pd.read_table(new_path, index_col=0)

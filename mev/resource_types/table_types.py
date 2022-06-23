@@ -18,7 +18,8 @@ from constants import CSV_FORMAT, \
     XLS_FORMAT, \
     XLSX_FORMAT, \
     JSON_FORMAT, \
-    OBSERVATION_SET_KEY
+    OBSERVATION_SET_KEY, \
+    PARENT_OP_KEY
 
 from .base import DataResource, ParseException, UnexpectedTypeValidationException
 from api.data_structures import Feature, \
@@ -585,7 +586,7 @@ class TableResource(DataResource):
         logger.info('Done with setting up the metadata.')
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
 
     def save_in_standardized_format(self, resource_path, file_format):
         '''
@@ -1195,7 +1196,7 @@ class FeatureTable(ElementTable):
         # issues with large json objects being inserted into the database.
         # feature_list = super().prep_metadata(Feature)
         # f_set = FeatureSet(feature_list)
-        # self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
+        # self.metadata[FEATURE_SET_KEY] = FeatureSetSerializer(f_set).data
         return self.metadata
 
 

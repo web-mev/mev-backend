@@ -28,7 +28,7 @@ class BaseStorageBackend(object):
         else:
             basename = '{uuid}.{base}'.format(
                 uuid=resource_instance.pk, 
-                base=os.path.basename(resource_instance.path)
+                base=current_basename
             )
 
         if type(resource_instance) == Resource:

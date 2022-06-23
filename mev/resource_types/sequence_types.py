@@ -1,11 +1,15 @@
 # This file contains information about the different 
 # sequence-based file types and methods for validating them
 
+import logging
+
 from constants import FASTQ_FORMAT, \
     FASTA_FORMAT, \
     BAM_FORMAT
 
 from .base import DataResource
+
+logger = logging.getLogger(__name__)
 
 
 class SequenceResource(DataResource):
@@ -51,6 +55,7 @@ class FastAResource(SequenceResource):
     ACCEPTABLE_FORMATS = [
         FASTA_FORMAT
     ]
+    STANDARD_FORMAT = FASTA_FORMAT
 
     def validate_type(self, resource_path, file_format):
         pass
@@ -66,6 +71,7 @@ class FastQResource(SequenceResource):
     ACCEPTABLE_FORMATS = [
         FASTQ_FORMAT
     ]
+    STANDARD_FORMAT = FASTQ_FORMAT
 
     def validate_type(self, resource_path, file_format):
         pass
@@ -82,6 +88,7 @@ class AlignedSequenceResource(SequenceResource):
     ACCEPTABLE_FORMATS = [
         BAM_FORMAT
     ]
+    STANDARD_FORMAT = BAM_FORMAT
 
     def validate_type(self, resource_path, file_format):
         pass
