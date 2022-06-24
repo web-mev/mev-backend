@@ -17,17 +17,51 @@ from api.utilities.operations import check_for_resource_operations
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive, \
-    resource_supports_pagination
+    resource_supports_pagination, \
+    check_resource_request_validity
 from api.data_transformations import get_transformation_function
 from api.storage_backends import get_storage_backend
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
 from api.async_tasks.async_resource_tasks import validate_resource_and_store as async_validate_resource_and_store
-from api.exceptions import NonIterableContentsException
+from api.exceptions import NonIterableContentsException, \
+    OwnershipException, \
+    InactiveResourceException, \
+    NoResourceFoundException
 from resource_types import ParseException
 
 
 logger = logging.getLogger(__name__)
+
+def check_resource_request(user, resource_pk):
+    '''
+    Helper function that asserts valid access to a Resource.
+
+    Returns a tuple of:
+    - bool
+    - object
+
+    The bool is True if the request was valid; in that case, the object
+    will be an instance of a api.models.AbstractResource (or child class).
+
+    If False, the second item in the tuple will be a DRF Response object 
+    appropriate for the failure reason.
+
+    We do this combination so that we don't have to do any type checking 
+    in the calling function/method
+    '''
+    try:
+        r = check_resource_request_validity(user, resource_pk)
+        return (True, r)
+    except OwnershipException:
+        return (False, Response(status=status.HTTP_403_FORBIDDEN))
+    except InactiveResourceException:
+        return (False, Response({
+            'resource': 'The requested resource is'
+            ' not active.'},
+            status=status.HTTP_400_BAD_REQUEST))
+    except NoResourceFoundException:
+            return (False, Response(status=status.HTTP_404_NOT_FOUND))
 
 class ResourceList(generics.ListCreateAPIView):
     '''
@@ -146,6 +180,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         self.perform_destroy(instance)
         return Response(status=status.HTTP_200_OK)
 
+
 class ResourceContents(APIView):
     '''
     Returns the full data underlying a Resource.
@@ -165,70 +200,51 @@ class ResourceContents(APIView):
 
     permission_classes = [framework_permissions.IsAuthenticated]
 
-    def check_request_validity(self, user, resource_pk):
-
-        try:
-            resource = Resource.objects.get(pk=resource_pk)
-        except Resource.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        if user.is_staff or (resource.owner == user):
-            if not resource.is_active:
-                return Response({
-                    'resource': 'The requested resource is'
-                    ' not active.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            # requester can access, resource is active.  Go get preview
-            return resource
-        else:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
     def get(self, request, *args, **kwargs):
         user = request.user
         resource_pk=kwargs['pk']
-        r = self.check_request_validity(user, resource_pk)
-        if not type(r) == Resource:
-            # if it's not a Resource, then it was something else, like a Response object
-            # If so, return that.
+
+        valid_request, r = check_resource_request(user, resource_pk)
+        if not valid_request:
+            # if the request was not valid, then `r` is a Response object.
             return r
+
+        # requester can access, resource is active.  Go get contents
+        try:
+            contents = get_resource_view(r, request.query_params)
+            logger.info('Done getting contents.')
+        except ParseException as ex:
+            return Response(
+                {'error': 'There was a problem when parsing the request: {ex}'.format(ex=ex)},
+                status=status.HTTP_400_BAD_REQUEST
+            )  
+        except Exception as ex:
+            return Response(
+                {'error': 'Experienced an issue when preparing the resource view: {ex}'.format(ex=ex)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )   
+        if contents is None:
+            return Response(
+                {'info': 'Contents not available for this resource.'},
+                status=status.HTTP_200_OK
+            )
         else:
-            # requester can access, resource is active.  Go get contents
-            try:
-                contents = get_resource_view(r, request.query_params)
-                logger.info('Done getting contents.')
-            except ParseException as ex:
-                return Response(
-                    {'error': 'There was a problem when parsing the request: {ex}'.format(ex=ex)},
-                    status=status.HTTP_400_BAD_REQUEST
-                )  
-            except Exception as ex:
-                return Response(
-                    {'error': 'Experienced an issue when preparing the resource view: {ex}'.format(ex=ex)},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )   
-            if contents is None:
-                return Response(
-                    {'info': 'Contents not available for this resource.'},
-                    status=status.HTTP_200_OK
-                )
-            else:
-                if (settings.PAGE_PARAM in request.query_params) and (resource_supports_pagination(r.resource_type)):
-                    paginator = get_resource_paginator(r.resource_type)
-                    try:
-                        results = paginator.paginate_queryset(contents, request)
-                    except NonIterableContentsException as ex:
-                        # certain resources (e.g. JSON) can support pagination in
-                        # certain contexts, such as is the JSON is essentially an 
-                        # array. If the paginator raises this error, just return the
-                        # entire contents we parsed before.
-                        logging.info('Contents of resource ({pk}) were not iterable.'
-                            ' Returning all contents.'
-                        )
-                        return Response(contents)
-                    return paginator.get_paginated_response(results)
-                else:
+            if (settings.PAGE_PARAM in request.query_params) and (resource_supports_pagination(r.resource_type)):
+                paginator = get_resource_paginator(r.resource_type)
+                try:
+                    results = paginator.paginate_queryset(contents, request)
+                except NonIterableContentsException as ex:
+                    # certain resources (e.g. JSON) can support pagination in
+                    # certain contexts, such as is the JSON is essentially an 
+                    # array. If the paginator raises this error, just return the
+                    # entire contents we parsed before.
+                    logging.info('Contents of resource ({pk}) were not iterable.'
+                        ' Returning all contents.'
+                    )
                     return Response(contents)
+                return paginator.get_paginated_response(results)
+            else:
+                return Response(contents)
 
 class AddBucketResourceView(APIView):
     '''
@@ -317,10 +333,9 @@ class ResourceContentTransform(ResourceContents):
     def get(self, request, *args, **kwargs):
         user = request.user
         resource_pk=kwargs['pk']
-        r = self.check_request_validity(user, resource_pk)
-        if not type(r) == Resource:
-            # if it's not a Resource, then it was something else, like a Response object
-            # If so, return that.
+        valid_request, r = check_resource_request(user, resource_pk)
+        if not valid_request:
+            # if the request was not valid, then `r` is a Response object.
             return r
         else:
             query_params = request.query_params

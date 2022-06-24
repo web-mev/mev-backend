@@ -257,11 +257,13 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
 
     def get_filesize(self, path):
         blob = self.get_blob(path)
-        size = blob.size
-        if size:
-            return size
-        else:
-            return 0
+        if blob:
+            size = blob.size
+            if size:
+                return size
+            else:
+                return 0
+        return 0
 
     def resource_exists(self, path):
         '''

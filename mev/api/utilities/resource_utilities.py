@@ -47,10 +47,10 @@ def check_resource_request_validity(user, resource_pk):
     '''
     resource = get_resource_by_pk(resource_pk)
 
-    if user.is_staff or (resource.owner == user):
+    if resource.owner == user:
         if not resource.is_active:
             raise InactiveResourceException()
-        # requester can access, resource is active.  Go get preview
+        # requester can access, resource is active. Return the instance
         return resource
     else:
         raise OwnershipException()
@@ -83,34 +83,30 @@ def get_resource_by_pk(resource_pk):
         )
 
     # If we are here, raise an exception since nothing was found    
-    raise NoResourceFoundException('Could not find any sublcasses of AbstractResource'
+    raise NoResourceFoundException('Could not find any resource'
         ' identified by the ID {u}'.format(u=resource_pk)
     )
 
 def delete_resource_by_pk(resource_pk):
+    '''
+    Deletes the database record. Does NOT delete the associated
+    file.
 
-    try:
-        resource = Resource.objects.get(pk=resource_pk)
-        resource.delete()
-    except Resource.DoesNotExist as ex:
-        logger.info('Received an unknown/invalid primary key'
-            ' when trying to retrieve a Resource instance.'
-            ' Try looking for OperationResource with the UUID ({u}).'.format(
-                u = resource_pk
-            )
-        )
-    try:
-        resource = OperationResource.objects.get(pk=resource_pk)
-        resource.delete()
-    except OperationResource.DoesNotExist as ex:
-        logger.info('Could not find an OperationResource with'
-            ' pk={u}'.format(u = resource_pk)
-        )
-
-    # If we are here, raise an exception since nothing was found    
-    raise NoResourceFoundException('Could not find any sublcasses of AbstractResource'
-        ' identified by the ID {u}'.format(u=resource_pk)
+    Note that this does not perform any logic on deletion. For instance, 
+    one might want to protect deletion of critical files. That logic should
+    be implemented elsewhere.
+    '''
+    logger.info('Attempt to delete the Resource database model identified'
+        ' by pk={pk}'.format(pk=str(resource_pk))
     )
+    r = get_resource_by_pk(resource_pk)
+    logger.info('Resource ({pk}) was found.'.format(pk=str(resource_pk)))
+    try:
+        r.delete()
+    except Exception as ex:
+        message = 'Failed to delete Resource ({pk}) from the database.'
+        logger.info(message)
+        alert_admins(message)
 
 def set_resource_to_inactive(resource_instance):
     '''
@@ -173,7 +169,6 @@ def add_metadata_to_resource(resource, metadata):
         logger.info('Resource metadata was valid. Now save it.')
         try:
             rm = rms.save()
-            #TODO: check if this is necessary? Does rms.save do everything we need?
             rm.save()
         except OperationalError as ex:
             message = ('Caught an OperationalError when trying to'
@@ -186,7 +181,9 @@ def add_metadata_to_resource(resource, metadata):
             # if the save failed (e.g. perhaps b/c it was too large)
             # then just fill in blank metadata.
             rms = ResourceMetadataSerializer(data=d)
-            rms.save()
+            if rms.is_valid():
+                rm = rms.save()
+                rm.save()
             alert_admins(message)
 
         except Exception as ex:
@@ -195,9 +192,10 @@ def add_metadata_to_resource(resource, metadata):
             )
             logger.info(message)          
             rms = ResourceMetadataSerializer(data=d)
-            rms.save()
+            if rms.is_valid():
+                rm = rms.save()
+                rm.save()
             alert_admins(message)
-
 
 def move_resource_to_final_location(resource_instance):
     '''
@@ -251,6 +249,7 @@ def retrieve_metadata(resource_path, resource_class_instance):
             msg = v['message']
             err_str = '{k}:{s}'.format(k=k, s = str(msg))
             err_list.append(err_str)
+        print(err_list)
         raise ResourceValidationException(
             Resource.ERROR_WITH_REASON.format(ex=','.join(err_list))
         )

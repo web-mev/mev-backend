@@ -32,6 +32,7 @@ from api.models import Resource, \
     Operation, \
     OperationResource
 from api.serializers.resource_metadata import ResourceMetadataSerializer
+from api.serializers.observation_set import ObservationSetSerializer
 from api.utilities.resource_utilities import move_resource_to_final_location, \
     get_resource_view, \
     initiate_resource_validation, \
@@ -41,11 +42,17 @@ from api.utilities.resource_utilities import move_resource_to_final_location, \
     add_metadata_to_resource, \
     get_resource_by_pk, \
     write_resource, \
-    retrieve_resource_class_instance
+    retrieve_resource_class_instance, \
+    check_resource_request_validity, \
+    delete_resource_by_pk, \
+    localize_resource, \
+    retrieve_metadata
 from api.utilities.operations import read_operation_json, \
     check_for_resource_operations
 from api.exceptions import NoResourceFoundException, \
-    ResourceValidationException
+    ResourceValidationException, \
+    InactiveResourceException, \
+    OwnershipException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -74,6 +81,38 @@ class TestResourceUtilities(BaseAPITestCase):
             )
         return unset_resources[0]
 
+    @mock.patch('api.utilities.resource_utilities.get_resource_by_pk')
+    def test_resource_request_validity(self, mock_get_resource_by_pk):
+        '''
+        Test that we receive the proper result when
+        a api.models.Resource instance is requested.
+        This function is used to ensure that users can only
+        access their own Resource instances
+        '''
+        active_owned_resources = Resource.objects.filter(owner=self.regular_user_1, is_active=True)
+        inactive_owned_resources = Resource.objects.filter(owner=self.regular_user_1, is_active=False)
+        active_resource = active_owned_resources[0]
+        inactive_resource = inactive_owned_resources[0]
+        active_pk = str(active_resource.pk)
+        inactive_pk = str(inactive_resource.pk)
+
+        mock_get_resource_by_pk.return_value = active_resource
+        result = check_resource_request_validity(self.regular_user_1, active_pk)
+        self.assertEqual(active_resource, result)
+
+        mock_get_resource_by_pk.return_value = inactive_resource
+        with self.assertRaises(InactiveResourceException):
+            result = check_resource_request_validity(self.regular_user_1, inactive_pk)
+
+        mock_get_resource_by_pk.return_value = active_resource
+        with self.assertRaises(OwnershipException):
+            result = check_resource_request_validity(self.regular_user_2, active_pk)
+
+        mock_get_resource_by_pk.side_effect = NoResourceFoundException
+        with self.assertRaises(NoResourceFoundException):
+            check_resource_request_validity(self.regular_user_1, active_pk)
+
+
     def test_get_resource_by_pk_works_for_all_resources(self):
         '''
         We use the api.utilities.resource_utilities.get_resource_by_pk
@@ -99,6 +138,125 @@ class TestResourceUtilities(BaseAPITestCase):
         )
         r4 = get_resource_by_pk(r3.pk)
         self.assertEqual(r3,r4)
+
+    @mock.patch('api.utilities.resource_utilities.alert_admins')
+    @mock.patch('api.utilities.resource_utilities.get_resource_by_pk')
+    def test_resource_delete(self, mock_get_resource_by_pk, mock_alert_admins):
+        '''
+        Tests that the function for deleting a database record works as expected
+        '''
+        # mock the simple/expected deletion
+        mock_resource = mock.MagicMock()
+        mock_get_resource_by_pk.return_value = mock_resource
+        mock_pk = str(uuid.uuid4())
+        delete_resource_by_pk(mock_pk)
+        mock_get_resource_by_pk.assert_called_with(mock_pk)
+        mock_resource.delete.assert_called()
+
+        # mock that the resource was inactive. This function does NOT care about that.
+        # Any deletion logic (e.g. disallowing for inactive files) should be implemented
+        # prior to calling this function. Hence, the delete should succeed below:
+        mock_resource = mock.MagicMock()
+        mock_resource.is_active = False
+        mock_get_resource_by_pk.return_value = mock_resource
+        delete_resource_by_pk(mock_pk)
+        mock_get_resource_by_pk.assert_called_with(mock_pk)
+        mock_resource.delete.assert_called()
+
+        # check that a database deletion failure will notify the admins
+        mock_resource = mock.MagicMock()
+        mock_resource.delete.side_effect = Exception('ack!')
+        mock_get_resource_by_pk.return_value = mock_resource
+        delete_resource_by_pk(mock_pk)
+        mock_get_resource_by_pk.assert_called_with(mock_pk)
+        mock_resource.delete.assert_called()
+        mock_alert_admins.assert_called()
+
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_move_resource_to_final_location(self, mock_get_storage_backend):
+        '''
+        Tests that any/all exceptions raised by the backend's `store`
+        method are caught and reported with a general Exception
+        '''
+        # check that we get back the expected path if the storage works:
+        mock_storage_backend = mock.MagicMock()
+        mock_path = '/ab/c/file.tsv'
+        mock_storage_backend.store.return_value = mock_path
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource = mock.MagicMock()
+        result = move_resource_to_final_location(mock_resource)
+        self.assertEqual(result, mock_path)
+
+        # check that a specific exception is caught, but we report a generic one
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.store.side_effect = FileNotFoundError('nope!')
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource = mock.MagicMock()
+        with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_STORAGE_ERROR):
+            move_resource_to_final_location(mock_resource)
+
+        # check that a generic error is caught and the message is altered:
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.store.side_effect = Exception('ack!')
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource = mock.MagicMock()
+        with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_STORAGE_ERROR):
+            move_resource_to_final_location(mock_resource)
+
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_localize_resource(self, mock_get_storage_backend):
+        '''
+        Tests that we execute properly and handle exceptions properly if the 
+        torage backend encounters an issue
+        '''
+        # check the successful path:
+        mock_path = '/some/mock/path.tsv'
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.localize_resource.return_value = mock_path
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource = mock.MagicMock()
+        self.assertEqual(mock_path, localize_resource(mock_resource))
+
+        # check if the file was not found:
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.localize_resource.side_effect = FileNotFoundError('nope!')
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = 'xyz'
+        mock_resource.path = mock_path
+        with self.assertRaisesRegex(Exception, 'was not found'):
+            localize_resource(mock_resource)
+
+        # check if another exception was raised:
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.localize_resource.side_effect = Exception('something bad!')
+        mock_get_storage_backend.return_value = mock_storage_backend
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = 'xyz'
+        mock_resource.path = mock_path
+        with self.assertRaisesRegex(Exception, 'something bad!'):
+            localize_resource(mock_resource)
+
+
+    def test_retrieve_metadata(self):
+        mock_resource_class_instance = mock.MagicMock()
+        mock_metadata = {
+            'mock_key': 'mock_value'
+        }
+        mock_resource_class_instance.extract_metadata.return_value = mock_metadata
+        mock_path = '/some/mock/path.tsv'
+        result = retrieve_metadata(mock_path, mock_resource_class_instance)
+        self.assertDictEqual(result, mock_metadata)
+        mock_resource_class_instance.extract_metadata.assert_called_with(mock_path)
+
+        v = ValidationError({'key': 'val'})
+        mock_resource_class_instance.extract_metadata.side_effect = v
+        with self.assertRaisesRegex(ResourceValidationException, 'key:val') as ex:
+            retrieve_metadata(mock_path, mock_resource_class_instance)
+
+        mock_resource_class_instance.extract_metadata.side_effect = Exception('ack')
+        with self.assertRaisesRegex(Exception, 'unexpected issue') as ex:
+            retrieve_metadata(mock_path, mock_resource_class_instance)
 
     @mock.patch('resource_types.RESOURCE_MAPPING')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
@@ -824,7 +982,6 @@ class TestResourceUtilities(BaseAPITestCase):
             mock_metadata
         )
 
-
     @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
     @mock.patch('api.utilities.resource_utilities.add_metadata_to_resource')
     def test_metadata_addition_failure(self, 
@@ -884,6 +1041,9 @@ class TestResourceUtilities(BaseAPITestCase):
                 }
             ]
         }
+        # verify that the mock above is valid
+        oss = ObservationSetSerializer(data=mock_obs_set)
+        self.assertTrue(oss.is_valid())
         add_metadata_to_resource(
             r, 
             {
@@ -913,14 +1073,14 @@ class TestResourceUtilities(BaseAPITestCase):
         )
 
         # query again, see that it was updated
-        rm3 = ResourceMetadata.objects.get(pk=rm_pk)
+        rm3 = ResourceMetadata.objects.get(resource=r)
         expected_obs_set = copy.deepcopy(mock_obs_set)
         elements = expected_obs_set['elements']
         for el in elements:
             el.update({'attributes': {}})
         self.assertEqual(rm3.observation_set['multiple'], mock_obs_set['multiple'])
         self.assertCountEqual(rm3.observation_set['elements'], elements)
-        
+
     @mock.patch('api.utilities.resource_utilities.ResourceMetadataSerializer')
     @mock.patch('api.utilities.resource_utilities.alert_admins')
     def test_add_metadata_case2(self, mock_alert_admins, mock_serializer_cls):
@@ -929,7 +1089,10 @@ class TestResourceUtilities(BaseAPITestCase):
         when associating metadata with a resource.
 
         Inspired by a runtime failure where the FeatureSet was too
-        large for the database field
+        large for the database field. In such a case, we want to alert
+        admins, but not stop a user from moving forward. Hence, we 
+        recover from the failure by saving a bare-minimum metadata
+        payload.
         '''
         # create a new Resource
         r = Resource.objects.create(
@@ -939,19 +1102,128 @@ class TestResourceUtilities(BaseAPITestCase):
         with self.assertRaises(ResourceMetadata.DoesNotExist):
             ResourceMetadata.objects.get(resource=r)
 
+        # create some legitimate metadata to add. We ultimately 
+        # mock there being a failure when trying to save this,
+        # but we at least give it real data here
+        mock_obs_set = {
+            'multiple': True,
+            'elements': [
+                {
+                    'id': 'sampleA'
+                },
+                {
+                    'id': 'sampleB'
+                }
+            ]
+        }
+        # verify that the mock above is valid
+        oss = ObservationSetSerializer(data=mock_obs_set)
+        self.assertTrue(oss.is_valid())
+
         # create a mock object that will raise an exception
         from django.db.utils import OperationalError
         mock_serializer1 = mock.MagicMock()
-        mock_serializer2 = mock.MagicMock()
         mock_serializer1.is_valid.return_value = True
         mock_serializer1.save.side_effect = OperationalError
-        mock_serializer_cls.side_effect = [mock_serializer1, mock_serializer2]
+        # The first time we ask for a ResourceMetadataSerializer, we mock
+        # out the implementation so that we can fake an issue with its save
+        # method. The second time, we use the actual class so we can verify
+        # that we save only "basic" data in the event of an OperationalError
+        basic_data = {
+            RESOURCE_KEY: r.pk
+        }
+        real_instance = ResourceMetadataSerializer(data=basic_data)
+        mock_serializer_cls.side_effect = [mock_serializer1, real_instance]
         add_metadata_to_resource(
             r, 
-            {}
+            {
+                OBSERVATION_SET_KEY:mock_obs_set
+            }
         )
-        mock_serializer2.save.assert_called()
         mock_alert_admins.assert_called()
+
+        # check that we did actually persist the basic metadata to the db:
+        rm = ResourceMetadata.objects.get(resource=r)
+        rmd = ResourceMetadataSerializer(rm).data
+        expected_metadata = {
+            PARENT_OP_KEY: None,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None,
+            RESOURCE_KEY: r.pk
+        }
+        self.assertDictEqual(expected_metadata, rmd)
+
+    @mock.patch('api.utilities.resource_utilities.ResourceMetadataSerializer')
+    @mock.patch('api.utilities.resource_utilities.alert_admins')
+    def test_add_metadata_case3(self, mock_alert_admins, mock_serializer_cls):
+        '''
+        Test that we gracefully handle updates and save failures
+        when associating metadata with a resource.
+
+        This covers the case where we encounter a generic Exception when
+        trying to save the metadata. In such a case, we want to alert
+        admins, but not stop a user from moving forward. Hence, we 
+        recover from the failure by saving a bare-minimum metadata
+        payload.
+        '''
+        # create a new Resource
+        r = Resource.objects.create(
+            name='foo.txt'
+        )
+        # ensure it has no associated metadata
+        with self.assertRaises(ResourceMetadata.DoesNotExist):
+            ResourceMetadata.objects.get(resource=r)
+
+        # create some legitimate metadata to add. We ultimately 
+        # mock there being a failure when trying to save this,
+        # but we at least give it real data here
+        mock_obs_set = {
+            'multiple': True,
+            'elements': [
+                {
+                    'id': 'sampleA'
+                },
+                {
+                    'id': 'sampleB'
+                }
+            ]
+        }
+        # verify that the mock above is valid
+        oss = ObservationSetSerializer(data=mock_obs_set)
+        self.assertTrue(oss.is_valid())
+
+        # create a mock object that will raise an exception
+        mock_serializer1 = mock.MagicMock()
+        mock_serializer1.is_valid.return_value = True
+        mock_serializer1.save.side_effect = Exception('ack!')
+        # The first time we ask for a ResourceMetadataSerializer, we mock
+        # out the implementation so that we can fake an issue with its save
+        # method. The second time, we use the actual class so we can verify
+        # that we save only "basic" data in the event of an unexpected Exception
+        basic_data = {
+            RESOURCE_KEY: r.pk
+        }
+        real_instance = ResourceMetadataSerializer(data=basic_data)
+        mock_serializer_cls.side_effect = [mock_serializer1, real_instance]
+        add_metadata_to_resource(
+            r, 
+            {
+                OBSERVATION_SET_KEY:mock_obs_set
+            }
+        )
+        mock_alert_admins.assert_called()
+
+        # check that we did actually persist the basic metadata to the db:
+        rm = ResourceMetadata.objects.get(resource=r)
+        rmd = ResourceMetadataSerializer(rm).data
+        expected_metadata = {
+            PARENT_OP_KEY: None,
+            OBSERVATION_SET_KEY: None,
+            FEATURE_SET_KEY: None,
+            RESOURCE_KEY: r.pk
+        }
+        self.assertDictEqual(expected_metadata, rmd)
+
 
     @mock.patch('api.utilities.resource_utilities.make_local_directory')
     @mock.patch('api.utilities.resource_utilities.os')

@@ -419,14 +419,14 @@ class ResourceContentTests(BaseAPITestCase):
             status.HTTP_400_BAD_REQUEST)
 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.views.resource_views.get_resource_view')
-    def test_error_reported(self, mock_view, mock_check_request_validity):
+    def test_error_reported(self, mock_view, mock_check_resource_request):
         '''
         If there was some error in preparing the preview, 
         the returned data will have an 'error' key
         '''
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_view.side_effect = Exception('something bad happened!')
         response = self.authenticated_regular_client.get(
             self.url, format='json'
@@ -436,9 +436,9 @@ class ResourceContentTests(BaseAPITestCase):
 
         self.assertTrue('error' in response.json())     
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
-    def test_expected_response(self, mock_localize_resource, mock_check_request_validity):
+    def test_expected_response(self, mock_localize_resource, mock_check_resource_request):
         '''
         Test that the returned payload matches our expectations
         '''
@@ -447,7 +447,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = INTEGER_MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_localize_resource.return_value = f
 
         response = self.authenticated_regular_client.get(
@@ -485,9 +485,9 @@ class ResourceContentTests(BaseAPITestCase):
         ]
         self.assertEqual(expected_return, j) 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_sort_for_json(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_sort_for_json(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For certain types of json data structures, we can perform filtering. 
         For instance, if we have an array of simple items where our filter key is at the "top level",
@@ -498,7 +498,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -579,9 +579,9 @@ class ResourceContentTests(BaseAPITestCase):
         results = j['results']
         self.assertTrue(len(results) == 13)
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_filter_for_json(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_filter_for_json(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For certain types of json data structures, we can perform filtering. 
         For instance, if we have an array of simple items where our filter key is at the "top level",
@@ -592,7 +592,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -713,9 +713,9 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue('error' in j)
 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_filter_for_json_with_na(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_filter_for_json_with_na(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For certain types of json data structures, we can perform filtering. 
         For instance, if we have an array of simple items where our filter key is at the "top level",
@@ -729,7 +729,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -766,9 +766,9 @@ class ResourceContentTests(BaseAPITestCase):
             status.HTTP_200_OK)
         self.assertTrue(len(j) == 3)
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_pagination_for_json(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_pagination_for_json(self, mock_get_storage_backend, mock_check_resource_request):
         f = os.path.join(self.TESTDIR, 'json_array_file.json')
         N = 60 # the number of records in our demo file
 
@@ -779,7 +779,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = 'JSON'
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -837,9 +837,9 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(first_record['idx'] == 10)
         self.assertTrue(final_record['idx'] == 19)
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_pagination(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_pagination(self, mock_get_storage_backend, mock_check_resource_request):
         f = os.path.join(self.TESTDIR, 'demo_table_for_pagination.tsv')
         N = 155 # the number of records in our demo file
 
@@ -850,7 +850,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -952,9 +952,9 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(first_record['rowname'] == 'g20')
         self.assertTrue(final_record['rowname'] == 'g39')
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_rowname_filter(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_rowname_filter(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         We allow filtering of tables by the rownames (commonly gene name). Test that
         the implementation works as expected
@@ -966,7 +966,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1203,9 +1203,9 @@ class ResourceContentTests(BaseAPITestCase):
         returned_genes = [x['rowname'] for x in j]
         self.assertCountEqual(returned_genes, selected_genes[:2])
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_table_filter(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_table_filter(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are filtered correctly
         '''
@@ -1215,7 +1215,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1323,9 +1323,9 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertEqual(results['error'], expected_error)
 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_abs_val_table_filter(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_abs_val_table_filter(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are filtered correctly using the absolute value filters
         '''
@@ -1335,7 +1335,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1378,9 +1378,9 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertEqual({'AMBP'}, returned_set)
 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_table_filter_with_string(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_table_filter_with_string(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are filtered correctly on string fields
         '''
@@ -1390,7 +1390,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1443,9 +1443,9 @@ class ResourceContentTests(BaseAPITestCase):
         results = response.json()
         self.assertTrue(len(results) == 0)
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_sort(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_sort(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly
         '''
@@ -1455,7 +1455,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1594,9 +1594,9 @@ class ResourceContentTests(BaseAPITestCase):
         )
 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_matrix_specific_content_requests(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_matrix_specific_content_requests(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when used
         with filters.
@@ -1606,7 +1606,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1783,9 +1783,9 @@ class ResourceContentTests(BaseAPITestCase):
         results = response.json()['results']
         self.assertTrue(len(results) == 12)
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_matrix_specific_content_requests_with_na_and_infty(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_matrix_specific_content_requests_with_na_and_infty(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when used
         with filters.
@@ -1795,7 +1795,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -1963,9 +1963,9 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(len(results) == 12)
 
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_sort_and_filter(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_resource_contents_sort_and_filter(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when used
         with filters.
@@ -1976,7 +1976,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -2019,9 +2019,9 @@ class ResourceContentTests(BaseAPITestCase):
             expected_ordering
         )
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_malformatted_sort_and_filter(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_malformatted_sort_and_filter(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing that bad request params are handled well.
         '''
@@ -2031,7 +2031,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
@@ -2117,9 +2117,9 @@ class ResourceContentTests(BaseAPITestCase):
         )
         self.assertEqual(results['error'], expected_error)
 
-    @mock.patch('api.views.resource_views.ResourceContents.check_request_validity')
+    @mock.patch('api.views.resource_views.check_resource_request')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_sort_on_string_field(self, mock_get_storage_backend, mock_check_request_validity):
+    def test_sort_on_string_field(self, mock_get_storage_backend, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when
         sorting on a non-numeric/string field
@@ -2130,7 +2130,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_check_request_validity.return_value = self.resource
+        mock_check_resource_request.return_value = (True, self.resource)
         mock_storage_backend = mock.MagicMock()
         mock_storage_backend.localize_resource.return_value = f
         mock_get_storage_backend.return_value = mock_storage_backend
