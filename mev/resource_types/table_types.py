@@ -874,10 +874,10 @@ class IntegerMatrix(Matrix):
     ]
 
     def validate_type(self, resource_path, file_format):
-
         # first check that it has all numeric types.  If that fails
         # immediately return--
         is_valid, error_message = super().validate_type(resource_path, file_format)
+        
         if not is_valid:
             return (False, error_message)
 

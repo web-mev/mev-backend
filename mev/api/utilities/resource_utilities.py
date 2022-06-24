@@ -249,7 +249,6 @@ def retrieve_metadata(resource_path, resource_class_instance):
             msg = v['message']
             err_str = '{k}:{s}'.format(k=k, s = str(msg))
             err_list.append(err_str)
-        print(err_list)
         raise ResourceValidationException(
             Resource.ERROR_WITH_REASON.format(ex=','.join(err_list))
         )
@@ -340,13 +339,14 @@ def retrieve_resource_class_standard_format(requested_resource_type):
         err = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
             requested_resource_type = requested_resource_type
         )
-        raise ResourceValidationException(err)
+        raise Exception(err)
 
-def handle_invalid_resource(resource_instance, requested_resource_type, requested_file_format, message = None):
-
-    # "convert" the None to an empty string
-    message = message if message else ''
-
+def check_if_resource_unset(resource_instance):
+    '''
+    We depend on both the resource type and format fields to be set for a file
+    to be deemed 'valid'. This utlity function checks that and returns a boolean
+    indicating whether its validity has been established prior.
+    '''
     resource_type_set = (resource_instance.resource_type is not None) \
         and (len(resource_instance.resource_type) > 0)
 
@@ -354,6 +354,16 @@ def handle_invalid_resource(resource_instance, requested_resource_type, requeste
         and (len(resource_instance.file_format) > 0)
         
     previously_unset = (not resource_type_set) and (not file_format_set)
+    return previously_unset
+
+def handle_invalid_resource(resource_instance, requested_resource_type, requested_file_format, message = None):
+
+    # "convert" the None to an empty string
+    message = message if message else ''
+
+    # was the file previously valid? This affects whether we revert to that prior
+    # state or simply report that the file cannot be validated given the current type/format
+    previously_unset = check_if_resource_unset(resource_instance)
 
     # If resource_type has not been set (i.e. it is None), then this   
     # Resource has NEVER been verified.  We report a failure
@@ -501,6 +511,12 @@ def initiate_resource_validation(resource_instance, requested_resource_type, fil
         resource_instance.resource_type = requested_resource_type
         resource_instance.file_format = file_format
     else:
+        logger.info('Resource ({pk}) failed validation for {rt}, {ff}'.format(
+            pk = resource_instance.pk,
+            rt = requested_resource_type,
+            ff = file_format
+        )
+        )
         handle_invalid_resource(resource_instance, requested_resource_type, file_format, message)
 
     # save changes    
