@@ -208,14 +208,14 @@ class TestPublicDatasets(BaseAPITestCase):
         self.assertEqual('foo', p.public_name)
         self.assertEqual('desc', p.description)
 
-    @mock.patch('api.public_data.validate_resource_and_store')
+    @mock.patch('api.public_data.validate_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
     def test_dataset_creation_steps_case1(self, mock_resource_class,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
-            mock_validate_and_store_resource
+            mock_validate_resource
         ):
         '''
         Tests the proper methods are called for the process of creating a 
@@ -256,7 +256,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload, '')
-        mock_validate_and_store_resource.delay.assert_called_with(mock_resource_instance.pk, filetype, file_format)
+        mock_validate_resource.delay.assert_called_with(mock_resource_instance.pk, filetype, file_format)
         mock_resource_class.objects.create.assert_called_with(
             name = mock_name,
             owner=mock_user,
@@ -266,14 +266,14 @@ class TestPublicDatasets(BaseAPITestCase):
 
         self.assertEqual(resource_list[0].name, mock_name)
 
-    @mock.patch('api.public_data.validate_resource_and_store')
+    @mock.patch('api.public_data.validate_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
     @mock.patch('api.public_data.Resource')
     def test_dataset_creation_fails(self, mock_resource_class,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
-            mock_validate_and_store_resource
+            mock_validate_resource
         ):
         '''
         Tests that we do not create a Resource in the case where the
@@ -300,7 +300,7 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check that methods were NOT called:
         mock_resource_class.objects.create.assert_not_called()
-        mock_validate_and_store_resource.delay.assert_not_called()
+        mock_validate_resource.delay.assert_not_called()
 
 
 class TestBasePublicDataSource(BaseAPITestCase):

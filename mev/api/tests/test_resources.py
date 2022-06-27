@@ -3033,9 +3033,9 @@ class BucketResourceAddTests(BaseAPITestCase):
             status.HTTP_400_BAD_REQUEST)
 
     @mock.patch('api.views.resource_views.get_storage_backend')
-    @mock.patch('api.views.resource_views.async_validate_resource_and_store')
+    @mock.patch('api.views.resource_views.async_validate_resource')
     def test_path_edited_correctly(self, 
-        mock_async_validate_resource_and_store, 
+        mock_async_validate_resource, 
         mock_get_storage_backend):
         '''
         Tests the case where everything works-- check that the file goes
@@ -3065,7 +3065,7 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertTrue(j['name'] == 'some-file.txt')
 
         mock_storage_impl.store.assert_called()
-        mock_async_validate_resource_and_store.delay.assert_not_called()
+        mock_async_validate_resource.delay.assert_not_called()
 
         # count the number of original resources:
         all_resources = Resource.objects.all()
@@ -3081,9 +3081,9 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)
 
     @mock.patch('api.views.resource_views.get_storage_backend')
-    @mock.patch('api.views.resource_views.async_validate_resource_and_store')
+    @mock.patch('api.views.resource_views.async_validate_resource')
     def test_resource_added_with_validation(self, 
-        mock_async_validate_resource_and_store, 
+        mock_async_validate_resource, 
         mock_get_storage_backend):
         '''
         Tests the case where everything works-- check that the file goes
@@ -3117,7 +3117,7 @@ class BucketResourceAddTests(BaseAPITestCase):
 
 
         mock_storage_impl.store.assert_not_called()
-        mock_async_validate_resource_and_store.delay.assert_called()
+        mock_async_validate_resource.delay.assert_called()
 
         # count the number of original resources:
         all_resources = Resource.objects.all()

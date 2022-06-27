@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth import get_user_model
 
 from api.exceptions import ResourceValidationException
-from api.async_tasks.async_resource_tasks import validate_resource, validate_resource_and_store
+from api.async_tasks.async_resource_tasks import validate_resource
 from api.models import Resource, ResourceMetadata
 from resource_types.base import DataResource
 from resource_types import RESOURCE_MAPPING, IntegerMatrix

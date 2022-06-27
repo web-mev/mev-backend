@@ -23,7 +23,6 @@ from api.data_transformations import get_transformation_function
 from api.storage_backends import get_storage_backend
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
-from api.async_tasks.async_resource_tasks import validate_resource_and_store as async_validate_resource_and_store
 from api.exceptions import NonIterableContentsException, \
     OwnershipException, \
     InactiveResourceException, \
@@ -304,7 +303,7 @@ class AddBucketResourceView(APIView):
                 name = basename
             )
             if resource_type:
-                async_validate_resource_and_store.delay(r.pk, resource_type, file_format)
+                async_validate_resource.delay(r.pk, resource_type, file_format)
             else:
                 # no resource type was requested, so we just directly store it.
                 final_path = storage_backend.store(r)

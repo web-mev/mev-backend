@@ -3,7 +3,7 @@ import os
 import logging
 
 from api.models import PublicDataset, Resource
-from api.async_tasks.async_resource_tasks import validate_resource_and_store
+from api.async_tasks.async_resource_tasks import validate_resource
 from .sources.gdc.tcga import TCGARnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
 from .sources.gtex_rnaseq import GtexRnaseqDataSource
@@ -176,7 +176,7 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
         # validated and that the proper metadata is extraced.
         # Previously, the workspace was not populating metadata since
         # it was bypassing this call
-        validate_resource_and_store.delay(
+        validate_resource.delay(
             r.pk, 
             resource_type,
             file_format
