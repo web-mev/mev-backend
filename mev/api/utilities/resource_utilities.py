@@ -509,7 +509,7 @@ def initiate_resource_validation(resource_instance, requested_resource_type, fil
         # validated and worked properly
         resource_instance.path = final_path
         resource_instance.resource_type = requested_resource_type
-        resource_instance.file_format = file_format
+        resource_instance.file_format = resource_class_instance.STANDARD_FORMAT
         resource_instance.size = get_resource_size(resource_instance)
         resource_instance.status = Resource.READY
     else:

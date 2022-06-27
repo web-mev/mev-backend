@@ -17,6 +17,7 @@ from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     PARENT_OP_KEY, \
     RESOURCE_KEY, \
     TSV_FORMAT, \
+    CSV_FORMAT, \
     WILDCARD, \
     UNSPECIFIED_FORMAT, \
     MATRIX_KEY, \
@@ -413,6 +414,7 @@ class TestResourceUtilities(BaseAPITestCase):
         unset_resource = self.get_unset_resource()
 
         mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.STANDARD_FORMAT = TSV_FORMAT
         mock_resource_class_instance.performs_validation.return_value = True
         mock_std_path = '/path/to/standardized.tsv'
         mock_resource_class_instance.save_in_standardized_format.return_value = mock_std_path
@@ -1542,6 +1544,58 @@ class TestResourceUtilities(BaseAPITestCase):
 
         file_format = TSV_FORMAT
         self.assertTrue(file_format == IntegerMatrix.STANDARD_FORMAT)
+
+        # check the original count for ResourceMetadata. Should be nothing.
+        rm = ResourceMetadata.objects.filter(resource=r)
+        n0 = len(rm)
+        self.assertEqual(n0, 0)
+
+        # mock the localization process
+        mock_localize_resource.return_value = resource_path
+        mock_final_path = '/path/to/final/dir/file.tsv'
+        mock_move_resource_to_final_location.return_value = mock_final_path
+
+        initiate_resource_validation(r, INTEGER_MATRIX_KEY, file_format)
+
+        # Check that we now have metadata
+        rm = ResourceMetadata.objects.filter(resource=r)
+        n1 = len(rm)  
+
+        r = Resource.objects.get(pk=r.pk)
+        self.assertTrue(r.resource_type == INTEGER_MATRIX_KEY)
+        self.assertTrue(r.file_format == TSV_FORMAT)
+        self.assertTrue(r.path == mock_final_path)
+
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
+    def test_full_validation_success_with_format_change(self, mock_localize_resource, \
+        mock_move_resource_to_final_location):
+        '''
+        Here we test that the full process to validate executes. Here, the input
+        file is a CSV and it correctly reads it as such. However, since we ultimately
+        convert it to the standard format (TSV) then we need to ensure that the format
+        attribute is correctly updated.
+
+        Not a "true" unit test in the sense
+        that it doesn't mock out intermediate functions, etc. It uses real data.
+        '''
+        # get one of the test resources which is "unset" (no resource type or format)
+        rr = Resource.objects.filter(
+            owner=self.regular_user_1, 
+            resource_type=None
+        )
+        r = rr[0]
+        self.assertTrue((r.file_format == '') or (r.file_format is None))
+        self.assertIsNone(r.resource_type)
+
+        # provide a real test integer matrix
+        resource_path = os.path.join(VALIDATION_TESTDIR, 'test_integer_matrix.csv')
+        r.path = resource_path
+        r.name = 'test_integer_matrix.csv'
+        r.save()
+
+        file_format = CSV_FORMAT
+        self.assertTrue(file_format != IntegerMatrix.STANDARD_FORMAT)
 
         # check the original count for ResourceMetadata. Should be nothing.
         rm = ResourceMetadata.objects.filter(resource=r)
