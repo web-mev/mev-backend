@@ -185,7 +185,7 @@ class TableResource(DataResource):
         By using the file extension, we infer the delimiter
         Returns a pandas "reader" (e.g. `read_csv` or `read_table`)
         '''
-
+        file_format = file_format.lower()
         if file_format == CSV_FORMAT:
             return pd.read_csv
         elif file_format == TSV_FORMAT:

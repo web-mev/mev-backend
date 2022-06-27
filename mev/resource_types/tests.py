@@ -16,6 +16,7 @@ from constants import TSV_FORMAT, \
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type
 from resource_types.base import DataResource
+from resource_types.table_types import TableResource
 
 class TestResourceTypes(unittest.TestCase):    
     
@@ -110,6 +111,16 @@ class TestTableResource(unittest.TestCase):
         # check that they have the same content:
         reloaded_df = pd.read_table(new_path, index_col=0)
         self.assertTrue(reloaded_df.equals(df))
+
+    def test_case_insensitive_file_format(self):
+        '''
+        Checks that the reader type (e.g. read_csv, read_table, etc.)
+        does not depend on the case of the passed file format
+        '''
+        reader = TableResource().get_reader('/some/dummy/path.txt', 'TSV')
+        self.assertIsNotNone(reader)
+        reader = TableResource().get_reader('/some/dummy/path.txt', 'TsV')
+        self.assertIsNotNone(reader)
 
 class TestResourcePkgFunctions(unittest.TestCase):
 
