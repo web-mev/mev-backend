@@ -16,6 +16,8 @@ from .remote_bucket import RemoteBucketStorageBackend
 from api.exceptions import StorageException
 from api.utilities.basic_utils import make_local_directory, get_with_retry
 from api.utilities.admin_utils import alert_admins
+from api.cloud_backends.gcp import get_instance_region
+
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +66,7 @@ class GoogleBucketStorage(RemoteBucketStorageBackend):
             raise ex
 
     def get_or_create_bucket(self):
-        # can't import above as we get a circular dep. issue 
-        from api.cloud_backends.google_cloud import get_instance_region
+
         try:
             bucket = self.get_bucket(self.BUCKET_NAME)
         except google.api_core.exceptions.NotFound as ex:
