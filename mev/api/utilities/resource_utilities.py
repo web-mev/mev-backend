@@ -510,6 +510,7 @@ def initiate_resource_validation(resource_instance, requested_resource_type, fil
         resource_instance.path = final_path
         resource_instance.resource_type = requested_resource_type
         resource_instance.file_format = file_format
+        resource_instance.status = Resource.READY
     else:
         logger.info('Resource ({pk}) failed validation for {rt}, {ff}'.format(
             pk = resource_instance.pk,
