@@ -21,8 +21,6 @@ from api.utilities.wdl_utils import WDL_SUFFIX, \
     get_docker_images_in_repo, \
     edit_runtime_containers
 from api.utilities.docker import check_image_exists, get_tag_format
-from api.storage_backends import get_storage_backend
-from api.cloud_backends import get_instance_zone, get_instance_region
 from api.converters.output_converters import RemoteCromwellOutputConverter
 from api.models.executed_operation import ExecutedOperation
 
@@ -221,18 +219,6 @@ class RemoteCromwellRunner(OperationRunner):
             )
             raise ImproperlyConfigured('Failed to reach Cromwell server.')
 
-        bucket_region = get_storage_backend().get_bucket_region(self.CROMWELL_BUCKET)
-        instance_region = get_instance_region()
-        if bucket_region != instance_region:
-            raise ImproperlyConfigured('The application is running on a'
-                ' machine in the following region: {instance_region}. The'
-                ' Cromwell bucket was found in {bucket_region}. They should'
-                ' be located in the same region.'.format(
-                    bucket_region = bucket_region,
-                    instance_region = instance_region
-                )
-            )
-
     def _create_inputs_json(self, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
@@ -292,16 +278,7 @@ class RemoteCromwellRunner(OperationRunner):
             'workflowTypeVersion': self.WORKFLOW_TYPE_VERSION
         }
 
-        # load the options file so we can fill-in the zones:
-
-        options_json = {}
-        current_zone = get_instance_zone()
-        options_json['default_runtime_attributes'] = {'zones': current_zone}
-        options_json_str = json.dumps(options_json)
-        options_io = io.BytesIO(options_json_str.encode('utf-8'))
-
         files = {
-            'workflowOptions': options_io, 
             'workflowInputs': open(wdl_input_path,'rb'),
             'workflowSource': open(os.path.join(staging_dir, self.MAIN_WDL), 'rb')
         }

@@ -8,6 +8,7 @@ set -o allexport
 # Ingest a file that has some environment variables that we will need later
 # The name of the Google project. Not the numeric ID
 GOOGLE_PROJECT_ID="${project_id}"
+GOOGLE_ZONE="${zone}"
 
 # The google bucket where Cromwell will place files. Include the gs:// prefix
 GOOGLE_BUCKET="${cromwell_bucket}"
