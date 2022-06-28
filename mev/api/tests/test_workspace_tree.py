@@ -73,8 +73,10 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
 
     @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
     @mock.patch('api.views.workspace_tree_views.datetime')
-    @mock.patch('api.views.workspace_tree_views.validate_and_store_resource')
-    def test_tree_response(self, mock_validate_and_store_resource, mock_datetime, mock_create_workspace_dag):
+    @mock.patch('api.views.workspace_tree_views.initiate_resource_validation')
+    def test_tree_response(self, mock_initiate_resource_validation, \
+        mock_datetime, \
+        mock_create_workspace_dag):
 
         workspaces = Workspace.objects.filter(owner=self.regular_user_1)
         if len(workspaces) == 0:
@@ -105,7 +107,7 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         self.assertTrue(len(diff_set) == 1)
         new_resource = Resource.objects.get(pk=diff_set[0])
 
-        mock_validate_and_store_resource.assert_called()
+        mock_initiate_resource_validation.assert_called()
         path = new_resource.path
         contents = json.load(open(path, 'r'))
         self.assertCountEqual(contents, expected_content)

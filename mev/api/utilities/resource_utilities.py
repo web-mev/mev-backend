@@ -524,30 +524,6 @@ def initiate_resource_validation(resource_instance, requested_resource_type, fil
     # save changes    
     resource_instance.save()
 
-
-
-def validate_and_store_resource(resource, requested_resource_type, file_format):
-
-    # move the file backing this Resource.
-    # Note that we do this BEFORE validating so that the validation functions don't
-    # have to contain different steps for handling new uploads or requests to
-    # change the type of a Resource.  By immediately moving the file to its 
-    # final storage backend, we can handle all the variations in the same manner.
-    # If the `move_resource_to_final_location` function does not succeed, it will
-    # raise an exception which we allow to percolate. The proper attributes
-    # are set on `resource` to properly denote that failure, so we don't do anything here
-    resource.path = move_resource_to_final_location(resource)
-   
-    try:
-        initiate_resource_validation(resource, requested_resource_type, file_format)
-        # save the filesize as well
-        resource.size = get_resource_size(resource)
-    except Exception as ex:
-        resource.status = str(ex)
-        alert_admins('Encountered an issue during resource validation and storage. See logs.')
-    resource.is_active = True
-    resource.save()
-
 def resource_supports_pagination(resource_type_str):
     logger.info('Check if resource type "{t}" supports pagination.'.format(
         t = resource_type_str

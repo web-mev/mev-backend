@@ -11,8 +11,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions as framework_permissions
 
+from constants import JSON_FILE_KEY, JSON_FORMAT
+
 from api.utilities.operations import create_workspace_dag
-from api.utilities.resource_utilities import validate_and_store_resource, write_resource
+from api.utilities.resource_utilities import write_resource, \
+    initiate_resource_validation
 from api.models import Workspace, WorkspaceExecutedOperation, Resource
 
 logger = logging.getLogger(__name__)
@@ -85,5 +88,8 @@ class WorkspaceTreeSave(APIView, WorkspaceTreeBase):
         workspace = Workspace.objects.get(pk=kwargs['workspace_pk'])
         resource_instance.workspaces.add(workspace)
         resource_instance.save()
-        validate_and_store_resource(resource_instance, 'JSON')
+        initiate_resource_validation(resource_instance,
+            JSON_FILE_KEY,
+            JSON_FORMAT
+        )
         return Response({}, status=status.HTTP_201_CREATED)

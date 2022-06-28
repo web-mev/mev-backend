@@ -3,8 +3,10 @@ import logging
 
 from rest_framework.exceptions import ValidationError
 
-from api.utilities.resource_utilities import validate_and_store_resource, \
-    delete_resource_by_pk
+from api.utilities.resource_utilities import initiate_resource_validation, \
+    move_resource_to_final_location, \
+    delete_resource_by_pk, \
+    retrieve_resource_class_standard_format
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.exceptions import StorageException
@@ -201,15 +203,15 @@ class BaseOutputConverter(object):
         resource = self.create_resource(executed_op.owner, \
             workspace, path, name, output_required)
 
-        # Now attempt to validate and store the resource. IF this succeeds,
-        # then the resource will be moved to its final location and the resource_type
-        # field will be set.
-        # If there is an unrecoverable failure, this method will raise
-        # an exception that is caught in the calling method
+        # attempt to move the resource from either the execution directory or
+        # from the execution bucket into our storage
         try:
-            validate_and_store_resource(resource, resource_type)
-        except StorageException as ex:
-            logger.info('Failed to store the resource.')
+            resource.path = move_resource_to_final_location(resource)
+        except Exception as ex:
+            logger.info('Failed to store resource with pk={pk} and path={p}.'.format(
+                pk = resource.pk,
+                p = path
+            ))
             # This gives us an opportunity to handle runner-specific
             # failures if desired.
             self.handle_storage_failure(resource, output_required)
@@ -220,24 +222,30 @@ class BaseOutputConverter(object):
             # optional outputs)
             return None
 
-        # if the `validate_and_store` method failed to validate the 
-        # resource type for some reason, then 
-        # the resource_type attribute will not match the desired type.
-        # That's a problem and we need to "roll back" both the current
-        # Resource and any others created as part of this output (in the
-        # case where an output produces multiple outputs/Resources)
-        if resource.resource_type != resource_type:
+        # Now attempt to validate and store the resource. IF this succeeds,
+        # then the resource will be moved to its final location and the resource_type
+        # field will be set.
+        # If there is an unrecoverable failure, this method will raise
+        # an exception that is caught in the calling method
+        try:
+            # by default, the outputs we create should be in the standard format 
+            # for their resource type
+            file_format = retrieve_resource_class_standard_format(resource_type)
+            initiate_resource_validation(resource, resource_type, file_format)
+        except Exception as ex:
+            # if the validation fails, it will raise an Exception (or derived class of
+            # an Exception). If that's the case, we need to roll-back
             self.handle_invalid_resource_type(resource)
             raise OutputConversionException('Failed to validate the expected'
                 ' resource type'
             )
-        else:
-            # everything worked out correctly!
-            # add the info about the parent operation to the resource metadata
-            rm = ResourceMetadata.objects.get(resource=resource)
-            rm.parent_operation = executed_op
-            rm.save()
-            return str(resource.pk)
+
+        # everything worked out correctly!
+        # add the info about the parent operation to the resource metadata
+        rm = ResourceMetadata.objects.get(resource=resource)
+        rm.parent_operation = executed_op
+        rm.save()
+        return str(resource.pk)
 
     def handle_storage_failure(self, resource, output_required):
         '''

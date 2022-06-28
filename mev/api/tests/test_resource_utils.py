@@ -58,7 +58,8 @@ from api.utilities.operations import read_operation_json, \
 from api.exceptions import NoResourceFoundException, \
     ResourceValidationException, \
     InactiveResourceException, \
-    OwnershipException
+    OwnershipException, \
+    StorageException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
@@ -195,7 +196,7 @@ class TestResourceUtilities(BaseAPITestCase):
 
         # check that a specific exception is caught, but we report a generic one
         mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.store.side_effect = FileNotFoundError('nope!')
+        mock_storage_backend.store.side_effect = StorageException('nope!')
         mock_get_storage_backend.return_value = mock_storage_backend
         mock_resource = mock.MagicMock()
         with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_STORAGE_ERROR):
