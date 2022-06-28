@@ -3052,9 +3052,10 @@ class BucketResourceAddTests(BaseAPITestCase):
         all_resources = Resource.objects.all()
         n0 = len(all_resources)
 
+        original_bucket_path = 'gs://some-bucket/some-path/some-file.txt'
         response = self.authenticated_regular_client.post(
             self.url, 
-            data = {'bucket_path': 'gs://some-bucket/some-path/some-file.txt'},
+            data = {'bucket_path': original_bucket_path},
             format='json'
         )
         self.assertEqual(response.status_code, 
@@ -3065,7 +3066,11 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertTrue(j['name'] == 'some-file.txt')
 
         mock_storage_impl.store.assert_called()
-        mock_async_validate_resource.delay.assert_not_called()
+        mock_async_validate_resource.delay.assert_called_with(
+            uuid.UUID(new_resource_uuid),
+            None,
+            None
+        )
 
         # count the number of original resources:
         all_resources = Resource.objects.all()
@@ -3077,7 +3082,9 @@ class BucketResourceAddTests(BaseAPITestCase):
         # method is called since the path re-assignment affirms that
         # already
         r = Resource.objects.get(id=new_resource_uuid)
+        # the path is not the original path in a bucket
         self.assertTrue(r.path == fake_path)
+        self.assertTrue(r.path != original_bucket_path)
         self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)
 
     @mock.patch('api.views.resource_views.get_storage_backend')
@@ -3100,11 +3107,14 @@ class BucketResourceAddTests(BaseAPITestCase):
         all_resources = Resource.objects.all()
         n0 = len(all_resources)
 
+        resource_type = 'XYZ'
+        file_format = 'abc'
         response = self.authenticated_regular_client.post(
             self.url, 
             data = {
                 'bucket_path': 'gs://some-bucket/some-path/some-file.txt',
-                'resource_type': 'XYZ'
+                'resource_type': resource_type,
+                'file_format': file_format
                 },
             format='json'
         )
@@ -3115,9 +3125,12 @@ class BucketResourceAddTests(BaseAPITestCase):
         new_resource_uuid = j['id']
         self.assertTrue(j['name'] == 'some-file.txt')
 
-
-        mock_storage_impl.store.assert_not_called()
-        mock_async_validate_resource.delay.assert_called()
+        mock_storage_impl.store.assert_called()
+        mock_async_validate_resource.delay.assert_called_with(
+            uuid.UUID(new_resource_uuid),
+            resource_type,
+            file_format
+        )
 
         # count the number of original resources:
         all_resources = Resource.objects.all()

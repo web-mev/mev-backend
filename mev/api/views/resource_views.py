@@ -302,13 +302,18 @@ class AddBucketResourceView(APIView):
                 owner = request.user,
                 name = basename
             )
-            if resource_type:
-                async_validate_resource.delay(r.pk, resource_type, file_format)
-            else:
-                # no resource type was requested, so we just directly store it.
-                final_path = storage_backend.store(r)
-                r.path = final_path
-                r.save()
+
+            # Immediately copy the file. Otherwise, validation failures, etc.
+            # could leave the path as the original bucket path which
+            # could cause deletion of the initial file.    
+            final_path = storage_backend.store(r)
+            r.path = final_path
+            r.save()
+
+            # Even if the resource type or format were not set, we can 
+            # call this function
+            async_validate_resource.delay(r.pk, resource_type, file_format)
+
             resource_serializer = ResourceSerializer(r, context={'request': request})
             return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
         else:
