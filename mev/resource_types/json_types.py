@@ -15,8 +15,6 @@ from constants import JSON_FILE_KEY, \
 from .base import DataResource, ParseException
 from api.exceptions import NonIterableContentsException
 
-STANDARD_FORMAT = JSON_FORMAT
-
 logger = logging.getLogger(__name__)
 
 
@@ -89,6 +87,8 @@ def create_closure(op, filter_val):
     return f
 
 class JsonResource(DataResource):
+
+    STANDARD_FORMAT = JSON_FORMAT
 
     ACCEPTABLE_FORMATS = [JSON_FORMAT]
     DESCRIPTION = 'A JSON-format file.'
