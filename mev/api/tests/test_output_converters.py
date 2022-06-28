@@ -145,6 +145,7 @@ class ResourceOutputTester(BaseAPITestCase):
         resource_uuid = uuid.uuid4()
         mock_resource = mock.MagicMock()
         mock_resource.pk = resource_uuid
+        mock_resource.is_active = False
         mock_create_resource.return_value = mock_resource
   
         mock_resource_metadata_obj = mock.MagicMock()
@@ -166,6 +167,8 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_resourcemetadata_model.objects.get.assert_called()
         mock_resource_metadata_obj.save.assert_called()
         self.assertEqual(return_val, str(resource_uuid))
+        self.assertTrue(mock_resource.is_active)
+        mock_resource.save.assert_called()
 
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
@@ -199,6 +202,7 @@ class ResourceOutputTester(BaseAPITestCase):
         resource_uuid = uuid.uuid4()
         mock_resource = mock.MagicMock()
         mock_resource.pk = resource_uuid
+        mock_resource.is_active = False
         mock_create_resource.return_value = mock_resource
   
         file_format = 'abc'
@@ -231,6 +235,7 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_move_resource_to_final_location.assert_called_with(mock_resource)
         mock_resourcemetadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_called_with(mock_resource)
+        self.assertFalse(mock_resource.is_active)
 
     @mock.patch('api.converters.output_converters.ResourceMetadata')        
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
@@ -346,7 +351,7 @@ class ResourceOutputTester(BaseAPITestCase):
         # no metadata was added, etc. since there was no file to deal with
         mock_resource_metadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_not_called()
-        
+
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_storage_failure')

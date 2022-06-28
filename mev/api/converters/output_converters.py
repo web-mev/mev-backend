@@ -241,6 +241,8 @@ class BaseOutputConverter(object):
             )
 
         # everything worked out correctly!
+        resource.is_active = True
+        resource.save()
         # add the info about the parent operation to the resource metadata
         rm = ResourceMetadata.objects.get(resource=resource)
         rm.parent_operation = executed_op
