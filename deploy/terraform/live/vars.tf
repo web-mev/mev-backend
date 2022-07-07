@@ -190,3 +190,8 @@ variable "remote_job_runners" {
   description = "A comma-delimited string dictating which remote job runners should be used. See the Django settings for acceptable values."
   type        = string
 }
+
+variable lb_timeout {
+  description = "Timeout (in seconds) for the load balancer"
+  default = 120
+}

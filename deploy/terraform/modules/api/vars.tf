@@ -159,3 +159,8 @@ variable "region" {
   description = "GCP region"
   type        = string
 }
+
+variable lb_timeout {
+  description = "Timeout (in seconds) for the load balancer"
+  default = 120
+}

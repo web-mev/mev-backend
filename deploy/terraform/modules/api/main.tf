@@ -150,6 +150,7 @@ resource "google_compute_backend_service" "backend_service" {
   protocol              = "HTTP"
   port_name             = "http"
   load_balancing_scheme = "EXTERNAL"
+  timeout_sec           = var.lb_timeout
 
   backend {
     group           = google_compute_instance_group.mev_api_ig.self_link
