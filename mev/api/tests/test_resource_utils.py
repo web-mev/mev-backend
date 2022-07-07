@@ -603,6 +603,67 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_handle_valid_resource.assert_not_called()
         mock_handle_invalid_resource.assert_not_called()
 
+    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
+    @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
+    @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
+    @mock.patch('api.utilities.resource_utilities.localize_resource')
+    @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
+    @mock.patch('api.utilities.resource_utilities.perform_validation')
+    @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
+    def test_proper_exceptions_raised_case6(self, mock_handle_valid_resource, \
+            mock_perform_validation, \
+            mock_check_file_format_against_type, \
+            mock_localize_resource, \
+            mock_handle_invalid_resource, \
+            mock_retrieve_resource_class_instance, \
+            mock_move_resource_to_final_location):
+        '''
+        Here we test that a failure to extract metadata results in the resource
+        not updating its fields. For instance, if we perform a 'standardization'
+        but we ultimately cannot extract/save the metadata, we do NOT want to 
+        update the Resource.path attribute to that new standardized version. We only
+        want to update the path to the standardized version if everything goes perfectly.
+        '''
+        unset_resource = self.get_unset_resource()
+        original_path = unset_resource.path
+        self.assertTrue(len(original_path)>0)
+
+        mock_resource_class_instance = mock.MagicMock()
+        mock_resource_class_instance.STANDARD_FORMAT = TSV_FORMAT
+        mock_resource_class_instance.performs_validation.return_value = True
+        mock_std_path = '/path/to/standardized.tsv'
+        mock_resource_class_instance.save_in_standardized_format.return_value = mock_std_path
+        mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
+
+        mock_final_path = 'some/final/path.txt'
+        mock_move_resource_to_final_location.return_value = mock_final_path
+
+        mock_path = '/some/mock/path.txt'
+        mock_localize_resource.return_value = mock_path
+        
+        mock_perform_validation.return_value = (True, None)
+
+        mock_handle_valid_resource.side_effect = Exception('something bad!')
+
+        with self.assertRaisesRegex(Exception, 'something bad'):
+            initiate_resource_validation(unset_resource, 'MTX', TSV_FORMAT)
+
+        mock_handle_valid_resource.assert_called_with(
+            unset_resource,
+            mock_resource_class_instance,
+            mock_std_path
+        )
+        mock_handle_invalid_resource.assert_not_called()
+
+        # requery the resource
+        r = Resource.objects.get(pk=unset_resource.pk)
+
+        # the path remained the same
+        self.assertTrue(r.path == original_path)
+        # the type and format were not set to the requested values:
+        self.assertTrue(r.resource_type != 'MTX')
+        self.assertTrue(r.file_format != TSV_FORMAT)
+
     @mock.patch('api.utilities.resource_utilities.check_if_resource_unset')
     def test_unset_resource_type_does_not_change_if_validation_fails(self, \
             mock_check_if_resource_unset):
