@@ -211,11 +211,14 @@ class TestResourceUtilities(BaseAPITestCase):
             move_resource_to_final_location(mock_resource)
 
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_localize_resource(self, mock_get_storage_backend):
+    @mock.patch('api.utilities.resource_utilities.os')
+    def test_localize_resource(self, mock_os, mock_get_storage_backend):
         '''
         Tests that we execute properly and handle exceptions properly if the 
         torage backend encounters an issue
         '''
+        mock_os.path.exists.return_value = False
+
         # check the successful path:
         mock_path = '/some/mock/path.tsv'
         mock_storage_backend = mock.MagicMock()
@@ -243,6 +246,16 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_resource.path = mock_path
         with self.assertRaisesRegex(Exception, 'something bad!'):
             localize_resource(mock_resource)
+
+        # finally, check that we don't do anything if the file is 
+        # in fact already local
+        mock_os.path.exists.return_value = True
+        mock_get_storage_backend.reset_mock()
+        mock_resource = mock.MagicMock()
+        mock_path = '/mock/path/to/file.txt'
+        mock_resource.path = mock_path
+        self.assertEqual(mock_path, localize_resource(mock_resource))
+        mock_get_storage_backend.assert_not_called()
 
     def test_retrieve_metadata(self):
         mock_resource_class_instance = mock.MagicMock()

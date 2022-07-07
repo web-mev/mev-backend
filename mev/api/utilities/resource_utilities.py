@@ -215,6 +215,10 @@ def localize_resource(resource_instance):
     Return the local path to the resource. The storage backend handles the act of
     moving the file to our local cache
     '''
+    # first check if the file might already be local.
+    if os.path.exists(resource_instance.path):
+        return resource_instance.path
+        
     try:
         return get_storage_backend().localize_resource(resource_instance)
     except FileNotFoundError:
