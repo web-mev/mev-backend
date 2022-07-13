@@ -21,7 +21,16 @@ def delete_file(path):
 @shared_task(name='store_resource')
 def store_resource(resource_pk):
     resource = resource_utilities.get_resource_by_pk(resource_pk)
-    resource_utilities.move_resource_to_final_location(resource)
+    try:
+        final_path = resource_utilities.move_resource_to_final_location(resource)
+        resource.path = final_path
+        resource.status = Resource.READY
+    except Exception:
+        # Note that the `move_resource_to_final_location`
+        # function will alert the admins, so not needed here.
+        resource.status = Resource.UNEXPECTED_STORAGE_ERROR
+    resource.is_active = True
+    resource.save()
 
 @shared_task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type, file_format):

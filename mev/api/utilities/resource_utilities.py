@@ -205,6 +205,8 @@ def move_resource_to_final_location(resource_instance):
         return get_storage_backend().store(resource_instance)
     except Exception as ex:
         message = Resource.UNEXPECTED_STORAGE_ERROR
+        admin_message = 'Storage failure occurred for Resource with pk={pk}'.format(pk=resource_instance.pk)
+        alert_admins(admin_message)
         raise Exception(message)
 
 def get_resource_size(resource_instance):
