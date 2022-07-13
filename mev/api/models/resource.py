@@ -43,10 +43,7 @@ class Resource(AbstractResource):
     READY = ''
     UNABLE_TO_VALIDATE = 'Could not validate the resource given the information provided.'
     FAILED = 'Failed validation for resource type "{requested_resource_type}".'
-    REVERTED = ('Failed validation for type "{requested_resource_type}"'
-        ' with format {requested_file_format}.'
-        ' Reverting back to the valid type of "{original_resource_type}"'
-        ' with format {file_format}.')
+    REVERTED = 'Reverting back to the previously valid state'
     UNKNOWN_RESOURCE_TYPE_ERROR = ('The requested resource type'
         ' of {requested_resource_type} is not a known type.')
     UNKNOWN_FORMAT_ERROR = ('File format "{fmt}" is not consistent'

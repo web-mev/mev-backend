@@ -403,15 +403,8 @@ def handle_invalid_resource(resource_instance, requested_resource_type, requeste
         hr_original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[
             resource_instance.resource_type]
 
-        # ...and compose the status message
-        status_msg = Resource.REVERTED.format(
-            requested_resource_type= hr_requested_resource_type,
-            requested_file_format = requested_file_format,
-            original_resource_type = hr_original_resource_type,
-            file_format = resource_instance.file_format
-        )
-        status_msg = status_msg + ' ' + message        
-        resource_instance.status = status_msg
+        # ...and compose the status message        
+        resource_instance.status = Resource.REVERTED
 
 def perform_validation(resource_instance, 
     resource_type_class, file_format, local_path):
