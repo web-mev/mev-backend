@@ -734,7 +734,7 @@ class Matrix(TableResource):
 
     def extract_metadata(self, resource_path, parent_op_pk=None):
 
-        super().extract_metadata(resource_path, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -1126,7 +1126,7 @@ class AnnotationTable(ElementTable):
         Additional columns specify attributes of each Observation,
         which we incorporate
         '''
-        super().extract_metadata(resource_path, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)
         self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
@@ -1190,7 +1190,7 @@ class FeatureTable(ElementTable):
         which we incorporate
         '''
         logger.info('Extract metadata from a FeatureTable')
-        super().extract_metadata(resource_path, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -1246,5 +1246,5 @@ class BEDFile(TableResource):
             return (False, error_message)
 
     def extract_metadata(self, resource_path, parent_op_pk=None):
-        super().extract_metadata(resource_path, parent_op_pk)
+        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
         return self.metadata
