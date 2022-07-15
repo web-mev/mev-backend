@@ -45,8 +45,7 @@ class SequenceResource(DataResource):
         # now add the information to self.metadata:
         if parent_op_pk:
             self.metadata[PARENT_OP_KEY] = parent_op_pk
-
-
+        return self.metadata
 
 class FastAResource(SequenceResource):
     '''
