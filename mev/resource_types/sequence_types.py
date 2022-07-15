@@ -5,7 +5,8 @@ import logging
 
 from constants import FASTQ_FORMAT, \
     FASTA_FORMAT, \
-    BAM_FORMAT
+    BAM_FORMAT, \
+    PARENT_OP_KEY
 
 from .base import DataResource
 
@@ -43,7 +44,8 @@ class SequenceResource(DataResource):
 
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
+
 
 
 class FastAResource(SequenceResource):
