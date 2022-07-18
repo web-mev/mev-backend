@@ -43,9 +43,9 @@ pip3 install jinja2
 
 # Download cromwell and create an environment variable pointing at the jar
 mkdir -p /opt/software/cromwell
-wget https://github.com/broadinstitute/cromwell/releases/download/60/cromwell-60.jar \
+wget https://github.com/broadinstitute/cromwell/releases/download/81/cromwell-81.jar \
     -P /opt/software/cromwell/
-export CROMWELL_JAR=/opt/software/cromwell/cromwell-60.jar
+export CROMWELL_JAR=/opt/software/cromwell/cromwell-81.jar
 
 # Add a user who will run Cromwell
 adduser --disabled-password --gecos "" cromwell-runner
