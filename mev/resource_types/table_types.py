@@ -981,6 +981,9 @@ class ElementTable(TableResource):
         XLSX_FORMAT
     ]
 
+    MAX_OBSERVATIONS = 10000
+    MAX_FEATURES = 100
+
     def validate_type(self, resource_path, file_format):
 
         # check that file can be parsed:
@@ -1009,6 +1012,17 @@ class ElementTable(TableResource):
         '''
         logger.info('For element type {s},'
             ' extract out metadata'.format(s=type(element_class)))
+
+        if (self.table.shape[0] > ElementTable.MAX_OBSERVATIONS) \
+            or \
+            (self.table.shape[1] > ElementTable.MAX_FEATURES):
+            logger.info('The annotation matrix of size ({nrows}, {ncols}) was too'
+            ' large. Returning empty metadata'.format(
+                nrows = self.table.shape[0],
+                ncols = self.table.shape[1]
+            ))
+            return []
+
         # Go through the columns and find out the primitive types
         # for each column/covariate.
         # Note that we can't determine specific types (e.g. bounded integers)
@@ -1126,6 +1140,7 @@ class AnnotationTable(ElementTable):
         Additional columns specify attributes of each Observation,
         which we incorporate
         '''
+        logger.info('Extract metadata for an AnnotationTable instance.')
         super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)

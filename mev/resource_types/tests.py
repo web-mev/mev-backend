@@ -13,10 +13,12 @@ from constants import TSV_FORMAT, \
     OBSERVATION_SET_KEY, \
     RESOURCE_KEY
 
+from api.data_structures import Observation
+
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type
 from resource_types.base import DataResource
-from resource_types.table_types import TableResource
+from resource_types.table_types import TableResource, ElementTable
 
 class TestResourceTypes(unittest.TestCase):    
     
@@ -121,6 +123,66 @@ class TestTableResource(unittest.TestCase):
         self.assertIsNotNone(reader)
         reader = TableResource().get_reader('/some/dummy/path.txt', 'TsV')
         self.assertIsNotNone(reader)
+
+class TestResourceElementTable(unittest.TestCase):
+
+    def test_returns_empty_metadata_from_large_table(self):
+        '''
+        This tests that we handle exceptionally large annotation tables which cause the 
+        server to become unresponsive.
+
+        Related to a bug where a user incorrectly takes a large expression matrix (e.g. 50k x 500)
+        and attempts to set the resource_type to an annotation table. The process gets hung up
+        on trying to create the dictionary of attributes to values necessary to create an ObservationSet.
+
+        In the case of a very large table, we simply return empty metadata
+        '''
+
+        # First test that it works in the case of a small table
+        samples = ['A','B','C']
+        df = pd.DataFrame(
+            {
+                'age':[1,2,3], 
+                'sex':['F','F','M']
+            },
+            index=samples
+        )
+        t = ElementTable()
+        t.table = df
+        observation_list = t.prep_metadata(Observation)
+        self.assertTrue(len(observation_list) == 3)
+
+        # now test the huge one
+        max_observations = ElementTable.MAX_OBSERVATIONS
+        max_features = ElementTable.MAX_FEATURES
+
+        nrows = max_observations + 1
+        ncols = 10
+        rownames = ['r%d' % x for x in range(nrows)]
+        colnames = ['c%d' % x for x in range(ncols)]
+        df = pd.DataFrame(np.random.randint(0,100, size=(nrows, ncols)), index=rownames, columns=colnames)
+        t.table = df
+        observation_list = t.prep_metadata(Observation)
+        self.assertCountEqual(observation_list, [])
+        
+        nrows = 10
+        ncols = max_features + 1
+        rownames = ['r%d' % x for x in range(nrows)]
+        colnames = ['c%d' % x for x in range(ncols)]
+        df = pd.DataFrame(np.random.randint(0,100, size=(nrows, ncols)), index=rownames, columns=colnames)
+        t.table = df
+        observation_list = t.prep_metadata(Observation)
+        self.assertCountEqual(observation_list, [])
+
+        nrows = max_observations + 1
+        ncols = max_features + 1
+        rownames = ['r%d' % x for x in range(nrows)]
+        colnames = ['c%d' % x for x in range(ncols)]
+        df = pd.DataFrame(np.random.randint(0,100, size=(nrows, ncols)), index=rownames, columns=colnames)
+        t.table = df
+        observation_list = t.prep_metadata(Observation)
+        self.assertCountEqual(observation_list, [])
+
 
 class TestResourcePkgFunctions(unittest.TestCase):
 
