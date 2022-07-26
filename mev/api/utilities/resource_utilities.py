@@ -286,7 +286,14 @@ def handle_valid_resource(resource,
 
     # attempt to associate the metadata with the resource. If this fails, an
     # exception will be raised, which we allow to percolate up.
-    add_metadata_to_resource(resource, metadata)
+    try:
+        add_metadata_to_resource(resource, metadata)
+    except ValidationError:
+        logger.info('Metadata failed validation. Inserting dummy metadata.')
+        alert_admins('A valid resource ({pk}) contained invalid metadata.'
+            ' Check this.'.format(pk=str(resource.pk)))
+        dummy_meta = {RESOURCE_KEY: resource.pk}
+        add_metadata_to_resource(resource, dummy_meta)
 
 def check_file_format_against_type(requested_resource_type, file_format):
     '''

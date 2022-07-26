@@ -21,7 +21,8 @@ from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     WILDCARD, \
     UNSPECIFIED_FORMAT, \
     MATRIX_KEY, \
-    INTEGER_MATRIX_KEY
+    INTEGER_MATRIX_KEY, \
+    ANNOTATION_TABLE_KEY
 from resource_types import RESOURCE_MAPPING, \
     GeneralResource, \
     AnnotationTable, \
@@ -1208,6 +1209,55 @@ class TestResourceUtilities(BaseAPITestCase):
             el.update({'attributes': {}})
         self.assertEqual(rm3.observation_set['multiple'], mock_obs_set['multiple'])
         self.assertCountEqual(rm3.observation_set['elements'], elements)
+
+    @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
+    @mock.patch('api.utilities.resource_utilities.alert_admins')
+    def test_catch_large_metadata_addition(self, \
+        mock_alert_admins, \
+        mock_retrieve_metadata
+    ):
+        '''
+        Test that we gracefully handle problems when saving metadata
+
+        This test stems from a bug where an annotation file (in tsv format) was
+        parsed as a CSV. This produced a dataframe with shape (x,1), which is technically
+        compliant. However, the metadata extracted from this table caused an issue saving
+        in the database since the field exceeded the character limit. This was due to the 
+        fact that an entire row of the file was parsed as a single entry (a very long string)
+        '''
+        mock_obs_set = {
+            'multiple': True,
+            'elements': [
+                {
+                    # this will cause metadata to fail since the ID is WAY too big
+                    'id': 'sampleA'*5000 
+                },
+                {
+                    'id': 'sampleB'
+                }
+            ]
+        }
+        mock_retrieve_metadata.return_value = {
+            OBSERVATION_SET_KEY: mock_obs_set
+        }
+
+        # create a new Resource
+        r = Resource.objects.create(
+            name='foo.txt'
+        )
+        # call the tested function
+        resource_type = ANNOTATION_TABLE_KEY
+        resource_class_instance = retrieve_resource_class_instance(resource_type)
+        handle_valid_resource(r, resource_class_instance, '')
+        mock_alert_admins.assert_called()
+
+        rm = ResourceMetadata.objects.filter(resource=r)
+        self.assertTrue(len(rm) == 1)
+        rm0 = rm[0]
+        self.assertIsNone(rm0.observation_set)
+        self.assertTrue(rm0.resource == r)
+
+
 
     @mock.patch('api.utilities.resource_utilities.ResourceMetadataSerializer')
     @mock.patch('api.utilities.resource_utilities.alert_admins')

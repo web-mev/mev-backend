@@ -49,6 +49,6 @@ def validate_resource(resource_pk, requested_resource_type, file_format):
     except Exception as ex:
         logger.info('Caught an exception raised during resource validation.')
         alert_admins(str(ex))
-        resource.status = str(ex)
+        resource.status = 'An unexpected error occurred during validation. Admins have been notified.'
     resource.is_active = True
     resource.save()
