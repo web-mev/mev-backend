@@ -21,7 +21,11 @@ from constants import CSV_FORMAT, \
     OBSERVATION_SET_KEY, \
     PARENT_OP_KEY
 
-from .base import DataResource, ParseException, UnexpectedTypeValidationException
+from .base import DataResource, \
+    ParseException, \
+    FileParseException, \
+    UnexpectedFileParseException, \
+    UnexpectedTypeValidationException
 from api.data_structures import Feature, \
     FeatureSet, \
     Observation, \
@@ -46,6 +50,11 @@ class ParserNotFoundException(Exception):
 # Some error messages:
 PARSE_ERROR = ('There was an unexpected problem when'
     ' parsing and validating the file.')
+
+SPECIFIC_PARSE_ERROR = ('There was an error when parsing your file. This can often happen if'
+    ' the incorrect format was selected. Other problems can occur from extra blank cells in'
+    ' spreadsheets. Please double-check your file format and try again.'
+    ' The specific error report was: {ex}')
 
 PARSER_NOT_FOUND_ERROR = ('Could not find an appropriate parser'
     ' for the resource.  Please check the instructions.')
@@ -227,13 +236,17 @@ class TableResource(DataResource):
                 self.table.dropna(axis=0, how='all', inplace=True)
                 self.table.dropna(axis=1, how='all', inplace=True)
 
+            except pd.errors.ParserError as ex:
+                logger.info('Pandas parser exception raised.')
+                raise FileParseException(str(ex))
+
             except Exception as ex:
                 logger.info('Could not use {reader} to parse the file'
                 ' at {path}'.format(
                     reader = reader,
                     path = resource_path
                 ))     
-                raise ParseException('Failed when parsing the table-based resource.')
+                raise UnexpectedFileParseException('Failed when parsing the table-based resource.')
 
     def performs_validation(self):
         '''
@@ -290,7 +303,11 @@ class TableResource(DataResource):
         except ParserNotFoundException as ex:
             return (False, PARSER_NOT_FOUND_ERROR)
 
-        except ParseException as ex:
+        except FileParseException as ex:
+            msg = str(ex)
+            return (False, SPECIFIC_PARSE_ERROR.format(ex = msg))
+
+        except UnexpectedFileParseException as ex:
             return (False, PARSE_ERROR)
      
     def do_type_cast(self, v, typename):

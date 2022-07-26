@@ -4,10 +4,26 @@ from constants import RESOURCE_KEY, \
     PARENT_OP_KEY, \
     UNSPECIFIED_FORMAT
 
-class ParseException(Exception):
+class UnexpectedFileParseException(Exception):
     '''
     For raising exceptions when the parser
-    fails for someon reason.
+    fails for some reason. Reserved for unexpected/general
+    exceptions
+    '''
+    pass
+
+class FileParseException(Exception):
+    '''
+    For raising exceptions when the file parser
+    fails for a reason where we can be a bit more specific
+    by reading the pandas exception
+    '''
+    pass
+
+class ParseException(Exception):
+    '''
+    Used for exceptions where we have some expectation of what went wrong
+    and can report a more specific error message
     '''
     pass
 

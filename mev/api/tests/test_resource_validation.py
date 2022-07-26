@@ -98,7 +98,6 @@ class TestBasicTable(unittest.TestCase):
         is_valid, err = t.validate_type(os.path.join(
             TESTDIR, 'test_malformatted_table.tsv'), TSV_FORMAT)
         self.assertFalse(is_valid)
-        self.assertEqual(err, PARSE_ERROR)
 
     def test_handles_comment_headerlines_appropriately(self):
         t = TableResource()
