@@ -1594,7 +1594,9 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
-    def test_full_validation_success(self, mock_localize_resource, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    def test_full_validation_success(self, mock_get_resource_size, \
+        mock_localize_resource, \
         mock_move_resource_to_final_location):
         '''
         Here we test that the full process to validate executes.
@@ -1625,10 +1627,12 @@ class TestResourceUtilities(BaseAPITestCase):
         n0 = len(rm)
         self.assertEqual(n0, 0)
 
-        # mock the localization process
+        # mock the localization process and retrieval of file size
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
         mock_move_resource_to_final_location.return_value = mock_final_path
+        mock_size = 100
+        mock_get_resource_size.return_value = mock_size
 
         initiate_resource_validation(r, INTEGER_MATRIX_KEY, file_format)
 
@@ -1640,6 +1644,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.resource_type == INTEGER_MATRIX_KEY)
         self.assertTrue(r.file_format == TSV_FORMAT)
         self.assertTrue(r.path == mock_final_path)
+        self.assertTrue(r.size == mock_size)
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
@@ -1695,7 +1700,8 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
-    def test_full_validation_failure_case1(self, mock_localize_resource, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    def test_full_validation_failure_case1(self, mock_get_resource_size, mock_localize_resource, \
         mock_move_resource_to_final_location):
         '''
         Here we test that the full process to validate executes. In this case
@@ -1730,10 +1736,11 @@ class TestResourceUtilities(BaseAPITestCase):
         n0 = len(rm)
         self.assertEqual(n0, 0)
 
-        # mock the localization process
+        # mock the localization process and the size
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
         mock_move_resource_to_final_location.return_value = mock_final_path
+        mock_get_resource_size.return_value = 100
 
         # validate it. This should succeed since we are correctly validating
         # a float matrix
