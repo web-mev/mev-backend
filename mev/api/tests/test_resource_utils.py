@@ -1033,7 +1033,9 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_proper_steps_taken_with_wildcard_resource(self, \
+        mock_get_resource_size, \
         mock_localize_resource, \
         mock_move_resource_to_final_location, \
         mock_check_file_format_against_type, \
@@ -1051,6 +1053,8 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_retrieve_resource_class_instance.return_value = g
         mock_path = '/mock/final/path.txt'
         mock_move_resource_to_final_location.return_value = mock_path
+        mock_size = 100
+        mock_get_resource_size.return_value = mock_size
 
         initiate_resource_validation(r, WILDCARD, UNSPECIFIED_FORMAT)
 
@@ -1064,6 +1068,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.resource_type == WILDCARD)
         self.assertTrue(r.file_format == UNSPECIFIED_FORMAT)
         self.assertTrue(r.path == mock_path)
+        self.assertTrue(r.size == mock_size)
 
     def test_check_file_format_against_type_for_wildcard_resource(self):
         '''
