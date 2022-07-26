@@ -1859,7 +1859,9 @@ class TestResourceUtilities(BaseAPITestCase):
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
-    def test_success_after_failure(self, mock_localize_resource, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    def test_success_after_failure(self, mock_get_resource_size, \
+        mock_localize_resource, \
         mock_move_resource_to_final_location):
         '''
         Here we test that the full process to validate executes. In this case
@@ -1898,6 +1900,10 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_final_path = '/path/to/final/dir/file.tsv'
         mock_move_resource_to_final_location.return_value = mock_final_path
 
+        # set the resource_size return
+        mock_size = 100
+        mock_get_resource_size.return_value = mock_size
+
         # call the tested function. Note that we are trying to validate
         # a float matrix as an integer. It SHOULD fail.
         initiate_resource_validation(r, INTEGER_MATRIX_KEY, file_format)
@@ -1914,6 +1920,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertIsNone(r.resource_type)
         self.assertEqual(r.file_format, '')
         self.assertTrue(r.path == r.path)
+        self.assertTrue(r.size == mock_size)
         status = r.status
         self.assertTrue('contained non-integer entries' in r.status)
         mock_move_resource_to_final_location.assert_not_called()
@@ -1934,6 +1941,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.resource_type == MATRIX_KEY)
         self.assertTrue(r.file_format == TSV_FORMAT)
         self.assertTrue(r.path == mock_final_path)
+        self.assertTrue(r.size == mock_size)
 
     @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
