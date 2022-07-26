@@ -206,7 +206,7 @@ class TableResource(DataResource):
         Works for both row and column indexes.  Returns
         True if all the index labels are numbers.  
         '''
-        if all([re.match('\d+', str(x)) for x in names]):
+        if all([re.fullmatch('\d+', str(x)) for x in names]):
             return True
         else:
             return False
