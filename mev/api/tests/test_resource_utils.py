@@ -1920,7 +1920,6 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertIsNone(r.resource_type)
         self.assertEqual(r.file_format, '')
         self.assertTrue(r.path == r.path)
-        self.assertTrue(r.size == mock_size)
         status = r.status
         self.assertTrue('contained non-integer entries' in r.status)
         mock_move_resource_to_final_location.assert_not_called()
