@@ -1453,7 +1453,9 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
-    def test_metadata_when_type_changed_case2(self, mock_localize_resource, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')
+    def test_metadata_when_type_changed_case2(self, mock_get_resource_size, \
+        mock_localize_resource, \
         mock_retrieve_resource_class_instance, \
         mock_check_file_format_against_type, \
         mock_move_resource_to_final_location):
@@ -1477,6 +1479,7 @@ class TestResourceUtilities(BaseAPITestCase):
         ]
         mock_localize_resource.return_value = resource_path
         mock_move_resource_to_final_location.return_value = resource_path
+        mock_get_resource_size.return_value = 100
         
         r = Resource.objects.create(
             name = 'test_matrix',
