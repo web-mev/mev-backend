@@ -414,7 +414,9 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.perform_validation')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
-    def test_valid_handler_called(self, mock_handle_valid_resource, \
+    @mock.patch('api.utilities.resource_utilities.get_resource_size')    
+    def test_valid_handler_called(self, mock_get_resource_size, \
+            mock_handle_valid_resource, \
             mock_perform_validation, \
             mock_check_file_format_against_type, \
             mock_localize_resource, \
@@ -439,6 +441,9 @@ class TestResourceUtilities(BaseAPITestCase):
 
         mock_path = '/some/mock/path.txt'
         mock_localize_resource.return_value = mock_path
+
+        mock_size = 100
+        mock_get_resource_size.return_value = mock_size
         
         mock_perform_validation.return_value = (True, None)
 
@@ -456,6 +461,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == mock_final_path)
         self.assertTrue(r.resource_type == 'MTX')
         self.assertTrue(r.file_format == TSV_FORMAT)
+        self.assertTrue(r.size == mock_size)
 
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
