@@ -41,3 +41,69 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
   subnet_id      = aws_subnet.public.id
 }
+
+resource "aws_security_group" "load_balancer" {
+  name        = "${local.common_tags.Name}-loadbalancer"
+  description = "Allow HTTP and HTTPS access"
+  vpc_id      = aws_vpc.main.id
+}
+# using standalone security group rules for ALB to avoid cycle errors
+resource "aws_security_group_rule" "http_ingress" {
+  description       = "Allow inbound HTTP from Internet to ALB"
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.load_balancer.id
+}
+resource "aws_security_group_rule" "https_ingress" {
+  description       = "Allow inbound HTTPS from Internet to ALB"
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.load_balancer.id
+}
+resource "aws_security_group_rule" "http_egress" {
+  description              = "Allow HTTP from ALB to web server"
+  type                     = "egress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.api_server.id
+  security_group_id        = aws_security_group.load_balancer.id
+}
+
+resource "aws_security_group" "api_server" {
+  name        = "${local.common_tags.Name}-apiserver"
+  description = "Allow inbound HTTP from ALB and SSH from the Internet"
+  vpc_id      = aws_vpc.main.id
+  ingress {
+    description     = "HTTP from ALB"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.load_balancer.id]
+  }
+  ingress {
+    description      = "SSH from the Internet"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+  # implicit with AWS but Terraform requires this to be explicit
+  egress {
+    description      = "Allow all egress"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "all"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
