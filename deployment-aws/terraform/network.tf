@@ -42,6 +42,39 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
 }
 
+resource "aws_subnet" "private_a" {
+  vpc_id                          = aws_vpc.main.id
+  availability_zone               = "${data.aws_region.current.name}a"
+  cidr_block                      = cidrsubnet(aws_vpc.main.cidr_block, 8, 10)
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 10)
+  assign_ipv6_address_on_creation = true
+}
+# currently unused but required for RDS aws_db_subnet_group
+resource "aws_subnet" "private_b" {
+  vpc_id                          = aws_vpc.main.id
+  availability_zone               = "${data.aws_region.current.name}b"
+  cidr_block                      = cidrsubnet(aws_vpc.main.cidr_block, 8, 11)
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 11)
+  assign_ipv6_address_on_creation = true
+}
+resource "aws_db_subnet_group" "default" {
+  name       = local.common_tags.Name
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+}
+
+resource "aws_security_group" "database" {
+  name        = "${local.common_tags.Name}-database"
+  description = "Allow incoming connections to PostgreSQL instance from the API server"
+  vpc_id      = aws_vpc.main.id
+  ingress {
+    description     = "PostrgeSQL"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.api_server.id]
+  }
+}
+
 resource "aws_security_group" "load_balancer" {
   name        = "${local.common_tags.Name}-loadbalancer"
   description = "Allow HTTP and HTTPS access"
