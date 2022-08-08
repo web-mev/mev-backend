@@ -20,8 +20,11 @@ Create a new Terraform workspace, for example `dev`:
 terraform workspace new dev
 ```
 Note:
-* workspace name will be used for naming AWS resources and for Route53 records
-* use workspace name prod for production deployments
+* workspace name will be used for:
+  * naming AWS resources and Route53 records
+  * Terraform state S3 object prefix
+  * log bucket key prefix
+* use workspace name `prod` for production deployments
 
 Configure the site using `terraform.tfvars` file, for example:
 ```terraform
@@ -67,14 +70,8 @@ Apply policy to the log bucket to [allow storing load balancer logs](https://doc
 }
 ```
 
-Create an HTTPS certificate for `*.tm4.org` in Certificate Manager
+[Create an HTTPS certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) for `*.tm4.org` in Certificate Manager
 
-Create a hosted zone `aws.tm4.org` in Route53
+[Create a public Route53 hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingHostedZone.html) `aws.tm4.org`
 
-Create an EC2 key pair for each stack (e.g., `dev-webmev.pem`, `prod-webmev.pem`, etc) using AWS Console
-
-## Notes
-Terraform workspace name is used for:
-* state object prefix
-* naming resources
-* log bucket key prefix
+[Create an EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html) for each stack (e.g., `dev-webmev.pem`, `prod-webmev.pem`, etc) using AWS Console
