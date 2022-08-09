@@ -1138,9 +1138,11 @@ class TestResourceUtilities(BaseAPITestCase):
         with self.assertRaisesRegex(Exception, 'ack'):
             handle_valid_resource(r, mock_resource_class_instance, mock_path)
 
-        mock_add_metadata_to_resource.assert_called_with(
-            r, mock_metadata
-        )
+        expected_calls = [
+            mock.call(r, mock_metadata),
+            mock.call(r, {RESOURCE_KEY: r.pk})
+        ]
+        mock_add_metadata_to_resource.assert_has_calls(expected_calls)
         mock_retrieve_metadata.assert_called_with(mock_path, mock_resource_class_instance)
 
     def test_add_metadata(self):
