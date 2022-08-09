@@ -1,0 +1,28 @@
+{
+  "name": "qbrc-mevapi",
+  "version": "0.1.0",
+  "author": "Ilya Sytchev",
+  "summary": "Installs and configures WebMEV API server",
+  "license": "MIT",
+  "source": "https://github.com/web-mev/mev-backend",
+  "dependencies": [
+
+  ],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "Ubuntu",
+      "operatingsystemrelease": [
+        "20.04"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "name": "puppet",
+      "version_requirement": ">= 7.18.0 < 8.0.0"
+    }
+  ],
+  "pdk-version": "2.5.0",
+  "template-url": "pdk-default#2.5.0",
+  "template-ref": "tags/2.5.0-0-g369d483"
+}
