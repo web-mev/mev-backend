@@ -479,9 +479,9 @@ class TableResource(DataResource):
         '''
         self.table = self.table.replace({
             -np.infty: settings.NEGATIVE_INF_MARKER, 
-            np.infty: settings.POSITIVE_INF_MARKER
+            np.infty: settings.POSITIVE_INF_MARKER,
+            np.nan: None
         })
-        self.table = self.table.mask(pd.isnull, None)
 
     def _resource_specific_modifications(self):
         '''

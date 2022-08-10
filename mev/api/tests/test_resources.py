@@ -396,6 +396,34 @@ class ResourceContentTests(BaseAPITestCase):
         # the third row has a padj of NaN, which gets converted to None 
         self.assertIsNone(j[2]['values']['padj'])
 
+    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
+    def test_response_with_na_and_large_number(self, mock_get_storage_backend):
+        '''
+        Tests the case where the requested resource has np.nan AND a large
+        number.
+
+        Note that this arose from the case where a user had a file with VERY
+        large values (e+280) and ALSO had some NaN values. With the combination
+        of both of those in a matrix, the pandas.table.mask method, we were raising 
+        OverflowErrors: Python int too large to convert to C long
+
+
+        '''
+        #
+        f = os.path.join(self.TESTDIR, 'file_with_large_value.tsv')
+        self.resource.path = f
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        mock_storage_backend = mock.MagicMock()
+        mock_storage_backend.localize_resource.return_value = f
+        mock_get_storage_backend.return_value = mock_storage_backend
+        response = self.authenticated_regular_client.get(
+            self.url, format='json'
+        )
+        j = response.json()
+
+
     def test_content_request_from_non_owner(self):
         '''
         Tests where content is requested from someone else's

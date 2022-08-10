@@ -69,6 +69,7 @@ Apply policy to the log bucket to [allow storing load balancer logs](https://doc
   ]
 }
 ```
+(Note that `033677994240` above corresponds to the ELB account ID for `us-east-2`. Modify as required for different regions.)
 
 [Create an HTTPS certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) for `*.tm4.org` in Certificate Manager
 
