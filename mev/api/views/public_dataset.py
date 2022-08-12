@@ -1,17 +1,14 @@
 import logging
 
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions as framework_permissions
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied, ParseError
 
 from api.serializers.public_dataset import PublicDatasetSerializer
 from api.serializers.resource import ResourceSerializer
-from api.models import PublicDataset, \
-    Workspace
+from api.models import PublicDataset
 from api.public_data import query_dataset, \
     create_dataset_from_params
 
@@ -22,9 +19,6 @@ class PublicDatasetList(ListAPIView):
     '''
     This allows listing of the available public datasets.
     '''
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
 
     serializer_class = PublicDatasetSerializer
 
@@ -36,9 +30,6 @@ class PublicDatasetDetails(RetrieveAPIView):
     '''
     This allows retrieval of details about a single public dataset.
     '''
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
 
     serializer_class = PublicDatasetSerializer
     queryset = PublicDataset.objects.filter(active=True)
@@ -59,9 +50,6 @@ class PublicDatasetQuery(APIView):
     in the middle in case we might want to modify the response
     at some point.
     '''
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
 
     def get(self, request, *args, **kwargs):
         
@@ -109,10 +97,6 @@ class PublicDatasetCreate(APIView):
     The result of a successful request to this endpoint is the creation of a Resource
     in a user's workspace.
     '''
-
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
 
     def post(self, request, *args, **kwargs):
 

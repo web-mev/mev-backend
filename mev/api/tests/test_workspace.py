@@ -24,30 +24,41 @@ class WorkspaceListTests(BaseAPITestCase):
 
     def test_admin_can_list_workspace(self):
         """
-        Test that admins can see all Workpaces.  Checks by comparing
-        the pk (a UUID) between the database instances and those in the response.
+        Test that admins can only see their own Workspaces (if they exist)
         """
+        admin_user_workspace_uuids = [str(x.pk) for x in Workspace.objects.filter(owner=self.admin_user)]
         response = self.authenticated_admin_client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        all_known_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
-        received_workspace_uuids = set([x['id'] for x in response.data])
-        self.assertEqual(all_known_workspace_uuids, received_workspace_uuids)
-
-    def test_admin_can_create_workspace(self):
+        j = response.json()
+        response_uuids = [x['id'] for x in j]
+        self.assertCountEqual(admin_user_workspace_uuids, response_uuids)
+        
+    def test_admin_can_create_workspace_only_for_self(self):
         """
-        Test that admins can create a Workpace.
+        Test that admins cannot create a Workspace for someone else.
         """
         # get all initial instances before anything happens:
         initial_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
 
         payload = {'owner_email': self.regular_user_1.email}
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # get current instances:
+        current_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
+        difference_set = current_workspace_uuids.difference(initial_workspace_uuids)
+        self.assertEqual(len(difference_set), 0)
+
+        # OK...now make one for the admin themself:
+        response = self.authenticated_admin_client.post(self.url, data={}, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # get current instances:
         current_workspace_uuids = set([str(x.pk) for x in Workspace.objects.all()])
         difference_set = current_workspace_uuids.difference(initial_workspace_uuids)
         self.assertEqual(len(difference_set), 1)
+        w = Workspace.objects.get(pk=list(difference_set)[0])
+        self.assertTrue(w.owner == self.admin_user)
 
     def test_admin_sending_bad_email_raises_error(self):
         """
@@ -216,22 +227,21 @@ class WorkspaceDetailTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    def test_admin_can_view_workspace_detail(self):
+    def test_admin_cannot_view_workspace_detail(self):
         """
-        Test that admins can view the Workpace detail for anyone
+        Test that admins can't view the Workpace detail via the api
         """
         response = self.authenticated_admin_client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(str(self.regular_user_workspace.pk), response.data['id'])
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_admin_can_delete_workspace(self):
+    def test_admin_cannot_delete_workspace(self):
         """
-        Test that admin users can delete any Workpace.
+        Test that admin users can't delete Workpaces via the api.
         """
         response = self.authenticated_admin_client.delete(self.url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        with self.assertRaises(Workspace.DoesNotExist):
-            Workspace.objects.get(pk=self.regular_user_workspace.pk)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        # ensure it's still there. Would raise exception if it does not exist.
+        Workspace.objects.get(pk=self.regular_user_workspace.pk)
 
     def test_users_can_view_own_workspace_detail(self):
         """

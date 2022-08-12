@@ -1,5 +1,4 @@
 import logging
-import json
 import os
 
 from django.conf import settings
@@ -8,12 +7,10 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
 
 from api.models import Resource
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
-from api.utilities.operations import check_for_resource_operations
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     set_resource_to_inactive, \
@@ -62,25 +59,21 @@ def check_resource_request(user, resource_pk):
     except NoResourceFoundException:
             return (False, Response(status=status.HTTP_404_NOT_FOUND))
 
-class ResourceList(generics.ListCreateAPIView):
+
+class ResourceList(generics.ListAPIView):
     '''
     Lists available Resource instances.
-
-    Admins can list all available Resources.
-    
-    Non-admin users can only view their own Resources.
     '''
     
-    permission_classes = [
-        # admins can do anything
-        framework_permissions.IsAdminUser | 
+    # permission_classes = [
 
-        # regular users need to be authenticated
-        # AND are only allowed to list Resources.
-        (framework_permissions.IsAuthenticated 
-        & 
-        api_permissions.ReadOnly)
-    ]
+    #     # regular users need to be authenticated
+    #     # AND are only allowed to list Resources.
+    #     # They can't add/modify
+    #     (framework_permissions.IsAuthenticated 
+    #     & 
+    #     api_permissions.ReadOnly)
+    # ]
 
     serializer_class = ResourceSerializer
 
@@ -91,48 +84,18 @@ class ResourceList(generics.ListCreateAPIView):
 
         This method dictates that behavior.
         '''
-        user = self.request.user
-        if user.is_staff:
-            return Resource.objects.all()
-        return Resource.objects.filter(owner=user)
-    
-    def perform_create(self, serializer):
-        '''
-        This method is called when the serializer creates the class
-        Note that only admins can directly create Resources
-        (other users have to initiate an upload)
-        '''
-
-        # until the validation is complete, the resource_type should
-        # be None.  Pop that field off the validated data:
-
-        requested_resource_type = serializer.validated_data.pop('resource_type', None)
-        requested_file_format = serializer.validated_data.pop('file_format', None)
-
-        resource = serializer.save(requesting_user=self.request.user)
-        if requested_resource_type or requested_file_format:
-            set_resource_to_inactive(resource)
-
-            async_validate_resource.delay(
-                resource.pk, 
-                requested_resource_type,
-                requested_file_format
-            )
+        return Resource.objects.filter(owner=self.request.user)
 
 
 class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
     '''
     Retrieves a specific Resource instance.
-
-    Admins can get/modify any Resource.
     
-    Non-admin users can only view/edit their own Resources.
+    Users can only view/edit their own Resources.
     '''
 
-    # Admins can view/update/delete anyone's Resources, but general users 
-    # can only modify their own
-    permission_classes = [api_permissions.IsOwnerOrAdmin, 
-        framework_permissions.IsAuthenticated
+    permission_classes = [
+        api_permissions.IsOwner & framework_permissions.IsAuthenticated
     ]
 
     queryset = Resource.objects.all()
@@ -197,8 +160,6 @@ class ResourceContents(APIView):
     sequence-based files do not have this functionality.
     '''
 
-    permission_classes = [framework_permissions.IsAuthenticated]
-
     def get(self, request, *args, **kwargs):
         user = request.user
         resource_pk=kwargs['pk']
@@ -258,7 +219,6 @@ class AddBucketResourceView(APIView):
 
     BUCKET_PATH = 'bucket_path'
     RESOURCE_TYPE = 'resource_type'
-    permission_classes = [framework_permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         logger.info('POSTing to create a new resource from bucket-based data')

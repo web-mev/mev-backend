@@ -1,9 +1,8 @@
 import logging
 
 from django.http import Http404
-from rest_framework.exceptions import APIException, ValidationError
-from rest_framework import generics
-from rest_framework.response import Response
+from rest_framework.exceptions import APIException
+from rest_framework.generics import RetrieveAPIView
 
 from api.models import Resource, ResourceMetadata
 from api.serializers.resource_metadata import ResourceMetadataSerializer, \
@@ -13,7 +12,7 @@ from api.serializers.resource_metadata import ResourceMetadataSerializer, \
 
 logger = logging.getLogger(__name__)
 
-class ResourceMetadataView(generics.RetrieveAPIView):
+class ResourceMetadataView(RetrieveAPIView):
 
     serializer_class = ResourceMetadataSerializer
 

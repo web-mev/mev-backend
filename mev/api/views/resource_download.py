@@ -5,7 +5,7 @@ import os
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from rest_framework import permissions as framework_permissions
+
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
@@ -80,8 +80,6 @@ class ResourceDownload(APIView):
     We don't want to initiate these types of downloads for large files,
     so we limit the size.
     '''
-
-    permission_classes = [framework_permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         user = request.user

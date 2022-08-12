@@ -21,7 +21,9 @@ from api.tests import test_settings
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.ingest_operation import perform_operation_ingestion
 from api.utilities.operations import read_operation_json
-from api.views.operation_views import OperationRun
+from api.views.executed_operation_views import OperationRun
+from api.data_structures import StringAttribute
+from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 
 
 TESTDIR = os.path.dirname(__file__)
@@ -262,10 +264,12 @@ class ExecutedOperationListTests(BaseAPITestCase):
 
     def test_admin_request(self):
         all_ops = ExecutedOperation.objects.all()
+        admin_ops = ExecutedOperation.objects.filter(owner=self.admin_user)
         url = reverse('executed-operation-list')
         response = self.authenticated_admin_client.get(url)
         j = response.json()
-        self.assertEqual(len(all_ops), len(j))
+        self.assertEqual(len(admin_ops), len(j))
+        self.assertTrue(len(all_ops) > len(admin_ops)) # ensure this isn't a trivial test.
 
 
 class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
@@ -422,21 +426,12 @@ class ExecutedOperationTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(bad_url)
         self.assertTrue(response.status_code == status.HTTP_404_NOT_FOUND)
 
-    @mock.patch('api.views.operation_views.get_runner')
-    def test_other_user_requests_valid_operation(self, mock_get_runner):
+    def test_other_user_requests_valid_operation(self):
         '''
         Test the case when there exists an ExecutedOperation
         for user A. User B makes a request for that, so it should be
         rejected as a 404
         '''
-        # first try good ID and check that it returns something 'good'
-        # indicating that the finalization process has started:
-        mock_runner_class = mock.MagicMock()
-        mock_runner = mock.MagicMock()
-        # mocks that process is still running so it shoudl return 204 status
-        mock_runner.check_status.return_value = False
-        mock_runner_class.return_value = mock_runner
-        mock_get_runner.return_value = mock_runner_class
         response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
         self.assertTrue(response.status_code == 204)
         response = self.authenticated_regular_client.get(self.good_exec_op_url)
@@ -449,20 +444,14 @@ class ExecutedOperationTests(BaseAPITestCase):
         response = self.authenticated_other_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 404)
 
-    @mock.patch('api.views.operation_views.get_runner')
-    def test_admin_user_requests_valid_operation(self, mock_get_runner):
+    def test_admin_user_requests_valid_operation(self):
         '''
         Test the case when there exists an ExecutedOperation
         for user A. An admin can successfully request info
         '''
-        mock_runner_class = mock.MagicMock()
-        mock_runner = mock.MagicMock()
-        # mocks that process is still running so it shoudl return 204 status
-        mock_runner.check_status.return_value = False 
-        mock_runner_class.return_value = mock_runner
-        mock_get_runner.return_value = mock_runner_class
         response = self.authenticated_admin_client.get(self.good_workspace_exec_op_url)
-        self.assertTrue(response.status_code == 204)
+        # returns 404 since we don't want to 'give away' whether the operation existed.
+        self.assertTrue(response.status_code == 404)
 
 
     def test_request_to_finalizing_process_returns_208(self):
@@ -502,26 +491,16 @@ class ExecutedOperationTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(url)
         self.assertTrue(response.status_code == 208)
 
-    @mock.patch('api.views.operation_views.get_runner')
-    def test_job_still_running(self, mock_get_runner):
+    def test_job_still_running(self):
         '''
         If a job is still running, simply return 204 (no content)
         '''
-        # first try good ID and check that it returns something 'good'
-        # indicating that the finalization process has started:
-        mock_runner_class = mock.MagicMock()
-        mock_runner = mock.MagicMock()
-        # mocks that process is still running so it shoudl return 204 status
-        mock_runner.check_status.return_value = False
-        mock_runner_class.return_value = mock_runner
-        mock_get_runner.return_value = mock_runner_class
         response = self.authenticated_regular_client.get(self.good_workspace_exec_op_url)
         self.assertTrue(response.status_code == 204)
         response = self.authenticated_regular_client.get(self.good_exec_op_url)
         self.assertTrue(response.status_code == 204)
 
-    @mock.patch('api.views.operation_views.get_runner')
-    def test_completed_job_returns_proper_response(self, mock_get_runner):
+    def test_completed_job_returns_proper_response(self):
         '''
         In this test, the operation has completed so we check that we get info 
         about the completed job
@@ -769,7 +748,7 @@ class OperationRunTests(BaseAPITestCase):
         }
         self.assertDictEqual(s, expected_response)
 
-        # now give a bad UUID for workspace, but a valid one for the operation
+        # Above we gave gave a bad UUID for workspace, but herea valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -832,7 +811,6 @@ class OperationRunTests(BaseAPITestCase):
         owned by another user fails.
         '''
 
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -864,8 +842,9 @@ class OperationRunTests(BaseAPITestCase):
         }
         self.assertDictEqual(s, expected_response)
 
-    @mock.patch('api.views.operation_views.validate_operation_inputs')
-    def test_valid_op_and_workspace_uuid(self, mock_validate_operation_inputs):
+    @mock.patch('api.views.executed_operation_views.validate_operation_inputs')
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
+    def test_valid_op_and_workspace_uuid(self, mock_submit_async_job, mock_validate_operation_inputs):
         '''
         Test that a request with a valid workspace UUID
         and valid operation UUID passes
@@ -874,7 +853,6 @@ class OperationRunTests(BaseAPITestCase):
         # set the mock to return True so that we mock the inputs passing validation
         mock_validate_operation_inputs.return_value = {}
 
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -893,8 +871,9 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_submit_async_job.delay.assert_called()
 
-    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_valid_op_inputs(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
@@ -911,7 +890,6 @@ class OperationRunTests(BaseAPITestCase):
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
 
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -987,7 +965,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_submit_async_job.delay.assert_not_called()
 
-    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_valid_op_inputs_case2(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
@@ -1002,7 +980,6 @@ class OperationRunTests(BaseAPITestCase):
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
 
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -1046,22 +1023,13 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.assert_called()
         
 
-    @mock.patch('api.views.operation_views.submit_async_job')
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_bad_inputs_payload(self, mock_get_operation_instance_data, mock_submit_async_job):
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
+    @mock.patch('api.views.executed_operation_views.validate_operation_inputs')
+    def test_bad_inputs_payload(self, mock_validate_operation_inputs, mock_submit_async_job):
         '''
         The "inputs" key needs to be a dict. When strings were passed, then it 
         caused uncaught errors
         '''
-        # set the mock to return True so that we mock the inputs passing validation
-        f = os.path.join(
-            TESTDIR,
-            'valid_workspace_operation.json'
-        )
-        d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
-
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -1074,24 +1042,6 @@ class OperationRunTests(BaseAPITestCase):
         workspace = user_workspaces[0]
         op = ops[0]
 
-        acceptable_resource_types = d['inputs']['count_matrix']['spec']['resource_types']
-        acceptable_resources = []
-        for t in acceptable_resource_types:
-            r = Resource.objects.filter(
-                owner=self.regular_user_1,
-                is_active=True,
-                resource_type=t
-            )
-            if len(r) > 0:
-                acceptable_resources.extend(r)
-
-        if len(acceptable_resources) == 0:
-            raise ImproperlyConfigured('Need to have at least one resource with types'
-                ' in: {typelist}'.format(
-                    typelist=', '.join(acceptable_resource_types)
-                )
-            )
-
         payload = {
             OperationRun.OP_UUID: str(op.id),
             OperationRun.INPUTS: "a string",
@@ -1100,15 +1050,15 @@ class OperationRunTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_submit_async_job.delay.assert_not_called()
+        mock_validate_operation_inputs.assert_not_called()
 
-    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_observation_and_feature_set_payloads(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
         Test payloads where the "inputs" key addresses an ObservationSet or FeatureSet
         input.
         '''
-        # set the mock to return True so that we mock the inputs passing validation
         f = os.path.join(
             TESTDIR,
             'obs_set_test.json'
@@ -1137,7 +1087,6 @@ class OperationRunTests(BaseAPITestCase):
             ]
         }
 
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -1209,7 +1158,7 @@ class OperationRunTests(BaseAPITestCase):
 
 
 
-    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_proper_call_with_nonworkspace_op(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
@@ -1224,7 +1173,6 @@ class OperationRunTests(BaseAPITestCase):
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
 
-        # now give a bad UUID for workspace, but a valid one for the operation
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -1256,13 +1204,12 @@ class OperationRunTests(BaseAPITestCase):
         )
 
 
-    @mock.patch('api.views.operation_views.submit_async_job')
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_job_name_set(self, mock_get_operation_instance_data, mock_submit_async_job):
         '''
         Test payloads where the job_name is given
         '''
-        # set the mock to return True so that we mock the inputs passing validation
         f = os.path.join(
             TESTDIR,
             'simple_workspace_op_test.json'
@@ -1270,7 +1217,12 @@ class OperationRunTests(BaseAPITestCase):
         d = read_operation_json(f)
         mock_get_operation_instance_data.return_value = d
 
-        # now give a bad UUID for workspace, but a valid one for the operation
+        key = 'some_string'
+        submitted_value = 'abc'
+        input_dict = {
+            key: submitted_value
+        }
+
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
@@ -1290,9 +1242,7 @@ class OperationRunTests(BaseAPITestCase):
         # Check that the given name is the same as the execution job_id
         payload = {
             OperationRun.OP_UUID: str(op.id),
-            OperationRun.INPUTS: {
-                'some_string': 'abc'
-            },
+            OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id)
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
@@ -1313,9 +1263,7 @@ class OperationRunTests(BaseAPITestCase):
         job_name = 'foo'
         payload = {
             OperationRun.OP_UUID: str(op.id),
-            OperationRun.INPUTS: {
-                'some_string': 'abc'
-            },
+            OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
         }
@@ -1337,9 +1285,7 @@ class OperationRunTests(BaseAPITestCase):
         job_name = 'foo bar'
         payload = {
             OperationRun.OP_UUID: str(op.id),
-            OperationRun.INPUTS: {
-                'some_string': 'abc'
-            },
+            OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
         }
@@ -1361,9 +1307,7 @@ class OperationRunTests(BaseAPITestCase):
         job_name = '    '
         payload = {
             OperationRun.OP_UUID: str(op.id),
-            OperationRun.INPUTS: {
-                'some_string': 'abc'
-            },
+            OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
         }
@@ -1386,9 +1330,7 @@ class OperationRunTests(BaseAPITestCase):
         job_name = 'ほ ゑ'
         payload = {
             OperationRun.OP_UUID: str(op.id),
-            OperationRun.INPUTS: {
-                'some_string': 'abc'
-            },
+            OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
         }
@@ -1412,9 +1354,7 @@ class OperationRunTests(BaseAPITestCase):
         job_name_as_str = str(job_name)
         payload = {
             OperationRun.OP_UUID: str(op.id),
-            OperationRun.INPUTS: {
-                'some_string': 'abc'
-            },
+            OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
         }

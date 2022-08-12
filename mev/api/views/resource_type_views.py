@@ -1,17 +1,14 @@
 import logging
-import json
 
 from rest_framework.views import APIView
-from rest_framework import permissions as framework_permissions
-from rest_framework import status
 from rest_framework.response import Response
 
 from api.serializers.resource_types import ResourceTypeSerializer
 from constants import DATABASE_RESOURCE_TYPES, FORMATS_MAPPING
 from resource_types import RESOURCE_MAPPING
 
-
 logger = logging.getLogger(__name__)
+
 
 class ResourceTypeList(APIView):
     '''
@@ -22,7 +19,6 @@ class ResourceTypeList(APIView):
     Typically used for populating selections.
     '''
     
-    permission_classes = [framework_permissions.AllowAny]
     serializer_class = ResourceTypeSerializer
 
     def get_serializer(self, *args, **kwargs):

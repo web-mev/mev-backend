@@ -50,39 +50,41 @@ class UserListTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    def test_admin_can_list_user(self):
+    def test_admin_cannot_list_user(self):
         """
-        Test that admins can see all Users.  Checks by comparing
-        the pk between the database instances and those in the response.
+        Test that admins can only view their own info
         """
         response = self.authenticated_admin_client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        all_known_user_emails = set([str(x.email) for x in User.objects.all()])
         received_user_emails = set([x['email'] for x in response.data])
-        self.assertEqual(all_known_user_emails, received_user_emails)
+        self.assertEqual([self.admin_user.email], list(received_user_emails))
 
-    def test_admin_can_create_user(self):
+    def test_admin_cannot_create_user(self):
         """
-        Test that admins can create a User
+        Test that even admins can't create a User
         """
         # get all initial instances before anything happens:
         initial_users = set([str(x.pk) for x in User.objects.all()])
 
         payload = {'email': 'new_email@foo.com', 'password': 'abc123!'}
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-        # get current instances:
+        # get current instances and check nothing was created
         current_users = set([str(x.pk) for x in User.objects.all()])
         difference_set = current_users.difference(initial_users)
-        self.assertEqual(len(difference_set), 1)
+        self.assertEqual(len(difference_set), 0)
 
     def test_regular_user_cannot_list(self):
         """
         Test that regular users can't list users
         """
         response = self.authenticated_regular_client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        self.assertTrue(len(j)==1)
+        info = j[0]
+        self.assertEqual(info['email'], self.regular_user_1.email)
 
     def test_regular_user_cannot_create_user(self):
         """
@@ -93,7 +95,7 @@ class UserListTests(BaseAPITestCase):
 
         payload = {'email': 'new_email@foo.com', 'password': 'abc123!'}
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class UserDetailTests(BaseAPITestCase):
@@ -114,14 +116,19 @@ class UserDetailTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    def test_admin_can_view_user(self):
+    def test_admin_cannot_view_user(self):
         """
-        Test that admins can view details about an individual User.
+        Test that admins can't view details about an individual User.
         """
         response = self.authenticated_admin_client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # CAN see info about themself, though.
+        url = reverse('user-detail', kwargs={'pk': self.admin_user.pk})
+        response = self.authenticated_admin_client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_email = response.data['email']
-        self.assertEqual(response_email, self.regular_user_1.email)
+        self.assertEqual(response_email, self.admin_user.email)
 
     def test_users_can_view_own_detail(self):
         """

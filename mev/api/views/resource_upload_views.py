@@ -1,22 +1,16 @@
 import uuid
-import os
 import logging
 
-from django.conf import settings
 from django.core.cache import cache
-from django.contrib.auth import get_user_model
 
-from rest_framework import permissions as framework_permissions
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.exceptions import APIException
 
 from api.models import Resource
 from api.serializers.upload_serializer import UploadSerializer, DropboxUploadSerializer
 from api.serializers.resource import ResourceSerializer
-import api.permissions as api_permissions
 from api.uploaders import ServerLocalUpload, \
     get_async_uploader, \
     DROPBOX
@@ -31,7 +25,6 @@ class ServerLocalResourceUpload(APIView):
     Endpoint for a direct upload to the server.
     '''
     parser_classes = [MultiPartParser]
-    permission_classes = [framework_permissions.IsAuthenticated]
     serializer_class = UploadSerializer
     upload_handler_class = ServerLocalUpload
 
@@ -102,7 +95,6 @@ class AsyncUpload(APIView):
     Child classes should define the proper serializer for the request payload and also declare the "type"
     of the uploader class that should be used.
     '''
-    permission_classes = [framework_permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(

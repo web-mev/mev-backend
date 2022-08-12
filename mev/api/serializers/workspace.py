@@ -42,7 +42,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
         # If the user is an admin, they can create a Workspace for anyone.
         # if the user is not an admin, they can only create Workspaces for themself.
-        if requesting_user.is_staff or (workspace_owner == requesting_user):
+        if workspace_owner == requesting_user:
                     
             # Check if a workspace with this nema already exists
             workspaces = Workspace.objects.filter(owner=workspace_owner, workspace_name=workspace_name)

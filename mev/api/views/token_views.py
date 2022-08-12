@@ -5,7 +5,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.settings import api_settings as drf_api_settings
-
 from rest_framework_simplejwt.views import TokenObtainPairView, \
     TokenRefreshView
 from rest_framework_simplejwt.exceptions import InvalidToken
@@ -39,6 +38,7 @@ class RefreshTokenView(TokenRefreshView):
     '''
     Endpoint for refreshing the JWT auth token.
     '''
+    permission_classes = [permissions.AllowAny,]
     serializer_class = RefreshAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):

@@ -41,24 +41,18 @@ class ResourceListTests(BaseAPITestCase):
 
     def test_admin_can_list_resource(self):
         """
-        Test that admins can see all Resources.  Checks by comparing
-        the pk (a UUID) between the database instances and those in the response.
+        Test that admins can only see Resources they own.  They can't list
+        other people's resources, despite admin privileges.
         """
         response = self.authenticated_admin_client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        all_known_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
+        all_admin_resource_uuids = set([str(x.pk) for x in Resource.objects.filter(owner=self.admin_user)])
         received_resource_uuids = set([x['id'] for x in response.data])
-        self.assertEqual(all_known_resource_uuids, received_resource_uuids)
+        self.assertEqual(all_admin_resource_uuids, received_resource_uuids)
 
-
-    @mock.patch('api.views.resource_views.async_validate_resource')
-    @mock.patch('api.views.resource_views.set_resource_to_inactive')
-    def test_admin_can_create_resource(self, 
-        mock_set_resource_to_inactive,
-        mock_validate_resource):
+    def test_admin_cannot_create_resource(self):
         """
-        Test that admins can create a Resource and that the proper validation
-        methods are called.
+        Test that even admins can't create a Resource via the api
         """
         # get all initial instances before anything happens:
         initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
@@ -69,184 +63,13 @@ class ResourceListTests(BaseAPITestCase):
             'resource_type':'MTX'
         }
         response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
         # get current instances:
         current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
         difference_set = current_resource_uuids.difference(initial_resource_uuids)
-        self.assertEqual(len(difference_set), 1)
-
-        # check that the proper validation methods were called
-        mock_set_resource_to_inactive.assert_called()
-        mock_validate_resource.delay.assert_called()
-
-        # check that the resource has the proper members set:
-        r = Resource.objects.get(pk=list(difference_set)[0])
-        self.assertFalse(r.is_active)
-        # should be False since it was not explicitly set to True
-        self.assertFalse(r.is_public)
-        self.assertIsNone(r.resource_type)
-
-    @mock.patch('api.views.resource_views.async_validate_resource')
-    @mock.patch('api.views.resource_views.set_resource_to_inactive')
-    def test_admin_can_create_resource_with_explicit_uuid(self, 
-        mock_set_resource_to_inactive,
-        mock_validate_resource):
-        """
-        Test that admins can create a Resource and that the proper validation
-        methods are called. Here, we provide a UUID in the payload. We want to check
-        that the UUID in the db is the same
-        """
-        # get all initial instances before anything happens:
-        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-
-        u = uuid.uuid4()
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'name': 'some_file.txt',
-            'resource_type':'MTX',
-            'id': str(u)
-        }
-        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        # get current instances:
-        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-        difference_set = current_resource_uuids.difference(initial_resource_uuids)
-        self.assertEqual(len(difference_set), 1)
-
-        # check that the proper validation methods were called
-        mock_set_resource_to_inactive.assert_called()
-        mock_validate_resource.delay.assert_called()
-
-        # check that the resource has the proper members set:
-        r = Resource.objects.get(pk=list(difference_set)[0])
-        self.assertFalse(r.is_active)
-        # should be False since it was not explicitly set to True
-        self.assertFalse(r.is_public)
-        self.assertIsNone(r.resource_type)
-        self.assertEqual(r.pk, u)
-
-    def test_missing_owner_in_admin_resource_request_fails(self):
-        """
-        Test that admins must specify an owner_email field in their request
-        to create a Resource directly via the API
-        """
-        # get all initial instances before anything happens:
-        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-
-        payload = {
-            'name': 'some_file.txt',
-            'resource_type':'MTX'
-        }
-        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-        difference_set = current_resource_uuids.difference(initial_resource_uuids)
         self.assertEqual(len(difference_set), 0)
 
-    def test_bad_admin_request_fails(self):
-        """
-        Test that even admins must specify a valid resource_type.
-        The type given below is junk.
-        """
-        # get all initial instances before anything happens:
-        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-
-        # payload is missing the resource_type key
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'resource_type': 'ASDFADSFASDFASFSD',
-            'name': 'some_file.txt',
-        }
-        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-        difference_set = current_resource_uuids.difference(initial_resource_uuids)
-        self.assertEqual(len(difference_set), 0)
-
-    def test_invalid_resource_type_raises_exception(self):
-        """
-        Test that a bad resource_type specification generates
-        a 400 response
-        """
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'name': 'some_file.txt',
-            'resource_type': 'foo'
-        }
-
-        response = self.authenticated_admin_client.post(
-            self.url, data=payload, format='json'
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-
-    def test_null_resource_type_is_valid(self):
-        """
-        Test that an explicit null resource_type is OK.
-        Users will eventually have to set their own type
-        """
-        # get all initial instances before anything happens:
-        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'name': 'some_file.txt',
-            'resource_type': None
-        }
-
-        response = self.authenticated_admin_client.post(
-            self.url, data=payload, format='json'
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        # check that we have a new Resource in the database:
-        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-        difference_set = current_resource_uuids.difference(initial_resource_uuids)
-        self.assertEqual(len(difference_set), 1)
-
-    def test_setting_workspace_ignored(self):
-        """
-        Since we can't directly assign a workspace on resource creation,
-        requests containing workspaces should be fine,
-        as the workspace key is ignored
-        """
-
-        # get the workspaces for user 2
-        other_user_workspaces = Workspace.objects.filter(owner=self.regular_user_2)
-        workspace = other_user_workspaces[0]
-
-        payload = {
-            'owner_email': self.regular_user_1.email,
-            'name': 'some_file.txt',
-            'resource_type': 'MTX',
-            'workspaces': [workspace.pk,]
-        }
-        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        j = response.json()
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(j['workspaces'],[])
-
-
-    def test_admin_sending_bad_email_raises_error(self):
-        """
-        Test that admins providing a bad email (a user who is not in the db) raises 400
-        """
-        # get all initial instances before anything happens:
-        initial_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-
-        payload = {'owner_email': test_settings.JUNK_EMAIL,
-            'name': 'some_file.txt',
-            'resource_type': 'MTX'
-        }
-        response = self.authenticated_admin_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-        # get current instances to check none were created:
-        current_resource_uuids = set([str(x.pk) for x in Resource.objects.all()])
-        difference_set = current_resource_uuids.difference(initial_resource_uuids)
-        self.assertEqual(len(difference_set), 0)
 
     def test_regular_user_post_raises_error(self):
         """
@@ -259,7 +82,7 @@ class ResourceListTests(BaseAPITestCase):
             'resource_type': 'MTX'
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
     def test_users_can_list_resource(self):
@@ -2300,24 +2123,23 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    def test_admin_can_view_resource_detail(self):
+    def test_admin_cannot_view_resource_detail(self):
         """
-        Test that admins can view the Workpace detail for anyone
+        Test that admins can't view the Workpace detail for anyone
         """
         response = self.authenticated_admin_client.get(self.url_for_unattached)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(str(self.regular_user_unattached_resource.pk), response.data['id'])
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     @mock.patch('api.views.resource_views.async_delete_file')
-    def test_admin_can_delete_resource(self, mock_delete_file):
+    def test_admin_cannot_delete_resource(self, mock_delete_file):
         """
-        Test that admin users can delete an unattached Resource
+        Test that admin users can't delete even an unattached Resource via the api
         """
         response = self.authenticated_admin_client.delete(self.url_for_active_unattached)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_delete_file.delay.assert_called()
-        with self.assertRaises(Resource.DoesNotExist):
-            Resource.objects.get(pk=self.regular_user_active_unattached_resource.pk)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        mock_delete_file.delay.assert_not_called()
+        # this will raise an Exception if it was not found. So a successful query means we pass
+        Resource.objects.get(pk=self.regular_user_active_unattached_resource.pk)
 
     @mock.patch('api.views.resource_views.async_delete_file')
     def test_admin_cannot_delete_workspace_resource(self, mock_delete_file):
@@ -2341,16 +2163,12 @@ class ResourceDetailTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.async_delete_file')
-    @mock.patch('api.views.resource_views.check_for_resource_operations')
-    def test_users_cannot_delete_attached_resource(self, 
-        mock_check_for_resource_operations,
-        mock_delete_file):
+    def test_users_cannot_delete_attached_resource(self, mock_delete_file):
         """
         Test that regular users can't delete their own Resource even if it has 
         NOT been used within a Workspace. Users need to unattach it. Check that the 
         direct call to delete is rejected.
         """
-        mock_check_for_resource_operations.return_value = False
         response = self.authenticated_regular_client.delete(self.url_for_workspace_resource)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         mock_delete_file.delay.assert_not_called()
@@ -2456,8 +2274,7 @@ class ResourceDetailTests(BaseAPITestCase):
         # check that the bool changed:
         self.assertEqual(r.is_active, initial_status)
 
-
-    def test_user_cannot_change_status_message(self):
+    def test_cannot_change_status_message(self):
         '''
         The `status` string canNOT be reset by a regular user
         ''' 
@@ -2470,20 +2287,18 @@ class ResourceDetailTests(BaseAPITestCase):
         )
         r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
         self.assertTrue(r.status == orig_status)
+        # the change was effectively ignored so we get a 200
+        self.assertEqual(response.status_code, 200)
 
-    def test_admin_can_change_status_message(self):
-        '''
-        The `status` string can be reset by an admin
-        ''' 
-        # check that it was not active to start:
+        # Now check that admins can't make changes iether
         orig_status = self.active_resource.status
-
         payload = {'status': 'something'}
         response = self.authenticated_admin_client.put(
             self.url_for_active_resource, payload, format='json'
         )
         r = Resource.objects.get(pk=self.active_resource.pk)
-        self.assertFalse(r.status == orig_status)
+        self.assertTrue(r.status == orig_status)
+        self.assertEqual(response.status_code, 403)
 
     def test_user_cannot_change_date_added(self):
         '''
@@ -2527,7 +2342,8 @@ class ResourceDetailTests(BaseAPITestCase):
             response = self.authenticated_regular_client.put(
                 url, payload, format='json'
             )
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            # we basically ignore it, so 200 response
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
             r = Resource.objects.get(pk=private_resource.pk)
             self.assertFalse(r.is_public)
 
@@ -2535,10 +2351,9 @@ class ResourceDetailTests(BaseAPITestCase):
             raise ImproperlyConfigured('To properly run this test, you'
             ' need to have at least one public Resource.')
 
-    def test_admin_user_can_make_resource_public(self):
+    def test_admin_user_cannot_make_resource_public(self):
         '''
-        Admin users are allowed to effect public/private
-        chanage on Resources
+        Admin users can't affect public/private status
         '''
         private_resources = Resource.objects.filter(
             owner = self.regular_user_1,
@@ -2556,9 +2371,9 @@ class ResourceDetailTests(BaseAPITestCase):
             response = self.authenticated_admin_client.put(
                 url, payload, format='json'
             )
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
             r = Resource.objects.get(pk=private_resource.pk)
-            self.assertTrue(r.is_public)
+            self.assertFalse(r.is_public)
 
         else:
             raise ImproperlyConfigured('To properly run this test, you'
@@ -2585,7 +2400,8 @@ class ResourceDetailTests(BaseAPITestCase):
         response = self.authenticated_regular_client.put(
             url, payload, format='json'
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # it was ok to try, but we just ignore it.
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         updated_resource = Resource.objects.get(pk=r.pk)
         self.assertTrue(updated_resource.is_public)
 
@@ -2611,9 +2427,9 @@ class ResourceDetailTests(BaseAPITestCase):
         response = self.authenticated_admin_client.put(
             url, payload, format='json'
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         updated_resource = Resource.objects.get(pk=r.pk)
-        self.assertFalse(updated_resource.is_public)
+        self.assertTrue(updated_resource.is_public)
 
     def test_cannot_make_changes_when_inactive(self):
         '''
@@ -2621,17 +2437,17 @@ class ResourceDetailTests(BaseAPITestCase):
         '''
         self.assertFalse(self.inactive_resource.is_active)
 
-        # just try to change the path as an example
-        payload = {'path': '/some/path/to/file.txt'}
-        response = self.authenticated_admin_client.put(
+        # just try to change the name
+        payload = {'name': 'some_name'}
+        response = self.authenticated_regular_client.put(
             self.url_for_inactive_resource, payload, format='json'
         )
         self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
 
-    def test_admin_can_change_path(self):
+    def test_admin_cannot_change_path(self):
         '''
         Path is only relevant for internal/database use so 
-        users cannot change that. Admins may, however
+        users cannot change that. Neither can admins
         '''
         self.assertTrue(self.active_resource.is_active)
         original_path = self.active_resource.path
@@ -2643,8 +2459,7 @@ class ResourceDetailTests(BaseAPITestCase):
         # query db for that same Resource object and verify that the path
         # has not been changed:
         obj = Resource.objects.get(pk=self.active_resource.pk)
-        self.assertEqual(obj.path, new_path)
-        self.assertFalse(obj.path == original_path)
+        self.assertEqual(obj.path, original_path)
 
     def test_user_cannot_change_path(self):
         '''
