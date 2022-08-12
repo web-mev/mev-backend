@@ -1,3 +1,8 @@
+resource "random_password" "django_superuser" {
+  length  = 8
+  special = false
+}
+
 resource "aws_instance" "api" {
   # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
   ami                    = "ami-07f84a50d2dec2fa4"
@@ -19,14 +24,14 @@ resource "aws_instance" "api" {
   export DEBIAN_FRONTEND=noninteractive
 
   # derived from workspace name: dev, production, etc
-  FACTER_ENVIRONMENT='${local.stack}'
+  export FACTER_ENVIRONMENT='${local.stack}'
 
   # Specify the appropriate settings file.
   # We do this here so it's prior to cycling the supervisor daemon
   if [ $FACTER_ENVIRONMENT = 'dev' ]; then
-    FACTER_DJANGO_SETTINGS_MODULE=mev.settings_dev
+    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_dev
   else
-    FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
+    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
   fi
   # temp workaround required for Celery
   DJANGO_SETTINGS_MODULE=$FACTER_DJANGO_SETTINGS_MODULE
@@ -37,10 +42,17 @@ resource "aws_instance" "api" {
   # The frontend can be located on a different server.
   # This is used for communications, etc. (such as verification emails)
   # which will direct the user to a link on the front-end
-  FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
+  export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
 
   # The domain of the API:
-  FACTER_BACKEND_DOMAIN='${var.backend_domain}'
+  export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
 
+  export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
+  export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
+  export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
+  export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
+
+  export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
+  export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
   EOT
 }

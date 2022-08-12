@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+#^syntax detection
+
+forge "https://forgeapi.puppetlabs.com"
+
+mod 'qbrc-mevapi', '0.1.0', :path => './mevapi'

@@ -12,17 +12,6 @@ SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': get_env('DB_NAME'),
-        'USER': get_env('DB_USER'),
-        'PASSWORD': get_env('DB_PASSWD'),
-        'HOST': get_env('DB_HOST_SOCKET'),
-        'PORT': int(get_env('DB_PORT')),
-    }
-}
-
 ###############################################################################
 # START Check for production-specific settings/params
 ###############################################################################

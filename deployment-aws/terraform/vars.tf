@@ -1,3 +1,8 @@
+variable "admin_email_csv" {
+  description = "A comma-delimited string of administrator emails"
+  type        = string
+}
+
 variable "backend_domain" {
   description = "The domain where the API will be served from"
   type        = string

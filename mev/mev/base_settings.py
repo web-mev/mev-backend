@@ -26,8 +26,16 @@ if not os.path.exists(DATA_DIR):
         ' for user and operation data.'.format(d=DATA_DIR)
     )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'webmev',
+        'USER': get_env('DB_USER'),
+        'PASSWORD': get_env('DB_PASSWD'),
+        'HOST': get_env('DB_HOST'),
+        'PORT': 5432,
+    }
+}
 
 ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if len(x) > 0]
 
@@ -125,7 +133,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = get_env('STATIC_ROOT')
 
 # use an alternate user model which has the email as the username
 AUTH_USER_MODEL = 'api.CustomUser'

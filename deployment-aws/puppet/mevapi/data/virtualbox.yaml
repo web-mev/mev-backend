@@ -1,0 +1,11 @@
+---
+mevapi::admin_email_csv: "root@localhost"
+mevapi::app_user: "vagrant"
+mevapi::backend_domain: "localhost"
+mevapi::database_host: "localhost"
+mevapi::database_user: "vagrant"
+mevapi::database_user_password: "pass"
+mevapi::django_superuser_password: "webmev"
+mevapi::frontend_domain: "example.org"
+mevapi::project_root: "/vagrant"
+mevapi::site_name: "WebMEV"
