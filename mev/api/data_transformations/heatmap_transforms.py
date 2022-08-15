@@ -94,9 +94,9 @@ def heatmap_reduce(resource, query_params):
     )
 
     # the `leaves` key has the ordering as read from
-    # left-to-right (or top to bottom)
-    row_order = row_dendrogram['leaves']        
-    col_order = col_dendrogram['leaves']
+    # left-to-right (or top to bottom).
+    row_order = df.index[row_dendrogram['leaves']]    
+    col_order = df.columns[col_dendrogram['leaves']]
 
     # reorder the matrix to correspond to the clustering
     df = df.loc[row_order, col_order]
