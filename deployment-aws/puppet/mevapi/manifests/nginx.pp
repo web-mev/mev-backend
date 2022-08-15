@@ -25,7 +25,7 @@ class mevapi::nginx () {
       "''" => '$http_origin'
     },
   }
-  nginx::resource::server { $backend_domain:
+  nginx::resource::server { $mevapi::backend_domain:
     listen_port          => 80,
     client_max_body_size => '256m',
     use_default_location => false,

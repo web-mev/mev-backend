@@ -1,8 +1,19 @@
 class mevapi::django () {
   $root = "${mevapi::project_root}/mev"
   $manage = "/usr/bin/python3 ${root}/manage.py"
+  $secret_key = fqdn_rand_string(50)
 
-  $static_root = '/www/static'
+  class { 'python':
+    version => '3.8',
+  }
+
+  python::requirements { "${root}/requirements.txt":
+    pip_provider           => 'pip3',
+    forceupdate            => true,
+    fix_requirements_owner => false,
+  }
+
+  $static_root = '/srv/static'
   file { $static_root:
     ensure => directory,
     owner  => $mevapi::app_user,
@@ -15,11 +26,15 @@ class mevapi::django () {
     owner   => $mevapi::app_user,
     group   => $mevapi::app_group,
   }
-  ->
+
   exec { 'migrate':
     command => "${manage} migrate",
     user    => $mevapi::app_user,
     group   => $mevapi::app_group,
+    require => [
+      Python::Requirements["${root}/requirements.txt"],
+      File["${mevapi::project_root}/.env"],
+    ]
   }
   ->
   exec { 'superuser':

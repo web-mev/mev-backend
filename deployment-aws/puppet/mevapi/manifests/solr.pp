@@ -8,21 +8,21 @@ class mevapi::solr () {
   }
   file { "${solr_home}/solr.xml":
     ensure => file,
-    source => "${project_root}/solr/solr.xml",
+    source => "${mevapi::project_root}/solr/solr.xml",
     owner  => $::solr::solr_user,
     group  => $::solr::solr_user,
   }
   solr::core { 'tcga-rnaseq':
-    schema_src_file     => "${project_root}/solr/tcga-rnaseq/schema.xml",
-    solrconfig_src_file => "${project_root}/solr/tcga-rnaseq/solrconfig.xml",
+    schema_src_file     => "${mevapi::project_root}/solr/tcga-rnaseq/schema.xml",
+    solrconfig_src_file => "${mevapi::project_root}/solr/tcga-rnaseq/solrconfig.xml",
   }
   solr::core { 'target-rnaseq':
-    schema_src_file     => "${project_root}/solr/target-rnaseq/schema.xml",
-    solrconfig_src_file => "${project_root}/solr/target-rnaseq/solrconfig.xml",
+    schema_src_file     => "${mevapi::project_root}/solr/target-rnaseq/schema.xml",
+    solrconfig_src_file => "${mevapi::project_root}/solr/target-rnaseq/solrconfig.xml",
   }
   solr::core { 'gtex-rnaseq':
-    schema_src_file     => "${project_root}/solr/gtex-rnaseq/schema.xml",
-    solrconfig_src_file => "${project_root}/solr/gtex-rnaseq/solrconfig.xml",
+    schema_src_file     => "${mevapi::project_root}/solr/gtex-rnaseq/schema.xml",
+    solrconfig_src_file => "${mevapi::project_root}/solr/gtex-rnaseq/solrconfig.xml",
   }
 
 }

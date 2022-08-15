@@ -6,24 +6,38 @@
 #   class { 'mevapi':
 #   }
 class mevapi (
-  String           $admin_email_csv,
-  Optional[String] $app_user,
-  String           $backend_domain,
-  String           $database_host,
-  Optional[String] $database_superuser,
-  Optional[String] $database_superuser_password,
-  String           $database_user_password,
-  String           $django_superuser_password,
-  Optional[String] $project_root,
+  String                  $admin_email_csv,
+  Optional[String]        $app_user,
+  String                  $backend_domain,
+  Optional[String]        $container_registry,
+  String                  $database_host,
+  Optional[String]        $database_superuser,
+  Optional[String]        $database_superuser_password,
+  String                  $database_user_password,
+  String                  $django_superuser_password,
+  Optional[String]        $email_backend_choice,
+  String                  $email_host,
+  String                  $email_host_user,
+  String                  $email_host_password,
+  String                  $email_port,
+  Optional[String]        $enable_remote_job_runner,
+  Optional[String]        $from_email,
+  String                  $frontend_domain,
+  Optional[String]        $project_root,
+  String                  $sentry_url,
+  Optional[String]        $site_name,
+  Enum['local', 'remote'] $storage_location,
 ) {
   if $facts['virtual'] == 'kvm' {
     $platform = 'aws'
   } else {
+    # gce or virtualbox
     $platform = $facts['virtual']
   }
 
   $app_group = $app_user
   $database_user = $app_user
+  $local_storage_dirname = "user_resources"
 
   $log_dir = '/var/log/mev'
   file { $log_dir:
@@ -69,14 +83,22 @@ class mevapi (
     'pkg-config',
     'netcat',
     'procps',
-    'postgresql-12',
     'default-jre'
   ]
   package { $mev_dependencies: }
 
-  include rabbitmq
+  class { 'rabbitmq':
+    manage_python => false,
+  }
 
   class { 'docker':
     docker_users => [$app_user],
   }
+
+  contain mevapi::django
+  contain mevapi::nginx
+  contain mevapi::postgresql
+  contain mevapi::solr
+
+  Class['mevapi::postgresql'] -> Class['mevapi::django'] -> Class['mevapi::nginx']
 }
