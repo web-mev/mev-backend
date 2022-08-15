@@ -10,7 +10,7 @@ class Command(createsuperuser.Command):
 
     def handle(self, *args, **options):
         user_model = get_user_model()
-        if user_model.objects.filter(username=options['username']).exists():
+        if user_model.objects.filter(email=options['email']).exists():
             self.stdout.write('Superuser already exists, not creating')
             return
         super(Command, self).handle(*args, **options)
