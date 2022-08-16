@@ -23,21 +23,36 @@ resource "aws_instance" "api" {
   # https://serverfault.com/a/670688
   export DEBIAN_FRONTEND=noninteractive
 
-  # derived from workspace name: dev, production, etc
-  export FACTER_ENVIRONMENT='${local.stack}'
+  # to help Puppet determine the correct node name
+  /usr/bin/hostnamectl set-hostname ${var.backend_domain}
 
-  # Specify the appropriate settings file.
-  # We do this here so it's prior to cycling the supervisor daemon
-  if [ $FACTER_ENVIRONMENT = 'dev' ]; then
-    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_dev
-  else
-    export FACTER_DJANGO_SETTINGS_MODULE=mev.settings_production
-  fi
-  # temp workaround required for Celery
-  DJANGO_SETTINGS_MODULE=$FACTER_DJANGO_SETTINGS_MODULE
+  # install Puppet
+  CODENAME=$(/usr/bin/lsb_release -sc)
+  /usr/bin/curl -sO "https://apt.puppetlabs.com/puppet7-release-$CODENAME.deb"
+  /usr/bin/dpkg -i "puppet7-release-$CODENAME.deb"
+  /usr/bin/apt-get -qq update
+  /usr/bin/apt-get -qq -y install puppet-agent
 
-  # The commit identifier which we will deploy
-  GIT_COMMIT='${var.git_commit}'
+  # configure WebMEV
+  export PROJECT_ROOT=/srv/mev-backend
+  /usr/bin/mkdir $PROJECT_ROOT
+  /usr/bin/chown ubuntu:ubuntu $PROJECT_ROOT
+  /usr/bin/su -c "git clone https://github.com/web-mev/mev-backend.git $PROJECT_ROOT" ubuntu
+  /usr/bin/su -c "cd $PROJECT_ROOT && /usr/bin/git checkout -q ${var.git_commit}" ubuntu
+
+  # install and configure librarian-puppet
+  export PUPPET_ROOT="$PROJECT_ROOT/deployment-aws/puppet"
+  /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+  # need to set $HOME: https://github.com/rodjek/librarian-puppet/issues/258
+  export HOME=/root
+  /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
+  /opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
+  cd $PUPPET_ROOT
+  PATH=$PATH:/opt/puppetlabs/bin
+  /opt/puppetlabs/puppet/bin/librarian-puppet install
+
+  # configure and run Puppet
+  export FACTER_DJANGO_SETTINGS_MODULE='mev.settings_${local.stack}'
 
   # The frontend can be located on a different server.
   # This is used for communications, etc. (such as verification emails)
@@ -54,5 +69,7 @@ resource "aws_instance" "api" {
 
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
+
+  /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT
 }

@@ -8,6 +8,11 @@ variable "backend_domain" {
   type        = string
 }
 
+variable "django_superuser_email" {
+  description = "Email address to use as username for Django Admin"
+  type        = string
+}
+
 variable "frontend_domain" {
   description = "The primary frontend domain this API will serve, do NOT include protocol"
   type        = string
