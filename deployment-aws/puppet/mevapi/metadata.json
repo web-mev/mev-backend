@@ -28,7 +28,7 @@
     },
     {
       "name": "puppetlabs-postgresql",
-      "version_requirement": "8.0.0"
+      "version_requirement": "8.1.0"
     }
   ],
   "operatingsystem_support": [

@@ -26,7 +26,7 @@ stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
 redirect_stderr = true
 
 ; If true, this program will start automatically when supervisord is started
-autostart=false
+autostart=true
 
 ; May be one of false, unexpected, or true. If false, the process will never
 ; be autorestarted. If unexpected, the process will be restart when the program

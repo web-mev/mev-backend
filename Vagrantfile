@@ -23,7 +23,7 @@ Vagrant.configure("2") do |config|
     /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
     /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
     /opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
-    PATH="${PATH}:/opt/puppetlabs/bin" && cd /vagrant/deploy/puppet && /opt/puppetlabs/puppet/bin/librarian-puppet install
+    PATH="${PATH}:/opt/puppetlabs/bin" && cd /vagrant/deployment-aws/puppet && /opt/puppetlabs/puppet/bin/librarian-puppet install
   SHELL
 
   config.vm.provision :puppet do |puppet|
@@ -62,7 +62,7 @@ Vagrant.configure("2") do |config|
       puppet.facter['docker_repo_org'] = ENV['DOCKER_REPO_ORG']
     end
 
-    puppet.manifests_path = "deploy/puppet/manifests"
+    puppet.manifests_path = "deployment-aws/puppet/manifests"
     puppet.manifest_file  = "site.pp"
     
   end
@@ -79,10 +79,6 @@ Vagrant.configure("2") do |config|
       vb.cpus = 2
     end
 
-    api.vm.provision :shell do |s|
-      s.path = "vagrant/provision.sh"
-      s.args = "vagrant/env.txt"
-    end
   end
 
   config.vm.define "cromwell", autostart: false do |cromwell|

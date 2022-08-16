@@ -19,6 +19,6 @@ stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
 ; Put process stderr output in stdout file
 redirect_stderr = true
 
-autostart=false
+autostart=true
 autorestart=true
 stopsignal=QUIT

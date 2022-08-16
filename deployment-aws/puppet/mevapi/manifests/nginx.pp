@@ -48,7 +48,7 @@ class mevapi::nginx () {
       },
       'static' => {
         location       => '/static/',
-        location_alias => $mevapi::django::static_root,
+        location_alias => "${mevapi::django::static_root}/",
         index_files    => [],
       },
     },

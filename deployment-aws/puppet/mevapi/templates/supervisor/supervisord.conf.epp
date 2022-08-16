@@ -9,6 +9,7 @@ logfile=/tmp/supervisord.log ; (main log file;default $CWD/supervisord.log)
 pidfile=/tmp/supervisord.pid ; (supervisord pidfile;default supervisord.pid)
 childlogdir=/tmp/supervisor            ; ('AUTO' child log dir, default $TEMP)
 user=<%= $mevapi::app_user %>
+environment = DJANGO_SETTINGS_MODULE="<%= $mevapi::django_settings_module %>"
 
 ; the below section must remain in the config file for RPC
 ; (supervisorctl/web interface) to work, additional interfaces may be
@@ -27,4 +28,4 @@ username=<%= $mevapi::app_user %>
 ; include files themselves.
 
 [include]
-files = /etc/supervisor/conf.d/*.conf
+files = <%= $mevapi::supervisor::conf_dir %>/conf.d/*.conf

@@ -14,6 +14,7 @@ class mevapi (
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,
   String                  $database_user_password,
+  Optional[String]        $django_settings_module,
   String                  $django_superuser_password,
   Optional[String]        $email_backend_choice,
   String                  $email_host,
@@ -62,6 +63,16 @@ class mevapi (
     group  => $app_group,
   }
 
+  if $platform == 'virtualbox' {
+    # JSON file containing the credentials to authenticate with the Google storage API
+    # no actual need this for local dev but it needs to be populated for the app to startup properly
+    file { "${project_root}/storage_credentials.json":
+      ensure => file,
+      owner  => $app_user,
+      group  => $app_group,
+    }
+  }
+
   $mev_dependencies = [
     'build-essential',
     'apt-transport-https',
@@ -76,7 +87,6 @@ class mevapi (
     'liblzma-dev',
     'libsqlite3-dev',
     'libpq-dev',
-    'supervisor',
     'nano',
     'git',
     'curl',
@@ -99,6 +109,13 @@ class mevapi (
   contain mevapi::nginx
   contain mevapi::postgresql
   contain mevapi::solr
+  contain mevapi::supervisor
 
-  Class['mevapi::postgresql'] -> Class['mevapi::django'] -> Class['mevapi::nginx']
+  Class['mevapi::postgresql']
+  ->
+  Class['mevapi::django']
+  ~>
+  Class['mevapi::supervisor']
+  ->
+  Class['mevapi::nginx']
 }
