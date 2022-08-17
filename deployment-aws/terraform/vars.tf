@@ -17,7 +17,7 @@ variable "container_registry" {
 variable "django_settings_module" {
   description = "Settings module for the Django app"
   type        = string
-  default     = "mev.settings_dev"
+  default     = "mev.settings_production"
 }
 
 variable "django_superuser_email" {
