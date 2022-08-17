@@ -61,7 +61,8 @@ class mevapi::nginx () {
     access_log          => 'absent',
     error_log           => 'absent',
     location_custom_cfg => {
-      'return' => 444,
+      # need to return HTTP 200 for load balancer health checks to succeed
+      'return' => 200,
     }
   }
 }
