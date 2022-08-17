@@ -1,3 +1,3 @@
 ---
 mevapi::app_user: "ubuntu"
-mevapi::project_root: "/opt/software/mev-backend"
+mevapi::project_root: "/srv/mev-backend"

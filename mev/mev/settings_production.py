@@ -12,19 +12,12 @@ SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-###############################################################################
-# START Check for production-specific settings/params
-###############################################################################
-if EMAIL_BACKEND_CHOICE == 'CONSOLE':
-    raise ImproperlyConfigured('In production you cannot use the console email'
-        ' backend, as it does not actually send email!'
-)
-###############################################################################
-# END Check for production-specific settings/params
-###############################################################################
-
-
-
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ['EMAIL_HOST']
+EMAIL_PORT = os.environ['EMAIL_PORT']
+EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
+EMAIL_USE_TLS = True
 
 ###############################################################################
 # START logging settings

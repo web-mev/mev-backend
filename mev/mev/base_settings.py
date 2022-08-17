@@ -176,34 +176,6 @@ SIMPLE_JWT = {
 # Parameters for Email functions
 ###############################################################################
 
-#  All available backends for sending emails:
-EMAIL_BACKEND_SELECTIONS = {
-    'CONSOLE': 'django.core.mail.backends.console.EmailBackend',
-    'SMTP': 'django.core.mail.backends.smtp.EmailBackend'
-}
-
-EMAIL_BACKEND_CHOICE = get_env('EMAIL_BACKEND_CHOICE')
-
-# Now that we have the email backend choice, select the class
-# string so that the we can properly set the required EMAIL_BACKEND
-# django settings variable
-try:
-    EMAIL_BACKEND = EMAIL_BACKEND_SELECTIONS[EMAIL_BACKEND_CHOICE]
-except KeyError:
-    raise ImproperlyConfigured('The email backend specified must be from'
-        ' the set: {options}'.format(
-            options = ', '.join(EMAIL_BACKEND_SELECTIONS.keys())
-        )
-    )
-
-# Whether we need these parameters or not (e.g. if using the console backend for local dev),
-# we require them:
-EMAIL_HOST = os.environ['EMAIL_HOST']
-EMAIL_PORT = os.environ['EMAIL_PORT']
-EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
-EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
-EMAIL_USE_TLS = True
-
 FROM_EMAIL = get_env('FROM_EMAIL')
 
 ADMIN_EMAIL_LIST = [x for x in os.environ.get('ADMIN_EMAIL_CSV', '').split(',') if len(x) > 0]
@@ -264,7 +236,7 @@ from mev import base_logging_config as log_config
 
 FRONTEND_DOMAIN = get_env('FRONTEND_DOMAIN')
 BACKEND_DOMAIN = get_env('BACKEND_DOMAIN')
-SITE_NAME = get_env('SITE_NAME')
+SITE_NAME = 'WebMEV'
 
 # Note that the leading "#" is used for setting up the route
 # in the front-end correctly.
@@ -301,7 +273,7 @@ if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
 
 CROMWELL = 'CROMWELL'
 
-if get_env('ENABLE_REMOTE_JOB_RUNNER') == 'yes':
+if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
 else:
     ENABLE_REMOTE_JOBS = False

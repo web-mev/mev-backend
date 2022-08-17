@@ -16,6 +16,8 @@ CACHES = {
     }
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # setup some logging options for production:
 dev_config_dict = copy.deepcopy(log_config.base_logging_config_dict)
 

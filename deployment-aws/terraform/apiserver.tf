@@ -52,23 +52,20 @@ resource "aws_instance" "api" {
   /opt/puppetlabs/puppet/bin/librarian-puppet install
 
   # configure and run Puppet
-  export FACTER_DJANGO_SETTINGS_MODULE='mev.settings_${local.stack}'
-
-  # The frontend can be located on a different server.
-  # This is used for communications, etc. (such as verification emails)
-  # which will direct the user to a link on the front-end
-  export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
-
-  # The domain of the API:
+  export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
-
+  export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
   export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
   export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
-
-  export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
+  export FACTER_DJANGO_SETTINGS_MODULE='mev.settings_${local.stack}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
+  export FACTER_ENABLE_REMOTE_JOB_RUNNERS='${var.enable_remote_job_runners}'
+  export FACTER_FROM_EMAIL='${var.from_email}'
+  export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
+  export FACTER_SENTRY_URL='${var.sentry_url}'
+  export FACTER_STORAGE_LOCATION='${var.storage_location}'
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT

@@ -8,8 +8,25 @@ variable "backend_domain" {
   type        = string
 }
 
+variable "container_registry" {
+  description = "The Docker container registry you wish to use."
+  type        = string
+  default     = "github"
+}
+
 variable "django_superuser_email" {
   description = "Email address to use as username for Django Admin"
+  type        = string
+}
+
+variable "enable_remote_job_runners" {
+  description = "Whether to use remote job runners like Cromwell"
+  type        = string
+  default     = "no"
+}
+
+variable "from_email" {
+  description = "Used for the sender in registration emails. Format: Name <account@domain>"
   type        = string
 }
 
@@ -24,7 +41,18 @@ variable "git_commit" {
   default     = "main"
 }
 
+variable "sentry_url" {
+  description = "The URL of the Sentry tracker. Include protocol, port"
+  type        = string
+  default     = ""
+}
+
 variable "ssh_key_pair_name" {
   description = "SSH key pair name for API and Cromwell servers"
+  type        = string
+}
+
+variable "storage_location" {
+  description = "Where the data will be stored. One of remote or local"
   type        = string
 }
