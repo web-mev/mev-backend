@@ -254,11 +254,12 @@ RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
 ###############################################################################
 
 # For consistent reference, define the cloud platforms
+AMAZON = 'aws'
 GOOGLE = 'gce'
 VIRTUALBOX = 'virtualbox'
 
 # include any cloud platforms that are implemented in this list.
-AVAILABLE_CLOUD_PLATFORMS = [GOOGLE, VIRTUALBOX]
+AVAILABLE_CLOUD_PLATFORMS = [AMAZON, GOOGLE, VIRTUALBOX]
 
 # get the requested platform from the environment variables and ensure 
 # that it's valid

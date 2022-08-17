@@ -14,6 +14,12 @@ variable "container_registry" {
   default     = "github"
 }
 
+variable "django_settings_module" {
+  description = "Settings module for the Django app"
+  type        = string
+  default     = "mev.settings_dev"
+}
+
 variable "django_superuser_email" {
   description = "Email address to use as username for Django Admin"
   type        = string
