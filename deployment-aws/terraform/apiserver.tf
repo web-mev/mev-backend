@@ -62,6 +62,8 @@ resource "aws_instance" "api" {
   export FACTER_DJANGO_SETTINGS_MODULE='${var.django_settings_module}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
   export FACTER_ENABLE_REMOTE_JOB_RUNNERS='${var.enable_remote_job_runners}'
+  export FACTER_EMAIL_HOST_USER="${aws_iam_access_key.ses_user.id}"
+  export FACTER_EMAIL_HOST_PASSWORD="${aws_iam_access_key.ses_user.encrypted_ses_smtp_password_v4}"
   export FACTER_FROM_EMAIL='${var.from_email}'
   export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
   export FACTER_SENTRY_URL='${var.sentry_url}'

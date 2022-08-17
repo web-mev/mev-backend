@@ -1,4 +1,5 @@
 ---
 mevapi::app_user: "ubuntu"
 mevapi::django_settings_module: "mev.settings_production"
+mevapi::email_host: "email.us-east-2.amazonaws.com"
 mevapi::project_root: "/srv/mev-backend"

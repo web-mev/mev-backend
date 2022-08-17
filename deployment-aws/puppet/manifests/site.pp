@@ -9,6 +9,8 @@ node /api/ {
     database_user_password      => $facts['database_user_password'],
     django_settings_module      => $facts['django_settings_module'],
     django_superuser_password   => $facts['django_superuser_password'],
+    email_host_user             => $facts['email_host_user'],
+    email_host_password         => $facts['email_host_password'],
     enable_remote_job_runners   => $facts['enable_remote_job_runners'],
     from_email                  => $facts['from_email'],
     frontend_domain             => $facts['frontend_domain'],
