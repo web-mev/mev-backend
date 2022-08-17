@@ -44,7 +44,7 @@ variable "frontend_domain" {
 variable "git_commit" {
   description = "Git repo code commit or branch name"
   type        = string
-  default     = "main"
+  default     = ""
 }
 
 variable "sentry_url" {

@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 4.24.0"
     }
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.2.2"
+    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.3.2"
@@ -22,6 +26,7 @@ terraform {
 
 locals {
   stack       = lower(terraform.workspace)
+  commit_id   = var.git_commit == "" ? data.external.git.result["branch"] : var.git_commit
   common_tags = {
     Name      = "${local.stack}-webmev"
     Project   = "WebMEV"
@@ -37,3 +42,7 @@ provider "aws" {
 }
 
 data "aws_region" "current" {}
+
+data "external" "git" {
+  program = ["/bin/bash", "-c", "echo '{\"branch\": \"'$(git branch --show-current)'\"}'"]
+}

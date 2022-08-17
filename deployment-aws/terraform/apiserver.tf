@@ -38,7 +38,7 @@ resource "aws_instance" "api" {
   /usr/bin/mkdir $PROJECT_ROOT
   /usr/bin/chown ubuntu:ubuntu $PROJECT_ROOT
   /usr/bin/su -c "git clone https://github.com/web-mev/mev-backend.git $PROJECT_ROOT" ubuntu
-  /usr/bin/su -c "cd $PROJECT_ROOT && /usr/bin/git checkout -q ${var.git_commit}" ubuntu
+  /usr/bin/su -c "cd $PROJECT_ROOT && /usr/bin/git checkout -q ${local.commit_id}" ubuntu
 
   # install and configure librarian-puppet
   export PUPPET_ROOT="$PROJECT_ROOT/deployment-aws/puppet"
