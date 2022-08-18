@@ -75,7 +75,12 @@ class OperationCategoryDetail(APIView, SchemaMixin):
 
 
 class OperationCategoryAdd(APIView):
+    '''
+    Associates an `Operation` with a category. Organizing our tools/`Operation`s
+    by category assists in the user interface.
+    '''
 
+    # Note that only admins can perform this request
     permission_classes = [
         framework_permissions.IsAdminUser
     ]

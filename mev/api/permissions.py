@@ -1,26 +1,21 @@
 from rest_framework import permissions
 
 
-class IsOwnerOrAdmin(permissions.BasePermission):
+class IsOwner(permissions.BasePermission):
     '''
     The purpose of this permission class is to limit 
-    viewing or editing of resources to the owner OR to
-    someone with administrative privileges.
+    viewing or editing of resources to the owner
 
     Assumes the instance `obj` has an `owner` attribute
     '''
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff:
-            return True
         return obj.owner == request.user
 
 
 class IsInfoAboutSelf(permissions.BasePermission):
     '''
     This permission class is used for the User serialization.  
-
-    Admins can view anyone's details.
 
     Regular users can only view information about themselves.
 
@@ -31,9 +26,8 @@ class IsInfoAboutSelf(permissions.BasePermission):
     '''
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff:
-            return True
         return obj == request.user
+
 
 class ReadOnly(permissions.BasePermission):
     '''

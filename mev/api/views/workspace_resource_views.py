@@ -21,21 +21,7 @@ class WorkspaceResourceList(generics.ListAPIView):
     '''
     Lists available Resource instances for a particular Workspace.
 
-    Admins can list all available Resources, but non-admin users 
-    can only view their own Resources.
     '''
-    
-    permission_classes = [
-        # admins can do anything
-        framework_permissions.IsAdminUser | 
-
-        # regular users need to be authenticated
-        # AND are only allowed to list Resources.
-        (framework_permissions.IsAuthenticated 
-        & 
-        api_permissions.ReadOnly)
-    ]
-
     serializer_class = WorkspaceResourceSerializer
 
     def get_queryset(self):
@@ -47,11 +33,10 @@ class WorkspaceResourceList(generics.ListAPIView):
         '''
         workspace_pk = self.kwargs['workspace_pk']
         try:
-            workspace = Workspace.objects.get(pk=workspace_pk)
+            workspace = Workspace.objects.get(pk=workspace_pk, owner=self.request.user)
         except Workspace.DoesNotExist:
             raise NotFound()
-        user = self.request.user
-        if (user.is_staff) or (user == workspace.owner):
+        if self.request.user == workspace.owner:
             return workspace.resources.all()
 
 def get_workspace_and_resource(workspace_uuid, resource_uuid):
@@ -125,8 +110,7 @@ class WorkspaceResourceRemove(APIView):
 
         # at this point, the workspace and resource are valid
         # and have the same owner
-        requesting_user = request.user
-        if (requesting_user.is_staff) or (requesting_user == workspace.owner):
+        if request.user == workspace.owner:
             # check that the resource is actually in the workspace
             if workspace in resource.workspaces.all():
                 # check if the resource was used in any of the operations
@@ -156,12 +140,10 @@ class WorkspaceResourceRemove(APIView):
                         }, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class WorkspaceResourceAdd(APIView):
     '''
     This endpoint adds a Resource instance to a specific Workspace.
     '''
-    permission_classes = [framework_permissions.IsAuthenticated]
     serializer_class = WorkspaceResourceAddSerializer
 
     def post(self, request, *args, **kwargs):

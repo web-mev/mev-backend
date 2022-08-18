@@ -138,10 +138,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         else:
             resource_owner = None
 
-        # If the user is an admin, they can create a Resource for anyone.
-        # The DRF permissions should catch problems before here, but this is
-        # extra insurance
-        if internal_call or requesting_user.is_staff:
+        if internal_call:
             params = ResourceSerializer.parse_request_parameters(validated_data)
 
             resource = Resource.objects.create(
@@ -164,11 +161,6 @@ class ResourceSerializer(serializers.ModelSerializer):
         - change the name
         - change the format (i.e. should this be parsed as a CSV, TSV, etc?)
         - change the resource type (which triggers a type validation)
-
-        In addition to these, admins may also change:
-        - status
-        - path
-        - change public or private
         '''
 
         logger.info('Received validated data: %s' % validated_data)
@@ -207,20 +199,6 @@ class ResourceSerializer(serializers.ModelSerializer):
             raise exceptions.ParseError({'workspaces':'Cannot change the workspaces.'
                 ' Use the API methods to add or remove from the respective Workspace(s).'}
             )
-
-        # only admins are allowed to change public/private status
-        is_public = validated_data.get('is_public', None)
-        if (is_public is not None) and (not requesting_user.is_staff):
-            logger.info('Regular user requesting change of public/private status')
-            raise exceptions.ParseError({'is_public':'Cannot change the public/private'
-                ' status of a resource.'}
-            )
-
-        # fields that can only be edited by admins:
-        if requesting_user.is_staff:
-            instance.is_public = validated_data.get('is_public', instance.is_public)
-            instance.status = validated_data.get('status', instance.status)
-            instance.path = validated_data.get('path', instance.path)
 
         # Change the name or keep the existing if it wasn't supplied.
         instance.name = validated_data.get('name', instance.name)

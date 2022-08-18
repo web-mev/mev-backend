@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-class UserList(generics.ListCreateAPIView):
+class UserList(generics.ListAPIView):
     '''
     Lists User instances.
 
@@ -31,8 +31,8 @@ class UserList(generics.ListCreateAPIView):
     Non-admin users can only view their own information.
     '''
     
-    permission_classes = [api_permissions.IsInfoAboutSelf, 
-        framework_permissions.IsAdminUser
+    permission_classes = [
+        framework_permissions.IsAuthenticated & api_permissions.IsInfoAboutSelf
     ]
     serializer_class = UserSerializer
 
@@ -43,10 +43,7 @@ class UserList(generics.ListCreateAPIView):
 
         This method dictates that behavior.
         '''
-        user = self.request.user
-        if user.is_staff:
-            return User.objects.all()
-        return User.objects.filter(pk=user.pk)
+        return User.objects.filter(pk=self.request.user.pk)
 
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -57,11 +54,10 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 
     Non-admins may only view/modify/delete their own user instance.
     '''
-    # Admins can view detail about any user
-    permission_classes = [api_permissions.IsInfoAboutSelf, 
-        framework_permissions.IsAuthenticated
-    ]
 
+    permission_classes = [
+        framework_permissions.IsAuthenticated & api_permissions.IsInfoAboutSelf
+    ]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -187,7 +183,6 @@ class PasswordChangeView(APIView, SchemaMixin):
     '''
     For changing password (once authenticated)
     '''
-    permission_classes = [framework_permissions.IsAuthenticated]
     serializer_class = PasswordChangeSerializer
 
     def post(self, request, *args, **kwargs):

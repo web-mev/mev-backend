@@ -115,10 +115,6 @@ class WorkspaceMetadataObservationsView(ListAPIView, WorkspaceMetadataBase):
     set_serializer_class = NullableObservationSetSerializer
     serializer_class = NullableObservationSerializer
 
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
-
     def get_queryset(self):
         x = self.fetch_metadata(OBSERVATION_SET_KEY)
         if x:
@@ -133,10 +129,6 @@ class WorkspaceMetadataFeaturesView(ListAPIView, WorkspaceMetadataBase):
 
     set_serializer_class = NullableFeatureSetSerializer
     serializer_class = NullableFeatureSerializer
-
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
 
     def get_queryset(self):
         x = self.fetch_metadata(FEATURE_SET_KEY)

@@ -1,4 +1,3 @@
-from rest_framework import permissions as framework_permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status
 from rest_framework.views import APIView
@@ -9,10 +8,9 @@ from api.models import FeedbackMessage
 from api.utilities.admin_utils import alert_admins
 
 class SubmitFeedbackView(APIView):
-
-    permission_classes = [
-        framework_permissions.IsAuthenticated
-    ]
+    '''
+    For handling user feedback requests from the frontend.
+    '''
 
     def get(self, request, format=None):
         if request.user.is_staff:

@@ -67,34 +67,20 @@ class WorkspaceResourceListTests(BaseAPITestCase):
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
 
-    def test_admin_can_list_resource(self):
+    def test_admin_cannot_list_resource(self):
         """
-        Test that admins can see all Resources for the Workspace.  Checks by comparing
-        the pk (a UUID) between the database instances and those in the response.
+        Test that admins can't see all Resources for the Workspace.
+        Returns 404 since, as far as the admin is concerned, there's
+        no such workspace since the admin doesn't own it.
         """
         response = self.authenticated_admin_client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # all Resources owned by this user
-        all_known_user_uuids = set([str(x.pk) for x in self.regular_user_resources])
-
-        # all Resources associated with the workspace
-        all_workspace_uuids = set([str(x.pk) for x in self.all_workspace_resources])
-
-        # those resource UUIDs received in the response
-        received_resource_uuids = set([x['id'] for x in response.data])
-        self.assertEqual(all_workspace_uuids, received_resource_uuids)
-
-        # check that the test was not trivial and there were some other Resources
-        # not associated with this workspace (but owned by the same user)
-        self.assertTrue(
-            len(all_known_user_uuids.difference(all_workspace_uuids))>0
-        )
-
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_invalid_workspace_uuid_raises_exception(self):
         """
-        Test that a bad workspace UUID raises an exception
+        Test that a bad workspace UUID raises an exception and returns 404
+        This is the same behavior as requesting for another user, even though
+        we are requesting as an admin.
         """
         bad_url = reverse(
             'workspace-resource-list', 
@@ -102,7 +88,6 @@ class WorkspaceResourceListTests(BaseAPITestCase):
         )
         response = self.authenticated_admin_client.get(bad_url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
 
     def test_users_can_list_resource(self):
         """

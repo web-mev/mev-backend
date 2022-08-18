@@ -4,14 +4,15 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import JSONField
 
-from api.models import Operation, Workspace
+from api.models import Operation
+
 
 class ExecutedOperation(models.Model):
     '''
     An `ExecutedOperation` is an "executed" instance of a particular
     `Operation`.  The `Operation` describes what was done (i.e. which analysis)
     and the `ExecutedOperation` tracks information about the actual exection
-    of that `Operation` type.   
+    of that `Operation` type.
     '''
 
     # Some status messages to display:
@@ -22,28 +23,28 @@ class ExecutedOperation(models.Model):
     COMPLETION_SUCCESS = 'Successfully completed.'
     COMPLETION_ERROR = 'An error occurred during execution.'
     FINALIZING_ERROR = ('An error occurred while the job was finalizing.'
-        ' An administrator has been notified.'
-    )
+                        ' An administrator has been notified.'
+                        )
     ADMIN_NOTIFIED = 'An administrator has been notified.'
 
     # This tracks the unique run in our system
     id = models.UUIDField(
-        primary_key = True, 
-        default = uuid.uuid4, 
-        editable = False
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
     )
 
     # the reference to the type of Operation performed.
     operation = models.ForeignKey(
         Operation,
-        on_delete = models.CASCADE
+        on_delete=models.CASCADE
     )
 
     # ExecutedOperations are owned by someone.
     owner = models.ForeignKey(
-        get_user_model(), 
-        related_name = 'executed_operations', 
-        on_delete = models.CASCADE
+        get_user_model(),
+        related_name='executed_operations',
+        on_delete=models.CASCADE
     )
 
     # This helps us locate the job itself, so we can track progress.

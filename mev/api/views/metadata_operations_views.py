@@ -2,7 +2,6 @@ from functools import reduce
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from api.serializers.observation_set import ObservationSetSerializer
@@ -82,6 +81,8 @@ class MetadataMixin(object):
             })
 
 class MetadataIntersectView(APIView, MetadataMixin):
+
+
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
         r = reduce(lambda x,y: x.set_intersection(y), element_set_list)
@@ -90,6 +91,8 @@ class MetadataIntersectView(APIView, MetadataMixin):
 
 
 class MetadataUnionView(APIView, MetadataMixin):
+
+
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
         r = reduce(lambda x,y: x.set_union(y), element_set_list)

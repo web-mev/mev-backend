@@ -21,6 +21,7 @@ class mevapi::postgresql () {
   postgresql::server::role { $mevapi::database_user:
     password_hash   => $mevapi::database_user_password,
     update_password => false,
+    createdb        => true,
   }
   ->
   postgresql::server::db { 'webmev':
