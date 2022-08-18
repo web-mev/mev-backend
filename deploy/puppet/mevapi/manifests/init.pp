@@ -11,6 +11,7 @@ class mevapi (
   String                    $frontend_domain,
   String                    $backend_domain,
   String                    $site_name,
+  String                    $django_static_root,
   String                    $cloud_platform,
   String                    $enable_remote_job_runners,
   Enum['CROMWELL']          $remote_job_runners,
