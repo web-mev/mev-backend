@@ -26,8 +26,16 @@ if not os.path.exists(DATA_DIR):
         ' for user and operation data.'.format(d=DATA_DIR)
     )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'webmev',
+        'USER': get_env('DB_USER'),
+        'PASSWORD': get_env('DB_PASSWD'),
+        'HOST': get_env('DB_HOST'),
+        'PORT': 5432,
+    }
+}
 
 ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if len(x) > 0]
 
@@ -125,7 +133,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = get_env('STATIC_ROOT')
 
 # use an alternate user model which has the email as the username
 AUTH_USER_MODEL = 'api.CustomUser'
@@ -171,42 +179,7 @@ SIMPLE_JWT = {
 # Parameters for Email functions
 ###############################################################################
 
-#  All available backends for sending emails:
-EMAIL_BACKEND_SELECTIONS = {
-    'CONSOLE': 'django.core.mail.backends.console.EmailBackend',
-    'SMTP': 'django.core.mail.backends.smtp.EmailBackend'
-}
-
-# Users can optionally specify an environment variable 
-# to choose their backend.  Defaults to console if not specified.
-try:
-    EMAIL_BACKEND_CHOICE = os.environ['EMAIL_BACKEND_CHOICE']
-except KeyError:
-    EMAIL_BACKEND_CHOICE = 'CONSOLE'
-
-# Now that we have the email backend choice, select the class
-# string so that the we can properly set the required EMAIL_BACKEND
-# django settings variable
-try:
-    EMAIL_BACKEND = EMAIL_BACKEND_SELECTIONS[EMAIL_BACKEND_CHOICE]
-except KeyError:
-    raise ImproperlyConfigured('The email backend specified must be from'
-        ' the set: {options}'.format(
-            options = ', '.join(EMAIL_BACKEND_SELECTIONS.keys())
-        )
-    )
-
-# Whether we need these parameters or not (e.g. if using the console backend for local dev),
-# we require them:
-EMAIL_HOST = os.environ['EMAIL_HOST']
-EMAIL_PORT = os.environ['EMAIL_PORT']
-EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
-EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
-EMAIL_USE_TLS = True
-
-# When emails are sent, this will be the "From" field
-# If None, emails are sent as ""
-FROM_EMAIL = os.environ.get('FROM_EMAIL', None)
+FROM_EMAIL = get_env('FROM_EMAIL')
 
 ADMIN_EMAIL_LIST = [x for x in os.environ.get('ADMIN_EMAIL_CSV', '').split(',') if len(x) > 0]
 ###############################################################################
@@ -244,7 +217,7 @@ if not os.path.exists(TMP_DIR):
     raise ImproperlyConfigured('Please ensure there exists a'
     ' temporary directory for files at {path}.'.format(
         path = TMP_DIR)
-    )  
+    )
 
 # change the class that handles the direct file uploads.  This provides a mechanism
 # to query for upload progress.
@@ -266,7 +239,7 @@ from mev import base_logging_config as log_config
 
 FRONTEND_DOMAIN = get_env('FRONTEND_DOMAIN')
 BACKEND_DOMAIN = get_env('BACKEND_DOMAIN')
-SITE_NAME = get_env('SITE_NAME')
+SITE_NAME = 'WebMEV'
 
 # Note that the leading "#" is used for setting up the route
 # in the front-end correctly.
@@ -284,10 +257,12 @@ RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
 ###############################################################################
 
 # For consistent reference, define the cloud platforms
-GOOGLE = 'GOOGLE'
+AMAZON = 'aws'
+GOOGLE = 'gce'
+VIRTUALBOX = 'virtualbox'
 
 # include any cloud platforms that are implemented in this list.
-AVAILABLE_CLOUD_PLATFORMS = [GOOGLE,]
+AVAILABLE_CLOUD_PLATFORMS = [AMAZON, GOOGLE, VIRTUALBOX]
 
 # get the requested platform from the environment variables and ensure 
 # that it's valid
@@ -300,31 +275,13 @@ if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
         )
     )
 
-# "name" the available remote job runners that are implemented for consistent reference
 CROMWELL = 'CROMWELL'
-AVAILABLE_REMOTE_JOB_RUNNERS = [CROMWELL,]
 
-# check that we wish to use the remote job runners:
-enable_remote_jobs_str = get_env('ENABLE_REMOTE_JOB_RUNNERS')
-if enable_remote_jobs_str == 'yes':
+if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
 else:
     ENABLE_REMOTE_JOBS = False
 
-REQUESTED_REMOTE_JOB_RUNNERS = None
-if ENABLE_REMOTE_JOBS:
-    # read the requested job runners from the environment variables. Check they're ok:
-    REQUESTED_REMOTE_JOB_RUNNERS = [x.strip() for x in get_env('REMOTE_JOB_RUNNERS').split(',')]
-    set_diff = set(REQUESTED_REMOTE_JOB_RUNNERS).difference(set(AVAILABLE_REMOTE_JOB_RUNNERS))
-    if len(set_diff) > 0:
-        raise ImproperlyConfigured('The following remote job runners were requested: {x}. However,'
-            ' they have not been implemented as determined by the settings.AVAILABLE_REMOTE_JOB_RUNNERS'
-            ' variable, which is: {y}'.format(
-                x = ','.join(set_diff),
-                y = ','.join(AVAILABLE_REMOTE_JOB_RUNNERS)
-            )
-        )
-    
 ###############################################################################
 # END Parameters for configuring the cloud environment
 ###############################################################################
@@ -377,7 +334,7 @@ RESOURCE_CACHE_EXPIRATION_DAYS = 2
 # Most files are small and this will be fine. However, we don't want users
 # trying to download BAM or other large files. They can do that with other methods,
 # like via Dropbox.
-MAX_DOWNLOAD_SIZE_BYTES = float(get_env('MAX_DOWNLOAD_SIZE_BYTES'))
+MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
 
 # To sign URLs for download.
 # TODO: can we make this a bit more provider-agnostic?
@@ -393,35 +350,11 @@ else:
 # START Parameters for configuring social authentication/registration
 ###############################################################################
 
-try:
-    SOCIAL_BACKENDS = os.environ['SOCIAL_BACKENDS']
-    SOCIAL_BACKENDS = [x.strip() for x in SOCIAL_BACKENDS.split(',')]
-except KeyError as ex:
-    logger.info('No social authentication backends specified')
-
-# They keys of this should match the values of the comma-delimited list
-# provided in SOCIAL_BACKENDS.  Each key points at a specific backend.
-IMPLEMENTED_SOCIAL_BACKENDS = {
-    GOOGLE:'social_core.backends.google.GoogleOAuth2'
-}
-
-AUTHENTICATION_BACKENDS = []
-for provider in SOCIAL_BACKENDS:
-    try:
-        backend = IMPLEMENTED_SOCIAL_BACKENDS[provider]
-        AUTHENTICATION_BACKENDS.append(backend)
-    except KeyError as ex:
-        raise ImproperlyConfigured('Could not find an appropriate'
-            ' social auth backend implementation for the provider'
-            ' identified by: {provider}.  Available implementations'
-            ' provided for {options}'.format(
-                provider = provider,
-                options = ','.join(IMPLEMENTED_SOCIAL_BACKENDS.keys())
-            )
-        )
-    
-# required for usual username/password authentication:
-AUTHENTICATION_BACKENDS.append('django.contrib.auth.backends.ModelBackend')
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.google.GoogleOAuth2',
+    # required for usual username/password authentication
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 ###############################################################################
 # END Parameters for configuring social authentication/registration
@@ -443,7 +376,7 @@ if ( (len(SENTRY_URL) > 0) & (SENTRY_URL.startswith('http')) ):
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
-    
+
     sentry_sdk.init(
         dsn=SENTRY_URL,
         integrations=[DjangoIntegration(), CeleryIntegration()],
@@ -532,7 +465,7 @@ JOB_STATUS_CHECK_INTERVAL = 3 # seconds
 CONTAINER_REGISTRY = get_env('CONTAINER_REGISTRY')
 
 # A string that indicates where Docker containers are held. 
-DOCKER_REPO_ORG = get_env('DOCKER_REPO_ORG')
+DOCKER_REPO_ORG = 'web-mev'
 
 ###############################################################################
 # END Settings for Docker container repos

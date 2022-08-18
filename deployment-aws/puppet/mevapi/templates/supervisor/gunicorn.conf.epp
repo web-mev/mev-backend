@@ -1,0 +1,24 @@
+[program:gunicorn]
+
+command=/usr/local/bin/gunicorn mev.wsgi:application
+    --bind=unix:///tmp/gunicorn.sock
+    --workers 3
+    --timeout 120
+
+; If supervisord is run as the root user, switch users to this UNIX user account
+; before doing any processing.
+user=<%= $mevapi::app_user %>
+environment=HOME="/home/<%= $mevapi::app_user %>",USER="<%= $mevapi::app_user %>"
+
+; Location of Django project
+directory=<%= $mevapi::django::root %>
+
+; Put process stdout output in this file
+stdout_logfile = <%= $mevapi::log_dir %>/%(program_name)s.log
+
+; Put process stderr output in stdout file
+redirect_stderr = true
+
+autostart=true
+autorestart=true
+stopsignal=QUIT

@@ -7,6 +7,11 @@ resource "random_password" "database_superuser" {
   special = false
 }
 
+resource "random_password" "database_user" {
+  length  = 8
+  special = false
+}
+
 resource "aws_db_instance" "default" {
   identifier                 = local.common_tags.Name
   instance_class             = "db.t3.micro"
