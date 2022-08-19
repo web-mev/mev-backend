@@ -53,6 +53,7 @@ PATH
       puppet-rabbitmq (= 12.0.0)
       puppetlabs-docker (= 4.4.0)
       puppetlabs-postgresql (= 8.1.0)
+      puppetlabs-stdlib (= 6.6.0)
 
 DEPENDENCIES
   qbrc-mevapi (= 0.1.0)
