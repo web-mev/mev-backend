@@ -8,15 +8,14 @@ resource "random_password" "django_superuser" {
 # permissions to access the S3 buckets. Note that this block alone
 # does not give that permission.
 resource "aws_iam_role" "api_server_role" {
-  name = "api_server_role"
-
+  name               = local.common_tags.Name
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Sid    = ""
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Sid       = ""
         Principal = {
           Service = "ec2.amazonaws.com"
         }
@@ -25,24 +24,22 @@ resource "aws_iam_role" "api_server_role" {
   })
 }
 
-
 resource "aws_iam_role_policy" "server_s3_access" {
   name   = "AllowAccessToStorageBuckets"
-  role   = "${aws_iam_role.api_server_role.id}"
-
+  role   = aws_iam_role.api_server_role.id
   policy = jsonencode(
     {
-      "Version": "2012-10-17",
-      "Statement": [
+      Version   = "2012-10-17",
+      Statement = [
         {
-          "Effect": "Allow",
-          "Action": ["s3:GetObject", "s3:PutObject", "s3:PutObjectAcl", "s3:DeleteObject"],
-          "Resource": "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*"
+          Effect   = "Allow",
+          Action   = ["s3:GetObject", "s3:PutObject", "s3:PutObjectAcl", "s3:DeleteObject"],
+          Resource = "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*"
         },
         {
-          "Effect": "Allow",
-          "Action": ["s3:ListBucket"],
-          "Resource": "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}"
+          Effect   = "Allow",
+          Action   = ["s3:ListBucket"],
+          Resource = "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}"
         }
       ]
     }
@@ -50,10 +47,9 @@ resource "aws_iam_role_policy" "server_s3_access" {
 }
 
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
-  name = "api-server-profile"
-  role = "${aws_iam_role.api_server_role.name}"
+  name = local.common_tags.Name
+  role = aws_iam_role.api_server_role.name
 }
-
 
 resource "aws_instance" "api" {
   # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
@@ -65,19 +61,19 @@ resource "aws_instance" "api" {
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.api_server_instance_profile.name
   key_name               = var.ssh_key_pair_name
-  volume_tags = local.common_tags
+  volume_tags            = local.common_tags
   root_block_device {
     volume_type = "gp3"
   }
   user_data_replace_on_change = true
-  user_data = <<-EOT
+  user_data                   = <<-EOT
   #!/usr/bin/bash -ex
 
   # https://serverfault.com/a/670688
   export DEBIAN_FRONTEND=noninteractive
 
   # to help Puppet determine the correct node name
-  /usr/bin/hostnamectl set-hostname ${var.backend_domain}
+  /usr/bin/hostnamectl set-hostname ${local.backend_cname}
 
   # install Puppet
   CODENAME=$(/usr/bin/lsb_release -sc)
