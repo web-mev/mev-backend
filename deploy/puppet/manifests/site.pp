@@ -9,6 +9,7 @@ node /api/ {
     frontend_domain           => $facts['frontend_domain'],
     backend_domain            => $facts['backend_domain'],
     site_name                 => $facts['site_name'],
+    django_static_root        => $facts['django_static_root'],
     cloud_platform            => $facts['cloud_platform'],
     enable_remote_job_runners => $facts['enable_remote_job_runners'],
     remote_job_runners        => $facts['remote_job_runners'],

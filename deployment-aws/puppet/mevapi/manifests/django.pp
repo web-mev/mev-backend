@@ -22,6 +22,11 @@ class mevapi::django () {
     group   => $mevapi::app_group,
   }
 
+  file_line { 'django_settings_module':
+    path => "/home/${mevapi::app_user}/.profile",
+    line => "export DJANGO_SETTINGS_MODULE=${mevapi::django_settings_module}",
+  }
+
   file { $static_root:
     ensure => directory,
     owner  => $mevapi::app_user,
@@ -37,6 +42,7 @@ class mevapi::django () {
     require => [
       Python::Requirements['mev'],
       File['dotenv'],
+      File_line['django_settings_module'],
     ],
   }
   ->

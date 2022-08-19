@@ -346,10 +346,8 @@ else
 fi
 
 # The collectstatic command gets all the static files 
-# and puts them at /opt/software/mev-backend/mev/static.
-# We them copy the contents to /www/static so nginx can serve:
+# and puts them at a location where nginx can serve (/www/static/)
 /usr/bin/python3 /opt/software/mev-backend/mev/manage.py collectstatic --noinput
-cp -r /opt/software/mev-backend/mev/static /www/static
 
 # Populate a "test" database, so the database
 # will have some content to query.

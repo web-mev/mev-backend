@@ -3,6 +3,58 @@ resource "random_password" "django_superuser" {
   special = false
 }
 
+# This allows the EC2 instance to assume a particular role.
+# This enables us, for instance, to give the EC2 server 
+# permissions to access the S3 buckets. Note that this block alone
+# does not give that permission.
+resource "aws_iam_role" "api_server_role" {
+  name = "api_server_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+
+resource "aws_iam_role_policy" "server_s3_access" {
+  name   = "AllowAccessToStorageBuckets"
+  role   = "${aws_iam_role.api_server_role.id}"
+
+  policy = jsonencode(
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:GetObject", "s3:PutObject", "s3:PutObjectAcl", "s3:DeleteObject"],
+          "Resource": "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["s3:ListBucket"],
+          "Resource": "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}"
+        }
+      ]
+    }
+  )
+}
+
+resource "aws_iam_instance_profile" "api_server_instance_profile" {
+  name = "api-server-profile"
+  role = "${aws_iam_role.api_server_role.name}"
+}
+
+
 resource "aws_instance" "api" {
   # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
   ami                    = "ami-07f84a50d2dec2fa4"
@@ -11,6 +63,7 @@ resource "aws_instance" "api" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.api_server.id]
   ebs_optimized          = true
+  iam_instance_profile   = aws_iam_instance_profile.api_server_instance_profile.name
   key_name               = var.ssh_key_pair_name
   volume_tags = local.common_tags
   root_block_device {
