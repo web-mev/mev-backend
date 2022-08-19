@@ -26,10 +26,15 @@ if not os.path.exists(DATA_DIR):
         ' for user and operation data.'.format(d=DATA_DIR)
     )
 
+try:
+    db_name = get_env('DB_NAME')
+except KeyError:
+    db_name = 'webmev'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'webmev',
+        'NAME': db_name,
         'USER': get_env('DB_USER'),
         'PASSWORD': get_env('DB_PASSWD'),
         'HOST': get_env('DB_HOST'),
