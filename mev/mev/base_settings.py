@@ -27,7 +27,7 @@ if not os.path.exists(DATA_DIR):
     )
 
 try:
-    db_name = get_env('DB_NAME')
+    db_name = os.environ['DB_NAME']
 except KeyError:
     db_name = 'webmev'
 
@@ -342,8 +342,8 @@ RESOURCE_CACHE_EXPIRATION_DAYS = 2
 MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
 
 # To sign URLs for download.
-# TODO: can we make this a bit more provider-agnostic?
-if STORAGE_LOCATION == REMOTE:
+# TODO: FIX once django-storages is fully integrated
+if (STORAGE_LOCATION == REMOTE) and (CLOUD_PLATFORM == GOOGLE):
     STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
 else:
     STORAGE_CREDENTIALS = ''
