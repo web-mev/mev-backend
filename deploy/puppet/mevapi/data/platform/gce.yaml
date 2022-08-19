@@ -1,7 +1,7 @@
 mevapi::app_user: "ubuntu"
 mevapi::project_root: "/opt/software/mev-backend"
 mevapi::site_name: "WebMeV"
-mevapi::cloud_platform: "GOOGLE"
+mevapi::cloud_platform: "gce"
 mevapi::enable_remote_job_runners: "yes"
 mevapi::storage_location: "remote"
 mevapi::storage_credentials: "/opt/software/mev-backend/storage_credentials.json"
