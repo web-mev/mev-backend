@@ -329,6 +329,7 @@ if not os.path.exists(RESOURCE_CACHE_DIR):
         )
     )
 
+
 # How long should the files be kept in the local cache.
 # Check the functions for periodic tasks to see how this
 # parameter is used.
@@ -347,6 +348,25 @@ if (STORAGE_LOCATION == REMOTE) and (CLOUD_PLATFORM == GOOGLE):
     STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
 else:
     STORAGE_CREDENTIALS = ''
+
+
+if STORAGE_LOCATION == REMOTE:
+    if CLOUD_PLATFORM == AMAZON:
+        DEFAULT_FILE_STORAGE = 'api.storage.S3ResourceStorage'
+    elif CLOUD_PLATFORM == GOOGLE:
+        # TODO: a temporary guard against problems if we deploy on GCP.
+        # Remove if/when all GCP-related content is removed
+        raise NotImplementedError('Not yet implemented!')
+
+    # Regardless of the platform, we still need to know the bucket name.
+    # This setting is used by the storage class implementation to effectively
+    # set the media root
+    MEDIA_ROOT = get_env('STORAGE_BUCKET_NAME')
+else: # local storage
+    # This is the django default, but make it explicit here anyway.
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_ROOT = RESOURCE_CACHE_DIR
+
 ###############################################################################
 # END Parameters for configuring resource storage
 ###############################################################################

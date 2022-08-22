@@ -117,6 +117,7 @@ resource "aws_instance" "api" {
   export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
   export FACTER_SENTRY_URL='${var.sentry_url}'
   export FACTER_STORAGE_LOCATION='${var.storage_location}'
+  export FACTER_STORAGE_BUCKET_NAME='${aws_s3_bucket.api_storage_bucket.id}'
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT

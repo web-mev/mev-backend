@@ -53,7 +53,7 @@ from .public_dataset import PublicDatasetList, \
     PublicDatasetQuery, \
     PublicDatasetCreate
 from .feedback_views import SubmitFeedbackView
-
+from .simple_upload import SimpleUploadView
 
 def sentry_debug(request):
     '''
