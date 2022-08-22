@@ -19,7 +19,6 @@ class mevapi (
   Optional[String]        $email_host = '',
   Optional[String]        $email_host_user = '',
   Optional[String]        $email_host_password = '',
-  Optional[Integer]       $email_port = 25,
   Optional[String]        $enable_remote_job_runners,
   Optional[String]        $from_email,
   String                  $frontend_domain,

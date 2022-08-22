@@ -34,17 +34,11 @@ Vagrant.configure("2") do |config|
     if ENV['DJANGO_SETTINGS_MODULE']
       puppet.facter['django_settings_module'] = ENV['DJANGO_SETTINGS_MODULE']
     end
-    if ENV['EMAIL_BACKEND_CHOICE']
-      puppet.facter['email_backend_choice'] = ENV['EMAIL_BACKEND_CHOICE']
-    end
     if ENV['FROM_EMAIL']
       puppet.facter['from_email'] = ENV['FROM_EMAIL']
     end
     if ENV['EMAIL_HOST']
       puppet.facter['email_host'] = ENV['EMAIL_HOST']
-    end
-    if ENV['EMAIL_PORT']
-      puppet.facter['email_port'] = ENV['EMAIL_PORT']
     end
     if ENV['EMAIL_HOST_USER']
       puppet.facter['email_host_user'] = ENV['EMAIL_HOST_USER']
