@@ -136,7 +136,7 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         # at this point, we have an active Resource associated with
         # zero workspaces. delete.
         # delete the actual file
-        async_delete_file.delay(instance.path)
+        async_delete_file.delay(instance)
         
         # Now delete the database object:
         self.perform_destroy(instance)

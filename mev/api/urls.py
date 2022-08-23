@@ -40,11 +40,8 @@ urlpatterns = [
     path('resources/<uuid:pk>/metadata/observations/', api.views.ResourceMetadataObservationsView.as_view(), name='resource-metadata-observations'),
     path('resources/<uuid:pk>/metadata/features/', api.views.ResourceMetadataFeaturesView.as_view(), name='resource-metadata-features'),
     path('resources/<uuid:pk>/metadata/parent/', api.views.ResourceMetadataParentOperationView.as_view(), name='resource-metadata-parent-operation'),
-    path('resources/upload/', api.views.ServerLocalResourceUpload.as_view(), name='resource-upload'),
-    path('resources/upload/progress', 
-        api.views.ServerLocalResourceUploadProgress.as_view(), 
-        name='resource-upload-progress'
-    ),
+    path('resources/upload/', api.views.ResourceUploadView.as_view(), name='resource-upload'),
+
     path('resources/dropbox-upload/', api.views.DropboxUpload.as_view(), name='dropbox-upload'),
     path('resources/download-url/<uuid:pk>/', api.views.ResourceDownloadUrl.as_view(), name='download-resource-url'),
     path('resources/download/<uuid:pk>/', api.views.ResourceDownload.as_view(), name='download-resource'),

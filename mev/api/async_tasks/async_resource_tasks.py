@@ -2,21 +2,23 @@ import logging
 
 from celery import shared_task
 
+from django.core.files.storage import default_storage
+
 from api.exceptions import ResourceValidationException
 import api.utilities.resource_utilities as resource_utilities
-from api.storage_backends import get_storage_backend
 from api.models import Resource
 from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
 @shared_task(name='delete_file')
-def delete_file(path):
+def delete_file(resource_instance):
     '''
     Deletes a file.  Can be a local or remote resource.
     '''
-    logger.info('Requesting deletion of {path}'.format(path=path))
-    get_storage_backend().delete(path)
+    logger.info('Requesting deletion of resource {pk}'.format(
+        pk=resource_instance.pk))
+    default_storage.delete(resource_instance.datafile.name)
 
 @shared_task(name='store_resource')
 def store_resource(resource_pk):

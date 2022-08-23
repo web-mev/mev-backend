@@ -9,6 +9,8 @@ def upload_to(instance, path):
     return os.path.join(str(instance.owner.pk), path)
 
 class SimpleResource(models.Model):
+        
+
     id = models.UUIDField(
         primary_key = True, 
         default = uuid.uuid4, 

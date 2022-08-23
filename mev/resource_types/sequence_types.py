@@ -26,7 +26,7 @@ class SequenceResource(DataResource):
     def validate_type(cls, resource_path, file_format):
         pass
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
         '''
         For sequence-based types, we implement a trivial metadata
         extraction, as these resource types are not typically amenable
@@ -34,8 +34,8 @@ class SequenceResource(DataResource):
 
         Fill out an basic metadata object
         '''
-        logger.info('Extracting metadata from resource with path ({path}).'.format(
-            path = resource_path
+        logger.info('Extracting metadata from resource ({pk}).'.format(
+            pk = resource_instance.pk
         )) 
 
         # call the super method to initialize the self.metadata

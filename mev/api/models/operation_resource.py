@@ -1,7 +1,21 @@
+import os
+
 from django.db import models
 
 from api.models.abstract_resource import AbstractResource
 from api.models import Operation
+
+
+def upload_base(instance, path):
+    '''
+    This function can be passed to the `upload_to`
+    kwarg of the django.db.models.FileField constructor.
+
+    It allows us to save files to operation-specific directories
+    relative to the settings.MEDIA_ROOT dir.
+    '''
+    return os.path.join(str(instance.operation.id), path)
+
 
 class OperationResource(AbstractResource):
     '''
@@ -32,6 +46,8 @@ class OperationResource(AbstractResource):
         Operation,
         on_delete = models.CASCADE
     )
+
+    datafile = models.FileField(upload_to=upload_base)
 
     # which input field does this resource belong to?
     input_field = models.CharField(

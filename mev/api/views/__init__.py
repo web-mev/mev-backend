@@ -27,8 +27,7 @@ from .metadata_operations_views import MetadataIntersectView, \
     MetadataUnionView, \
     MetadataSetDifferenceView
 from .workspace_tree_views import WorkspaceTreeView, WorkspaceTreeSave
-from .resource_upload_views import ServerLocalResourceUpload, \
-    ServerLocalResourceUploadProgress, \
+from .resource_upload_views import ResourceUploadView, \
     DropboxUpload
 from .resource_metadata import ResourceMetadataView, \
     ResourceMetadataObservationsView, \
