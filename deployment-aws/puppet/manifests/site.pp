@@ -17,3 +17,44 @@ node /api/ {
     storage_location            => $facts['storage_location'],
   }
 }
+
+node /cromwell/ {
+  if $facts['virtual'] == 'kvm' {
+    $platform = 'aws'
+  } else {
+    # gce or virtualbox
+    $platform = $facts['virtual']
+  }
+
+  $project_root = $platform ? {
+    'aws'        => '/srv/mev-backend',
+    'virtualbox' => '/vagrant',
+  }
+
+  package { 'default-jre': }
+
+  $version = 81
+  file { "/opt/cromwell-${version}.jar":
+    source => "https://github.com/broadinstitute/cromwell/releases/download/${version}/cromwell-${version}.jar"
+  }
+
+  $cromwell_user = 'cromwell-runner'
+
+  user { $cromwell_user:
+    ensure => present,
+  }
+
+  file { '/var/log/cromwell':
+    ensure => directory,
+    owner  => $cromwell_user,
+    group  => $cromwell_user,
+  }
+
+  if $platform == 'aws' {
+    vcsrepo { $project_root:
+      ensure   => present,
+      provider => git,
+      source   => 'https://github.com/web-mev/mev-backend.git',
+    }
+  }
+}
