@@ -1,3 +1,4 @@
+from email.policy import default
 import os
 import uuid
 import json
@@ -6,6 +7,7 @@ import logging
 from django.utils.module_loading import import_string
 from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
+from django.core.files.storage import default_storage
 
 from api.models import Resource, ResourceMetadata, ExecutedOperation, OperationResource
 from api.exceptions import AttributeValueError, \
@@ -185,7 +187,7 @@ def add_metadata_to_resource(resource, metadata):
             alert_admins(message)
 
 def get_resource_size(resource_instance):
-    return resource_instance.path.size
+    return resource_instance.datafile.size
 
 def retrieve_metadata(resource_path, resource_class_instance):
 
@@ -215,6 +217,9 @@ def retrieve_metadata(resource_path, resource_class_instance):
         raise Exception('Encountered an unexpected issue when extracting metadata.'
             ' An administrator has been notified.'
         )
+
+def localize_resource(resource_instance, destination_directory):
+    return default_storage.localize(resource_instance, destination_directory)
 
 def handle_valid_resource(resource,
         resource_class_instance,
@@ -484,3 +489,4 @@ def write_resource(content, destination):
     assert(type(content) == str)
     with open(destination, 'w') as fout:
         fout.write(content)
+

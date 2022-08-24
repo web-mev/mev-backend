@@ -4,12 +4,10 @@ import logging
 from rest_framework.exceptions import ValidationError
 
 from api.utilities.resource_utilities import initiate_resource_validation, \
-    move_resource_to_final_location, \
     delete_resource_by_pk, \
     retrieve_resource_class_standard_format
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
-from api.exceptions import StorageException
 from api.models import Resource, ResourceMetadata
 from api.exceptions import OutputConversionException
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
@@ -199,28 +197,14 @@ class BaseOutputConverter(object):
         # the "name"  of the file as the user will see it.
         name = self.create_output_filename(path, executed_op.job_name) 
 
+        # TODO: implement a move from the original location
+        # (from either local dir or from execution bucket with Cromwell, etc.)
+        # to our storage system.
+
         # create the resource in the db.
         resource = self.create_resource(executed_op.owner, \
             workspace, path, name, output_required)
 
-        # attempt to move the resource from either the execution directory or
-        # from the execution bucket into our storage
-        try:
-            resource.path = move_resource_to_final_location(resource)
-        except Exception as ex:
-            logger.info('Failed to store resource with pk={pk} and path={p}.'.format(
-                pk = resource.pk,
-                p = path
-            ))
-            # This gives us an opportunity to handle runner-specific
-            # failures if desired.
-            self.handle_storage_failure(resource, output_required)
-
-            # if handle_storage_failure does not raise an 
-            # exception, then it was "ok" that this file
-            # did not store correctly (as in the case of 
-            # optional outputs)
-            return None
 
         # Now attempt to validate and store the resource. IF this succeeds,
         # then the resource will be moved to its final location and the resource_type
@@ -264,14 +248,15 @@ class BaseOutputConverter(object):
         This base method simply removes the resource and returns None
         '''
 
+        # TODO: check this.
         # Regardless of whether the output was required, we
         # delete the database instance so we don't have corrupted
         # contents in the database
-        resource.delete()
-        if output_required:
-            # output WAS required, but we failed to store. That's a problem
-            raise OutputConversionException('A storage exception was '
-                ' encountered when attempting to store a required output ')
+        # resource.delete()
+        # if output_required:
+        #     # output WAS required, but we failed to store. That's a problem
+        #     raise OutputConversionException('A storage exception was '
+        #         ' encountered when attempting to store a required output ')
 
     def handle_invalid_resource_type(self, resource):
         '''

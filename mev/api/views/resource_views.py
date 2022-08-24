@@ -13,11 +13,9 @@ from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
-    set_resource_to_inactive, \
     resource_supports_pagination, \
     check_resource_request_validity
 from api.data_transformations import get_transformation_function
-from api.storage_backends import get_storage_backend
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
 from api.exceptions import NonIterableContentsException, \

@@ -35,11 +35,9 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertTrue(os.path.exists(path))
         os.remove(path)
 
-    @mock.patch('api.views.resource_upload_views.store_resource')
     def upload_and_cleanup(self, 
         payload, 
-        client,
-        mock_store):
+        client):
         '''
         Same functionality is used by multiple functions, so just
         keep it here
@@ -56,10 +54,6 @@ class ServerLocalResourceUploadTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         j = response.json()
-
-        # check that the validation async task was called
-        mock_store.delay.assert_called_with(
-            uuid.UUID(j['id']))
 
         # assert that we have more Resources now:
         num_current_resources = len(Resource.objects.all())

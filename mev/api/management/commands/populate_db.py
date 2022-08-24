@@ -35,6 +35,13 @@ USER1 = 'regular_user1'
 USER2 = 'regular_user2'
 ADMIN_USER = 'admin_user'
 
+# Since the mock database needs actual files when using 
+# django.db.models.FileField, we just point them to
+# files we use in the unit tests. 
+TEST_VALIDATION_FILES_DIR = os.path.join(settings.BASE_DIR, \
+    'api', 'tests', 'resource_validation_test_files')
+DUMMY_FILE_PATH = os.path.join(TEST_VALIDATION_FILES_DIR, 'test_integer_matrix.tsv')
+
 class Command(BaseCommand):
     help = 'Populate the database with some basic data.'
 
@@ -80,7 +87,7 @@ class Command(BaseCommand):
             name='fileA.tsv',
             resource_type = MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/fileA.txt',
+            datafile=DUMMY_FILE_PATH,
             is_active = True,
             is_public = True,
             size = random.randint(size_low, size_high)
@@ -90,13 +97,13 @@ class Command(BaseCommand):
             name='fileB.csv',
             file_format = CSV_FORMAT,
             resource_type = ANNOTATION_TABLE_KEY,
-            path='/path/to/fileB.txt',
+            datafile=DUMMY_FILE_PATH,
             size = random.randint(size_low, size_high)
         )  
         Resource.objects.create(
             owner=user_dict[USER1],
             name='unset_file.tsv',
-            path='/path/to/unset_file.txt',
+            datafile=DUMMY_FILE_PATH,
             is_public = True,
             size = random.randint(size_low, size_high)
         ) 
@@ -105,7 +112,7 @@ class Command(BaseCommand):
             name='public_file.csv',
             resource_type = INTEGER_MATRIX_KEY,
             file_format = CSV_FORMAT,
-            path='/path/to/public_file.txt',
+            datafile=DUMMY_FILE_PATH,
             is_public = True,
             size = random.randint(size_low, size_high)
         )
@@ -114,7 +121,7 @@ class Command(BaseCommand):
             name='abc.csv',
             resource_type = None,
             file_format = '',
-            path='/path/to/abc.csv',
+            datafile=DUMMY_FILE_PATH,
             is_active = True,
             size = random.randint(size_low, size_high)
         )  
@@ -123,7 +130,7 @@ class Command(BaseCommand):
             name='fileC.tsv',
             resource_type = MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/fileC.txt',
+            datafile=DUMMY_FILE_PATH,
             size = random.randint(size_low, size_high)
         )
 
@@ -131,7 +138,7 @@ class Command(BaseCommand):
         Resource.objects.create(
             owner=user_dict[USER2],
             name='fileD.tsv',
-            path='/path/to/fileD.txt',
+            datafile=DUMMY_FILE_PATH,
             size = random.randint(size_low, size_high)      
         )
 
@@ -142,7 +149,7 @@ class Command(BaseCommand):
             name='fileA.tsv',
             resource_type = MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/fileA.txt',
+            datafile=DUMMY_FILE_PATH,
             is_active = True,
             is_public = True,
             size = random.randint(size_low, size_high)
@@ -164,7 +171,7 @@ class Command(BaseCommand):
             name='file1_in_workspace.tsv',
             resource_type = INTEGER_MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/file1_in_workspace.tsv',
+            datafile=DUMMY_FILE_PATH,
             is_active = True
         )
         r2 = Resource.objects.create(
@@ -172,7 +179,7 @@ class Command(BaseCommand):
             name='file2_in_workspace.tsv',
             resource_type = INTEGER_MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/file2_in_workspace.tsv',
+            datafile=DUMMY_FILE_PATH,
             is_active = True
         )
         r1.workspaces.add(workspace)

@@ -362,8 +362,12 @@ if STORAGE_LOCATION == REMOTE:
     # set the media root
     MEDIA_ROOT = get_env('STORAGE_BUCKET_NAME')
 else: # local storage
-    # This is the django default, but make it explicit here anyway.
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    # We extend the django native django.core.files.storage.FileSystemStorage
+    # so that we can implement methods which avoid extra conditionals.
+    # An example would be localization of files for use in Docker containers.
+    # Rather than checking to see if storage is local or remote, we provide
+    # a "dumb" localization method
+    DEFAULT_FILE_STORAGE = 'api.storage.LocalResourceStorage'
     MEDIA_ROOT = RESOURCE_CACHE_DIR
 
 ###############################################################################

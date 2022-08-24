@@ -1,7 +1,6 @@
 import os
 import json
 import datetime
-import subprocess
 import logging
 
 from jinja2 import Template
@@ -10,7 +9,6 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 
 from api.runners.base import OperationRunner
-from api.utilities.operations import get_operation_instance_data
 from api.utilities.docker import check_if_container_running, \
     check_container_exit_code, \
     get_finish_datetime, \
@@ -21,13 +19,10 @@ from api.utilities.docker import check_if_container_running, \
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
-    copy_local_resource, \
     run_shell_command
 from api.utilities.admin_utils import alert_admins
-from api.utilities.resource_utilities import delete_resource_by_pk, \
-    get_resource_by_pk
-from api.storage_backends import get_storage_backend
-from api.models import ExecutedOperation, Resource
+from api.utilities.resource_utilities import delete_resource_by_pk
+from api.models import ExecutedOperation
 from api.converters.output_converters import LocalDockerOutputConverter
 
 logger = logging.getLogger(__name__)

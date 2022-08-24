@@ -47,7 +47,7 @@ class OperationResource(AbstractResource):
         on_delete = models.CASCADE
     )
 
-    datafile = models.FileField(upload_to=upload_base)
+    datafile = models.FileField(upload_to=upload_base, null=True)
 
     # which input field does this resource belong to?
     input_field = models.CharField(

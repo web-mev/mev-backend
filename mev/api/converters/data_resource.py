@@ -20,27 +20,18 @@ class BaseDataResourceConverter(object):
 
 class LocalDataResourceConverter(BaseDataResourceConverter):
     '''
-    This class holds actions/behavior for local-based Resources/files
+    This class holds actions/behavior for local-based Resources/files.
+    Note that "local" doesn't mean our storage system. Rather, it means
+    that we need the file/resource local so that Docker can use it.
     '''
-    def get_local_path_from_uuid(self, resource_uuid):
-        '''
-        Given a UUID for a Resource, return a path to that file
-        on the local filesystem
-        '''
-        r = self.get_resource(resource_uuid)
-        return localize_resource(r)
 
-    def copy_local_resource_to_staging(self, resource_uuid, staging_dir):
+    def copy_resource_to_staging(self, resource_uuid, staging_dir):
         '''
         Takes a resource UUID and copies the associated file to `staging_dir`
         Returns a path to the copied file
         '''
-        # this is the path to the user's file:
-        original_local_path = self.get_local_path_from_uuid(resource_uuid)
-
-        dest = os.path.join(staging_dir, os.path.basename(original_local_path))
-        copy_local_resource(original_local_path, dest)
-        return dest
+        resource_instance = self.get_resource(resource_uuid)
+        return localize_resource(resource_instance, staging_dir)
 
 
 class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
@@ -57,7 +48,7 @@ class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
         user_input is the dictionary-representation of a api.data_structures.UserOperationInput
         '''
         resource_uuid = user_input
-        dest = self.copy_local_resource_to_staging(resource_uuid, staging_dir)
+        dest = self.copy_resource_to_staging(resource_uuid, staging_dir)
         return {input_key: dest}
 
 
@@ -88,7 +79,7 @@ class LocalDockerSingleDataResourceWithTypeConverter(LocalDataResourceConverter)
         resource_uuid = user_input
         resource = self.get_resource(resource_uuid)
         resource_type = resource.resource_type
-        dest = self.copy_local_resource_to_staging(resource_uuid, staging_dir)
+        dest = self.copy_resource_to_staging(resource_uuid, staging_dir)
         formatted_str = '{p}{delim}{rt}'.format(
             p = dest,
             rt = resource_type,
@@ -116,9 +107,9 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
         path_list = []
         if type(user_input) == list:
             for u in user_input:
-                path_list.append(self.copy_local_resource_to_staging(u, staging_dir))
+                path_list.append(self.copy_resource_to_staging(u, staging_dir))
         elif type(user_input) == str:
-            path_list.append(self.copy_local_resource_to_staging(user_input, staging_dir))
+            path_list.append(self.copy_resource_to_staging(user_input, staging_dir))
         else:
             logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
                 v = value

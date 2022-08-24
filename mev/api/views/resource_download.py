@@ -15,7 +15,7 @@ from api.exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException
 from api.utilities.resource_utilities import check_resource_request_validity
-from api.storage_backends import get_storage_backend
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class ResourceDownloadUrl(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         # Get the storage backend since we need to know whether it's local or not
-        storage_backend = get_storage_backend()
+        storage_backend = None
         url = storage_backend.get_download_url(r)
         if not url:
             logger.error('Encountered a problem when preparing download for resource'

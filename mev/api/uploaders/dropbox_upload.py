@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 from api.models import Operation as OperationDbModel
 from .base import LocalUpload, RemoteUpload
 from api.utilities.operations import validate_operation_inputs
-from api.storage_backends.google_cloud import GoogleBucketStorage
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -168,8 +167,7 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
 
         # get the name of the bucket where we are storing other user files
         # If we are 
-        google_storage_backend = GoogleBucketStorage()
-        bucket_name = google_storage_backend.BUCKET_NAME
+        bucket_name = None
 
         input_template = {
             'GCPDropboxUpload.dropbox_link': '',

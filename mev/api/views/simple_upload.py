@@ -1,3 +1,4 @@
+from wsgiref import validate
 from rest_framework.generics import CreateAPIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework import serializers
@@ -7,10 +8,11 @@ class SimpleResourceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SimpleResource
-        fields = ['path']
-        read_only_fields = ['owner']
+        fields = ['path', 'owner']
+        #read_only_fields = ['owner']
 
     def create(self, validated_data):
+        print(validated_data)
         x= super().create(validated_data)
         x.name = x.path.name
         x.save()

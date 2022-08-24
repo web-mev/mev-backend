@@ -38,9 +38,7 @@ from api.models import Resource, \
     OperationResource
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from api.serializers.observation_set import ObservationSetSerializer
-from api.utilities.resource_utilities import move_resource_to_final_location, \
-    get_resource_view, \
-    initiate_resource_validation, \
+from api.utilities.resource_utilities import initiate_resource_validation, \
     handle_valid_resource, \
     handle_invalid_resource, \
     check_file_format_against_type, \
@@ -179,37 +177,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_get_resource_by_pk.assert_called_with(mock_pk)
         mock_resource.delete.assert_called()
         mock_alert_admins.assert_called()
-
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_move_resource_to_final_location(self, mock_get_storage_backend):
-        '''
-        Tests that any/all exceptions raised by the backend's `store`
-        method are caught and reported with a general Exception
-        '''
-        # check that we get back the expected path if the storage works:
-        mock_storage_backend = mock.MagicMock()
-        mock_path = '/ab/c/file.tsv'
-        mock_storage_backend.store.return_value = mock_path
-        mock_get_storage_backend.return_value = mock_storage_backend
-        mock_resource = mock.MagicMock()
-        result = move_resource_to_final_location(mock_resource)
-        self.assertEqual(result, mock_path)
-
-        # check that a specific exception is caught, but we report a generic one
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.store.side_effect = StorageException('nope!')
-        mock_get_storage_backend.return_value = mock_storage_backend
-        mock_resource = mock.MagicMock()
-        with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_STORAGE_ERROR):
-            move_resource_to_final_location(mock_resource)
-
-        # check that a generic error is caught and the message is altered:
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.store.side_effect = Exception('ack!')
-        mock_get_storage_backend.return_value = mock_storage_backend
-        mock_resource = mock.MagicMock()
-        with self.assertRaisesRegex(Exception, Resource.UNEXPECTED_STORAGE_ERROR):
-            move_resource_to_final_location(mock_resource)
 
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.os')
@@ -408,7 +375,6 @@ class TestResourceUtilities(BaseAPITestCase):
         else:
             self.assertIsNone(r.file_format)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
@@ -422,8 +388,7 @@ class TestResourceUtilities(BaseAPITestCase):
             mock_check_file_format_against_type, \
             mock_localize_resource, \
             mock_handle_invalid_resource, \
-            mock_retrieve_resource_class_instance, \
-            mock_move_resource_to_final_location):
+            mock_retrieve_resource_class_instance):
         '''
         Here we test that a successful validation calls the proper
         handler function.
@@ -438,7 +403,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
 
         mock_final_path = 'some/final/path.txt'
-        mock_move_resource_to_final_location.return_value = mock_final_path
 
         mock_path = '/some/mock/path.txt'
         mock_localize_resource.return_value = mock_path
@@ -623,7 +587,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_handle_valid_resource.assert_not_called()
         mock_handle_invalid_resource.assert_not_called()
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_invalid_resource')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
@@ -635,8 +598,7 @@ class TestResourceUtilities(BaseAPITestCase):
             mock_check_file_format_against_type, \
             mock_localize_resource, \
             mock_handle_invalid_resource, \
-            mock_retrieve_resource_class_instance, \
-            mock_move_resource_to_final_location):
+            mock_retrieve_resource_class_instance):
         '''
         Here we test that a failure to extract metadata results in the resource
         not updating its fields. For instance, if we perform a 'standardization'
@@ -654,9 +616,6 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_std_path = '/path/to/standardized.tsv'
         mock_resource_class_instance.save_in_standardized_format.return_value = mock_std_path
         mock_retrieve_resource_class_instance.return_value = mock_resource_class_instance
-
-        mock_final_path = 'some/final/path.txt'
-        mock_move_resource_to_final_location.return_value = mock_final_path
 
         mock_path = '/some/mock/path.txt'
         mock_localize_resource.return_value = mock_path
@@ -1038,13 +997,11 @@ class TestResourceUtilities(BaseAPITestCase):
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.handle_valid_resource')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_proper_steps_taken_with_wildcard_resource(self, \
         mock_get_resource_size, \
         mock_localize_resource, \
-        mock_move_resource_to_final_location, \
         mock_check_file_format_against_type, \
         mock_handle_valid_resource, \
         mock_retrieve_resource_class_instance):
@@ -1059,7 +1016,6 @@ class TestResourceUtilities(BaseAPITestCase):
         g = GeneralResource()
         mock_retrieve_resource_class_instance.return_value = g
         mock_path = '/mock/final/path.txt'
-        mock_move_resource_to_final_location.return_value = mock_path
         mock_size = 100
         mock_get_resource_size.return_value = mock_size
 
@@ -1463,7 +1419,6 @@ class TestResourceUtilities(BaseAPITestCase):
             write_resource(content, destination)
 
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
@@ -1471,8 +1426,7 @@ class TestResourceUtilities(BaseAPITestCase):
     def test_metadata_when_type_changed(self, mock_get_resource_size, \
         mock_localize_resource, \
         mock_retrieve_resource_class_instance, \
-        mock_check_file_format_against_type, \
-        mock_move_resource_to_final_location):
+        mock_check_file_format_against_type):
         '''
         Checks that the update of resource metadata is updated. Related to a bug where
         a file was initially set to a general type (and thus the metadata was effectively empty).
@@ -1495,7 +1449,6 @@ class TestResourceUtilities(BaseAPITestCase):
         ]
 
         mock_localize_resource.return_value = resource_path
-        mock_move_resource_to_final_location.return_value = resource_path
         mock_size = 100
         mock_get_resource_size.return_value = mock_size
 
@@ -1512,7 +1465,6 @@ class TestResourceUtilities(BaseAPITestCase):
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertFalse(rm.observation_set is None)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
@@ -1520,11 +1472,9 @@ class TestResourceUtilities(BaseAPITestCase):
     def test_metadata_when_type_changed_case2(self, mock_get_resource_size, \
         mock_localize_resource, \
         mock_retrieve_resource_class_instance, \
-        mock_check_file_format_against_type, \
-        mock_move_resource_to_final_location):
+        mock_check_file_format_against_type):
 
         resource_path = os.path.join(VALIDATION_TESTDIR, 'test_matrix.tsv')
-        mock_move_resource_to_final_location.return_value = resource_path
         mock_localize_resource.return_value = resource_path
 
         # define this mock function so we can patch the class
@@ -1541,7 +1491,6 @@ class TestResourceUtilities(BaseAPITestCase):
             patched_mtx_instance
         ]
         mock_localize_resource.return_value = resource_path
-        mock_move_resource_to_final_location.return_value = resource_path
         mock_get_resource_size.return_value = 100
         
         r = Resource.objects.create(
@@ -1560,11 +1509,9 @@ class TestResourceUtilities(BaseAPITestCase):
         expected = ['SW1_Control','SW2_Control','SW3_Control','SW4_Treated','SW5_Treated','SW6_Treated']
         self.assertCountEqual(samples, expected)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     def test_resource_metadata_entered_in_db(self,
-        mock_get_storage_backend, 
-        mock_move):
+        mock_get_storage_backend):
         '''
         Here we test that an instance of ResourceMetadata is created
         and tied to the appropriate resource. Not a "true" unit test in the sense
@@ -1603,11 +1550,10 @@ class TestResourceUtilities(BaseAPITestCase):
         n1 = len(rm)  
         self.assertTrue(n1 == 1)     
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.get_storage_backend')
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_resource_metadata_updated_in_db(self, mock_check_file_format_against_type, \
-        mock_get_storage_backend, mock_move):
+        mock_get_storage_backend):
         '''
         Here we test that an instance of ResourceMetadata is updated
         when it previously existed (for instance, upon update of a
@@ -1662,12 +1608,10 @@ class TestResourceUtilities(BaseAPITestCase):
         # check that the observation_set changed as expected:
         self.assertFalse(rm_original.observation_set == rm_final.observation_set)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_full_validation_success(self, mock_get_resource_size, \
-        mock_localize_resource, \
-        mock_move_resource_to_final_location):
+        mock_localize_resource):
         '''
         Here we test that the full process to validate executes.
 
@@ -1700,7 +1644,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock the localization process and retrieval of file size
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
         mock_size = 100
         mock_get_resource_size.return_value = mock_size
 
@@ -1716,12 +1659,10 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == mock_final_path)
         self.assertTrue(r.size == mock_size)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_full_validation_success_with_format_change(self, mock_get_resource_size, \
-        mock_localize_resource, \
-        mock_move_resource_to_final_location):
+        mock_localize_resource):
         '''
         Here we test that the full process to validate executes. Here, the input
         file is a CSV and it correctly reads it as such. However, since we ultimately
@@ -1757,7 +1698,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock the localization process and file size retrieval
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
         mock_size = 100
         mock_get_resource_size.return_value = mock_size
 
@@ -1773,11 +1713,10 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == mock_final_path)
         self.assertTrue(r.size == mock_size)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
-    def test_full_validation_failure_case1(self, mock_get_resource_size, mock_localize_resource, \
-        mock_move_resource_to_final_location):
+    def test_full_validation_failure_case1(self, mock_get_resource_size, \
+        mock_localize_resource):
         '''
         Here we test that the full process to validate executes. In this case
         we simulate a situation where the user specified the wrong resource type.
@@ -1814,7 +1753,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock the localization process and the size
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
         mock_get_resource_size.return_value = 100
 
         # validate it. This should succeed since we are correctly validating
@@ -1854,10 +1792,8 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == resource_path)
         self.assertTrue('Reverting' in r.status)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
-    def test_full_validation_failure_case2(self, mock_localize_resource, \
-        mock_move_resource_to_final_location):
+    def test_full_validation_failure_case2(self, mock_localize_resource):
         '''
         Here we test that the full process to validate executes. In this case
         we simulate a situation where the user specified the wrong resource type.
@@ -1893,7 +1829,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock the localization process
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
 
         # call the tested function. Note that we are trying to validate
         # a float matrix as an integer. It SHOULD fail.
@@ -1913,14 +1848,11 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == r.path)
         status = r.status
         self.assertTrue('contained non-integer entries' in r.status)
-        mock_move_resource_to_final_location.assert_not_called()
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_success_after_failure(self, mock_get_resource_size, \
-        mock_localize_resource, \
-        mock_move_resource_to_final_location):
+        mock_localize_resource):
         '''
         Here we test that the full process to validate executes. In this case
         we simulate a situation where the user specified the wrong resource type.
@@ -1956,7 +1888,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock the localization process
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
 
         # set the resource_size return
         mock_size = 100
@@ -1980,11 +1911,10 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == r.path)
         status = r.status
         self.assertTrue('contained non-integer entries' in r.status)
-        mock_move_resource_to_final_location.assert_not_called()
 
         # before trying again, set the mock for the final move:
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
+
         # Now validate as a float matrix:
         initiate_resource_validation(r, MATRIX_KEY, file_format)
 
@@ -2000,12 +1930,10 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.path == mock_final_path)
         self.assertTrue(r.size == mock_size)
 
-    @mock.patch('api.utilities.resource_utilities.move_resource_to_final_location')
     @mock.patch('api.utilities.resource_utilities.localize_resource')
     @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
     def test_full_metadata_failure(self, mock_retrieve_metadata, \
-        mock_localize_resource, \
-        mock_move_resource_to_final_location):
+        mock_localize_resource):
         '''
         Here we test that the full process to validate executes. In this test, we set 
         it up such that the file validates properly, but there is an issue when 
@@ -2042,7 +1970,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock the localization process
         mock_localize_resource.return_value = resource_path
         mock_final_path = '/path/to/final/dir/file.tsv'
-        mock_move_resource_to_final_location.return_value = mock_final_path
 
         mock_retrieve_metadata.side_effect = Exception('something bad!')
 
@@ -2059,5 +1986,3 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertIsNone(r.resource_type)
         self.assertTrue(r.file_format == '')
         self.assertTrue(r.path == resource_path)
-
-    # test the situation where we have
