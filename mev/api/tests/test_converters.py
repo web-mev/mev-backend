@@ -1,6 +1,7 @@
 import unittest
 import unittest.mock as mock
 import os
+import uuid
 from django.core.exceptions import ImproperlyConfigured
 
 from api.models import Resource
@@ -21,7 +22,9 @@ from api.converters.data_resource import LocalDataResourceConverter, \
     LocalDockerSpaceDelimResourceConverter, \
     LocalDockerSingleDataResourceConverter, \
     LocalDockerSingleDataResourceWithTypeConverter, \
+    LocalDockerMultipleDataResourceConverter, \
     CromwellSingleDataResourceConverter, \
+    CromwellMultipleDataResourceConverter, \
     CromwellCsvResourceConverter, \
     CromwellSpaceDelimResourceConverter
 from api.converters.mappers import SimpleFileBasedMapConverter
@@ -193,41 +196,28 @@ class TestElementSetConverter(BaseAPITestCase):
 
 class TestDataResourceConverter(BaseAPITestCase):
 
-    @mock.patch('api.converters.data_resource.localize_resource')
-    @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_single_local_converter(self, mock_copy_local_resource, mock_localize_resource):
+    def test_single_local_converter(self):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path
         '''
-        p = '/foo/bar.txt'
+        user_input = str(uuid.uuid4())
+
+        mock_path = '/some/mock/path.txt'
         mock_staging_dir = '/some/staging_dir'
-        dest = os.path.join(mock_staging_dir, 'bar.txt')
-        mock_localize_resource.return_value = p
-
-        # the validators will check the validity of the user inputs prior to 
-        # calling the converter. Thus, we can use basically any Resource to test
-        all_resources = Resource.objects.all()
-        r = all_resources[0]
-
-        user_input = str(r.pk)
         c = LocalDockerSingleDataResourceConverter()
+        mock_copy = mock.MagicMock()
+        mock_copy.return_value = mock_path
+        c._copy_resource_to_staging = mock_copy
         x = c.convert('foo', user_input, '', mock_staging_dir)
-        mock_copy_local_resource.assert_called_with(p, dest)
-        self.assertDictEqual(x, {'foo':  dest})
+        mock_copy.assert_called_with(user_input, mock_staging_dir)
+        self.assertDictEqual(x, {'foo':  mock_path})
 
-    @mock.patch('api.converters.data_resource.localize_resource')
-    @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_single_local_with_rt_converter(self, mock_copy_local_resource, mock_localize_resource):
+    def test_single_local_with_rt_converter(self):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path AND resource type as a special delimited string
         '''
-        p = '/foo/bar.txt'
-        mock_staging_dir = '/some/staging_dir'
-        dest = os.path.join(mock_staging_dir, 'bar.txt')
-        mock_localize_resource.return_value = p
-
         # the validators will check the validity of the user inputs prior to 
         # calling the converter. Thus, we can use basically any Resource to test
         all_resources = Resource.objects.all()
@@ -235,206 +225,183 @@ class TestDataResourceConverter(BaseAPITestCase):
         rt = r.resource_type
 
         user_input = str(r.pk)
+        mock_path = '/path/to/file.txt'
+        mock_staging_dir = '/path/to/dir'
         c = LocalDockerSingleDataResourceWithTypeConverter()
+        mock_get_resource = mock.MagicMock()
+        mock_get_resource.return_value = r
+        mock_copy = mock.MagicMock()
+        mock_copy.return_value = mock_path
+        c.get_resource = mock_get_resource
+        c._copy_resource_to_staging = mock_copy
+
         x = c.convert('foo', user_input, '', mock_staging_dir)
-        mock_copy_local_resource.assert_called_with(p, dest)
+        mock_copy.assert_called_with(str(r.pk), mock_staging_dir)
         expected_str = '{p}{d}{rt}'.format(
-            p = dest,
+            p = mock_path,
             d = LocalDockerSingleDataResourceWithTypeConverter.DELIMITER,
             rt = rt
         )
         self.assertDictEqual(x, {'foo': expected_str})
 
-    @mock.patch('api.converters.data_resource.get_resource_by_pk')
-    def test_single_cromwell_converter(self, mock_get_resource_by_pk):
+    def test_single_cromwell_converter(self):
         '''
         Tests that the converter can take a single Resource instance
         and return the path to a bucket-based file
         '''
-        # the validators will check the validity of the user inputs prior to 
-        # calling the converter. Thus, we can use basically any Resource to test
-        all_resources = Resource.objects.all()
-        r = all_resources[0]
-        mock_get_resource_by_pk.return_value = r
-        expected = r.path
+        mock_input = str(uuid.uuid4())
+        mock_path = '/path/to/file.txt'
+        mock_staging_dir = '/some/staging_dir/'
 
-        user_input = str(r.pk)
         c = CromwellSingleDataResourceConverter()
-        x = c.convert('foo', user_input, '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo': expected})
+        mock_convert_single_resource = mock.MagicMock()
+        mock_convert_single_resource.return_value = mock_path
+        c._convert_single_resource = mock_convert_single_resource
 
-    @mock.patch('api.converters.data_resource.get_resource_by_pk')
-    def test_csv_cromwell_converter_case1(self, mock_get_resource_by_pk):
+        x = c.convert('foo', mock_input, '', mock_staging_dir)
+        self.assertDictEqual(x, {'foo': mock_path})
+        mock_convert_single_resource.assert_called_with(mock_input, mock_staging_dir)
+
+    def test_cromwell_converters_case1(self):
         '''
-        Tests that the converter can take a list of Resource instances
-        and return a properly formatted comma-delim list 
+        Tests that the CromwellMultipleDataResourceConverter
+        converter can take a list of Resource instances
+        and return a properly formatted response. The response
+        depends on the actual implementing class.
+
+        Here we test with multiple input resource UUIDs
         '''
+        uuid_list = [str(uuid.uuid4()) for i in range(3)]
 
-        all_resources = Resource.objects.all()
-        if len(all_resources) < 3:
-            raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
-   
-        uuid_list = [str(all_resources[i].pk) for i in range(1,4)]
-        mock_get_resource_by_pk.side_effect = [all_resources[i] for i in range(1,4)]
-        expected = ','.join([str(all_resources[i].path) for i in range(1,4)])
-
-        c = CromwellCsvResourceConverter()
+        c = CromwellMultipleDataResourceConverter()
+        mock_path_list = [
+            '/path/to/a.txt',
+            '/path/to/b.txt',
+            '/path/to/c.txt',
+        ]
+        # patch a method on that class:
+        c._convert_single_resource = mock.MagicMock()
+        c._convert_single_resource.side_effect = mock_path_list
+        
+        expected_result = mock_path_list
         x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected})
+        self.assertDictEqual(x, {'foo':expected_result})
 
-
-    @mock.patch('api.converters.data_resource.localize_resource')
-    @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_csv_local_converter_case1(self, mock_copy_local_resource, mock_localize_resource):
-        '''
-        Tests that the converter can take a list of Resource instances
-        and return a properly formatted comma-delim list 
-        '''
-        p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
-        mock_staging_dir = '/some/staging_dir'
-        final_paths = [x.replace('/foo', mock_staging_dir) for x in p]
-        mock_localize_resource.side_effect = p
-
-        # the validators will check the validity of the user inputs prior to 
-        # calling the converter. Thus, we can use basically any Resource to test
-        all_resources = Resource.objects.all()
-        if len(all_resources) < 3:
-            raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
-
-        # test for multiple
-        v = [str(all_resources[i].pk) for i in range(1,4)] 
-
-        user_input = v
-        c = LocalDockerCsvResourceConverter()
-        x = c.convert('foo', user_input, '', mock_staging_dir)
-        mock_calls = [mock.call(p1, p2) for p1,p2 in zip(p, final_paths)]
-        mock_copy_local_resource.assert_has_calls(mock_calls)
-        csv = ','.join(final_paths)
-        self.assertDictEqual(x, {'foo':csv})
-
-    @mock.patch('api.converters.data_resource.get_resource_by_pk')
-    def test_csv_cromwell_converter_case2(self, mock_get_resource_by_pk):
-        '''
-        Tests that the converter can take a list of Resource instances
-        and return a properly formatted comma-delim list 
-        '''
-
-        all_resources = Resource.objects.all()
-        r = all_resources[0]
-        mock_get_resource_by_pk.return_value = r
-        expected = r.path
-
+        # instantiate and patch a method on the CSV class:
         c = CromwellCsvResourceConverter()
-        x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected})
-
-    @mock.patch('api.converters.data_resource.localize_resource')
-    @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_csv_local_converter_case2(self, mock_copy_local_resource, mock_localize_resource):
-        '''
-        Tests that the CSV converter can take a single Resource instance
-        and return a properly formatted string 
-        '''
-        p = '/foo/bar1.txt'
-        mock_staging_dir = '/some/staging_dir'
-        final_path = os.path.join(mock_staging_dir, os.path.basename(p))
-        mock_localize_resource.return_value = p
-
-        # the validators will check the validity of the user inputs prior to 
-        # calling the converter. Thus, we can use basically any Resource to test
-        all_resources = Resource.objects.all()
-        v = str(all_resources[0].pk)
-        user_input = v
-        c = LocalDockerCsvResourceConverter()
-        x = c.convert('foo', user_input, '', '/some/staging_dir/')
-        mock_copy_local_resource.assert_called_with(p, final_path)
-        self.assertDictEqual(x, {'foo': final_path})
-
-    @mock.patch('api.converters.data_resource.get_resource_by_pk')
-    def test_space_delim_cromwell_converter_case1(self, mock_get_resource_by_pk):
-        '''
-        Tests that the converter can take a list of Resource instances
-        and return a properly formatted space-delimited list 
-        '''
-
-        all_resources = Resource.objects.all()
-        if len(all_resources) < 3:
-            raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
-   
-        uuid_list = [str(all_resources[i].pk) for i in range(1,4)]
-        mock_get_resource_by_pk.side_effect = [all_resources[i] for i in range(1,4)]
-        expected = ' '.join([str(all_resources[i].path) for i in range(1,4)])
+        c._convert_single_resource = mock.MagicMock()
+        c._convert_single_resource.side_effect = mock_path_list
+        expected_result = ','.join(mock_path_list)
+        x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
+        self.assertDictEqual(x, {'foo':expected_result})
 
         c = CromwellSpaceDelimResourceConverter()
+        c._convert_single_resource = mock.MagicMock()
+        c._convert_single_resource.side_effect = mock_path_list
+        expected_result = ' '.join(mock_path_list)
         x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected})
+        self.assertDictEqual(x, {'foo':expected_result})
 
-    @mock.patch('api.converters.data_resource.localize_resource')
-    @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_space_delim_local_converter_case1(self, mock_copy_local_resource, mock_localize_resource):
+    def test_multiple_resource_local_converter_case1(self):
         '''
-        Tests that the converter can take a list of Resource instances
-        and return a properly formatted space-delimited list.
+        Tests that the converter can take a list of Resource instance UUIDs
+        and return a properly formatted response.
+
+        This covers the LocalDockerMultipleDataResourceConverter
+        and derived classes
         '''
-        p = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
+        mock_paths = ['/foo/bar1.txt', '/foo/bar2.txt', '/foo/bar3.txt']
         mock_staging_dir = '/some/staging_dir'
-        final_paths = [os.path.join(mock_staging_dir, os.path.basename(x)) for x in p]
-        mock_localize_resource.side_effect = p
+        mock_inputs = [str(uuid.uuid4()) for _ in range(len(mock_paths))]
 
-        # the validators will check the validity of the user inputs prior to 
-        # calling the converter. Thus, we can use basically any Resource to test
-        all_resources = Resource.objects.all()
-        if len(all_resources) < 3:
-            raise ImproperlyConfigured('Need a minimum of 3 Resources to run this test.')
-        v = [str(all_resources[i].pk) for i in range(1,4)] 
+        mock_get_path_list = mock.MagicMock()
+        mock_get_path_list.return_value = mock_paths
+        c = LocalDockerMultipleDataResourceConverter()
+        c._get_path_list = mock_get_path_list
+        x = c.convert('foo', mock_inputs, '', mock_staging_dir)
+        self.assertDictEqual(x, {'foo': mock_paths})
 
-        user_input = v
+        c = LocalDockerCsvResourceConverter()
+        c._get_path_list = mock_get_path_list
+        x = c.convert('foo', mock_inputs, '', mock_staging_dir)
+        expected = ','.join(mock_paths)
+        self.assertDictEqual(x, {'foo': expected})
+
         c = LocalDockerSpaceDelimResourceConverter()
-        x = c.convert('foo', user_input, '', '/some/staging_dir/')
-        mock_calls = [mock.call(p1, p2) for p1,p2 in zip(p, final_paths)]
-        mock_copy_local_resource.assert_has_calls(mock_calls)
-        delim_string = ' '.join(final_paths)
-        self.assertDictEqual(x, {'foo': delim_string})
+        c._get_path_list = mock_get_path_list
+        x = c.convert('foo', mock_inputs, '', mock_staging_dir)
+        expected = ' '.join(mock_paths)
+        self.assertDictEqual(x, {'foo': expected})
+        
+        mock_get_path_list.assert_called_with(mock_inputs, mock_staging_dir)
+
+    def test_multiple_resource_local_converter_case2(self):
+        '''
+        Tests that the converter can take a "list" of a single 
+        Resource instance UUID
+        and return a properly formatted response.
+
+        This covers the LocalDockerMultipleDataResourceConverter
+        and derived classes
+        '''
+        mock_path = '/foo/bar1.txt'
+        mock_staging_dir = '/some/staging_dir'
+        mock_input = str(uuid.uuid4())
+
+        mock_get_path_list = mock.MagicMock()
+        mock_get_path_list.return_value = [mock_path]
+        c = LocalDockerMultipleDataResourceConverter()
+        c._get_path_list = mock_get_path_list
+        x = c.convert('foo', mock_input, '', mock_staging_dir)
+        self.assertDictEqual(x, {'foo': [mock_path]})
+
+        c = LocalDockerCsvResourceConverter()
+        c._get_path_list = mock_get_path_list
+        x = c.convert('foo', mock_input, '', mock_staging_dir)
+        self.assertDictEqual(x, {'foo': mock_path})
+
+        c = LocalDockerSpaceDelimResourceConverter()
+        c._get_path_list = mock_get_path_list
+        x = c.convert('foo', mock_input, '', mock_staging_dir)
+        self.assertDictEqual(x, {'foo': mock_path})
+
+        mock_get_path_list.assert_called_with(mock_input, mock_staging_dir)
 
     @mock.patch('api.converters.data_resource.get_resource_by_pk')
-    def test_space_delim_cromwell_converter_case2(self, mock_get_resource_by_pk):
+    def test_cromwell_converters_case2(self, mock_get_resource_by_pk):
         '''
-        Tests that the converter can take a list of Resource instances
-        and return a properly formatted space-delim list. Here, the "list"
-        only has a single item
+        Tests that the multiple DataResource converters 
+        can take a list of Resource instances
+        and return a properly formatted response (which depends
+        on the converter class)
+
+        Here, we pass only a single resource UUID. 
+        For example, we may have a WDL workflow which can accept >=1 
+        inputs as an array. Here we test that passing a single input
+        results in a list of paths of length 1.
         '''
 
         all_resources = Resource.objects.all()
         r = all_resources[0]
-        mock_get_resource_by_pk.return_value = r
-        expected = r.path
+
+        mock_path = '/path/to/a.txt'
+        # instantiate and patch a method on that class:
+        c = CromwellMultipleDataResourceConverter()
+        c._convert_single_resource = mock.MagicMock()
+        c._convert_single_resource.return_value = mock_path
+
+        x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
+        # response should be a LIST of paths.
+        self.assertDictEqual(x, {'foo':[mock_path]})
 
         c = CromwellCsvResourceConverter()
+        c._convert_single_resource = mock.MagicMock()
+        c._convert_single_resource.return_value = mock_path
+
         x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected})
-
-    @mock.patch('api.converters.data_resource.localize_resource')
-    @mock.patch('api.converters.data_resource.copy_local_resource')
-    def test_space_delim_local_converter_case2(self, mock_copy_local_resource, mock_localize_resource):
-        '''
-        Tests that the converter can take a single Resource instance
-        and return a properly formatted space-delimited list.
-        '''
-        p = '/foo/bar1.txt'
-        mock_staging_dir = '/some/staging_dir'
-        final_path = os.path.join(mock_staging_dir, os.path.basename(p))
-        mock_localize_resource.return_value = p
-
-        # the validators will check the validity of the user inputs prior to 
-        # calling the converter. Thus, we can use basically any Resource to test
-        all_resources = Resource.objects.all()
-        v = str(all_resources[0].pk)
-
-        user_input = v
-        c = LocalDockerSpaceDelimResourceConverter()
-        x = c.convert('foo', user_input, '', mock_staging_dir)
-        mock_copy_local_resource.assert_called_with(p, final_path)
-        self.assertDictEqual(x, {'foo':final_path})
+        # response should be a csv-string of paths, which is simply
+        # the path in this case.
+        self.assertDictEqual(x, {'foo':mock_path})
 
 
 class TestMapConverters(BaseAPITestCase):
