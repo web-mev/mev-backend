@@ -68,6 +68,7 @@ class RemoteCromwellRunner(OperationRunner):
     ]
 
     def __init__(self):
+        #TODO: move these to settings or otherwise?
         self.read_cromwell_url()
         self.read_cromwell_bucket_name()
         

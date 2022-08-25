@@ -85,7 +85,7 @@ class Resource(AbstractResource):
         null = True
     )
 
-    datafile = models.FileField(upload_to=upload_base, null=True)
+    datafile = models.FileField(upload_to=upload_base)
 
     # Can attach a Resource to a Workspace, but 
     # this is not required.

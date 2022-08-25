@@ -1,5 +1,8 @@
 import os
+import uuid
 import logging
+
+from django.core.files.storage import default_storage
 
 from api.models import Resource
 from api.utilities.basic_utils import copy_local_resource
@@ -128,7 +131,43 @@ class LocalDockerSpaceDelimResourceConverter(LocalDockerMultipleDataResourceConv
     pass
 
 
-class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
+class CromwellDataResourceConverter(BaseDataResourceConverter):
+    '''
+    Contains common behavior for DataResource conversion related to
+    the Cromwell runner.
+
+    Use one of the derived classes.
+    '''
+
+    def _convert_single_resource(self, resource_uuid, staging_dir):
+        '''
+        Handles the conversion of a UUID referencing an instance that
+        is a child of api.models.AbstractResource and copies to a 
+        staging directory in a Cromwell-accessible bucket.
+
+        Returns the full path to the copied file, e.g.
+        s3://<cromwell bucket>/<execution UUID>/<file UUID>
+
+        Note that we don't preserve any file names- we just 
+        copy to a file named by UUID
+        '''
+        r = self.get_resource(resource_uuid)
+        # the staging_dir is where we copy non-data files (e.g. WDL)
+        # and it's local to the server. We also use that UUID to locate
+        # files inside a 'directory' in our Cromwell bucket.
+        # TODO: move this to settings.
+        cromwell_bucket = os.environ['CROMWELL_BUCKET']
+        #TODO: is this appropriate here? should we move this to resource utils?
+        return default_storage.copy_out_to_bucket(
+            r,
+            cromwell_bucket,
+            os.path.join(
+                os.path.basename(staging_dir),
+                str(uuid.uuid4())
+            )
+        )
+
+class CromwellSingleDataResourceConverter(CromwellDataResourceConverter):
     '''
     This converter takes a DataResource instance (for a single file,
     which is simply a UUID) and returns the path to 
@@ -141,10 +180,11 @@ class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
 
     def convert(self, input_key, user_input, op_dir, staging_dir):
         resource_uuid = user_input
-        r = self.get_resource(resource_uuid)
-        return {input_key: r.path}
+        path = self._convert_single_resource(resource_uuid, staging_dir)
+        return {input_key: path}
 
-class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
+
+class CromwellMultipleDataResourceConverter(CromwellDataResourceConverter):
     '''
     This converter takes a DataResource instance (for >1 file) and returns the path to 
     the remote files as a list. Typically, this is then used with a mixin class to format
@@ -162,23 +202,24 @@ class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
     a list of the remote paths.
     '''
 
-    def get_path_list(self, user_input):
+    def convert(self, input_key, user_input, op_dir, staging_dir):
+
         path_list = []
         if type(user_input) == list:
             for u in user_input:
-                r = self.get_resource(u)
-                path_list.append(r.path)
+                path_list.append(
+                    self._convert_single_resource(u, staging_dir)
+                )
         elif type(user_input) == str:
-            r = self.get_resource(user_input)
-            path_list.append(r.path)
+            # technically COULD HAVE been multiple resources, but only a single
+            # was provided (hence, a single string, not a list)
+            path_list.append(
+                self._convert_single_resource(user_input, staging_dir)
+            )
         else:
             logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
-                v = value
+                v = user_input
             ))
-        return path_list
-
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        path_list = self.get_path_list(user_input)
         return {input_key: self.to_string(path_list)}
 
 class CromwellCsvResourceConverter(CromwellMultipleDataResourceConverter, CsvMixin):

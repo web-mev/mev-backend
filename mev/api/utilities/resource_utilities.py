@@ -219,7 +219,7 @@ def retrieve_metadata(resource_path, resource_class_instance):
         )
 
 def localize_resource(resource_instance, destination_directory):
-    return default_storage.localize(resource_instance, destination_directory)
+    return default_storage.localize(resource_instance, destination_directory)   
 
 def handle_valid_resource(resource,
         resource_class_instance,
