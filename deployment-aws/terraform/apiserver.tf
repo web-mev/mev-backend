@@ -34,12 +34,18 @@ resource "aws_iam_role_policy" "server_s3_access" {
         {
           Effect   = "Allow",
           Action   = ["s3:GetObject", "s3:PutObject", "s3:PutObjectAcl", "s3:DeleteObject"],
-          Resource = "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*"
+          Resource = [
+            "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*",
+            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}/*"
+          ]
         },
         {
           Effect   = "Allow",
           Action   = ["s3:ListBucket"],
-          Resource = "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}"
+          Resource = [
+            "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}",
+            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}"
+          ]
         }
       ]
     }
