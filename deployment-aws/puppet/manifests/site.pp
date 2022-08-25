@@ -31,7 +31,16 @@ node /cromwell/ {
     'virtualbox' => '/vagrant',
   }
 
-  package { 'default-jre': }
+  $dependencies = [
+    'apt-transport-https',
+    'build-essential',
+    'ca-certificates',
+    'default-jre',
+    'gnupg2',
+    'software-properties-common',
+    'supervisor',
+  ]
+  package { $dependencies: }
 
   $version = 81
   file { "/opt/cromwell-${version}.jar":
@@ -57,4 +66,6 @@ node /cromwell/ {
       source   => 'https://github.com/web-mev/mev-backend.git',
     }
   }
+
+  class { 'postgresql::server': }
 }
