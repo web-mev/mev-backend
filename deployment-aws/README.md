@@ -28,8 +28,20 @@ Note:
 
 Configure the site using `terraform.tfvars` file, for example:
 ```terraform
+admin_email_csv = "admin@example.org"
+backend_domain = "dev-mev-api.tm4.org"
+django_superuser_email = "admin@example.org"
+from_email = "WebMEV <noreply@mail.webmev.tm4.org>"
+frontend_domain = "dev-mev.tm4.org"
 ssh_key_pair_name = "dev-webmev"
+storage_location = "local"
 ```
+
+Create a CNAME record with the `tm4.org` domain registrar or DNS provider, for example:
+```
+dev-mev-api.tm4.org    CNAME    dev-mev-api.aws.tm4.org
+```
+where `dev` is your Terraform workspace name
 
 Deploy the site:
 ```shell
