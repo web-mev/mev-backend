@@ -2,6 +2,7 @@ import logging
 import os
 
 from django.conf import settings
+from django.core.files.storage import default_storage
 from rest_framework import permissions as framework_permissions
 from rest_framework import generics
 from rest_framework.views import APIView
@@ -14,7 +15,8 @@ import api.permissions as api_permissions
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     resource_supports_pagination, \
-    check_resource_request_validity
+    check_resource_request_validity, \
+    create_resource
 from api.data_transformations import get_transformation_function
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
@@ -215,15 +217,24 @@ class AddBucketResourceView(APIView):
     subsequently upload to run through the tutorial example.
     '''
 
-    BUCKET_PATH = 'bucket_path'
+    BUCKET_NAME = 'bucket_name'
+    OBJECT_NAME = 'object_name'
     RESOURCE_TYPE = 'resource_type'
 
     def post(self, request, *args, **kwargs):
         logger.info('POSTing to create a new resource from bucket-based data')
+
         try:
-            resource_url = request.data[self.BUCKET_PATH]
+            src_bucket = request.data[self.BUCKET_NAME]
         except KeyError as ex:
-            return Response({self.BUCKET_PATH: 'You must supply this required key.'},
+            return Response({self.BUCKET_NAME: 'You must supply this required key.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            src_object = request.data[self.OBJECT_NAME]
+        except KeyError as ex:
+            return Response({self.OBJECT_NAME: 'You must supply this required key.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -237,6 +248,24 @@ class AddBucketResourceView(APIView):
         except KeyError as ex:
             file_format = None
 
+        try:
+
+            default_storage.copy_to_storage(
+                src_bucket,
+                src_object,
+            )
+        except NotImplementedError:
+            return Response({self.BUCKET_PATH: 'The storage system does not support this endpoint.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception:
+            #TODO: implement some catch for situations where the bucket
+            # is not accessible, etc. 
+            return Response({self.BUCKET_PATH: msg},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # copy to 
         # We require the ability to interact with our storage backend.
         storage_backend = get_storage_backend()
 
@@ -255,7 +284,12 @@ class AddBucketResourceView(APIView):
             basename = os.path.basename(resource_url)
 
             # create a Resource instance
-            r = Resource.objects.create(
+            #TODO: incorporate resource_url
+            r = create_resource(
+                owner=request.user,
+                name=basename
+            )
+            r = Resource.get(
                 path = resource_url,
                 owner = request.user,
                 name = basename

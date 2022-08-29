@@ -29,9 +29,11 @@ class ResourceUploadView(CreateAPIView):
 
 class AsyncUpload(APIView):
     '''
-    Base class for uploads that are performed asynchronously, e.g. such as with some third-party API, etc.
+    Base class for uploads that are performed asynchronously,
+    e.g. such as with some third-party API, etc.
 
-    Child classes should define the proper serializer for the request payload and also declare the "type"
+    Child classes should define the proper serializer for the 
+    request payload and also declare the "type"
     of the uploader class that should be used.
     '''
 

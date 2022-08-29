@@ -6,17 +6,7 @@ from django.db import models
 
 from api.models.abstract_resource import AbstractResource
 from api.models import Workspace
-
-
-def upload_base(instance, path):
-    '''
-    This function can be passed to the `upload_to`
-    kwarg of the django.db.models.FileField constructor.
-
-    It allows us to save files to owner-specific directories
-    relative to the settings.MEDIA_ROOT dir.
-    '''
-    return os.path.join(str(instance.owner.pk), path)
+from api.storage import get_storage_dir
 
 
 class Resource(AbstractResource):
@@ -85,7 +75,7 @@ class Resource(AbstractResource):
         null = True
     )
 
-    datafile = models.FileField(upload_to=upload_base)
+    datafile = models.FileField(upload_to=get_storage_dir)
 
     # Can attach a Resource to a Workspace, but 
     # this is not required.
@@ -111,9 +101,9 @@ class Resource(AbstractResource):
             # If we wish, we can initially set the resource status to indicate
             # that there is some file validation checking (or otherwise)
             self.status = ''
+            self.size = self.datafile.size
 
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         workspaces_str = ','.join([str(x.pk) for x in self.workspaces.all()])

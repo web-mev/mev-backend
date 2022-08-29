@@ -4,6 +4,7 @@ import logging
 
 from api.models import PublicDataset, Resource
 from api.async_tasks.async_resource_tasks import validate_resource
+from api.utilities.resource_utilities import create_resource
 from .sources.gdc.tcga import TCGARnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
 from .sources.gtex_rnaseq import GtexRnaseqDataSource
@@ -163,12 +164,13 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
 
     # create the Resource instances.
     resource_list = []
-    for path, name, resource_type, file_format in zip(path_list, name_list, resource_type_list, file_format_list):
-        r = Resource.objects.create(
-            name = name,
-            owner = user,
-            path = path,
-            status = Resource.VALIDATING
+    for path, name, resource_type, file_format in \
+            zip(path_list, name_list, resource_type_list, file_format_list):
+        #TODO: incorporate path
+        r = create_resource(
+            user,
+            name=name,
+            status=Resource.VALIDATING
         )
 
         # although we have full control over the creation of files here,

@@ -1,3 +1,4 @@
+from ast import Is
 from email.policy import default
 import os
 import uuid
@@ -87,7 +88,8 @@ def delete_resource_by_pk(resource_pk):
 
     Note that this does not perform any logic on deletion. For instance, 
     one might want to protect deletion of critical files. That logic should
-    be implemented elsewhere.
+    be implemented elsewhere. When you are calling this function, you are
+    absolutely certain you want to delete the database record.
     '''
     logger.info('Attempt to delete the Resource database model identified'
         ' by pk={pk}'.format(pk=str(resource_pk))
@@ -490,3 +492,61 @@ def write_resource(content, destination):
     with open(destination, 'w') as fout:
         fout.write(content)
 
+def create_resource(owner,
+        file_handle=None,
+        relative_path=None,
+        name=None, 
+        status=None,
+        resource_type=None,
+        file_format=None,
+        is_active=True,
+        workspace=None):
+    '''
+    One central location to handle creation of api.models.Resource
+    instances when not initiated by uploads.
+
+    This is reserved for situations like (not inclusive):
+    - adding Resources that are the outputs of an analysis
+    - adding Resources that originate from public datasets we expose
+
+    Note that we can pass EITHER a relative path OR a django.core.files.File
+    instance. The former is best used in situations like remote file storage
+    where the file does not need to pass through the server. The latter is
+    for situations like where a local analysis has created a file and we need
+    to send that to our storage.
+
+    If passing `relative_path`, this method assumes you have already 
+    moved the file to the Django-managed store. Otherwise, we can
+    end up with "suspicious file operations" exceptions. 
+
+    '''
+
+    if (file_handle is None) and (relative_path is None):
+        raise Exception('We need either "file_handle" or "relative_path" \
+            passed as keyword args. Neither was provided.')
+
+    if (file_handle is not None) and (relative_path is not None):
+        raise Exception('We need either "file_handle" or "relative_path" \
+            passed as keyword args. Both were provided.')
+
+    if file_handle is not None:
+        f = file_handle
+    else:
+        f = relative_path
+        # if passing the path, ensure the file does exist...
+        if not default_storage.exists(relative_path):
+            raise StorageException(f'File was not located at {relative_path}')
+
+    resource_instance = Resource.objects.create(
+        owner = owner,
+        datafile = f,
+        name = name,
+        status=status,
+        resource_type=resource_type,
+        is_active=is_active,
+        file_format=file_format
+    )
+    if workspace:
+        resource_instance.workspaces.add(workspace)
+    resource_instance.save()
+    return resource_instance

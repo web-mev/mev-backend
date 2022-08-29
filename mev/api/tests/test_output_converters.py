@@ -85,7 +85,7 @@ class ResourceOutputTester(BaseAPITestCase):
             raise ImproperlyConfigured('Need at least one Workspace for the regular user.')
         self.workspace = all_user_workspaces[0]
 
-        self.converter = BaseOutputConverter()
+        self.base_converter = BaseOutputConverter()
         job_id = str(uuid.uuid4())
         op = Operation.objects.all()[0]
         self.job_name = 'foo'
@@ -103,25 +103,32 @@ class ResourceOutputTester(BaseAPITestCase):
         resource_uuid = uuid.uuid4()
         mock_resource = mock.MagicMock()
         mock_resource.pk = resource_uuid
-        self.converter.handle_storage_failure(mock_resource, False)
+        # there WAS a storage failure, but given that we pass False,
+        # it's not something we need to worry about. Hence, we simply
+        # delete the resource and silently move on.
+        self.base_converter.handle_storage_failure(mock_resource, False)
         mock_resource.delete.assert_called()
 
         mock_resource2 = mock.MagicMock()
         mock_resource2.pk = resource_uuid
         with self.assertRaises(OutputConversionException) as ex:
-            self.converter.handle_storage_failure(mock_resource2, True)
+            self.base_converter.handle_storage_failure(mock_resource2, True)
         mock_resource2.delete.assert_called()
+
+        # this should just silently move on.
+        self.base_converter.handle_storage_failure(None, False)
+
+        with self.assertRaises(OutputConversionException) as ex:
+            self.base_converter.handle_storage_failure(None, True)
 
 
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_output_filename')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
     @mock.patch('api.converters.output_converters.initiate_resource_validation')
-    @mock.patch('api.converters.output_converters.move_resource_to_final_location')
     @mock.patch('api.converters.output_converters.retrieve_resource_class_standard_format')
     def test_resource_addition_makes_proper_calls(self, \
         mock_retrieve_resource_class_standard_format, \
-        mock_move_resource_to_final_location, \
         mock_initiate_resource_validation, \
         mock_create_resource, \
         mock_create_output_filename, \
@@ -140,7 +147,6 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_retrieve_resource_class_standard_format.return_value = file_format
 
         final_path = '/the/final/path.tsv'
-        mock_move_resource_to_final_location.return_value = final_path
 
         resource_uuid = uuid.uuid4()
         mock_resource = mock.MagicMock()
@@ -151,7 +157,7 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_resource_metadata_obj = mock.MagicMock()
         mock_resourcemetadata_model.objects.get.return_value = mock_resource_metadata_obj
 
-        return_val = self.converter.attempt_resource_addition(
+        return_val = self.base_converter.attempt_resource_addition(
             self.executed_op, self.workspace, mock_path, resource_type, output_required
         )
         mock_create_resource.assert_called_with(
@@ -163,7 +169,6 @@ class ResourceOutputTester(BaseAPITestCase):
         )
         mock_initiate_resource_validation.assert_called_with(mock_resource, resource_type, file_format)
         self.assertTrue(mock_resource.path == final_path)
-        mock_move_resource_to_final_location.assert_called_with(mock_resource)
         mock_resourcemetadata_model.objects.get.assert_called()
         mock_resource_metadata_obj.save.assert_called()
         self.assertEqual(return_val, str(resource_uuid))
@@ -406,10 +411,10 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_handle_invalid_resource_type.assert_not_called()
 
     def test_create_output_filename(self):
-        r = self.converter.create_output_filename('/some/random/path/myfile.tsv', 'myjob')
+        r = self.base_converter.create_output_filename('/some/random/path/myfile.tsv', 'myjob')
         self.assertEqual(r, 'myjob.myfile.tsv')
 
-        r = self.converter.create_output_filename('/some/random/path/myfile.tsv', '')
+        r = self.base_converter.create_output_filename('/some/random/path/myfile.tsv', '')
         self.assertEqual(r, 'myfile.tsv')
 
 class DataResourceOutputConverterTester(BaseAPITestCase):

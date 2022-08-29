@@ -1,5 +1,6 @@
 import uuid
 import os
+import shutil
 import json
 import unittest.mock as mock
 
@@ -16,8 +17,15 @@ from constants import DATABASE_RESOURCE_TYPES, \
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
 
+# the api/tests dir
+TESTDIR = os.path.dirname(__file__)
+TESTDIR = os.path.join(TESTDIR, 'resource_contents_test_files')
+
 
 class OperationResourceViewTests(BaseAPITestCase):
+
+    # The name for a directory relative to settings.MEDIA_ROOT
+    TMP_TEST_DIR_NAME = 'tmp-tests'
 
     def setUp(self):
         self.establish_clients()
@@ -28,9 +36,22 @@ class OperationResourceViewTests(BaseAPITestCase):
 
         self.op = ops[0]
 
-        # create some OperationResources for this Operation:
+        # create some OperationResources for this Operation.
+        # Need to point at real files. To avoid raising a SuspiciousOperation
+        # exception, however, we need to copy to a location under our media root
+        # Make the tmp dir:
+        base_dir = settings.MEDIA_ROOT
+        self.test_tmp_dir = os.path.join(base_dir, self.TMP_TEST_DIR_NAME)
+        os.mkdir(self.test_tmp_dir)
+        source_file = os.path.join(TESTDIR, 'demo_file1.tsv')
+        shutil.copy(source_file, self.test_tmp_dir)
+
+        testfile_path = os.path.join(
+            self.test_tmp_dir, 
+            os.path.basename(source_file)
+        )
         op_r1 = OperationResource.objects.create(
-            path = 'b/c/foo.txt',
+            datafile = testfile_path,
             name = 'foo.txt',
             input_field = 'field_a',
             operation = self.op,
@@ -39,7 +60,7 @@ class OperationResourceViewTests(BaseAPITestCase):
         )
 
         op_r2 = OperationResource.objects.create(
-            path = 'b/c/bar.txt',
+            datafile = testfile_path,
             name = 'bar.txt',
             input_field = 'field_a',
             operation = self.op,
@@ -47,15 +68,17 @@ class OperationResourceViewTests(BaseAPITestCase):
             file_format = TSV_FORMAT
         )
 
-
         op_r3 = OperationResource.objects.create(
-            path = 'b/c/baz.txt',
+            datafile = testfile_path,
             name = 'baz.txt',
             input_field = 'field_b',
             operation = self.op,
             resource_type = 'MTX',
             file_format = TSV_FORMAT
         )
+
+    def tearDown(self):
+        shutil.rmtree(self.test_tmp_dir)
 
     def test_list_resource_requires_auth(self):
         """

@@ -2,11 +2,24 @@ import uuid
 import os
 
 import boto3
+import botocore
 from storages.backends.s3boto3 import S3Boto3Storage
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 
 from api.utilities.basic_utils import copy_local_resource
+from api.exceptions import StorageException
+
+
+def get_storage_dir(resource_instance, path):
+    '''
+    A single function to define how we store our files relative to the
+    storage root (settings.MEDIA_ROOT)
+
+    Note that this has a signature such that it can be used by
+    django.db.models.FileField's `upload_to` kwarg.
+    '''
+    return os.path.join(str(resource_instance.owner.pk), path)
 
 
 class LocalResourceStorage(FileSystemStorage):
@@ -28,10 +41,29 @@ class LocalResourceStorage(FileSystemStorage):
         raise NotImplementedError('Since local storage is used, we do not allow'\
             ' interaction with bucket/object storage.')
 
+    def copy_to_storage(self, src_bucket, src_object, dest_object):
+        raise NotImplementedError('Since local storage is used, we do not allow'\
+            ' interaction with bucket/object storage.')
+
 
 class S3ResourceStorage(S3Boto3Storage):
     bucket_name = settings.MEDIA_ROOT
     s3_prefix = 's3://'
+
+    # This will append random content to the end so that
+    # files are not overwritten
+    file_overwite = False
+
+    def get_bucket_and_object_from_full_path(self, full_path):
+        '''
+        Given `full_path` (e.g. s3://my-bucket/folderA/file.txt)
+        return a tuple of the bucket (`my-bucket`) and the object
+        (`folderA/file.txt`)
+        '''
+        if not full_path.startswith(self.s3_prefix):
+            raise Exception(f'The full path must \
+                include the prefix {self.s3_prefix}')
+        return full_path[len(self.s3_prefix):].split('/', 1)
 
     def localize(self, resource, local_dir):
         '''
@@ -62,19 +94,33 @@ class S3ResourceStorage(S3Boto3Storage):
             'Bucket': src_bucket,
             'Key': src_object
         }
-        s3.meta.client.copy(copy_source, dest_bucket, dest_object)
-        return self.s3_prefix + os.path.join(
+        try:
+            s3.meta.client.copy(copy_source, dest_bucket, dest_object)
+        except botocore.exceptions.ClientError as ex:
+            response_code = ex.response['Error']['Code']
+            if response_code == '404':
+                raise FileNotFoundError
+        except Exception:
+            raise StorageException('Unexpected error when performing a'
+                ' bucket-to-bucket copy.'
+            )
+        return os.path.join(
             dest_bucket,
             dest_object
         )
 
-    def copy_to_storage(self, src_bucket, src_object, dest_object):
+    def copy_to_storage(self, src_bucket, src_object, dest_object=None):
         '''
         Copies from a bucket outside of Django storage into our
         django-managed S3 storage
 
-        `dest_object` is relative to our django-managed storage bucket
+        `dest_object` is relative to our django-managed storage bucket.
+        If `dest_object` is None, we take the basename of the source object
+
         '''
+        if dest_object is None:
+            dest_object = os.path.basename(src_object)
+
         return self._copy(
             src_bucket,
             self.bucket_name,
@@ -91,7 +137,7 @@ class S3ResourceStorage(S3Boto3Storage):
         storage bucket (see `bucket_name` above), this is a copy
         AWAY from our storage.
 
-        If `dest_object` is None, we take the basename of the source `Resource`
+        If `dest_object` is None, we create a new UUID-based name
         '''
         if dest_object is None:
             dest_object = str(uuid.uuid4())
@@ -102,3 +148,7 @@ class S3ResourceStorage(S3Boto3Storage):
             resource.datafile.name,
             dest_object
         )
+
+class S3CromwellStorage(S3Boto3Storage):
+    #bucket_name = settings.CROMWELL_BUCKET
+    bucket_name = 'brian-cromwell-storage'

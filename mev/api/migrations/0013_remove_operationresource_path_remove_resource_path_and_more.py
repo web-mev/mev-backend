@@ -28,6 +28,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='resource',
             name='datafile',
-            field=models.FileField(null=True, upload_to=api.models.resource.upload_base),
+            field=models.FileField(null=True, upload_to=api.storage.get_storage_dir),
         ),
     ]

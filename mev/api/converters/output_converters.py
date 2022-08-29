@@ -1,16 +1,24 @@
 import os
+import uuid
+from io import BytesIO
 import logging
 
+from django.core.files import File
+from django.core.files.storage import default_storage
+from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.utilities.resource_utilities import initiate_resource_validation, \
     delete_resource_by_pk, \
-    retrieve_resource_class_standard_format
+    retrieve_resource_class_standard_format, \
+    create_resource
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.models import Resource, ResourceMetadata
-from api.exceptions import OutputConversionException
+from api.exceptions import OutputConversionException, StorageException
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
+from api.storage import get_storage_dir
+
 
 logger = logging.getLogger(__name__)
 
@@ -197,17 +205,11 @@ class BaseOutputConverter(object):
         # the "name"  of the file as the user will see it.
         name = self.create_output_filename(path, executed_op.job_name) 
 
-        # TODO: implement a move from the original location
-        # (from either local dir or from execution bucket with Cromwell, etc.)
-        # to our storage system.
-
         # create the resource in the db.
         resource = self.create_resource(executed_op.owner, \
             workspace, path, name, output_required)
 
-
-        # Now attempt to validate and store the resource. IF this succeeds,
-        # then the resource will be moved to its final location and the resource_type
+        # Now attempt to validate the resource. IF this succeeds, the resource_type
         # field will be set.
         # If there is an unrecoverable failure, this method will raise
         # an exception that is caught in the calling method
@@ -244,19 +246,17 @@ class BaseOutputConverter(object):
         jobs where outputs are optional. In that case, Cromwell still 
         produces a path to a non-existent file. The storage backend will
         raise an exception and this method will handle any actions to take
-
-        This base method simply removes the resource and returns None
         '''
 
-        # TODO: check this.
         # Regardless of whether the output was required, we
         # delete the database instance so we don't have corrupted
-        # contents in the database
-        # resource.delete()
-        # if output_required:
-        #     # output WAS required, but we failed to store. That's a problem
-        #     raise OutputConversionException('A storage exception was '
-        #         ' encountered when attempting to store a required output ')
+        # contents in the database. 
+        if resource is not None:
+            resource.delete()
+        if output_required:
+            # output WAS required, but we failed to store. That's a problem
+            raise OutputConversionException('A storage exception was '
+                ' encountered when attempting to store a required output ')
 
     def handle_invalid_resource_type(self, resource):
         '''
@@ -273,31 +273,101 @@ class BaseOutputConverter(object):
         # The cast to a str is not necessary, but makes unit testing slightly simpler
         delete_resource_by_pk(str(resource.pk))
 
+
+class LocalOutputConverter(BaseOutputConverter):
+
     def create_resource(self, owner, workspace, path, name, output_required):
+        '''
+        Returns an instance of api.models.Resource based on the passed parameters.
+
+        Note that `path` is the path in the output directory from the executed operation.
+
+        Since this implementation is for a local output, it is a path on the filesystem
+        of the server.
+        '''
+        #TODO test this
         logger.info('From executed operation outputs based on a local job,'
-            ' create a resource at {p} with name {n}'.format(
-                p = path,
+            ' create a resource with name {n}'.format(
                 n = name
             )
         )
-        resource_instance = Resource.objects.create(
-            owner = owner,
-            path = path,
-            name = name
-        )
-        if workspace:
-            resource_instance.workspaces.add(workspace)
-        resource_instance.save()
-        return resource_instance
+        try:
+            fh = File(open(path, 'rb'), name)
+        except FileNotFoundError:
 
-class LocalOutputConverter(BaseOutputConverter):
-    pass        
+            return create_resource(
+                owner, 
+                file_handle=fh,
+                name=name, 
+                workspace=workspace
+            )
+        except Exception as ex:
+            logger.info(f'Caught a general exception when attempting'
+                ' to create a Resource instance for a locally'
+                ' generated output. Exception was {ex}'
+            )
+            self.handle_storage_failure(None, output_required)
+
 
 class RemoteOutputConverter(BaseOutputConverter):
     pass
 
+
 class LocalDockerOutputConverter(LocalOutputConverter):
     pass
 
+
 class RemoteCromwellOutputConverter(RemoteOutputConverter):
-    pass
+
+    def create_resource(self, owner, workspace, path, name, output_required):
+        '''
+        Returns an instance of api.models.Resource based on the passed parameters.
+
+        Note that `path` is the path in the Cromwell bucket and we have to move the 
+        file into WebMeV storage.
+        '''
+        #TODO test this
+
+        logger.info('From executed operation outputs based on a Cromwell-based job,'
+            ' create a resource with name {n}'.format(
+                n = name
+            )
+        )
+        # To avoid needing to duplicate the logic of locating files
+        # within our storage, we basically create a dummy placeholder
+        # "file" with empty content and create an instance
+        # of api.models.Resource. We then get the path of that dummy
+        # file and use that as a place to send the copy of our 
+        # Cromwell-based file.
+        with BytesIO() as fh:
+            f = File(fh, str(uuid.uuid4()))
+            r = create_resource(
+                owner,
+                file_handle=f,
+                name=name,
+                # initially inactive so that a user can't interact with it (yet)
+                is_active=False, 
+                workspace=workspace
+            )
+        storage_client = default_storage
+        dest_obj = r.datafile.name
+        src_bucket, src_object = default_storage.get_bucket_and_object_from_full_path(path)
+        try:
+            storage_client.copy_to_storage(
+                src_bucket,
+                src_object,
+                dest_obj
+            )
+            # now that the file is copied to the correct location, update the 
+            # api.models.Resource instance in the database.
+            r.is_active = True
+            r.save()
+            return r
+        except (FileNotFoundError, StorageException):
+            # For optional outputs, Cromwell will report output files
+            # that do not actually exist. In this case, the copy will
+            # fail, but it's not necessarily a problem.
+            self.handle_storage_failure(r, output_required)
+
+
+        

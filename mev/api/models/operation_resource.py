@@ -65,3 +65,11 @@ class OperationResource(AbstractResource):
         # are unique. Otherwise, one could apply a name which is not
         # unique for a given operation input
         unique_together = ('input_field', 'name', 'operation')
+
+    def save(self, *args, **kwargs):
+        '''
+        This overrides the save method, implementing
+        custom behavior upon creation
+        '''
+        self.size = self.datafile.size
+        super().save(*args, **kwargs)
