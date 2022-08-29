@@ -68,4 +68,18 @@ node /cromwell/ {
   }
 
   class { 'postgresql::server': }
+
+  file { '/opt/cromwell.conf':
+    ensure  => file,
+    content => epp(
+      "${project_root}/deployment-aws/manifests/cromwell.conf.epp",
+      {
+        'region'                  => $facts['aws_region'],
+        'api_storage_bucket'      => $facts['api_storage_bucket'],
+        'cromwell_storage_bucket' => $facts['cromwell_storage_bucket'],
+      }
+    ),
+    owner   => $cromwell_user,
+    group   => $cromwell_user,
+  }
 }

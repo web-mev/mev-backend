@@ -140,3 +140,33 @@ resource "aws_security_group" "api_server" {
     ipv6_cidr_blocks = ["::/0"]
   }
 }
+
+resource "aws_security_group" "cromwell" {
+  name        = "${local.common_tags.Name}-cromwell"
+  description = "Allow inbound HTTP from API server and SSH from the Internet"
+  vpc_id      = aws_vpc.main.id
+  ingress {
+    description     = "HTTP from API server"
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.api_server.id]
+  }
+  ingress {
+    description      = "SSH from the Internet"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+  # implicit with AWS but Terraform requires this to be explicit
+  egress {
+    description      = "Allow all egress"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "all"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}

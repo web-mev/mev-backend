@@ -4,6 +4,7 @@ data "aws_route53_zone" "main" {
 
 locals {
   backend_cname  = "${local.stack}-mev-api.${data.aws_route53_zone.main.name}"
+  cromwell_cname = "${local.stack}-cromwell.${data.aws_route53_zone.main.name}"
   frontend_cname = "${local.stack}-mev.${data.aws_route53_zone.main.name}"
 }
 
