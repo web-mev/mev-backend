@@ -23,7 +23,7 @@ resource "aws_iam_instance_profile" "cromwell" {
 resource "aws_instance" "cromwell" {
   # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
   ami                    = "ami-07f84a50d2dec2fa4"
-  instance_type          = "t3.large"
+  instance_type          = "t3.medium"
   monitoring             = true
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.cromwell.id]
@@ -76,4 +76,23 @@ resource "aws_instance" "cromwell" {
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT
+}
+
+resource "aws_batch_compute_environment" "cromwell" {
+  compute_environment_name = local.common_tags.Name
+  type                     = "MANAGED"
+  compute_resources {
+    max_vcpus          = 16
+    security_group_ids = [aws_security_group.cromwell.id]
+    subnets            = [aws_subnet.public.id]
+    type               = "FARGATE"
+  }
+  service_role = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch"
+}
+
+resource "aws_batch_job_queue" "cromwell" {
+  name                 = local.common_tags.Name
+  compute_environments = [aws_batch_compute_environment.cromwell.arn]
+  priority             = 1
+  state                = "ENABLED"
 }
