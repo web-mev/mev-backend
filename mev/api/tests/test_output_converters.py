@@ -13,7 +13,9 @@ from api.models import Workspace, \
     ExecutedOperation, \
     WorkspaceExecutedOperation, \
     Operation
-from api.converters.output_converters import BaseOutputConverter
+from api.converters.output_converters import BaseOutputConverter, \
+    LocalOutputConverter, \
+    RemoteCromwellOutputConverter
 from api.exceptions import OutputConversionException, \
     StorageException, \
     ResourceValidationException
@@ -121,21 +123,24 @@ class ResourceOutputTester(BaseAPITestCase):
         with self.assertRaises(OutputConversionException) as ex:
             self.base_converter.handle_storage_failure(None, True)
 
-
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_output_filename')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
     @mock.patch('api.converters.output_converters.initiate_resource_validation')
     @mock.patch('api.converters.output_converters.retrieve_resource_class_standard_format')
-    def test_resource_addition_makes_proper_calls(self, \
+    def _test_resource_addition_makes_proper_calls(self, \
+        converter,
+        mock_resource,
         mock_retrieve_resource_class_standard_format, \
         mock_initiate_resource_validation, \
-        mock_create_resource, \
         mock_create_output_filename, \
         mock_resourcemetadata_model
         ):
         '''
-        Test that all the expected calls are made when everything works as expected
+        Test that all the expected calls are made when everything works as expected.
+
+        Note that this function isn't directly used-- you call it from an actual
+        test function (e.g. starts with 'test_') and pass it an implementation of
+        the storage class.
         '''
         mock_path = '/some/path/to/file.tsv'
         resource_type = 'MTX'
@@ -146,47 +151,37 @@ class ResourceOutputTester(BaseAPITestCase):
         file_format = 'abc'
         mock_retrieve_resource_class_standard_format.return_value = file_format
 
-        final_path = '/the/final/path.tsv'
-
-        resource_uuid = uuid.uuid4()
-        mock_resource = mock.MagicMock()
-        mock_resource.pk = resource_uuid
-        mock_resource.is_active = False
-        mock_create_resource.return_value = mock_resource
-  
         mock_resource_metadata_obj = mock.MagicMock()
         mock_resourcemetadata_model.objects.get.return_value = mock_resource_metadata_obj
-
-        return_val = self.base_converter.attempt_resource_addition(
+        return_val = converter.attempt_resource_addition(
             self.executed_op, self.workspace, mock_path, resource_type, output_required
         )
-        mock_create_resource.assert_called_with(
-            self.regular_user_1,
+        converter.create_resource.assert_called_with(
+            self.executed_op,
             self.workspace,
             mock_path, 
             mock_name,
             output_required
         )
-        mock_initiate_resource_validation.assert_called_with(mock_resource, resource_type, file_format)
-        self.assertTrue(mock_resource.path == final_path)
+        mock_initiate_resource_validation.assert_called_with(
+            mock_resource, resource_type, file_format)
+
         mock_resourcemetadata_model.objects.get.assert_called()
         mock_resource_metadata_obj.save.assert_called()
-        self.assertEqual(return_val, str(resource_uuid))
+        self.assertEqual(return_val, str(mock_resource.pk))
         self.assertTrue(mock_resource.is_active)
         mock_resource.save.assert_called()
 
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_output_filename')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
     @mock.patch('api.converters.output_converters.initiate_resource_validation')
-    @mock.patch('api.converters.output_converters.move_resource_to_final_location')
     @mock.patch('api.converters.output_converters.retrieve_resource_class_standard_format')
-    def test_resource_addition_makes_proper_calls_if_resource_type_invalid(self, \
+    def _test_resource_addition_makes_proper_calls_if_resource_type_invalid(self, \
+        converter,
+        mock_resource,
         mock_retrieve_resource_class_standard_format, \
-        mock_move_resource_to_final_location, \
         mock_initiate_resource_validation, \
-        mock_create_resource, \
         mock_create_output_filename, \
         mock_handle_invalid_resource_type, \
         mock_resourcemetadata_model
@@ -197,39 +192,31 @@ class ResourceOutputTester(BaseAPITestCase):
         That particular exception indicates that file was "acceptable" (in the sense that
         it could be opened and parsed), but that the validation failed for a reason such 
         as an integer matrix having a float or similar.
+
+        Note that this method is not directly tested, but rather used as a way to test
+        the children classes of BaseOutputConverter.
         '''
         mock_path = '/some/path/to/file.tsv'
         resource_type = 'MTX'
         output_required = True
         mock_name = 'foo.tsv'
         mock_create_output_filename.return_value = mock_name
-
-        resource_uuid = uuid.uuid4()
-        mock_resource = mock.MagicMock()
-        mock_resource.pk = resource_uuid
-        mock_resource.is_active = False
-        mock_create_resource.return_value = mock_resource
   
         file_format = 'abc'
         mock_retrieve_resource_class_standard_format.return_value = file_format
 
-        final_path = '/the/final/path.tsv'
-        mock_move_resource_to_final_location.return_value = final_path
-
-        # here, the validation method raises a general Exception which is a signal
-        # that something unexpected is going on. If a file is generally well-formed
-        # but simply fails to validate (e.g. fails due to an integer matrix having floats)
-        # then a more specific exception is raised.
-        # In either case, that's a problem.
+        # here, the validation method raises a ResourceValidationException which is a signal
+        # that it failed to conform to our expected specification. This is a predictable failure
+        # that we should specifically catch.
         mock_initiate_resource_validation.side_effect = ResourceValidationException('nope.')
 
         with self.assertRaises(OutputConversionException) as ex:
-            return_val = self.converter.attempt_resource_addition(
+            return_val = converter.attempt_resource_addition(
                 self.executed_op, self.workspace, mock_path, resource_type, output_required
             )
 
-        mock_create_resource.assert_called_with(
-            self.regular_user_1,
+        converter.create_resource.assert_called_with(
+            self.executed_op,
             self.workspace,
             mock_path, 
             mock_name,
@@ -237,7 +224,6 @@ class ResourceOutputTester(BaseAPITestCase):
         )
         mock_initiate_resource_validation.assert_called_with(
             mock_resource, resource_type, file_format)
-        mock_move_resource_to_final_location.assert_called_with(mock_resource)
         mock_resourcemetadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_called_with(mock_resource)
         self.assertFalse(mock_resource.is_active)
@@ -245,15 +231,13 @@ class ResourceOutputTester(BaseAPITestCase):
     @mock.patch('api.converters.output_converters.ResourceMetadata')        
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_output_filename')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
     @mock.patch('api.converters.output_converters.initiate_resource_validation')
-    @mock.patch('api.converters.output_converters.move_resource_to_final_location')
     @mock.patch('api.converters.output_converters.retrieve_resource_class_standard_format')
-    def test_resource_addition_makes_proper_calls_if_resource_type_invalid_case2(self, \
+    def _test_resource_addition_makes_proper_calls_if_resource_type_invalid_case2(self, \
+        converter, \
+        mock_resource, \
         mock_retrieve_resource_class_standard_format, \
-        mock_move_resource_to_final_location, \
         mock_initiate_resource_validation, \
-        mock_create_resource, \
         mock_create_output_filename, \
         mock_handle_invalid_resource_type, \
         mock_resourcemetadata_model
@@ -267,17 +251,9 @@ class ResourceOutputTester(BaseAPITestCase):
         output_required = True
         mock_name = 'foo.tsv'
         mock_create_output_filename.return_value = mock_name
-
-        resource_uuid = uuid.uuid4()
-        mock_resource = mock.MagicMock()
-        mock_resource.pk = resource_uuid
-        mock_create_resource.return_value = mock_resource
   
         file_format = 'abc'
         mock_retrieve_resource_class_standard_format.return_value = file_format
-
-        final_path = '/the/final/path.tsv'
-        mock_move_resource_to_final_location.return_value = final_path
 
         # here, the validation method raises a general Exception which is a signal
         # that something unexpected is going on. If a file is generally well-formed
@@ -287,12 +263,12 @@ class ResourceOutputTester(BaseAPITestCase):
         mock_initiate_resource_validation.side_effect = Exception('ack!')
 
         with self.assertRaises(OutputConversionException) as ex:
-            return_val = self.converter.attempt_resource_addition(
+            return_val = converter.attempt_resource_addition(
                 self.executed_op, self.workspace, mock_path, resource_type, output_required
             )
 
-        mock_create_resource.assert_called_with(
-            self.regular_user_1,
+        converter.create_resource.assert_called_with(
+            self.executed_op,
             self.workspace,
             mock_path, 
             mock_name,
@@ -300,115 +276,214 @@ class ResourceOutputTester(BaseAPITestCase):
         )
         mock_initiate_resource_validation.assert_called_with(
             mock_resource, resource_type, file_format)
-        mock_move_resource_to_final_location.assert_called_with(mock_resource)
         mock_resourcemetadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_called_with(mock_resource)
+        self.assertFalse(mock_resource.is_active)
 
+    def test_local_resource_converter(self):
+        '''
+        This function instantiates a LocalOutputConverter
+        and passes it to another function that runs the
+        test. This way we don't have to duplicate the test code
+        for the multiple derived classes of BaseOutputConverter
+        '''
+        converter = LocalOutputConverter()
+
+        # create a mock Resource
+        resource_uuid = uuid.uuid4()
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = resource_uuid
+        mock_resource.is_active = False
+        converter.create_resource = mock.MagicMock()
+        converter.create_resource.return_value = mock_resource
+
+        # now call the function that runs the test
+        self._test_resource_addition_makes_proper_calls(converter, mock_resource)
+
+        mock_resource.is_active = False
+        self._test_resource_addition_makes_proper_calls_if_resource_type_invalid(
+            converter, mock_resource)
+
+        mock_resource.is_active = False
+        self._test_resource_addition_makes_proper_calls_if_resource_type_invalid_case2(
+            converter, mock_resource)
+
+    def test_remote_cromwell_resource_converter(self):
+        '''
+        This function instantiates a RemoteCromwellOutputConverter
+        converter and passes it to another function that runs the
+        test. This way we don't have to duplicate the test code
+        for the multiple derived classes of BaseOutputConverter
+        '''
+        converter = RemoteCromwellOutputConverter()
+
+        # create a mock Resource
+        resource_uuid = uuid.uuid4()
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = resource_uuid
+        mock_resource.is_active = False
+        converter.create_resource = mock.MagicMock()
+        converter.create_resource.return_value = mock_resource
+
+        # now call the function that runs the test
+        self._test_resource_addition_makes_proper_calls(converter, mock_resource)
+
+        # reset the mock resource
+        mock_resource.is_active = False
+        self._test_resource_addition_makes_proper_calls_if_resource_type_invalid(
+            converter, mock_resource)
+
+        mock_resource.is_active = False
+        self._test_resource_addition_makes_proper_calls_if_resource_type_invalid_case2(
+            converter, mock_resource)
+    
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_storage_failure')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_output_filename')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
     @mock.patch('api.converters.output_converters.initiate_resource_validation')
-    @mock.patch('api.converters.output_converters.move_resource_to_final_location')
-    def test_resource_addition_raises_storage_ex(self, \
-        mock_move_resource_to_final_location, \
+    @mock.patch('api.converters.output_converters.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.output_converters.alert_admins')
+    def test_local_resource_addition_raises_storage_exception(self, \
+        mock_alert_admins, \
+        mock_retrieve_resource_class_standard_format, \
         mock_initiate_resource_validation, \
-        mock_create_resource, \
         mock_create_output_filename, \
-        mock_handle_storage_failure, \
         mock_handle_invalid_resource_type, \
         mock_resource_metadata_model
         ):
         '''
-        Test that we respond appropriately if a storage exception is raised. Here, the
-        output was required, so there is no recovering
+        Test that we respond appropriately if a storage exception is raised when
+        attempting to add a local resource (e.g. from a Docker-based analysis). 
         '''
-        # the move_resource_to_final_location will either return a path or 
-        # raise a generic Exception
-        mock_move_resource_to_final_location.side_effect = Exception('ack!')
+        converter = LocalOutputConverter()
+        mock_create_resource = mock.MagicMock()
+        mock_create_resource.side_effect = StorageException('!!')
+        converter.create_resource = mock_create_resource
 
-        mock_handle_storage_failure.side_effect = OutputConversionException('')
         mock_path = '/some/path/to/file.tsv'
         resource_type = 'MTX'
         output_required = True
         mock_name = 'foo.tsv'
         mock_create_output_filename.return_value = mock_name
-
-        resource_uuid = uuid.uuid4()
-        mock_resource = mock.MagicMock()
-        mock_resource.pk = resource_uuid
-        mock_create_resource.return_value = mock_resource
   
         with self.assertRaises(OutputConversionException):
-            self.converter.attempt_resource_addition(
+            converter.attempt_resource_addition(
                 self.executed_op, self.workspace, mock_path, resource_type, output_required
             )
         mock_create_resource.assert_called_with(
-            self.regular_user_1,
+            self.executed_op,
             self.workspace,
             mock_path, 
             mock_name,
             output_required
         )
+        mock_retrieve_resource_class_standard_format.assert_not_called()
         mock_initiate_resource_validation.assert_not_called()
-        mock_handle_storage_failure.assert_called_with(mock_resource, output_required)
+
         # no metadata was added, etc. since there was no file to deal with
         mock_resource_metadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_not_called()
 
+        # Now try with an optional output. Don't need to reset the mocks
+        # since they were not called above.
+        output_required = False
+        converter.attempt_resource_addition(
+            self.executed_op, self.workspace, mock_path, resource_type, output_required
+        )
+        mock_retrieve_resource_class_standard_format.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
+
+        # no metadata was added, etc. since there was no file to deal with
+        mock_resource_metadata_model.objects.get.assert_not_called()
+        mock_handle_invalid_resource_type.assert_not_called()
+
+        # Now have the create_resource method raise a general exception.
+        # This might happen if something completely unexpected occurs
+        mock_create_resource.side_effect = Exception('!!')
+        converter.attempt_resource_addition(
+            self.executed_op, self.workspace, mock_path, resource_type, output_required
+        )
+        mock_retrieve_resource_class_standard_format.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
+
+        # no metadata was added, etc. since there was no file to deal with
+        mock_resource_metadata_model.objects.get.assert_not_called()
+        mock_handle_invalid_resource_type.assert_not_called()
+        mock_alert_admins.assert_called()
+
     @mock.patch('api.converters.output_converters.ResourceMetadata')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_invalid_resource_type')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.handle_storage_failure')
     @mock.patch('api.converters.output_converters.BaseOutputConverter.create_output_filename')
-    @mock.patch('api.converters.output_converters.BaseOutputConverter.create_resource')
     @mock.patch('api.converters.output_converters.initiate_resource_validation')
-    @mock.patch('api.converters.output_converters.move_resource_to_final_location')
-    def test_resource_addition_raises_storage_ex_for_optional_output(self, \
-        mock_move_resource_to_final_location, \
+    @mock.patch('api.converters.output_converters.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.output_converters.alert_admins')
+    def test_cromwell_resource_addition_raises_storage_exception(self, \
+        mock_alert_admins, \
+        mock_retrieve_resource_class_standard_format, \
         mock_initiate_resource_validation, \
-        mock_create_resource, \
         mock_create_output_filename, \
-        mock_handle_storage_failure, \
         mock_handle_invalid_resource_type, \
         mock_resource_metadata_model
         ):
         '''
-        Test that we respond appropriately if a storage exception is raised. Here, the
-        output was required, so there is no recovering
+        Test that we respond appropriately if a storage exception is raised when
+        attempting to add a remote, Cromwell-based resource. 
         '''
-        # the move_resource_to_final_location will either return a path or 
-        # raise a generic Exception
-        mock_move_resource_to_final_location.side_effect = Exception('ack!')
+        converter = RemoteCromwellOutputConverter()
+        mock_create_resource = mock.MagicMock()
+        mock_create_resource.side_effect = StorageException('!!')
+        converter.create_resource = mock_create_resource
 
-        mock_handle_storage_failure.return_value = None
         mock_path = '/some/path/to/file.tsv'
         resource_type = 'MTX'
-        output_required = False
+        output_required = True
         mock_name = 'foo.tsv'
         mock_create_output_filename.return_value = mock_name
-
-        resource_uuid = uuid.uuid4()
-        mock_resource = mock.MagicMock()
-        mock_resource.pk = resource_uuid
-        mock_create_resource.return_value = mock_resource
   
-        result = self.converter.attempt_resource_addition(
-            self.executed_op, self.workspace, mock_path, resource_type, output_required
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(OutputConversionException):
+            converter.attempt_resource_addition(
+                self.executed_op, self.workspace, mock_path, resource_type, output_required
+            )
         mock_create_resource.assert_called_with(
-            self.regular_user_1,
+            self.executed_op,
             self.workspace,
             mock_path, 
             mock_name,
             output_required
         )
+        mock_retrieve_resource_class_standard_format.assert_not_called()
         mock_initiate_resource_validation.assert_not_called()
-        mock_handle_storage_failure.assert_called_with(mock_resource, output_required)
+
         # no metadata was added, etc. since there was no file to deal with
         mock_resource_metadata_model.objects.get.assert_not_called()
         mock_handle_invalid_resource_type.assert_not_called()
+
+        # Now try with an optional output. Don't need to reset the mocks
+        # since they were not called above.
+        output_required = False
+        converter.attempt_resource_addition(
+            self.executed_op, self.workspace, mock_path, resource_type, output_required
+        )
+        mock_retrieve_resource_class_standard_format.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
+
+        # no metadata was added, etc. since there was no file to deal with
+        mock_resource_metadata_model.objects.get.assert_not_called()
+        mock_handle_invalid_resource_type.assert_not_called()
+
+        # Now have the create_resource method raise a general exception.
+        # This might happen if something completely unexpected occurs
+        mock_create_resource.side_effect = Exception('!!')
+        converter.attempt_resource_addition(
+            self.executed_op, self.workspace, mock_path, resource_type, output_required
+        )
+        mock_retrieve_resource_class_standard_format.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
+
+        # no metadata was added, etc. since there was no file to deal with
+        mock_resource_metadata_model.objects.get.assert_not_called()
+        mock_handle_invalid_resource_type.assert_not_called()
+        mock_alert_admins.assert_called()
 
     def test_create_output_filename(self):
         r = self.base_converter.create_output_filename('/some/random/path/myfile.tsv', 'myjob')
@@ -963,8 +1038,6 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
         other_resource_type = 'I_MTX'
 
         resource1_uuid = str(uuid.uuid4())
-        resource2_uuid = str(uuid.uuid4())
-
         mock_attempt_resource_addition.return_value = resource1_uuid
 
         c = BaseOutputConverter()
@@ -1040,7 +1113,6 @@ class VariableDataResourceOutputConverterTester(BaseAPITestCase):
         other_resource_type = 'I_MTX'
 
         resource1_uuid = str(uuid.uuid4())
-        resource2_uuid = str(uuid.uuid4())
 
         # mock the situation where the first resource validates, but the 
         # second raises an exception

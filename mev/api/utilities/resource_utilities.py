@@ -522,12 +522,12 @@ def create_resource(owner,
     '''
 
     if (file_handle is None) and (relative_path is None):
-        raise Exception('We need either "file_handle" or "relative_path" \
-            passed as keyword args. Neither was provided.')
+        raise Exception('We need either "file_handle" or "relative_path"'
+            ' passed as keyword args. Neither was provided.')
 
     if (file_handle is not None) and (relative_path is not None):
-        raise Exception('We need either "file_handle" or "relative_path" \
-            passed as keyword args. Both were provided.')
+        raise Exception('We need either "file_handle" or "relative_path"' \
+            ' passed as keyword args. Both were provided.')
 
     if file_handle is not None:
         f = file_handle

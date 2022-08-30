@@ -2,6 +2,8 @@ import datetime
 import os
 import logging
 
+from django.core.files import File
+
 from api.models import PublicDataset, Resource
 from api.async_tasks.async_resource_tasks import validate_resource
 from api.utilities.resource_utilities import create_resource
@@ -166,10 +168,13 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
     resource_list = []
     for path, name, resource_type, file_format in \
             zip(path_list, name_list, resource_type_list, file_format_list):
-        #TODO: incorporate path
+        fh = File(open(path, 'rb'), name)
         r = create_resource(
             user,
+            file_handle=fh,
             name=name,
+            resource_type=resource_type,
+            file_format=file_format,
             status=Resource.VALIDATING
         )
 

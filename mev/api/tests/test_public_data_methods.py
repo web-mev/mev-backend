@@ -17,7 +17,7 @@ from constants import TSV_FORMAT
 from api.public_data import DATASETS, \
     index_dataset, \
     create_dataset_from_params
-from api.models import PublicDataset
+from api.models import PublicDataset, Resource
 from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.gdc.gdc import GDCDataSource, \
     GDCRnaSeqDataSourceMixin
@@ -29,6 +29,7 @@ from api.public_data.indexers.solr import SolrIndexer
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_FILES_DIR = os.path.join(THIS_DIR, 'resource_contents_test_files')
 
 class TestSolrIndexer(BaseAPITestCase): 
 
@@ -160,6 +161,11 @@ class TestPublicDatasets(BaseAPITestCase):
         # grab the first dataset to use in the tests below
         self.test_dataset = self.all_public_datasets[0]
 
+        # need to use an actual file if we are not mocking out the 
+        # django.core.files.File class. Doesn't matter what the 
+        # contents are
+        self.demo_filepath = os.path.join(TEST_FILES_DIR, 'demo_file1.tsv')
+
     def test_unique_tags(self):
         '''
         This test serves as a check that we did not accidentally duplicate
@@ -211,8 +217,11 @@ class TestPublicDatasets(BaseAPITestCase):
     @mock.patch('api.public_data.validate_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
-    @mock.patch('api.public_data.Resource')
-    def test_dataset_creation_steps_case1(self, mock_resource_class,
+    @mock.patch('api.public_data.create_resource')
+    @mock.patch('api.public_data.File')
+    def test_dataset_creation_steps_case1(self,
+            mock_file_class,
+            mock_create_resource,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
             mock_validate_resource
@@ -232,19 +241,19 @@ class TestPublicDatasets(BaseAPITestCase):
         mock_resource_instance.name = mock_name
         pk=1111
         mock_resource_instance.pk = pk
-        filetype = 'MTX'
+        resource_type = 'MTX'
         file_format = TSV_FORMAT
 
-        mock_dataset.create_from_query.return_value = (['a'], [mock_name], [filetype], [file_format])
+        mock_file = mock.MagicMock()
+        mock_file_class.return_value = mock_file
 
-        mock_resource_class.objects.create.return_value =  mock_resource_instance
-        validate_str = 'validating...'
-        mock_resource_class.VALIDATING = validate_str
+        mock_dataset.create_from_query.return_value = (
+            [self.demo_filepath], [mock_name], [resource_type], [file_format])
+
+        mock_create_resource.return_value = mock_resource_instance
 
         mock_check_if_valid_public_dataset_name.return_value = True
         mock_get_implementing_class.return_value = mock_dataset
-
-        mock_final_path = '/a/b/c.txt'
 
         # doesn't matter what this actually is since
         # it depends on the actual dataset being implemented.
@@ -256,12 +265,14 @@ class TestPublicDatasets(BaseAPITestCase):
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload, '')
-        mock_validate_resource.delay.assert_called_with(mock_resource_instance.pk, filetype, file_format)
-        mock_resource_class.objects.create.assert_called_with(
+        mock_validate_resource.delay.assert_called_with(mock_resource_instance.pk, resource_type, file_format)
+        mock_create_resource.assert_called_with(
+            mock_user,
+            file_handle=mock_file,
             name = mock_name,
-            owner=mock_user,
-            path='a',
-            status = validate_str
+            resource_type=resource_type,
+            file_format=file_format,
+            status = Resource.VALIDATING
         )
 
         self.assertEqual(resource_list[0].name, mock_name)
@@ -269,8 +280,9 @@ class TestPublicDatasets(BaseAPITestCase):
     @mock.patch('api.public_data.validate_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
-    @mock.patch('api.public_data.Resource')
-    def test_dataset_creation_fails(self, mock_resource_class,
+    @mock.patch('api.public_data.create_resource')
+    def test_dataset_creation_fails(self, 
+        mock_create_resource,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
             mock_validate_resource
@@ -299,7 +311,7 @@ class TestPublicDatasets(BaseAPITestCase):
             create_dataset_from_params(dataset_id, mock_user, request_payload)
 
         # check that methods were NOT called:
-        mock_resource_class.objects.create.assert_not_called()
+        mock_create_resource.assert_not_called()
         mock_validate_resource.delay.assert_not_called()
 
 

@@ -14,11 +14,10 @@ from api.utilities.resource_utilities import initiate_resource_validation, \
     create_resource
 from api.data_structures.attributes import DataResourceAttribute, \
     VariableDataResourceAttribute
-from api.models import Resource, ResourceMetadata
+from api.models import ResourceMetadata
 from api.exceptions import OutputConversionException, StorageException
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
-from api.storage import get_storage_dir
-
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +66,6 @@ class BaseOutputConverter(object):
                     )
                     resource_uuids.append(new_resource_uuid)
                 except Exception as ex:
-                    # cleanup
                     self.cleanup(resource_uuids)
                     # finally raise this exception which will trigger cleanup of any
                     # other outputs for this ExecutedOperation
@@ -205,9 +203,40 @@ class BaseOutputConverter(object):
         # the "name"  of the file as the user will see it.
         name = self.create_output_filename(path, executed_op.job_name) 
 
-        # create the resource in the db.
-        resource = self.create_resource(executed_op.owner, \
-            workspace, path, name, output_required)
+        # try to create the resource in the db. This involves 
+        # moving/copying files, so there can be exceptions raised
+        # Initialize `resource` to None. If we successfully
+        # return from the `create_resource` method, then this 
+        # will be reset.
+        resource = None
+        try:
+            resource = self.create_resource(executed_op, \
+                workspace, path, name, output_required)
+        except (FileNotFoundError, StorageException):
+            # For optional outputs, Cromwell will report output files
+            # that do not actually exist. In this case, the copy will
+            # fail, but it's not necessarily a problem.
+            logger.info('Received a file not found or storage exception for a'
+                ' job output. Depending on the analysis, this may not be'
+                ' a problem.'
+            )
+        except Exception as ex:
+            logger.info('Received an unexpected exception when creating a resource'
+                ' for a job output'
+            )
+            # since this was unexpected, we want the admins to know about it, even
+            # if the output was optional
+            alert_admins(f'Unexpected exception was raised during resource creation'
+                ' for executed operation {executed_op.pk}'
+            )
+        
+        if resource is None:
+            self.handle_storage_failure(resource, output_required)
+            # if handle_storage_failure does not raise an 
+            # exception, then it was "ok" that this file
+            # did not store correctly (as in the case of 
+            # optional outputs)
+            return None
 
         # Now attempt to validate the resource. IF this succeeds, the resource_type
         # field will be set.
@@ -276,7 +305,7 @@ class BaseOutputConverter(object):
 
 class LocalOutputConverter(BaseOutputConverter):
 
-    def create_resource(self, owner, workspace, path, name, output_required):
+    def create_resource(self, executed_op, workspace, path, name, output_required):
         '''
         Returns an instance of api.models.Resource based on the passed parameters.
 
@@ -285,28 +314,18 @@ class LocalOutputConverter(BaseOutputConverter):
         Since this implementation is for a local output, it is a path on the filesystem
         of the server.
         '''
-        #TODO test this
         logger.info('From executed operation outputs based on a local job,'
             ' create a resource with name {n}'.format(
                 n = name
             )
         )
-        try:
-            fh = File(open(path, 'rb'), name)
-        except FileNotFoundError:
-
-            return create_resource(
-                owner, 
-                file_handle=fh,
-                name=name, 
-                workspace=workspace
-            )
-        except Exception as ex:
-            logger.info(f'Caught a general exception when attempting'
-                ' to create a Resource instance for a locally'
-                ' generated output. Exception was {ex}'
-            )
-            self.handle_storage_failure(None, output_required)
+        fh = File(open(path, 'rb'), name)
+        return create_resource(
+            executed_op.owner, 
+            file_handle=fh,
+            name=name, 
+            workspace=workspace
+        )
 
 
 class RemoteOutputConverter(BaseOutputConverter):
@@ -319,15 +338,13 @@ class LocalDockerOutputConverter(LocalOutputConverter):
 
 class RemoteCromwellOutputConverter(RemoteOutputConverter):
 
-    def create_resource(self, owner, workspace, path, name, output_required):
+    def create_resource(self, executed_op, workspace, path, name, output_required):
         '''
         Returns an instance of api.models.Resource based on the passed parameters.
 
         Note that `path` is the path in the Cromwell bucket and we have to move the 
         file into WebMeV storage.
         '''
-        #TODO test this
-
         logger.info('From executed operation outputs based on a Cromwell-based job,'
             ' create a resource with name {n}'.format(
                 n = name
@@ -342,32 +359,36 @@ class RemoteCromwellOutputConverter(RemoteOutputConverter):
         with BytesIO() as fh:
             f = File(fh, str(uuid.uuid4()))
             r = create_resource(
-                owner,
+                executed_op.owner,
                 file_handle=f,
                 name=name,
                 # initially inactive so that a user can't interact with it (yet)
                 is_active=False, 
                 workspace=workspace
             )
-        storage_client = default_storage
         dest_obj = r.datafile.name
         src_bucket, src_object = default_storage.get_bucket_and_object_from_full_path(path)
         try:
-            storage_client.copy_to_storage(
+            default_storage.copy_to_storage(
                 src_bucket,
                 src_object,
                 dest_obj
-            )
+            )        
             # now that the file is copied to the correct location, update the 
             # api.models.Resource instance in the database.
             r.is_active = True
             r.save()
             return r
-        except (FileNotFoundError, StorageException):
-            # For optional outputs, Cromwell will report output files
-            # that do not actually exist. In this case, the copy will
-            # fail, but it's not necessarily a problem.
-            self.handle_storage_failure(r, output_required)
+        except Exception as ex:
+            logger.info('Caught exception when copying a Cromwell output'
+                ' to our storage. Removing the dummy Resource and re-raising.'
+            )
+            # Need to delete that placeholder file and the database record
+            default_storage.delete(r.datafile.name)
+            r.delete()
+            raise ex
+
+
 
 
         
