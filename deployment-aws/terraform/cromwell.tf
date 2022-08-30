@@ -73,6 +73,7 @@ resource "aws_instance" "cromwell" {
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
   export FACTER_API_STORAGE_BUCKET='${aws_s3_bucket.api_storage_bucket.id}'
   export FACTER_CROMWELL_STORAGE_BUCKET='${aws_s3_bucket.cromwell_storage_bucket.id}'
+  export FACTER_CROMWELL_JOB_QUEUE='${aws_batch_job_queue.cromwell.arn}'
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT

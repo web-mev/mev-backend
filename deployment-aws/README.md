@@ -89,4 +89,4 @@ Apply policy to the log bucket to [allow storing load balancer logs](https://doc
 
 [Create an EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html) for each stack (e.g., `dev-webmev.pem`, `prod-webmev.pem`, etc) using AWS Console
 
-[Create a service-linked role for AWS Batch](https://docs.aws.amazon.com/batch/latest/userguide/using-service-linked-roles.html#create-slr) - one per AWS account
+[Create a service-linked role for AWS Batch](https://docs.aws.amazon.com/batch/latest/userguide/using-service-linked-roles.html#create-slr)

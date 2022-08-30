@@ -77,6 +77,7 @@ node /cromwell/ {
         'region'                  => $facts['aws_region'],
         'api_storage_bucket'      => $facts['api_storage_bucket'],
         'cromwell_storage_bucket' => $facts['cromwell_storage_bucket'],
+        'cromwell_job_queue'      => $facts['cromwell_job_queue'],
       }
     ),
     owner   => $cromwell_user,

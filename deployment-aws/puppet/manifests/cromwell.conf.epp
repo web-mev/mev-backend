@@ -37,7 +37,7 @@ backend {
         auth = "default"
 
         default-runtime-attributes {
-          queueArn: "<your arn here>"
+          queueArn: "<%= $cromwell_job_queue %>"
         }
 
         filesystems {
