@@ -47,7 +47,7 @@ node /cromwell/ {
     source => "https://github.com/broadinstitute/cromwell/releases/download/${version}/cromwell-${version}.jar"
   }
 
-  $cromwell_user = 'cromwell-runner'
+  $cromwell_user = 'ubuntu'
 
   user { $cromwell_user:
     ensure => present,
@@ -58,16 +58,6 @@ node /cromwell/ {
     owner  => $cromwell_user,
     group  => $cromwell_user,
   }
-
-  if $platform == 'aws' {
-    vcsrepo { $project_root:
-      ensure   => present,
-      provider => git,
-      source   => 'https://github.com/web-mev/mev-backend.git',
-    }
-  }
-
-  class { 'postgresql::server': }
 
   file { '/opt/cromwell.conf':
     ensure  => file,
@@ -83,4 +73,6 @@ node /cromwell/ {
     owner   => $cromwell_user,
     group   => $cromwell_user,
   }
+
+  class { 'postgresql::server': }
 }

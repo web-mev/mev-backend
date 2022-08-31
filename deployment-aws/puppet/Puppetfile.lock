@@ -42,7 +42,6 @@ FORGE
     puppetlabs-pwshlib (0.10.2)
     puppetlabs-reboot (4.2.0)
     puppetlabs-stdlib (6.6.0)
-    puppetlabs-vcsrepo (5.0.0)
 
 PATH
   remote: ./mevapi
@@ -55,7 +54,6 @@ PATH
       puppetlabs-docker (= 4.4.0)
       puppetlabs-postgresql (= 8.1.0)
       puppetlabs-stdlib (= 6.6.0)
-      puppetlabs-vcsrepo (= 5.0.0)
 
 DEPENDENCIES
   qbrc-mevapi (= 0.1.0)
