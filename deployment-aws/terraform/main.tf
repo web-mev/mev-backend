@@ -28,7 +28,7 @@ locals {
   stack       = lower(terraform.workspace)
   commit_id   = var.git_commit == "" ? data.external.git.result["branch"] : var.git_commit
   common_tags = {
-    Name      = "${local.stack}-webmev"
+    Name      = "${local.stack}-mev"
     Project   = "WebMEV"
     Terraform = "True"
   }

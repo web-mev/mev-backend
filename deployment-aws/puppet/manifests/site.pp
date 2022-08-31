@@ -49,10 +49,6 @@ node /cromwell/ {
 
   $cromwell_user = 'ubuntu'
 
-  user { $cromwell_user:
-    ensure => present,
-  }
-
   file { '/var/log/cromwell':
     ensure => directory,
     owner  => $cromwell_user,

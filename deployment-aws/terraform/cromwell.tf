@@ -30,7 +30,10 @@ resource "aws_instance" "cromwell" {
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.cromwell.name
   key_name               = var.ssh_key_pair_name
-  volume_tags            = local.common_tags
+  tags                   = {
+    Name = "${local.common_tags.Name}-cromwell"
+  }
+  volume_tags            = merge(local.common_tags, { Name = "${local.common_tags.Name}-cromwell" })
   root_block_device {
     volume_type = "gp3"
   }

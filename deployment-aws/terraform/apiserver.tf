@@ -67,7 +67,10 @@ resource "aws_instance" "api" {
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.api_server_instance_profile.name
   key_name               = var.ssh_key_pair_name
-  volume_tags            = local.common_tags
+  tags                   = {
+    Name = "${local.common_tags.Name}-api"
+  }
+  volume_tags = merge(local.common_tags, { Name = "${local.common_tags.Name}-api" })
   root_block_device {
     volume_type = "gp3"
   }
