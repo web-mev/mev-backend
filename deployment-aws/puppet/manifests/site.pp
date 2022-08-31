@@ -72,7 +72,7 @@ node /cromwell/ {
   file { '/opt/cromwell.conf':
     ensure  => file,
     content => epp(
-      "${project_root}/deployment-aws/manifests/cromwell.conf.epp",
+      "${project_root}/deployment-aws/puppet/manifests/cromwell.conf.epp",
       {
         'region'                  => $facts['aws_region'],
         'api_storage_bucket'      => $facts['api_storage_bucket'],

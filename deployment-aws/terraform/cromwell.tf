@@ -1,5 +1,5 @@
 resource "aws_iam_role" "cromwell" {
-  name               = local.common_tags.Name
+  name               = "${local.common_tags.Name}-cromwell"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
@@ -16,7 +16,7 @@ resource "aws_iam_role" "cromwell" {
 }
 
 resource "aws_iam_instance_profile" "cromwell" {
-  name = local.common_tags.Name
+  name = "${local.common_tags.Name}-cromwell"
   role = aws_iam_role.cromwell.name
 }
 

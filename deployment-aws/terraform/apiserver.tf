@@ -8,7 +8,7 @@ resource "random_password" "django_superuser" {
 # permissions to access the S3 buckets. Note that this block alone
 # does not give that permission.
 resource "aws_iam_role" "api_server_role" {
-  name               = local.common_tags.Name
+  name               = "${local.common_tags.Name}-api"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
@@ -53,7 +53,7 @@ resource "aws_iam_role_policy" "server_s3_access" {
 }
 
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
-  name = local.common_tags.Name
+  name = "${local.common_tags.Name}-api"
   role = aws_iam_role.api_server_role.name
 }
 
