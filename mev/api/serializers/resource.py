@@ -117,7 +117,6 @@ class ResourceSerializer(serializers.ModelSerializer):
         - change the format (i.e. should this be parsed as a CSV, TSV, etc?)
         - change the resource type (which triggers a type validation)
         '''
-
         logger.info('Received validated data: %s' % validated_data)
 
         # if we are performing validation, or some other action has 
