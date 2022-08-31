@@ -217,24 +217,16 @@ class AddBucketResourceView(APIView):
     subsequently upload to run through the tutorial example.
     '''
 
-    BUCKET_NAME = 'bucket_name'
-    OBJECT_NAME = 'object_name'
+    BUCKET_PATH = 'bucket_path'
     RESOURCE_TYPE = 'resource_type'
 
     def post(self, request, *args, **kwargs):
         logger.info('POSTing to create a new resource from bucket-based data')
 
         try:
-            src_bucket = request.data[self.BUCKET_NAME]
+            src_path = request.data[self.BUCKET_PATH]
         except KeyError as ex:
-            return Response({self.BUCKET_NAME: 'You must supply this required key.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            src_object = request.data[self.OBJECT_NAME]
-        except KeyError as ex:
-            return Response({self.OBJECT_NAME: 'You must supply this required key.'},
+            return Response({self.BUCKET_PATH: 'You must supply this required key.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -249,13 +241,13 @@ class AddBucketResourceView(APIView):
             file_format = None
 
         try:
-
-            default_storage.copy_to_storage(
-                src_bucket,
-                src_object,
-            )
+            r = default_storage.create_resource_from_interbucket_copy(request.user, src_path)
         except NotImplementedError:
             return Response({self.BUCKET_PATH: 'The storage system does not support this endpoint.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except FileNotFoundError:
+            return Response({self.BUCKET_PATH: f'The path {src_path} could not be found.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception:
@@ -265,56 +257,13 @@ class AddBucketResourceView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        # copy to 
-        # We require the ability to interact with our storage backend.
-        storage_backend = get_storage_backend()
+        # Even if the resource type or format were not set, we can 
+        # call this function
+        async_validate_resource.delay(r.pk, resource_type, file_format)
 
-        # If the storage backend happens to be local storage, we immediately fail
-        # the request. This could change, however, if a different decision is made.
-        if storage_backend.is_local_storage:
-            return Response({self.BUCKET_PATH: 'The storage system does not support this endpoint.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        resource_serializer = ResourceSerializer(r, context={'request': request})
+        return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
 
-        # If here, we are using a non-local storage 
-        # backend (which, for us, means bucket-based).
-        # We still need to ensure the path given was real and accessible
-        if storage_backend.resource_exists(resource_url):
-
-            basename = os.path.basename(resource_url)
-
-            # create a Resource instance
-            #TODO: incorporate resource_url
-            r = create_resource(
-                owner=request.user,
-                name=basename
-            )
-            r = Resource.get(
-                path = resource_url,
-                owner = request.user,
-                name = basename
-            )
-
-            # Immediately copy the file. Otherwise, validation failures, etc.
-            # could leave the path as the original bucket path which
-            # could cause deletion of the initial file.    
-            final_path = storage_backend.store(r)
-            r.path = final_path
-            r.save()
-
-            # Even if the resource type or format were not set, we can 
-            # call this function
-            async_validate_resource.delay(r.pk, resource_type, file_format)
-
-            resource_serializer = ResourceSerializer(r, context={'request': request})
-            return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            msg = ('The file located at {p} could not be accessed. If the path is indeed'
-                ' correct, then ensure that it is publicly accessible.'
-            )
-            return Response({self.BUCKET_PATH: msg},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
 class ResourceContentTransform(ResourceContents):
     '''

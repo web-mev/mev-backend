@@ -27,6 +27,9 @@ def validate_resource(resource_pk, requested_resource_type, file_format):
     
     '''
     resource = resource_utilities.get_resource_by_pk(resource_pk)
+    logger.info(f'Starting the async resource validation for resource {resource.pk}'
+        ' located at {resource.datafile.name}'
+    )
     resource.status = Resource.VALIDATING
     resource.save()
     try:

@@ -350,42 +350,17 @@ class RemoteCromwellOutputConverter(RemoteOutputConverter):
                 n = name
             )
         )
-        # To avoid needing to duplicate the logic of locating files
-        # within our storage, we basically create a dummy placeholder
-        # "file" with empty content and create an instance
-        # of api.models.Resource. We then get the path of that dummy
-        # file and use that as a place to send the copy of our 
-        # Cromwell-based file.
-        with BytesIO() as fh:
-            f = File(fh, str(uuid.uuid4()))
-            r = create_resource(
-                executed_op.owner,
-                file_handle=f,
-                name=name,
-                # initially inactive so that a user can't interact with it (yet)
-                is_active=False, 
-                workspace=workspace
-            )
-        dest_obj = r.datafile.name
-        src_bucket, src_object = default_storage.get_bucket_and_object_from_full_path(path)
         try:
-            default_storage.copy_to_storage(
-                src_bucket,
-                src_object,
-                dest_obj
-            )        
-            # now that the file is copied to the correct location, update the 
-            # api.models.Resource instance in the database.
-            r.is_active = True
-            r.save()
+            r = default_storage.create_resource_from_interbucket_copy(
+                executed_op.owner,
+                path
+            )
+            r.workspaces.add(workspace)
             return r
         except Exception as ex:
             logger.info('Caught exception when copying a Cromwell output'
                 ' to our storage. Removing the dummy Resource and re-raising.'
             )
-            # Need to delete that placeholder file and the database record
-            default_storage.delete(r.datafile.name)
-            r.delete()
             raise ex
 
 

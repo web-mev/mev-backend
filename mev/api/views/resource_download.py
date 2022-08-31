@@ -5,12 +5,12 @@ import os
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
+from django.core.files.storage import default_storage
 
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
-from api.models import Resource
 from api.exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException
@@ -52,20 +52,20 @@ class ResourceDownloadUrl(APIView):
         except OwnershipException:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # Get the storage backend since we need to know whether it's local or not
+        # TODO: implement signed url, etc.
         storage_backend = None
-        url = storage_backend.get_download_url(r)
+        url = None
         if not url:
             logger.error('Encountered a problem when preparing download for resource'
                 ' with pk={u}'.format(u=resource_pk)
             )
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        if storage_backend.is_local_storage:
+        if settings.STORAGE_LOCATION == settings.LOCAL:
             download_url = request.build_absolute_uri(reverse('download-resource', kwargs={'pk': resource_pk}))
             download_type = 'local'
         else:
-            download_url = url
+            download_url = ''
             download_type = 'remote'
         
         # the 'download_type' is a flag for how the frontend should interpret the response.
@@ -95,11 +95,8 @@ class ResourceDownload(APIView):
         except OwnershipException:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # Get the storage backend since we need to know whether it's local or not
-        storage_backend = get_storage_backend()
-
         # if we don't have local storage, block this style of direct download
-        if not storage_backend.is_local_storage:
+        if settings.STORAGE_LOCATION != settings.LOCAL:
             return Response(
                 {'error': 'The server configuration prevents direct server downloads.'}, 
                 status=status.HTTP_400_BAD_REQUEST)
@@ -110,7 +107,7 @@ class ResourceDownload(APIView):
         # HOWEVER, this is only an issue if the storage backend is local. 
         # Redirects for bucket storage can obviously be handled since they are 
         # downloading directly from the bucket and this will not tie up our server.
-        size_in_bytes = r.size
+        size_in_bytes = r.datafile.size
         if size_in_bytes > settings.MAX_DOWNLOAD_SIZE_BYTES:
             msg = ('The resource size exceeds our limits for a direct'
                 ' download. Please use one of the alternative download methods'
@@ -120,28 +117,14 @@ class ResourceDownload(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # size is acceptable (if downloading from server) 
-        # or moot (if downloading directly from a bucket).
-        # Now, depending on the storage backend, we return different things.
-        # If we have local storage, we just return the file contents.
-        # If we have remote storage, we return a signed url and issue a 302 to redirect them
-        # Hence, url can be a local path or a remote url depending on the storage backend we are using
-        url = storage_backend.get_download_url(r)
-
-        if not url:
-            logger.error('Encountered a problem when preparing download for resource'
-                ' with pk={u}'.format(u=resource_pk)
-            )
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        if os.path.exists(url):
-            contents = open(url, 'rb')
-            mime_type, _ = mimetypes.guess_type(url)
+        if default_storage.exists(r.datafile.name):
+            contents = r.datafile.open('rb')
+            mime_type, _ = mimetypes.guess_type(r.datafile.name)
             response = HttpResponse(content = contents)
             response['Content-Type'] = mime_type
-            response['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(url)
+            response['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(r.name)
             return response
         else:
-            logger.error('Local storage was specified, but the resource at path {p}'
-                ' was not found.'.format(p=url))
+            logger.error(f'Local storage was specified, but the resource at path {r.datafile.path}'
+                ' was not found.')
             return Response(status = status.HTTP_500_INTERNAL_SERVER_ERROR)

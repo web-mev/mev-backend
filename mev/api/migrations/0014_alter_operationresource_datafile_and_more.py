@@ -20,6 +20,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='resource',
             name='datafile',
-            field=models.FileField(upload_to=api.storage.get_storage_dir),
+            field=models.FileField(upload_to=api.models.resource.get_storage_dir),
         ),
     ]

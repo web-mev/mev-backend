@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='resource',
             name='path',
-            field=models.FileField(upload_to=api.storage.get_storage_dir),
+            field=models.FileField(upload_to=api.models.resource.get_storage_dir),
         ),
         migrations.AlterField(
             model_name='simpleresource',

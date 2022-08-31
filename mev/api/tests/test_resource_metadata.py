@@ -1,3 +1,4 @@
+from io import BytesIO
 import unittest
 import unittest.mock as mock
 import os
@@ -8,6 +9,7 @@ import copy
 
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files import File
 from rest_framework import status
 from rest_framework.serializers import ValidationError
 
@@ -21,10 +23,7 @@ from api.data_structures import Observation, \
     UnrestrictedStringAttribute, \
     IntegerAttribute
 
-from api.serializers.resource_metadata import ResourceMetadataSerializer, \
-    ResourceMetadataObservationsSerializer, \
-    ResourceMetadataFeaturesSerializer, \
-    ResourceMetadataParentOperationSerializer
+from api.serializers.resource_metadata import ResourceMetadataSerializer
 from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
 from api.serializers.observation_set import ObservationSetSerializer
@@ -46,6 +45,8 @@ from constants import PARENT_OP_KEY, \
     TSV_FORMAT
 from api.tests.base import BaseAPITestCase
 from api.utilities.resource_utilities import add_metadata_to_resource
+from api.tests.test_helpers import cleanup_resource_file, \
+    associate_file_with_resource
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -169,7 +170,8 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         '''
         new_resource = Resource.objects.create(
             name = 'foo.txt',
-            owner = self.regular_user_1
+            owner = self.regular_user_1,
+            datafile=File(BytesIO(), 'somefile')
         )
         pk = new_resource.pk
         url = reverse(
@@ -178,6 +180,7 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        cleanup_resource_file(new_resource)
 
     def test_retrieve_resource_metadata_for_nonexistent_resource(self):
         '''
@@ -222,7 +225,8 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         new_resource = Resource.objects.create(
             name = 'foo.txt',
             owner = self.regular_user_1,
-            is_active=True
+            is_active=True,
+            datafile=File(BytesIO(), 'somefile')
         )
         self.new_resource_pk = new_resource.pk
 
@@ -238,7 +242,7 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=metadata)
         if rms.is_valid(raise_exception=True):
             rms.save()
-
+        cleanup_resource_file(new_resource)
 
     def test_retrieve_full_metadata(self):
         '''
@@ -315,7 +319,11 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         self.assertTrue(list(response_keys)[0] == PARENT_OP_KEY)
         self.assertEqual(response_json[PARENT_OP_KEY], self.expected_parent_operation)
 
-class TestMatrixMetadata(unittest.TestCase):
+class TestMatrixMetadata(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+
     def test_metadata_correct_case1(self):
         '''
         Typically, the metadata is collected following a successful
@@ -323,12 +331,14 @@ class TestMatrixMetadata(unittest.TestCase):
         '''
         m = Matrix()
         resource_path = os.path.join(TESTDIR, 'test_matrix.tsv')
-        is_valid, err = m.validate_type(resource_path, 'tsv')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
+        is_valid, err = m.validate_type(r, 'tsv')
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
         # OK, the validation worked.  Get metadata
-        metadata = m.extract_metadata(resource_path)
+        metadata = m.extract_metadata(r)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -352,6 +362,8 @@ class TestMatrixMetadata(unittest.TestCase):
         #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+
+        cleanup_resource_file(r)
 
     def test_metadata_correct_case2(self):
         '''
@@ -361,7 +373,9 @@ class TestMatrixMetadata(unittest.TestCase):
         '''
         m = Matrix()
         resource_path = os.path.join(TESTDIR, 'test_matrix.tsv')
-        metadata = m.extract_metadata(resource_path)
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
+        metadata = m.extract_metadata(r)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -386,8 +400,14 @@ class TestMatrixMetadata(unittest.TestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
+        cleanup_resource_file(r)
 
-class TestIntegerMatrixMetadata(unittest.TestCase):
+
+class TestIntegerMatrixMetadata(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+
     def test_metadata_correct_case1(self):
         '''
         Typically, the metadata is collected following a successful
@@ -395,12 +415,15 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         '''
         m = IntegerMatrix()
         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
-        is_valid, err = m.validate_type(resource_path, 'tsv')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
+        is_valid, err = m.validate_type(r, 'tsv')
+
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
         # OK, the validation worked.  Get metadata
-        metadata = m.extract_metadata(resource_path)
+        metadata = m.extract_metadata(r)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -424,6 +447,9 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+
+        cleanup_resource_file(r)
+
 
     def test_metadata_correct_case2(self):
         '''
@@ -432,7 +458,9 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         '''
         m = IntegerMatrix()
         resource_path = os.path.join(TESTDIR, 'test_integer_matrix.tsv')
-        metadata = m.extract_metadata(resource_path)
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
+        metadata = m.extract_metadata(r)
 
         # Parse the test file to ensure we extracted the right content.
         line = open(resource_path).readline()
@@ -457,8 +485,12 @@ class TestIntegerMatrixMetadata(unittest.TestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
+        cleanup_resource_file(r)
 
-class TestAnnotationTableMetadata(unittest.TestCase):
+class TestAnnotationTableMetadata(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
 
     def test_metadata_handles_type_conversion(self):
         '''
@@ -468,17 +500,22 @@ class TestAnnotationTableMetadata(unittest.TestCase):
         https://github.com/pandas-dev/pandas/issues/12859
         '''
         resource_path = os.path.join(TESTDIR, 'test_ann_with_int_column.tsv')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
         t = AnnotationTable()
-        meta = t.extract_metadata(resource_path)
+        meta = t.extract_metadata(r)
         expected_results = [1,2]
         actual_results = []
         for x in meta['observation_set']['elements']:
             attr = x['attributes']
             actual_results.append(attr['int_col']['value'])
         self.assertCountEqual(expected_results, actual_results)
+        cleanup_resource_file(r)
 
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'three_column_annotation.tsv')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
         t = AnnotationTable()
         column_dict = {}
         obs_list = []
@@ -497,10 +534,11 @@ class TestAnnotationTableMetadata(unittest.TestCase):
                 obs = Observation(samplename, attr_dict)
                 obs_list.append(obs)
         expected_obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
-        metadata = t.extract_metadata(resource_path)
+        metadata = t.extract_metadata(r)
         self.assertEqual(metadata[OBSERVATION_SET_KEY], expected_obs_set)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+        cleanup_resource_file(r)
 
 
 class TestFeatureTableMetadata(BaseAPITestCase):
@@ -510,6 +548,8 @@ class TestFeatureTableMetadata(BaseAPITestCase):
 
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'gene_annotations.tsv')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
         t = FeatureTable()
         column_dict = {}
         feature_list = []
@@ -533,7 +573,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
                 f = Feature(gene_name, attr_dict)
                 feature_list.append(f)
         expected_feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
-        metadata = t.extract_metadata(resource_path)
+        metadata = t.extract_metadata(r)
         # Commented out when we removed the automatic creation of Feature metadata
         # for FeatureTable resource types. For large files, it was causing issues
         # with exceptionally large JSON failing to store in db table.
@@ -541,6 +581,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+        cleanup_resource_file(r)
 
     def test_serialization_works(self):
         '''
@@ -555,13 +596,16 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         df.loc['geneB', 'colA'] = np.nan
         path = '/tmp/test_matrix.tsv'
         df.to_csv(path, sep='\t')
+        # now associate that file with a resource
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, path)
 
         ft = FeatureTable()
-        m =  ft.extract_metadata(path)
-        r = Resource.objects.all()[0]
+        m =  ft.extract_metadata(r)
         m[RESOURCE_KEY] = r.pk
         rms = ResourceMetadataSerializer(data=m)
         self.assertTrue(rms.is_valid(raise_exception=True))
+        cleanup_resource_file(r)
 
     def test_dge_output_with_na(self):
         '''
@@ -571,9 +615,10 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         # this file has a row with nan for some of the values; a p-value was not called
         resource_path = os.path.join(TESTDIR, 'deseq_results_example.tsv')
         self.assertTrue(os.path.exists(resource_path))
-        t = FeatureTable()
-        metadata = t.extract_metadata(resource_path)
         r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
+        t = FeatureTable()
+        metadata = t.extract_metadata(r)
         add_metadata_to_resource(r, metadata)
 
         url = reverse(
@@ -582,6 +627,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, 200)
+        cleanup_resource_file(r)
 
     def test_dge_concat_output_with_na(self):
         '''
@@ -589,11 +635,12 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         there are nan/NaN among the covariates in a FeatureTable
         '''
         # this file has a row with nan for some of the values; a p-value was not called
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
         resource_path = os.path.join(TESTDIR, 'deseq_results_example_concat.tsv')
         self.assertTrue(os.path.exists(resource_path))
+        associate_file_with_resource(r, resource_path)
         t = FeatureTable()
-        metadata = t.extract_metadata(resource_path)
-        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        metadata = t.extract_metadata(r)
         add_metadata_to_resource(r, metadata)
         rmm = ResourceMetadata.objects.get(resource=r)
 
@@ -604,17 +651,24 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, 200)
         j = response.json()
+        cleanup_resource_file(r)
 
 
-class TestBedFileMetadata(unittest.TestCase):
+class TestBedFileMetadata(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
 
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'example_bed.bed')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
         bf = BEDFile()
-        metadata = bf.extract_metadata(resource_path)
+        metadata = bf.extract_metadata(r)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
+        cleanup_resource_file(r)
 
 
 class TestResourceMetadataSerializer(BaseAPITestCase):

@@ -2822,16 +2822,12 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    @mock.patch('api.views.resource_views.get_storage_backend')
-    def test_local_storage_backend_fails_request(self, mock_get_storage_backend):
+    def test_local_storage_backend_fails_request(self):
         '''
         If the storage backend is NOT bucket-based, then we 
         can't reasonably handle requests to this endpoint.
         Hence, fail all the requests in this case.
         '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = True
-        mock_get_storage_backend.return_value = mock_storage_impl
         response = self.authenticated_regular_client.post(
             self.url, 
             data = {'bucket_path': 'gs://some-bucket/some-path'},
@@ -2854,19 +2850,15 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_400_BAD_REQUEST)
 
-    @mock.patch('api.views.resource_views.get_storage_backend')
-    def test_nonexistent_url(self, mock_get_storage_backend):
+    @mock.patch('api.views.resource_views.default_storage')
+    def test_nonexistent_url(self, mock_default_storage):
         '''
         Tests the case where the supplied file path does not exist 
         OR it is not accessible. The tests that actually check existence
         vs access are contained at the storage-class implementation level.
-        All that we mock here is that the 'resource_exists` method returns
-        False
+        
         '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = False
-        mock_storage_impl.resource_exists.return_value = False
-        mock_get_storage_backend.return_value = mock_storage_impl
+        mock_default_storage.create_resource_from_interbucket_copy.side_effect = FileNotFoundError
         response = self.authenticated_regular_client.post(
             self.url, 
             data = {'bucket_path': 'gs://some-bucket/some-path'},
@@ -2875,113 +2867,40 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_400_BAD_REQUEST)
 
-    @mock.patch('api.views.resource_views.get_storage_backend')
     @mock.patch('api.views.resource_views.async_validate_resource')
-    def test_path_edited_correctly(self, 
-        mock_async_validate_resource, 
-        mock_get_storage_backend):
+    @mock.patch('api.views.resource_views.default_storage')
+    @mock.patch('api.views.resource_views.ResourceSerializer')
+    def test_path_added_correctly(self, 
+        mock_serializer,
+        mock_default_storage,
+        mock_async_validate_resource):
         '''
         Tests the case where everything works-- check that the file goes
         where we expect.
         '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = False
-        mock_storage_impl.resource_exists.return_value = True
-        fake_path = 'gs://our-bucket/some-file.txt'
-        mock_storage_impl.store.return_value = fake_path
-        mock_get_storage_backend.return_value = mock_storage_impl
+        u = str(uuid.uuid4())
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = u
+        mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
 
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n0 = len(all_resources)
-
-        original_bucket_path = 'gs://some-bucket/some-path/some-file.txt'
+        mocked_serialization = mock.MagicMock
+        mocked_serialization.data = {}
+        mock_serializer.return_value = mocked_serialization
+        mock_path = 'some_path'
         response = self.authenticated_regular_client.post(
             self.url, 
-            data = {'bucket_path': original_bucket_path},
+            data = {'bucket_path': mock_path},
             format='json'
         )
         self.assertEqual(response.status_code, 
             status.HTTP_201_CREATED)
 
-        j = response.json()
-        new_resource_uuid = j['id']
-        self.assertTrue(j['name'] == 'some-file.txt')
-
-        mock_storage_impl.store.assert_called()
+        mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
+            self.regular_user_1,
+            mock_path
+        )
         mock_async_validate_resource.delay.assert_called_with(
-            uuid.UUID(new_resource_uuid),
+            u,
             None,
             None
         )
-
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n1 = len(all_resources)
-        self.assertEqual(n1-n0, 1)
-
-        # check the new path of the resource.
-        # Note that we don't have to check that the `store`
-        # method is called since the path re-assignment affirms that
-        # already
-        r = Resource.objects.get(id=new_resource_uuid)
-        # the path is not the original path in a bucket
-        self.assertTrue(r.path == fake_path)
-        self.assertTrue(r.path != original_bucket_path)
-        self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)
-
-    @mock.patch('api.views.resource_views.get_storage_backend')
-    @mock.patch('api.views.resource_views.async_validate_resource')
-    def test_resource_added_with_validation(self, 
-        mock_async_validate_resource, 
-        mock_get_storage_backend):
-        '''
-        Tests the case where everything works-- check that the file goes
-        where we expect.
-        '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = False
-        mock_storage_impl.resource_exists.return_value = True
-        fake_path = 'gs://our-bucket/some-file.txt'
-        mock_storage_impl.store.return_value = fake_path
-        mock_get_storage_backend.return_value = mock_storage_impl
-
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n0 = len(all_resources)
-
-        resource_type = 'XYZ'
-        file_format = 'abc'
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data = {
-                'bucket_path': 'gs://some-bucket/some-path/some-file.txt',
-                'resource_type': resource_type,
-                'file_format': file_format
-                },
-            format='json'
-        )
-        self.assertEqual(response.status_code, 
-            status.HTTP_201_CREATED)
-
-        j = response.json()
-        new_resource_uuid = j['id']
-        self.assertTrue(j['name'] == 'some-file.txt')
-
-        mock_storage_impl.store.assert_called()
-        mock_async_validate_resource.delay.assert_called_with(
-            uuid.UUID(new_resource_uuid),
-            resource_type,
-            file_format
-        )
-
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n1 = len(all_resources)
-        self.assertEqual(n1-n0, 1)
-
-        # Note that since we mocked the async validate and store method,
-        # then the resource will not have the path set yet. Here, we just 
-        # check that we have a new resource and that it has the proper owner
-        r = Resource.objects.get(id=new_resource_uuid)
-        self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)

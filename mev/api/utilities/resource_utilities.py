@@ -191,18 +191,17 @@ def add_metadata_to_resource(resource, metadata):
 def get_resource_size(resource_instance):
     return resource_instance.datafile.size
 
-def retrieve_metadata(resource_path, resource_class_instance):
+def retrieve_metadata(resource, resource_class_instance):
 
     # Note that the metadata could fail for type issues and we have to plan
     # for failures there. For instance, a table can be compliant, but the 
     # resulting metadata could violate a type constraint (e.g. if a string-based
     # attribute does not match our regex, is too long, etc.)
     try:
-        return resource_class_instance.extract_metadata(resource_path)
+        return resource_class_instance.extract_metadata(resource)
     except ValidationError as ex:
-        logger.info('Caught a ValidationError when extracting metadata from'
-            ' resource at path: {p}'.format(p=resource_path)
-        )
+        logger.info(f'Caught a ValidationError when extracting metadata from'
+            ' resource {resource.pk}')
         err_list = []
         for k,v in ex.get_full_details().items():
             # v is a nested dict
@@ -224,8 +223,7 @@ def localize_resource(resource_instance, destination_directory):
     return default_storage.localize(resource_instance, destination_directory)   
 
 def handle_valid_resource(resource,
-        resource_class_instance,
-        local_path):
+        resource_class_instance):
     '''
     Once a Resource has been successfully validated, this function does some
     final operations such as moving the file and extracting metadata.
@@ -239,7 +237,7 @@ def handle_valid_resource(resource,
         
     # get the metadata. Any problems will raise exceptions which we allow to
     # percolate up the stack.
-    metadata = retrieve_metadata(local_path, resource_class_instance)
+    metadata = retrieve_metadata(resource, resource_class_instance)
 
     # attempt to associate the metadata with the resource. If this fails, an
     # exception will be raised, which we allow to percolate up.
@@ -444,7 +442,7 @@ def initiate_resource_validation(resource_instance, requested_resource_type, fil
         is_valid = True
 
     if is_valid:
-        # the resource was valid, so first save it in our standardized format
+        # the resource was valid, so first save it in our standardized format.
         resource_class_instance.save_in_standardized_format(resource_instance, file_format)
 
         handle_valid_resource(resource_instance, \

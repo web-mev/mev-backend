@@ -1,25 +1,20 @@
 import uuid
 import os
+from io import BytesIO
+import logging
 
 import boto3
 import botocore
 from storages.backends.s3boto3 import S3Boto3Storage
 from django.conf import settings
+from django.core.files import File
 from django.core.files.storage import FileSystemStorage
 
 from api.utilities.basic_utils import copy_local_resource
+from api.utilities.resource_utilities import create_resource
 from api.exceptions import StorageException
 
-
-def get_storage_dir(resource_instance, path):
-    '''
-    A single function to define how we store our files relative to the
-    storage root (settings.MEDIA_ROOT)
-
-    Note that this has a signature such that it can be used by
-    django.db.models.FileField's `upload_to` kwarg.
-    '''
-    return os.path.join(str(resource_instance.owner.pk), path)
+logger = logging.getLogger(__name__)
 
 
 class LocalResourceStorage(FileSystemStorage):
@@ -45,7 +40,11 @@ class LocalResourceStorage(FileSystemStorage):
         raise NotImplementedError('Since local storage is used, we do not allow'\
             ' interaction with bucket/object storage.')
 
+    def create_resource_from_interbucket_copy(self, owner, src_path):
+        raise NotImplementedError('Since local storage is used, we do not allow'\
+            ' interaction with bucket/object storage.')
 
+            
 class S3ResourceStorage(S3Boto3Storage):
     bucket_name = settings.MEDIA_ROOT
     s3_prefix = 's3://'
@@ -127,6 +126,49 @@ class S3ResourceStorage(S3Boto3Storage):
             src_object,
             dest_object
         )
+
+    def create_resource_from_interbucket_copy(self, owner, src_path):
+        '''
+        Copies an object into our storage and creates/returns
+        a Resource instance.
+
+        `src_path` is the FULL bucket path, e.g. s3://<BUCKET>/<object>
+        '''
+        src_bucket, src_object = self.get_bucket_and_object_from_full_path(src_path)
+
+        # To avoid needing to duplicate the logic of locating files
+        # within our storage, we basically create a dummy placeholder
+        # "file" with empty content and create an instance
+        # of api.models.Resource. We then get the path of that dummy
+        # file and use that as a place to send the copy of our 
+        # bucket-based file.
+        with BytesIO() as fh:
+            f = File(fh, str(uuid.uuid4()))
+            r = create_resource(
+                owner,
+                file_handle=f,
+                name=os.path.basename(src_object),
+                # initially inactive so that a user can't interact with it (yet)
+                is_active=False
+            )
+        dest_obj = r.datafile.name
+        try:
+            self.copy_to_storage(
+                src_bucket,
+                src_object,
+                dest_obj
+            )        
+            # now that the file is copied to the correct location, update the 
+            # api.models.Resource instance in the database.
+            r.is_active = True
+            r.save()
+            return r
+        except Exception as ex:
+            logger.info('Caught an exception during in intrabucket copy.')
+            # Need to delete that placeholder file and the database record
+            self.delete(r.datafile.name)
+            r.delete()
+            raise ex
 
     def copy_out_to_bucket(self, resource, dest_bucket_name, dest_object=None):
         '''

@@ -626,8 +626,9 @@ class TableResource(DataResource):
         This can obviously match our standard format
         '''
         logger.info('Saving resource ({pk}) to the standard format'
-            ' for a table-based resource'.format(
-            pk = resource_instance.pk
+            ' for a table-based resource. The original name was: {n}'.format(
+            pk=resource_instance.pk,
+            n=resource_instance.datafile.name 
         ))
 
         # the 'current' file extension (e.g. 'csv')
