@@ -15,6 +15,7 @@ from api.tests.test_helpers import cleanup_resource_file, \
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
 
+
 class TestResourcePreview(BaseAPITestCase):
     '''
     Tests that the resource previews return the proper
@@ -49,6 +50,7 @@ class TestResourcePreview(BaseAPITestCase):
         contents = mtx_type.get_contents(r)
         self.assertCountEqual(contents, expected_return)
         cleanup_resource_file(r)
+        os.remove(path)
 
     def test_empty_table_preview(self):
         '''

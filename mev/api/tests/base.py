@@ -1,10 +1,13 @@
 from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.test import override_settings
 
 from api.tests import test_settings
 
+TEST_MEDIA_ROOT='/tmp/webmev_test/media_root'
 
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class BaseAPITestCase(APITestCase):
     '''
     This defines the JSON-format "database" that can be loaded 
@@ -39,3 +42,10 @@ class BaseAPITestCase(APITestCase):
         self.authenticated_other_client = APIClient()
         self.authenticated_other_client.force_authenticate(user=self.regular_user_2)
 
+import shutil
+def tearDownModule():
+    print("\nDeleting temporary files...\n"*200)
+    try:
+        shutil.rmtree(TEST_MEDIA_ROOT)
+    except OSError:
+        pass

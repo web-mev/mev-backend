@@ -606,6 +606,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=m)
         self.assertTrue(rms.is_valid(raise_exception=True))
         cleanup_resource_file(r)
+        os.remove(path)
 
     def test_dge_output_with_na(self):
         '''
