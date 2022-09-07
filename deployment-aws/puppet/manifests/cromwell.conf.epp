@@ -56,12 +56,11 @@ backend {
 
 database {
   profile = "slick.jdbc.PostgresProfile$"
-
   db {
     driver = "org.postgresql.Driver"
-    url = "jdbc:postgresql://localhost:5432/{{CROMWELL_DB_NAME|lower}}"
-    user = "{{CROMWELL_DB_USER}}"
-    password = "{{CROMWELL_DB_PASSWORD}}"
+    url = "jdbc:postgresql://localhost:5432/cromwell"
+    user = "<%= $cromwell_db_user %>"
+    password = "<%= $cromwell_db_password %>"
     port = 5432
     connectionTimeout = 5000
   }

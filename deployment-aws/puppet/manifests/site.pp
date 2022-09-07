@@ -43,19 +43,21 @@ node /cromwell/ {
   package { $dependencies: }
 
   $version = 81
-  file { "/opt/cromwell-${version}.jar":
+  file { "/opt/cromwell.jar":
     source => "https://github.com/broadinstitute/cromwell/releases/download/${version}/cromwell-${version}.jar"
   }
 
   $cromwell_user = 'ubuntu'
+  $cromwell_log_dir = '/var/log/cromwell'
+  $cromwell_db_password = fqdn_rand_string(6)
 
-  file { '/var/log/cromwell':
+  file { [$cromwell_log_dir, '/cromwell-workflow-logs']:
     ensure => directory,
     owner  => $cromwell_user,
     group  => $cromwell_user,
   }
 
-  file { '/opt/cromwell.conf':
+  file { '/etc/cromwell.conf':
     ensure  => file,
     content => epp(
       "${project_root}/deployment-aws/puppet/manifests/cromwell.conf.epp",
@@ -64,6 +66,21 @@ node /cromwell/ {
         'api_storage_bucket'      => $facts['api_storage_bucket'],
         'cromwell_storage_bucket' => $facts['cromwell_storage_bucket'],
         'cromwell_job_queue'      => $facts['cromwell_job_queue'],
+        'cromwell_db_user'        => $cromwell_user,
+        'cromwell_db_password'    => $cromwell_db_password,
+      }
+    ),
+    owner   => $cromwell_user,
+    group   => $cromwell_user,
+  }
+
+  file { '/etc/supervisor/conf.d/cromwell.conf':
+    ensure  => file,
+    content => epp(
+      "${project_root}/deployment-aws/puppet/manifests/cromwell-supervisor.conf.epp",
+      {
+        'cromwell_user'    => $cromwell_user,
+        'cromwell_log_dir' => $cromwell_log_dir,
       }
     ),
     owner   => $cromwell_user,
@@ -71,4 +88,14 @@ node /cromwell/ {
   }
 
   class { 'postgresql::server': }
+
+  postgresql::server::db { 'cromwell':
+    user     => $cromwell_user,
+    password => $cromwell_db_password,
+  }
+  ~>
+  service { 'supervisor':
+    ensure => running,
+    enable => true,
+  }
 }
