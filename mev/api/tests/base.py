@@ -41,11 +41,3 @@ class BaseAPITestCase(APITestCase):
         self.regular_user_2 = get_user_model().objects.get(email=test_settings.REGULAR_USER_2.email)
         self.authenticated_other_client = APIClient()
         self.authenticated_other_client.force_authenticate(user=self.regular_user_2)
-
-import shutil
-def tearDownModule():
-    print("\nDeleting temporary files...\n"*200)
-    try:
-        shutil.rmtree(TEST_MEDIA_ROOT)
-    except OSError:
-        pass
