@@ -52,9 +52,9 @@ class ResourceDownloadUrl(APIView):
         except OwnershipException:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # TODO: implement signed url, etc.
-        storage_backend = None
-        url = None
+        # If we are using remote/bucket storage, then django-storage 
+        # will generate a signed URL
+        url = r.datafile.url
         if not url:
             logger.error('Encountered a problem when preparing download for resource'
                 ' with pk={u}'.format(u=resource_pk)
@@ -65,7 +65,7 @@ class ResourceDownloadUrl(APIView):
             download_url = request.build_absolute_uri(reverse('download-resource', kwargs={'pk': resource_pk}))
             download_type = 'local'
         else:
-            download_url = ''
+            download_url = url
             download_type = 'remote'
         
         # the 'download_type' is a flag for how the frontend should interpret the response.
