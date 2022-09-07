@@ -45,8 +45,7 @@ from constants import PARENT_OP_KEY, \
     TSV_FORMAT
 from api.tests.base import BaseAPITestCase
 from api.utilities.resource_utilities import add_metadata_to_resource
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -180,7 +179,7 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        cleanup_resource_file(new_resource)
+        
 
     def test_retrieve_resource_metadata_for_nonexistent_resource(self):
         '''
@@ -242,7 +241,7 @@ class TestRetrieveResourceMetadata(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=metadata)
         if rms.is_valid(raise_exception=True):
             rms.save()
-        cleanup_resource_file(new_resource)
+        
 
     def test_retrieve_full_metadata(self):
         '''
@@ -363,7 +362,7 @@ class TestMatrixMetadata(BaseAPITestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
-        cleanup_resource_file(r)
+        
 
     def test_metadata_correct_case2(self):
         '''
@@ -400,7 +399,7 @@ class TestMatrixMetadata(BaseAPITestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
-        cleanup_resource_file(r)
+        
 
 
 class TestIntegerMatrixMetadata(BaseAPITestCase):
@@ -448,7 +447,7 @@ class TestIntegerMatrixMetadata(BaseAPITestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
-        cleanup_resource_file(r)
+        
 
 
     def test_metadata_correct_case2(self):
@@ -485,7 +484,7 @@ class TestIntegerMatrixMetadata(BaseAPITestCase):
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
-        cleanup_resource_file(r)
+        
 
 class TestAnnotationTableMetadata(BaseAPITestCase):
 
@@ -510,7 +509,7 @@ class TestAnnotationTableMetadata(BaseAPITestCase):
             attr = x['attributes']
             actual_results.append(attr['int_col']['value'])
         self.assertCountEqual(expected_results, actual_results)
-        cleanup_resource_file(r)
+        
 
     def test_metadata_correct(self):
         resource_path = os.path.join(TESTDIR, 'three_column_annotation.tsv')
@@ -538,7 +537,7 @@ class TestAnnotationTableMetadata(BaseAPITestCase):
         self.assertEqual(metadata[OBSERVATION_SET_KEY], expected_obs_set)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
-        cleanup_resource_file(r)
+        
 
 
 class TestFeatureTableMetadata(BaseAPITestCase):
@@ -581,7 +580,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
-        cleanup_resource_file(r)
+        
 
     def test_serialization_works(self):
         '''
@@ -605,7 +604,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         m[RESOURCE_KEY] = r.pk
         rms = ResourceMetadataSerializer(data=m)
         self.assertTrue(rms.is_valid(raise_exception=True))
-        cleanup_resource_file(r)
+        
         os.remove(path)
 
     def test_dge_output_with_na(self):
@@ -628,7 +627,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, 200)
-        cleanup_resource_file(r)
+        
 
     def test_dge_concat_output_with_na(self):
         '''
@@ -652,7 +651,7 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, 200)
         j = response.json()
-        cleanup_resource_file(r)
+        
 
 
 class TestBedFileMetadata(BaseAPITestCase):
@@ -669,7 +668,7 @@ class TestBedFileMetadata(BaseAPITestCase):
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
-        cleanup_resource_file(r)
+        
 
 
 class TestResourceMetadataSerializer(BaseAPITestCase):

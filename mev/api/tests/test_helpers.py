@@ -1,18 +1,7 @@
 from io import BytesIO
 import os
-import resource
 
 from django.core.files import File
-
-
-def cleanup_resource_file(resource_instance):
-    '''
-    Clean up the file associated with the Resource, 
-    not the db record. Recall that we needed to effectively
-    copy the test files under our settings.MEDIA_ROOT to avoid
-    raising SuspiciousOperation errors
-    '''
-    resource_instance.datafile.delete()
 
 def associate_file_with_resource(resource_instance, filepath):
     '''

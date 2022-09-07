@@ -11,7 +11,6 @@ from rest_framework import status
 from api.models import Workspace, Resource
 
 from api.tests.base import BaseAPITestCase
-from api.tests.test_helpers import cleanup_resource_file
 
 class TestWorkspaceTree(BaseAPITestCase):
     def setUp(self):
@@ -110,7 +109,6 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         mock_initiate_resource_validation.assert_called()
         contents = json.load(new_resource.datafile.open('r'))
         self.assertCountEqual(contents, expected_content)
-        cleanup_resource_file(new_resource)
 
     def test_bad_workspace_id_fails(self):
         url = reverse(

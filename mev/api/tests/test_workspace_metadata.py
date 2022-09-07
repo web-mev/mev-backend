@@ -5,16 +5,12 @@ from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
 
-from api.models import Resource, ResourceMetadata, Workspace
+from api.models import Resource, Workspace
 from api.data_structures import Observation, \
-    ObservationSet, \
     Feature, \
-    FeatureSet, \
     StringAttribute
 from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
-from api.serializers.feature_set import FeatureSetSerializer
-from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.resource_metadata  import ResourceMetadataSerializer
 from resource_types import OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
@@ -24,8 +20,7 @@ from resource_types.table_types import Matrix, FeatureTable
 from api.utilities.resource_utilities import add_metadata_to_resource
 
 from api.tests.base import BaseAPITestCase
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 def create_observation_set():
     # create a couple Observations to use and a corresponding serializer
@@ -397,5 +392,3 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
-        cleanup_resource_file(r0)
-        cleanup_resource_file(r1)

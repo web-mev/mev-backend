@@ -23,8 +23,7 @@ from constants import DATABASE_RESOURCE_TYPES, \
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 class ResourceListTests(BaseAPITestCase):
 
@@ -2569,7 +2568,7 @@ class ResourceDetailTests(BaseAPITestCase):
         mock_api_tasks.validate_resource.delay.assert_called_with(
             resource_pk, resource_type, None)
 
-        cleanup_resource_file(r)
+        
 
     def test_setting_workspace_to_null_fails(self):
         '''

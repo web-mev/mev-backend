@@ -14,8 +14,7 @@ from django.core.files import File
 from api.models import Resource
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 class ResourceDownloadTests(BaseAPITestCase):
     '''
@@ -116,7 +115,6 @@ class ResourceDownloadTests(BaseAPITestCase):
         self.assertEqual(content_disp, f'attachment; filename="{filename}"')
         file_contents = open(resource_path, 'rb').read()
         self.assertEqual(file_contents, response.content)
-        cleanup_resource_file(self.small_active_resource)
 
     @mock.patch('api.views.resource_download.check_resource_request_validity')
     def test_local_resource_for_large_file(self, mock_check_resource_request_validity):

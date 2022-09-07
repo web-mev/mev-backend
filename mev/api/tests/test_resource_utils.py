@@ -66,8 +66,7 @@ from api.exceptions import NoResourceFoundException, \
     StorageException
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 BASE_TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(BASE_TESTDIR, 'operation_test_files')
@@ -1344,7 +1343,7 @@ class TestResourceUtilities(BaseAPITestCase):
         initiate_resource_validation(r, 'ANN', TSV_FORMAT)
         rm = ResourceMetadata.objects.get(resource=r)
         self.assertFalse(rm.observation_set is None)
-        cleanup_resource_file(r)
+        
 
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     @mock.patch('api.utilities.resource_utilities.retrieve_resource_class_instance')
@@ -1391,7 +1390,7 @@ class TestResourceUtilities(BaseAPITestCase):
         samples = [x['id'] for x in obs_set['elements']]
         expected = ['SW1_Control','SW2_Control','SW3_Control','SW4_Treated','SW5_Treated','SW6_Treated']
         self.assertCountEqual(samples, expected)
-        cleanup_resource_file(r)
+        
 
     def test_resource_metadata_entered_in_db(self):
         '''
@@ -1432,7 +1431,7 @@ class TestResourceUtilities(BaseAPITestCase):
         n1 = len(rm)  
         self.assertTrue(n1 == 1)
 
-        cleanup_resource_file(r)
+        
 
     @mock.patch('api.utilities.resource_utilities.check_file_format_against_type')
     def test_resource_metadata_updated_in_db(self, mock_check_file_format_against_type):
@@ -1535,7 +1534,7 @@ class TestResourceUtilities(BaseAPITestCase):
         r = Resource.objects.get(pk=r.pk)
         self.assertTrue(r.resource_type == INTEGER_MATRIX_KEY)
         self.assertTrue(r.file_format == file_format)
-        cleanup_resource_file(r)
+        
 
     def test_full_validation_success_with_format_change(self):
         '''
@@ -1708,7 +1707,7 @@ class TestResourceUtilities(BaseAPITestCase):
             (r.file_format is None)
         )        
         self.assertTrue('contained non-integer entries' in r.status)
-        cleanup_resource_file(r)
+        
 
     def test_success_after_failure(self):
         '''
@@ -1777,7 +1776,7 @@ class TestResourceUtilities(BaseAPITestCase):
         self.assertTrue(r.resource_type == MATRIX_KEY)
         self.assertTrue(r.file_format == TSV_FORMAT)
 
-        cleanup_resource_file(r)
+        
 
     @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
     def test_full_metadata_failure(self, mock_retrieve_metadata):

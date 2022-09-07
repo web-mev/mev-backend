@@ -31,8 +31,7 @@ from resource_types.table_types import TableResource, \
     EMPTY_TABLE_ERROR
 
 from api.tests.base import BaseAPITestCase
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)

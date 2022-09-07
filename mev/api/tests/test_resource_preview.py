@@ -9,8 +9,7 @@ from resource_types import RESOURCE_MAPPING
 from api.models import Resource
 
 from api.tests.base import BaseAPITestCase
-from api.tests.test_helpers import cleanup_resource_file, \
-    associate_file_with_resource
+from api.tests.test_helpers import associate_file_with_resource
 
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
@@ -49,7 +48,6 @@ class TestResourcePreview(BaseAPITestCase):
         mtx_type = mtx_class()
         contents = mtx_type.get_contents(r)
         self.assertCountEqual(contents, expected_return)
-        cleanup_resource_file(r)
         os.remove(path)
 
     def test_empty_table_preview(self):
