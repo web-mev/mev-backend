@@ -8,10 +8,10 @@ from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
-
 from api.models import Workspace, Resource
 
 from api.tests.base import BaseAPITestCase
+from api.tests.test_helpers import cleanup_resource_file
 
 class TestWorkspaceTree(BaseAPITestCase):
     def setUp(self):
@@ -108,8 +108,14 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
         new_resource = Resource.objects.get(pk=diff_set[0])
 
         mock_initiate_resource_validation.assert_called()
-        path = new_resource.path
-        contents = json.load(open(path, 'r'))
+        contents = json.load(new_resource.datafile.open('r'))
         self.assertCountEqual(contents, expected_content)
-        self.assertTrue(os.path.exists(path))
-        os.remove(path)
+        cleanup_resource_file(new_resource)
+
+    def test_bad_workspace_id_fails(self):
+        url = reverse(
+            'executed-operation-tree-save', 
+            kwargs={'workspace_pk':str(uuid.uuid4())}
+        )
+        response = self.authenticated_regular_client.get(url)
+        self.assertTrue(response.status_code == 400)

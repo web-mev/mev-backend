@@ -533,7 +533,6 @@ class TableResource(DataResource):
         The dataframe allows the caller to subset as needed to 'paginate'
         the rows of the table
         '''
-
         try:
             logger.info('Read resource ({pk})'.format(pk=resource_instance.pk))
             self.read_resource(resource_instance)

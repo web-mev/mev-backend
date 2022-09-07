@@ -7,6 +7,8 @@ import uuid
 import unittest
 import unittest.mock as mock
 
+import pandas as pd
+
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -1560,6 +1562,8 @@ class TestResourceUtilities(BaseAPITestCase):
         r.name = 'test_integer_matrix.csv'
         r.save()
 
+        orig_df = pd.read_csv(resource_path, index_col=0)
+
         file_format = CSV_FORMAT
         self.assertTrue(file_format != IntegerMatrix.STANDARD_FORMAT)
 
@@ -1577,6 +1581,11 @@ class TestResourceUtilities(BaseAPITestCase):
         r = Resource.objects.get(pk=r.pk)
         self.assertTrue(r.resource_type == INTEGER_MATRIX_KEY)
         self.assertTrue(r.file_format == TSV_FORMAT)
+
+        # check that the file contents are the same:
+        final_df = pd.read_table(r.datafile.open(), index_col=0)
+        eq_df = orig_df == final_df
+        self.assertTrue(all(eq_df))
 
     @mock.patch('api.utilities.resource_utilities.get_resource_size')
     def test_full_validation_failure_case1(self, mock_get_resource_size):
@@ -1693,7 +1702,11 @@ class TestResourceUtilities(BaseAPITestCase):
 
         r = Resource.objects.get(pk=r.pk)
         self.assertIsNone(r.resource_type)
-        self.assertEqual(r.file_format, '')
+        self.assertTrue(
+            (r.file_format == '')
+            |
+            (r.file_format is None)
+        )        
         self.assertTrue('contained non-integer entries' in r.status)
         cleanup_resource_file(r)
 
@@ -1744,7 +1757,11 @@ class TestResourceUtilities(BaseAPITestCase):
 
         r = Resource.objects.get(pk=r.pk)
         self.assertIsNone(r.resource_type)
-        self.assertEqual(r.file_format, '')
+        self.assertTrue(
+            (r.file_format == '')
+            |
+            (r.file_format is None)
+        )
         self.assertTrue('contained non-integer entries' in r.status)
 
         # Now validate as a float matrix:
@@ -1809,4 +1826,8 @@ class TestResourceUtilities(BaseAPITestCase):
 
         r = Resource.objects.get(pk=r.pk)
         self.assertIsNone(r.resource_type)
-        self.assertTrue(r.file_format == '')
+        self.assertTrue(
+            (r.file_format == '')
+            |
+            (r.file_format is None)
+        )

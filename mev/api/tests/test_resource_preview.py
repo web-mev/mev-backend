@@ -4,12 +4,18 @@ import os
 import pandas as pd
 import numpy as np
 
+from constants import TSV_FORMAT, MATRIX_KEY
 from resource_types import RESOURCE_MAPPING
+from api.models import Resource
+
+from api.tests.base import BaseAPITestCase
+from api.tests.test_helpers import cleanup_resource_file, \
+    associate_file_with_resource
 
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
 
-class TestResourcePreview(unittest.TestCase):
+class TestResourcePreview(BaseAPITestCase):
     '''
     Tests that the resource previews return the proper
     format.
@@ -31,11 +37,18 @@ class TestResourcePreview(unittest.TestCase):
         df = pd.DataFrame(values, index=rows, columns=columns)
         path = os.path.join('/tmp', 'test_preview_matrix.tsv')
         df.to_csv(path, sep='\t')
-
-        mtx_class = RESOURCE_MAPPING['MTX']
+        r = Resource.objects.all()[0]
+        # need to set the resource type since files that we can preview 
+        # have been validated
+        r.resource_type = MATRIX_KEY
+        r.file_format = TSV_FORMAT
+        r.save()
+        associate_file_with_resource(r, path)
+        mtx_class = RESOURCE_MAPPING[MATRIX_KEY]
         mtx_type = mtx_class()
-        contents = mtx_type.get_contents(path, 'tsv')
+        contents = mtx_type.get_contents(r)
         self.assertCountEqual(contents, expected_return)
+        cleanup_resource_file(r)
 
     def test_empty_table_preview(self):
         '''
@@ -45,7 +58,7 @@ class TestResourcePreview(unittest.TestCase):
         '''
         path = os.path.join(TESTDIR, 'test_empty.tsv')
 
-        mtx_class = RESOURCE_MAPPING['MTX']
+        mtx_class = RESOURCE_MAPPING[MATRIX_KEY]
         mtx_type = mtx_class()
         with self.assertRaises(Exception):
             mtx_type.get_contents(path, 'tsv')
