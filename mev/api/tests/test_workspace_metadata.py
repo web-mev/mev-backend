@@ -1,17 +1,16 @@
 import os
+from io import BytesIO
+
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files import File
 
-from api.models import Resource, ResourceMetadata, Workspace
+from api.models import Resource, Workspace
 from api.data_structures import Observation, \
-    ObservationSet, \
     Feature, \
-    FeatureSet, \
     StringAttribute
 from api.serializers.observation import ObservationSerializer
 from api.serializers.feature import FeatureSerializer
-from api.serializers.feature_set import FeatureSetSerializer
-from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.resource_metadata  import ResourceMetadataSerializer
 from resource_types import OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
@@ -21,7 +20,7 @@ from resource_types.table_types import Matrix, FeatureTable
 from api.utilities.resource_utilities import add_metadata_to_resource
 
 from api.tests.base import BaseAPITestCase
-
+from api.tests.test_helpers import associate_file_with_resource
 
 def create_observation_set():
     # create a couple Observations to use and a corresponding serializer
@@ -75,17 +74,20 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         self.new_resource1 = Resource.objects.create(
             name = 'foo.txt',
             owner = self.regular_user_1,
-            is_active=True
+            is_active=True,
+            datafile=File(BytesIO(), 'foo.txt')
         )
         self.new_resource2 = Resource.objects.create(
             name = 'bar.txt',
             owner = self.regular_user_1,
-            is_active=True
+            is_active=True,
+            datafile=File(BytesIO(), 'bar.txt')
         )
         self.new_resource3 = Resource.objects.create(
             name = 'baz.txt',
             owner = self.regular_user_1,
-            is_active=True
+            is_active=True,
+            datafile=File(BytesIO(), 'baz.txt')
         )
 
         # create a workspace to which we will eventually add resources
@@ -369,18 +371,20 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         TESTDIR = os.path.dirname(__file__)
         TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
 
+        r0 = all_resources[0]
         resource_path = os.path.join(TESTDIR, 'deseq_results_example_concat.tsv')
         self.assertTrue(os.path.exists(resource_path))
+        associate_file_with_resource(r0, resource_path)
         t = FeatureTable()
-        metadata0 = t.extract_metadata(resource_path)
-        r0 = all_resources[0]
+        metadata0 = t.extract_metadata(r0)
         add_metadata_to_resource(r0, metadata0)
 
+        r1 = all_resources[1]
         resource_path = os.path.join(TESTDIR, 'test_matrix.tsv')
         self.assertTrue(os.path.exists(resource_path))
+        associate_file_with_resource(r1, resource_path)
         m = Matrix()
-        metadata1 = m.extract_metadata(resource_path)
-        r1 = all_resources[1]
+        metadata1 = m.extract_metadata(r1)
         add_metadata_to_resource(r1, metadata1)
         url = reverse(
             'workspace-observations-metadata', 

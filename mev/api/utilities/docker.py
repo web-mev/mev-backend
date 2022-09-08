@@ -4,6 +4,7 @@ import logging
 from django.conf import settings
 
 from api.utilities.basic_utils import run_shell_command
+from api.utilities.admin_utils import alert_admins
 from api.container_registries import get_container_registry, infer_container_registry_based_on_prefix
 
 logger = logging.getLogger(__name__)
@@ -100,9 +101,8 @@ def check_if_container_running(container_id):
         logger.info('Received a container status of: {status}'.format(
             status=stdout
         ))
-        #TODO inform admins so we can track this case.
-        # returning True here (in this potential edge case) makes the container
-        # essentially permanant until we resolve its status.
+        alert_admins(f'Received a Docker exit code'
+            ' that was unexpected. Container was: {container_id}')
         return True
 
 def check_container_exit_code(container_id):

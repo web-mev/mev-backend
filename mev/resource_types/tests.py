@@ -14,6 +14,7 @@ from constants import TSV_FORMAT, \
     RESOURCE_KEY
 
 from api.data_structures import Observation
+from api.models import Resource
 
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type
@@ -50,78 +51,14 @@ class TestBaseDataResource(unittest.TestCase):
 
 class TestTableResource(unittest.TestCase):
 
-    @mock.patch('resource_types.table_types.uuid')
-    def test_save_in_standardized_format(self, mock_uuid):
-        '''
-        Test that the 'reformatting' of the CSV-format to our
-        standard TSV format works as expected.
-        '''
-        u = uuid.uuid4()
-        mock_uuid.uuid4.return_value = u
-
-        # create some temp file written in CSV format (which is not the internal
-        # standard we want.)
-        columns = ['colA', 'colB', 'colC']
-        rows = ['geneA', 'geneB', 'geneC']
-        values = np.arange(9).reshape((3,3))
-        expected_return = {
-            'colA': {'geneA':0, 'geneB':3, 'geneC':6},
-            'colB': {'geneA':1, 'geneB':4, 'geneC':7},
-            'colC': {'geneA':2, 'geneB':5, 'geneC':8}
-        }
-        df = pd.DataFrame(values, index=rows, columns=columns)
-        path = '/tmp/test_matrix.csv'
-        df.to_csv(path, sep=',')
-
-        mtx_class = RESOURCE_MAPPING['MTX']
-        mtx_type = mtx_class()
-        new_path = mtx_type.save_in_standardized_format(path, 'csv')
-
-        self.assertTrue(os.path.dirname(new_path) == settings.VALIDATION_TMP_DIR)
-
-        # check that they have the same content:
-        reloaded_df = pd.read_table(new_path, index_col=0)
-        self.assertTrue(reloaded_df.equals(df))
-
-    def test_save_in_standardized_format_case2(self):
-        '''
-        If the file is already in our standard format, check that we 
-        just get back the same path and name for the resource.
-        '''
-        # create some temp file written in TSV format (which IS the internal
-        # standard we want.)
-        columns = ['colA', 'colB', 'colC']
-        rows = ['geneA', 'geneB', 'geneC']
-        values = np.arange(9).reshape((3,3))
-        expected_return = {
-            'colA': {'geneA':0, 'geneB':3, 'geneC':6},
-            'colB': {'geneA':1, 'geneB':4, 'geneC':7},
-            'colC': {'geneA':2, 'geneB':5, 'geneC':8}
-        }
-        df = pd.DataFrame(values, index=rows, columns=columns)
-        orig_name = 'test_matrix.tsv'
-        path = os.path.join('/tmp', orig_name)
-        df.to_csv(path, sep='\t')
-
-        mtx_class = RESOURCE_MAPPING['MTX']
-        mtx_type = mtx_class()
-        self.assertTrue(TSV_FORMAT == mtx_type.STANDARD_FORMAT)
-        new_path = mtx_type.save_in_standardized_format(path, TSV_FORMAT)
-
-        self.assertEqual(path, new_path)
-
-        # check that they have the same content:
-        reloaded_df = pd.read_table(new_path, index_col=0)
-        self.assertTrue(reloaded_df.equals(df))
-
     def test_case_insensitive_file_format(self):
         '''
         Checks that the reader type (e.g. read_csv, read_table, etc.)
         does not depend on the case of the passed file format
         '''
-        reader = TableResource().get_reader('/some/dummy/path.txt', 'TSV')
+        reader = TableResource().get_reader('TSV')
         self.assertIsNotNone(reader)
-        reader = TableResource().get_reader('/some/dummy/path.txt', 'TsV')
+        reader = TableResource().get_reader('TsV')
         self.assertIsNotNone(reader)
 
 class TestResourceElementTable(unittest.TestCase):

@@ -280,10 +280,12 @@ if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
         )
     )
 
-CROMWELL = 'CROMWELL'
-
 if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
+
+    # ensure we have the proper variables to work with Cromwell
+    CROMWELL_BUCKET_NAME = get_env('CROMWELL_BUCKET_NAME')
+    CROMWELL_SERVER_URL = get_env('CROMWELL_SERVER_URL')
 else:
     ENABLE_REMOTE_JOBS = False
 
@@ -329,6 +331,7 @@ if not os.path.exists(RESOURCE_CACHE_DIR):
         )
     )
 
+
 # How long should the files be kept in the local cache.
 # Check the functions for periodic tasks to see how this
 # parameter is used.
@@ -341,12 +344,27 @@ RESOURCE_CACHE_EXPIRATION_DAYS = 2
 # like via Dropbox.
 MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
 
-# To sign URLs for download.
-# TODO: FIX once django-storages is fully integrated
-if (STORAGE_LOCATION == REMOTE) and (CLOUD_PLATFORM == GOOGLE):
-    STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
-else:
-    STORAGE_CREDENTIALS = ''
+if STORAGE_LOCATION == REMOTE:
+    if CLOUD_PLATFORM == AMAZON:
+        DEFAULT_FILE_STORAGE = 'api.storage.S3ResourceStorage'
+    elif CLOUD_PLATFORM == GOOGLE:
+        # TODO: a temporary guard against problems if we deploy on GCP.
+        # Remove if/when all GCP-related content is removed
+        raise NotImplementedError('Not yet implemented!')
+
+    # Regardless of the platform, we still need to know the bucket name.
+    # This setting is used by the storage class implementation to effectively
+    # set the media root
+    MEDIA_ROOT = get_env('STORAGE_BUCKET_NAME')
+else: # local storage
+    # We extend the django native django.core.files.storage.FileSystemStorage
+    # so that we can implement methods which avoid extra conditionals.
+    # An example would be localization of files for use in Docker containers.
+    # Rather than checking to see if storage is local or remote, we provide
+    # a "dumb" localization method
+    DEFAULT_FILE_STORAGE = 'api.storage.LocalResourceStorage'
+    MEDIA_ROOT = RESOURCE_CACHE_DIR
+
 ###############################################################################
 # END Parameters for configuring resource storage
 ###############################################################################

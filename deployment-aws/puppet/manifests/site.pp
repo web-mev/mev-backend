@@ -15,5 +15,8 @@ node /api/ {
     from_email                  => $facts['from_email'],
     frontend_domain             => $facts['frontend_domain'],
     storage_location            => $facts['storage_location'],
+    storage_bucket_name         => $facts['storage_bucket_name'],
+    cromwell_bucket_name        => $facts['cromwell_bucket_name'],
+    cromwell_server_url         => $facts['cromwell_server_url'],
   }
 }

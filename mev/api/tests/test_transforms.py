@@ -1,13 +1,10 @@
-import uuid
 import os
-import json
 import unittest.mock as mock
 from itertools import chain
 
-from rest_framework.exceptions import ValidationError
-
 from api.models import Resource
 from api.tests.base import BaseAPITestCase
+from api.tests.test_helpers import associate_file_with_resource
 
 from api.data_transformations.network_transforms import subset_PANDA_net
 
@@ -24,7 +21,7 @@ class ResourceTransformTests(BaseAPITestCase):
         
     def test_panda_subset_transform_case(self):
         fp = os.path.join(self.TESTDIR, 'example_panda_output.tsv')
-        self.resource.path = fp
+        associate_file_with_resource(self.resource, fp)
 
         expected_result = {
             "initial_axis": 0,
@@ -133,9 +130,11 @@ class ResourceTransformTests(BaseAPITestCase):
         with self.assertRaisesRegex(Exception, 'must be 0 or 1'):
             subset_PANDA_net(self.resource, query_params)
 
+        
+
     def test_panda_subset_by_genes(self):
         fp = os.path.join(self.TESTDIR, 'example_panda_output.tsv')
-        self.resource.path = fp
+        associate_file_with_resource(self.resource, fp)
 
         expected_result = {
             "initial_axis": 0,
@@ -272,3 +271,5 @@ class ResourceTransformTests(BaseAPITestCase):
         }
         with self.assertRaisesRegex(Exception, 'choose fewer'):
             result = subset_PANDA_net(self.resource, query_params)
+
+        

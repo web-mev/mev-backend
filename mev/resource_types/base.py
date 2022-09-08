@@ -61,11 +61,11 @@ class DataResource(object):
         return False
 
 
-    def get_contents(self, resource_path, file_format, query_params={}):
+    def get_contents(self, resource_instance, query_params={}):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
         

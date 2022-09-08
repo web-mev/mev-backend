@@ -12,15 +12,9 @@ from rest_framework.exceptions import ValidationError
 from api.models import Operation as OperationDbModel
 from api.models import OperationResource
 from api.data_structures import OperationDataResourceAttribute
-from api.serializers.operation import OperationSerializer
 from api.utilities.basic_utils import recursive_copy
 from api.utilities.operations import read_operation_json, \
-    validate_operation, \
-    resource_operations_file_is_valid
-from api.utilities.resource_utilities import get_resource_size, \
-    move_resource_to_final_location, \
-    retrieve_resource_class_standard_format
-from api.storage_backends.helpers import get_storage_implementation
+    validate_operation
 from api.runners import get_runner
 from api.exceptions import OperationResourceFileException
 
@@ -182,67 +176,6 @@ def check_for_operation_resources(op_data):
             d[input_key] = op_input
     return d
 
-def create_operation_resource(input_name, op_resource_dict, op_uuid, op_data, staging_dir):
-    '''
-    Takes the op_resource_dict (a dict with name, path) and creates a database
-    instance of an OperationResource
-    '''
-    name = op_resource_dict['name']
-    path = op_resource_dict['path']
-    resource_type = op_resource_dict['resource_type']
-
-    # check that the file actually exists. If the path has a prefix like "gs://"
-    # then we know infer that it is stored in a google bucket. If it doesn't match
-    # any specific "other" storage system (GCP bucket, AWS bucket, etc.) then we look
-    # locally, RELATIVE to the staging directory
-    storage_impl = get_storage_implementation(path)
-
-    # if the resource file specifies it as local, then we need to look for the file
-    # in the staging dir. If it was specified as a bucket URL, etc. then we don't need
-    # to edit the path, since it should already be properly formed.
-    if storage_impl.is_local_storage:
-        path = os.path.join(staging_dir, path)
-    exists = storage_impl.resource_exists(path)
-    if not exists:
-        raise OperationResourceFileException('Could not locate the operation resource'
-            ' at {p}'.format(p=path)
-        )
-
-    # to create the database object, we need to know the file format.
-    # We only accept resources in the "standard" format
-    standard_file_format = retrieve_resource_class_standard_format(resource_type)
-
-    # create the database object
-    try:
-        op = OperationDbModel.objects.get(pk=op_uuid)
-    except OperationDbModel.DoesNotExist as ex:
-        logger.info('Failed to find an Operation with UUID={u}.'.format(
-            u = str(op_uuid)
-        ))
-        raise ex
-
-    op_resource = OperationResource.objects.create(
-        name = name,
-        operation = op,
-        path = path, 
-        input_field = input_name,
-        resource_type = resource_type,
-        file_format = standard_file_format
-    )
-    final_path = move_resource_to_final_location(op_resource)
-    op_resource.path = final_path
-    file_size = get_resource_size(op_resource)
-    op_resource.size = file_size
-    op_resource.save()
-
-    # now that we have the final path, edit the location
-    d = {
-        'name': name,
-        'path': final_path,
-        'resource_type': resource_type
-    }
-    return d
-
 def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
     '''
     This function looks through the operation's inputs and handles any 
@@ -256,48 +189,10 @@ def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
     relevant_inputs = check_for_operation_resources(op_data)
     if not relevant_inputs:
         return
-
-    # If here, one or more inputs were OperationDataResource. Need to check that they exist and 
-    # move them to the proper location(s).
-
-    # First check that the repo has the file giving the location of those OperationDataResources
-    resource_file = os.path.join(staging_dir, OperationResource.OPERATION_RESOURCE_FILENAME)
-    if not os.path.exists(resource_file):
-        raise OperationResourceFileException('During ingestion, we could not find the file specifying'
-            ' the operation resources at: {p}'.format(p=resource_file)
+    else:
+        raise NotImplementedError('To use/incorporate operation resources,'
+            ' you must first create the logic.'
         )
-
-    # read the file
-    try:
-        operation_resource_data = json.load(open(resource_file))
-    except json.decoder.JSONDecodeError as ex:
-        raise OperationResourceFileException('Could not use the JSON parser to load'
-            ' the file at {p}. Exception was {ex}'.format(
-                p=resource_file,
-                ex = ex
-        ))
-
-    # file existed and was valid JSON. Now check that we have info for each of the inputs and 
-    # that the JSON was in the format we expect:
-    valid_format = resource_operations_file_is_valid(operation_resource_data, relevant_inputs.keys())
-    if not valid_format:
-        raise OperationResourceFileException('The operation resource file at {p} was not formatted'
-            ' correctly.'.format(p=resource_file)
-        )
-    
-    # iterate through the operation resources, creating database objects and updating
-    # the spec to reflect the final resource locations.
-    updated_dict = {}
-    for k in relevant_inputs.keys():
-        operation_resource_list = operation_resource_data[k]
-        updated_list = []
-        for item in operation_resource_list:
-            updated_item = create_operation_resource(k, item, op_uuid, op_data, staging_dir)
-            updated_list.append(updated_item)
-        updated_dict[k] = updated_list
-    # write this updated dict to the same file we read from:
-    with open(resource_file, 'w') as fout:
-        fout.write(json.dumps(updated_dict))
 
 def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     '''

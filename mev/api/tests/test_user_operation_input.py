@@ -1,3 +1,4 @@
+from io import BytesIO
 import unittest
 import unittest.mock as mock
 import os
@@ -7,6 +8,7 @@ import uuid
 import shutil
 from collections import defaultdict
 
+from django.core.files import File
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
@@ -174,7 +176,8 @@ class UserOperationInputTester(BaseAPITestCase):
 
         other_user_resource = Resource.objects.create(
             is_active=True,
-            owner = self.regular_user_2
+            owner = self.regular_user_2,
+            datafile=File(BytesIO(), 'foo.txt')
         )
 
         # handle a good case with a single file
@@ -375,7 +378,8 @@ class UserOperationInputTester(BaseAPITestCase):
 
         other_user_resource = Resource.objects.create(
             is_active=True,
-            owner = self.regular_user_2
+            owner = self.regular_user_2,
+            datafile=File(BytesIO(), 'foo.txt')
         )
 
         # handle a good case with a single file
@@ -559,21 +563,24 @@ class UserOperationInputTester(BaseAPITestCase):
             input_field = 'foo',
             name = 'foo.txt',
             resource_type = MATRIX_KEY,
-            file_format = TSV_FORMAT
+            file_format = TSV_FORMAT,
+            datafile = File(BytesIO(), 'foo.txt')
         )
         r2 = OperationResource.objects.create(
             operation = op1,
             input_field = 'bar',
             name = 'bar.txt',
             resource_type = MATRIX_KEY,
-            file_format = TSV_FORMAT
+            file_format = TSV_FORMAT,
+            datafile = File(BytesIO(), 'foo.txt')
         )
         r3 = OperationResource.objects.create(
             operation = op2,
             input_field = 'foo', # same input_field as above, but for a different op
             name = 'baz.txt',
             resource_type = MATRIX_KEY,
-            file_format = TSV_FORMAT
+            file_format = TSV_FORMAT,
+            datafile = File(BytesIO(), 'foo.txt')
         )
 
         # handle a good case with a single file

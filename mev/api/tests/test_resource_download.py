@@ -1,3 +1,4 @@
+from io import BytesIO
 import uuid
 import os
 import json
@@ -8,11 +9,13 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.conf import settings
+from django.core.files import File
+from django.test import override_settings
 
 from api.models import Resource
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
-
+from api.tests.test_helpers import associate_file_with_resource
 
 class ResourceDownloadTests(BaseAPITestCase):
     '''
@@ -87,47 +90,51 @@ class ResourceDownloadTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    @mock.patch('api.views.resource_download.get_storage_backend')
-    def test_local_resource_for_small_file(self, mock_get_storage_backend):
+    @mock.patch('api.views.resource_download.check_resource_request_validity')
+    def test_local_resource_for_small_file(self, mock_check_resource_request_validity):
         '''
         Tests the case where we have a local storage backend and are requesting 
         the download of a file that is sufficiently small. Should proceed and
         send them back a file.
         '''
-        mock_backend = mock.MagicMock()
 
-        # an actual file
-        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
-        self.assertTrue(os.path.exists(f))
-        mock_backend.get_download_url.return_value = f
-        mock_backend.is_local_storage = True
+        # an actual file from which we get contents
+        resource_path = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        associate_file_with_resource(self.small_active_resource, resource_path)
+        filename = self.small_active_resource.name
+        mock_check_resource_request_validity.return_value = self.small_active_resource
 
-        mock_get_storage_backend.return_value = mock_backend
-        response = self.authenticated_regular_client.get(self.url_for_small_active_resource)
+        response = self.authenticated_regular_client.get(
+            self.url_for_small_active_resource)
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
         headers = response.headers
         content_type = headers['Content-Type']
         content_disp = headers['Content-Disposition']
         self.assertEqual(content_type, 'text/tab-separated-values')
-        self.assertEqual(content_disp, 'attachment; filename="demo_file2.tsv"')
+        self.assertEqual(content_disp, f'attachment; filename="{filename}"')
+        file_contents = open(resource_path, 'rb').read()
+        self.assertEqual(file_contents, response.content)
 
-    @mock.patch('api.views.resource_download.get_storage_backend')
-    def test_local_resource_for_large_file(self, mock_get_storage_backend):
+    # Override settings.MAX_DOWNLOAD_SIZE_BYTES to make it such that
+    # we trigger the 'too large' case. Setting it to -1 makes it
+    # trigger no matter what the resource.datafile.size actually is.
+    @override_settings(MAX_DOWNLOAD_SIZE_BYTES=-1)
+    @mock.patch('api.views.resource_download.check_resource_request_validity')
+    def test_local_resource_for_large_file(self, mock_check_resource_request_validity):
         '''
         Tests the case where we have a local storage backend and a file is requested that
         is too large for our local download. Return 400 with a status message indicating
         that the file should be downloaded by another means (e.g. Dropbox, etc)
         '''
-        mock_backend = mock.MagicMock()
-
-        # an actual file
-        f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
-        self.assertTrue(os.path.exists(f))
-        mock_backend.get_download_url.return_value = f
-        mock_backend.is_local_storage = True
-
-        mock_get_storage_backend.return_value = mock_backend
+        # even though the file contents, etc. doesn't matter, since we end up
+        # calling resource.datafile.size in this test (without mocking it out)
+        # then we require there to be an actual/valid file at the path.
+        resource_path = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        associate_file_with_resource(self.large_active_resource, resource_path)
+        mock_check_resource_request_validity.return_value = self.large_active_resource
         response = self.authenticated_regular_client.get(self.url_for_large_active_resource)
         self.assertEqual(response.status_code, 
             status.HTTP_400_BAD_REQUEST)
@@ -139,7 +146,6 @@ class ResourceDownloadTests(BaseAPITestCase):
         '''
         response = self.authenticated_regular_client.get(self.url_for_inactive_resource)
         self.assertTrue(response.status_code, status.HTTP_400_BAD_REQUEST)
-
 
 
 class ResourceUrlFetchTests(BaseAPITestCase):
@@ -215,79 +221,97 @@ class ResourceUrlFetchTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    @mock.patch('api.views.resource_download.get_storage_backend')
-    def test_local_resource_for_small_file(self, mock_get_storage_backend):
+    @override_settings(STORAGE_LOCATION='local')
+    @mock.patch('api.views.resource_download.check_resource_request_validity')
+    def test_local_resource_for_small_file(self, mock_check_resource_request_validity):
         '''
         Tests the case where we have a local storage backend and are requesting 
         the download of a file that is sufficiently small. Should proceed to give them
         a "proper" download url in the response
         '''
-        mock_backend = mock.MagicMock()
-
-        # an actual file
+        filename = 'some_tmp_file.tsv'
+        # create a dummy/empty data file in storage
+        r = Resource.objects.create(
+            owner=self.regular_user_1,
+            datafile=File(BytesIO(), filename),
+            name=filename
+        )
+        # an actual file is needed for this
         f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
         self.assertTrue(os.path.exists(f))
-        mock_backend.get_download_url.return_value = f
-        mock_backend.is_local_storage = True
+        associate_file_with_resource(r, f)
 
-        mock_get_storage_backend.return_value = mock_backend
-        response = self.authenticated_regular_client.get(self.url_for_small_active_resource)
+        url = reverse(
+            'download-resource-url', 
+            kwargs={'pk':r.pk}
+        )
+        mock_check_resource_request_validity.return_value = r
+
+        response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
         j = response.json()
         self.assertTrue(j['download_type'] == 'local')
 
-    @mock.patch('api.views.resource_download.get_storage_backend')
-    def test_local_resource_for_large_file(self, mock_get_storage_backend):
+    @override_settings(STORAGE_LOCATION='local')
+    @override_settings(MAX_DOWNLOAD_SIZE_BYTES=-1)
+    @mock.patch('api.views.resource_download.check_resource_request_validity')
+    def test_local_resource_for_large_file(self, mock_check_resource_request_validity):
         '''
         Tests the case where we have a local storage backend and a file is requested that
-        is too large for our local download. This should still return a 200 which provides
-        a payload with the actual url for the download. We only check the file size if the
-        user actually makes a request to the download endpoint. Recall that this is simply
-        an endpoint that returns a url which depends on the storage backend
+        is too large a direct local download.
+        
+        Note that since the url this tests simply returns a payload containing a
+        download link, it should still return a 200. Only at the point that the user
+        tries to download will they see that the file is too large. That is covered above.
+        However, this endpoint doesn't care about the download size- it simply gives you
+        a url.
         '''
-        mock_backend = mock.MagicMock()
+        filename = 'some_tmp_file.tsv'
 
-        # an actual file
+        # create a dummy/empty data file in storage
+        r = Resource.objects.create(
+            owner=self.regular_user_1,
+            datafile=File(BytesIO(), filename),
+            name=filename
+        )
+        # an actual file is needed for this
         f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
         self.assertTrue(os.path.exists(f))
-        mock_backend.get_download_url.return_value = f
-        mock_backend.is_local_storage = True
+        associate_file_with_resource(r, f)
 
-        mock_get_storage_backend.return_value = mock_backend
-        response = self.authenticated_regular_client.get(self.url_for_large_active_resource)
+        url = reverse(
+            'download-resource-url', 
+            kwargs={'pk':r.pk}
+        )
+        mock_check_resource_request_validity.return_value = r
+
+        response = self.authenticated_regular_client.get(url)
         self.assertEqual(response.status_code, 
             status.HTTP_200_OK)
         j = response.json()
         self.assertTrue(j['download_type'] == 'local')
 
-    @mock.patch('api.views.resource_download.get_storage_backend')
-    def test_remote_resource(self, mock_get_storage_backend):
+    @override_settings(STORAGE_LOCATION='remote')
+    @mock.patch('api.views.resource_download.check_resource_request_validity')
+    def test_remote_resource(self, mock_check_resource_request_validity):
         '''
         Tests the case where we have a remote storage backend. Ensure
         that the response is as expected.
         '''
-        mock_backend = mock.MagicMock()
-        some_url = 'https://some-remote-url/object.txt'
-        mock_backend.get_download_url.return_value = some_url
 
-        # this is what mocks us using a remote file storage service
-        mock_backend.is_local_storage = False
-
-        mock_get_storage_backend.return_value = mock_backend
+        mock_resource = mock.MagicMock()
+        remote_url = 'https://some-remote-url/object.txt'
+        mock_resource.datafile.url = remote_url
+        mock_check_resource_request_validity.return_value = mock_resource
 
         response = self.authenticated_regular_client.get(self.url_for_small_active_resource)
-        self.assertTrue(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
         j = response.json()
-        self.assertTrue(j['download_type'] != 'local')
-        self.assertTrue(j['url'] == some_url)
+        self.assertTrue(j['download_type'] == 'remote')
+        self.assertTrue(j['url'] == remote_url)
 
-        # also test for a large file. Should not matter since the storage backend is remote.
-        response = self.authenticated_regular_client.get(self.url_for_large_active_resource)
-        self.assertTrue(response.status_code, status.HTTP_200_OK)
-        j = response.json()
-        self.assertTrue(j['download_type'] != 'local')
-        self.assertTrue(j['url'] == some_url)
 
     def test_inactive_resource_request_returns_400(self):
         '''

@@ -104,7 +104,7 @@ def get_standard_format(resource_type_str):
     rtc = get_resource_type_instance(resource_type_str)
     return rtc.STANDARD_FORMAT
 
-def get_contents(resource_path, resource_type_str, file_format, query_params={}):
+def get_contents(resource_instance, query_params={}):
     '''
     Returns a "view" of the data underlying a Resource. The actual
     implementation of that view is prepared by the class corresponding
@@ -114,16 +114,13 @@ def get_contents(resource_path, resource_type_str, file_format, query_params={})
     bracketed indexing (e.g. x[10:24]) and len() (and possibly other methods).
     We use the django.core.paginator.Paginator class, which expects 'list-like'
     arguments to be provided.
-
-    Assumes the resource_path arg is local to the 
-    machine.
     '''
 
     # The resource type is the shorthand identifier.
     # To get the actual resource class implementation, we 
     # use the RESOURCE_MAPPING dict
     try:
-        resource_class = RESOURCE_MAPPING[resource_type_str]
+        resource_class = RESOURCE_MAPPING[resource_instance.resource_type]
     except KeyError as ex:
         logger.error('Received a Resource that had a non-null resource_type'
             ' but was also not in the known resource types.'
@@ -132,7 +129,7 @@ def get_contents(resource_path, resource_type_str, file_format, query_params={})
         
     # instantiate the proper class for this type:
     resource_type = resource_class()
-    return resource_type.get_contents(resource_path, file_format, query_params)
+    return resource_type.get_contents(resource_instance, query_params)
 
 def get_resource_paginator(resource_type_str):
     '''

@@ -2,8 +2,10 @@ import logging
 import datetime
 import os
 import json
+from io import StringIO
 
 from django.conf import settings
+from django.core.files.base import File
 
 from rest_framework.exceptions import PermissionDenied, ParseError
 from rest_framework.views import APIView
@@ -14,7 +16,8 @@ from constants import JSON_FILE_KEY, JSON_FORMAT
 
 from api.utilities.operations import create_workspace_dag
 from api.utilities.resource_utilities import write_resource, \
-    initiate_resource_validation
+    initiate_resource_validation, \
+    create_resource
 from api.models import Workspace, WorkspaceExecutedOperation, Resource
 
 logger = logging.getLogger(__name__)
@@ -57,28 +60,21 @@ class WorkspaceTreeSave(APIView, WorkspaceTreeBase):
             workspace_id = str(kwargs['workspace_pk']),
             timestamp = timestamp_str
         )
-        user_uuid = str(request.user.user_uuid)
-        tmp_path = os.path.join(
-            settings.RESOURCE_CACHE_DIR, 
-            user_uuid,
-            output_filename
-        )
         dag = self.get_tree(request, *args, **kwargs)
-
+        fh =File(StringIO(json.dumps(dag)), output_filename)
         try:
-            write_resource(json.dumps(dag), tmp_path)
+            workspace = Workspace.objects.get(pk=kwargs['workspace_pk'])
+            resource_instance = create_resource(
+                request.user,
+                file_handle=fh,
+                name=output_filename,
+                is_active=False,
+                workspace=workspace
+            )
         except Exception as ex:
             logger.error('Failed at writing the workspace export.')
             raise ex
 
-        resource_instance = Resource.objects.create(
-            owner = request.user,
-            path = tmp_path,
-            name = output_filename
-        )
-        workspace = Workspace.objects.get(pk=kwargs['workspace_pk'])
-        resource_instance.workspaces.add(workspace)
-        resource_instance.save()
         initiate_resource_validation(resource_instance,
             JSON_FILE_KEY,
             JSON_FORMAT
