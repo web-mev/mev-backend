@@ -347,6 +347,8 @@ MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
 if STORAGE_LOCATION == REMOTE:
     if CLOUD_PLATFORM == AMAZON:
         DEFAULT_FILE_STORAGE = 'api.storage.S3ResourceStorage'
+        AWS_S3_SIGNATURE_VERSION = 's3v4'
+        AWS_S3_REGION_NAME = get_env('AWS_REGION')
     elif CLOUD_PLATFORM == GOOGLE:
         # TODO: a temporary guard against problems if we deploy on GCP.
         # Remove if/when all GCP-related content is removed

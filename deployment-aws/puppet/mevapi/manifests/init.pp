@@ -28,6 +28,7 @@ class mevapi (
   String                  $storage_bucket_name,
   String                  $cromwell_bucket_name,
   String                  $cromwell_server_url,
+  String                  $aws_region,
 
 ) {
   if $facts['virtual'] == 'kvm' {
