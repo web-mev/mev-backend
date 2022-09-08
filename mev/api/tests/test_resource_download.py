@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.conf import settings
 from django.core.files import File
+from django.test import override_settings
 
 from api.models import Resource
 from api.tests.base import BaseAPITestCase
@@ -116,6 +117,10 @@ class ResourceDownloadTests(BaseAPITestCase):
         file_contents = open(resource_path, 'rb').read()
         self.assertEqual(file_contents, response.content)
 
+    # Override settings.MAX_DOWNLOAD_SIZE_BYTES to make it such that
+    # we trigger the 'too large' case. Setting it to -1 makes it
+    # trigger no matter what the resource.datafile.size actually is.
+    @override_settings(MAX_DOWNLOAD_SIZE_BYTES=-1)
     @mock.patch('api.views.resource_download.check_resource_request_validity')
     def test_local_resource_for_large_file(self, mock_check_resource_request_validity):
         '''
@@ -123,7 +128,12 @@ class ResourceDownloadTests(BaseAPITestCase):
         is too large for our local download. Return 400 with a status message indicating
         that the file should be downloaded by another means (e.g. Dropbox, etc)
         '''
-
+        # even though the file contents, etc. doesn't matter, since we end up
+        # calling resource.datafile.size in this test (without mocking it out)
+        # then we require there to be an actual/valid file at the path.
+        resource_path = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.assertTrue(os.path.exists(resource_path))
+        associate_file_with_resource(self.large_active_resource, resource_path)
         mock_check_resource_request_validity.return_value = self.large_active_resource
         response = self.authenticated_regular_client.get(self.url_for_large_active_resource)
         self.assertEqual(response.status_code, 

@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0012_alter_operationresource_path_alter_resource_path_and_more'),
+        ('api', '0010_allow_null_file_format'),
     ]
 
     operations = [
@@ -23,11 +23,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='operationresource',
             name='datafile',
-            field=models.FileField(null=True, upload_to=api.models.operation_resource.upload_base),
+            #field=models.FileField(null=True, upload_to=api.models.operation_resource.upload_base),
+            field=models.FileField(upload_to=api.models.operation_resource.upload_base),
         ),
         migrations.AddField(
             model_name='resource',
             name='datafile',
-            field=models.FileField(null=True, upload_to=api.models.resource.get_storage_dir),
+            #field=models.FileField(null=True, upload_to=api.models.resource.get_storage_dir),
+            field=models.FileField(upload_to=api.models.resource.get_storage_dir),
         ),
     ]

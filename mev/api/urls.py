@@ -92,7 +92,6 @@ urlpatterns = [
     ################### Misc. views #####################################
     path('feedback/', api.views.SubmitFeedbackView.as_view(), name='feedback'),
 
-    path('simple-upload/', api.views.simple_upload.SimpleUploadView.as_view(), name='dummy-upload'),
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
 
