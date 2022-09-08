@@ -52,19 +52,19 @@ class ResourceDownloadUrl(APIView):
         except OwnershipException:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # If we are using remote/bucket storage, then django-storage 
-        # will generate a signed URL
-        url = r.datafile.url
-        if not url:
-            logger.error('Encountered a problem when preparing download for resource'
-                ' with pk={u}'.format(u=resource_pk)
-            )
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
         if settings.STORAGE_LOCATION == settings.LOCAL:
             download_url = request.build_absolute_uri(reverse('download-resource', kwargs={'pk': resource_pk}))
             download_type = 'local'
         else:
+            # If we are using remote/bucket storage, then django-storage 
+            # will generate a signed URL
+            url = r.datafile.url
+            if not url:
+                logger.error('Encountered a problem when preparing download for resource'
+                    ' with pk={u}'.format(u=resource_pk)
+                )
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
             download_url = url
             download_type = 'remote'
         
