@@ -1,3 +1,4 @@
+import os
 import logging
 
 from django.contrib.auth import get_user_model
@@ -7,7 +8,6 @@ from api.models import Resource, Workspace
 from api.utilities.resource_utilities import set_resource_to_inactive
 from api.serializers.workspace import WorkspaceSerializer
 import api.async_tasks.async_resource_tasks as api_tasks
-from api.storage_backends import get_storage_backend
 
 from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE
 
@@ -33,11 +33,6 @@ class ResourceSerializer(serializers.ModelSerializer):
     # a particular Resource is associated with:
     workspaces = WorkspaceSerializer(many=True, required=False, read_only=True)
 
-    # We want to be able to set the path of the file, but don't want to report it
-    # in the serialized representation. The actualy storage path should not be 
-    # sent in any responses, etc.
-    path = serializers.CharField(write_only=True, required=False)
-
     # See `get_readable_resource_type` method below.
     readable_resource_type = serializers.SerializerMethodField()
 
@@ -45,8 +40,8 @@ class ResourceSerializer(serializers.ModelSerializer):
         model = Resource
         fields = [
             'id',
-            'url',
             'name',
+            'datafile',
             'file_format',
             'resource_type',
             'owner_email',
@@ -55,7 +50,6 @@ class ResourceSerializer(serializers.ModelSerializer):
             'status',
             'workspaces',
             'created',
-            'path',
             'size',
             'readable_resource_type'
         ]
@@ -75,85 +69,46 @@ class ResourceSerializer(serializers.ModelSerializer):
         else:
             return None
 
-    @staticmethod
-    def parse_request_parameters(validated_data):
-        '''
-        This is a helper function to parse out the various 
-        optional parameters from the request to create or
-        edit a Resource
-        '''
-        id = validated_data.get('id', None)
-        path = validated_data.get('path', '')
-        name = validated_data.get('name', '')
-        workspaces = validated_data.get('workspaces', None),
-        file_format = validated_data.get('file_format', None)
-        resource_type = validated_data.get('resource_type', None)
-        is_public = validated_data.get('is_public', False)
-        is_active = validated_data.get('is_active', False)
-        status = validated_data.get('status', '')
-        size = validated_data.get('size', 0)
+    # @staticmethod
+    # def parse_request_parameters(validated_data):
+    #     '''
+    #     This is a helper function to parse out the various 
+    #     optional parameters from the request to create or
+    #     edit a Resource
+    #     '''
+    #     id = validated_data.get('id', None)
+    #     path = validated_data.get('path', '')
+    #     name = validated_data.get('name', '')
+    #     workspaces = validated_data.get('workspaces', None),
+    #     file_format = validated_data.get('file_format', None)
+    #     resource_type = validated_data.get('resource_type', None)
+    #     is_public = validated_data.get('is_public', False)
+    #     is_active = validated_data.get('is_active', False)
+    #     status = validated_data.get('status', '')
+    #     size = validated_data.get('size', 0)
 
-        return {
-            'id': id,
-            'path': path,
-            'name': name,
-            'workspaces': workspaces, 
-            'file_format': file_format,
-            'resource_type': resource_type,
-            'is_public' : is_public,
-            'is_active' : is_active,
-            'status': status,
-            'size': size
-        }
+    #     return {
+    #         'id': id,
+    #         'path': path,
+    #         'name': name,
+    #         'workspaces': workspaces, 
+    #         'file_format': file_format,
+    #         'resource_type': resource_type,
+    #         'is_public' : is_public,
+    #         'is_active' : is_active,
+    #         'status': status,
+    #         'size': size
+    #     }
 
     def create(self, validated_data): 
 
         logger.info('Received validated data: %s' % validated_data)
         
-        # In addition to creating Resource instances from payloads submitted
-        # via an API view, we can use this method to internally validate 
-        # serialized representations of Resource objects.
-        # If there is no requesting_user field (added by the view function)
-        # then we consider this an "internal" validation request.
-        internal_call = False
-        try:
-            requesting_user = validated_data['requesting_user']
-        except KeyError:
-            internal_call = True
-
-        try:
-            owner_email = validated_data['owner']['email']
-        except KeyError as ex:
-            raise exceptions.ParseError({'owner_email':'This field'
-                ' must be supplied with the payload.'
-            })
-
-        # check that the owner does exist, if given.  If not, return an error
-        if owner_email:
-            try:
-                resource_owner = get_user_model().objects.get(email=owner_email)
-            except get_user_model().DoesNotExist as ex:
-                logger.info('User %s did not exist.' % owner_email)
-                raise exceptions.ParseError()
-        else:
-            resource_owner = None
-
-        if internal_call:
-            params = ResourceSerializer.parse_request_parameters(validated_data)
-
-            resource = Resource.objects.create(
-                id=params['id'],
-                owner=resource_owner,
-                path=params['path'],
-                name=params['name'],
-                resource_type=params['resource_type'],
-                is_public=params['is_public'],
-                size=params['size']
-            )                
-            logger.info('Created a Resource: %s' % resource)
-            return resource
-        else:
-            raise exceptions.PermissionDenied()
+        instance = super().create(validated_data)
+        instance.name = os.path.basename(instance.datafile.name)
+        instance.is_active = True
+        instance.save()
+        return instance
 
     def update(self, instance, validated_data):
         '''
@@ -162,7 +117,6 @@ class ResourceSerializer(serializers.ModelSerializer):
         - change the format (i.e. should this be parsed as a CSV, TSV, etc?)
         - change the resource type (which triggers a type validation)
         '''
-
         logger.info('Received validated data: %s' % validated_data)
 
         # if we are performing validation, or some other action has 

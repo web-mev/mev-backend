@@ -1,13 +1,16 @@
+from lib2to3.pytree import convert
 import os
+import uuid
 import logging
 
-from api.models import Resource
-from api.utilities.basic_utils import copy_local_resource
+from django.core.files.storage import default_storage
+
 from api.utilities.resource_utilities import get_resource_by_pk, \
     localize_resource
 from api.converters.mixins import CsvMixin, SpaceDelimMixin
 
 logger = logging.getLogger(__name__)
+
 
 class BaseDataResourceConverter(object):
     
@@ -20,27 +23,18 @@ class BaseDataResourceConverter(object):
 
 class LocalDataResourceConverter(BaseDataResourceConverter):
     '''
-    This class holds actions/behavior for local-based Resources/files
+    This class holds actions/behavior for local-based Resources/files.
+    Note that "local" doesn't mean our storage system. Rather, it means
+    that we need the file/resource local so that Docker can use it.
     '''
-    def get_local_path_from_uuid(self, resource_uuid):
-        '''
-        Given a UUID for a Resource, return a path to that file
-        on the local filesystem
-        '''
-        r = self.get_resource(resource_uuid)
-        return localize_resource(r)
 
-    def copy_local_resource_to_staging(self, resource_uuid, staging_dir):
+    def _copy_resource_to_staging(self, resource_uuid, staging_dir):
         '''
         Takes a resource UUID and copies the associated file to `staging_dir`
         Returns a path to the copied file
         '''
-        # this is the path to the user's file:
-        original_local_path = self.get_local_path_from_uuid(resource_uuid)
-
-        dest = os.path.join(staging_dir, os.path.basename(original_local_path))
-        copy_local_resource(original_local_path, dest)
-        return dest
+        resource_instance = self.get_resource(resource_uuid)
+        return localize_resource(resource_instance, staging_dir)
 
 
 class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
@@ -57,7 +51,7 @@ class LocalDockerSingleDataResourceConverter(LocalDataResourceConverter):
         user_input is the dictionary-representation of a api.data_structures.UserOperationInput
         '''
         resource_uuid = user_input
-        dest = self.copy_local_resource_to_staging(resource_uuid, staging_dir)
+        dest = self._copy_resource_to_staging(resource_uuid, staging_dir)
         return {input_key: dest}
 
 
@@ -88,7 +82,7 @@ class LocalDockerSingleDataResourceWithTypeConverter(LocalDataResourceConverter)
         resource_uuid = user_input
         resource = self.get_resource(resource_uuid)
         resource_type = resource.resource_type
-        dest = self.copy_local_resource_to_staging(resource_uuid, staging_dir)
+        dest = self._copy_resource_to_staging(resource_uuid, staging_dir)
         formatted_str = '{p}{delim}{rt}'.format(
             p = dest,
             rt = resource_type,
@@ -112,32 +106,57 @@ class LocalDockerMultipleDataResourceConverter(LocalDataResourceConverter):
     copies to a staging dir and returns a list of paths to those copies.
     '''
 
-    def get_path_list(self, user_input, staging_dir):
+    def _get_path_list(self, user_input, staging_dir):
         path_list = []
         if type(user_input) == list:
             for u in user_input:
-                path_list.append(self.copy_local_resource_to_staging(u, staging_dir))
+                path_list.append(self._copy_resource_to_staging(u, staging_dir))
         elif type(user_input) == str:
-            path_list.append(self.copy_local_resource_to_staging(user_input, staging_dir))
+            path_list.append(self._copy_resource_to_staging(user_input, staging_dir))
         else:
             logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
-                v = value
+                v = user_input
             ))
         return path_list
 
     def convert(self, input_key, user_input, op_dir, staging_dir):
-        path_list = self.get_path_list(user_input, staging_dir)
-        return {input_key: self.to_string(path_list)}
+        path_list = self._get_path_list(user_input, staging_dir)
+        return {input_key: path_list}
+
 
 class LocalDockerCsvResourceConverter(LocalDockerMultipleDataResourceConverter, CsvMixin):
-    pass
+    def convert(self, input_key, user_input, op_dir, staging_dir):
+        path_list = self._get_path_list(user_input, staging_dir)
+        return {input_key: self.to_string(path_list)}
 
 
 class LocalDockerSpaceDelimResourceConverter(LocalDockerMultipleDataResourceConverter, SpaceDelimMixin):
-    pass
+    def convert(self, input_key, user_input, op_dir, staging_dir):
+        path_list = self._get_path_list(user_input, staging_dir)
+        return {input_key: self.to_string(path_list)}
 
 
-class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
+class CromwellDataResourceConverter(BaseDataResourceConverter):
+    '''
+    Contains common behavior for DataResource conversion related to
+    the Cromwell runner.
+
+    Use one of the derived classes.
+    '''
+
+    def _convert_single_resource(self, resource_uuid, staging_dir):
+        '''
+        Handles the conversion of a UUID referencing an instance that
+        is a child of api.models.AbstractResource 
+
+        Returns the full path to the file, e.g.
+        s3://<mev storage bucket>/<object path>
+        '''
+        r = self.get_resource(resource_uuid)
+        return default_storage.get_absolute_path(r.datafile.name)
+
+
+class CromwellSingleDataResourceConverter(CromwellDataResourceConverter):
     '''
     This converter takes a DataResource instance (for a single file,
     which is simply a UUID) and returns the path to 
@@ -150,10 +169,11 @@ class CromwellSingleDataResourceConverter(BaseDataResourceConverter):
 
     def convert(self, input_key, user_input, op_dir, staging_dir):
         resource_uuid = user_input
-        r = self.get_resource(resource_uuid)
-        return {input_key: r.path}
+        path = self._convert_single_resource(resource_uuid, staging_dir)
+        return {input_key: path}
 
-class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
+
+class CromwellMultipleDataResourceConverter(CromwellDataResourceConverter):
     '''
     This converter takes a DataResource instance (for >1 file) and returns the path to 
     the remote files as a list. Typically, this is then used with a mixin class to format
@@ -171,28 +191,37 @@ class CromwellMultipleDataResourceConverter(BaseDataResourceConverter):
     a list of the remote paths.
     '''
 
-    def get_path_list(self, user_input):
+    def _get_path_list(self, user_input, staging_dir):
         path_list = []
         if type(user_input) == list:
             for u in user_input:
-                r = self.get_resource(u)
-                path_list.append(r.path)
+                path_list.append(
+                    self._convert_single_resource(u, staging_dir)
+                )
         elif type(user_input) == str:
-            r = self.get_resource(user_input)
-            path_list.append(r.path)
+            # technically COULD HAVE been multiple resources, but only a single
+            # was provided (hence, a single string, not a list)
+            path_list.append(
+                self._convert_single_resource(user_input, staging_dir)
+            )
         else:
             logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
-                v = value
+                v = user_input
             ))
         return path_list
 
     def convert(self, input_key, user_input, op_dir, staging_dir):
-        path_list = self.get_path_list(user_input)
-        return {input_key: self.to_string(path_list)}
+        path_list = self._get_path_list(user_input, staging_dir)
+        return {input_key: path_list}
+
 
 class CromwellCsvResourceConverter(CromwellMultipleDataResourceConverter, CsvMixin):
-    pass
+    def convert(self, input_key, user_input, op_dir, staging_dir):
+        path_list = self._get_path_list(user_input, staging_dir)
+        return {input_key: self.to_string(path_list)}
 
 
 class CromwellSpaceDelimResourceConverter(CromwellMultipleDataResourceConverter, SpaceDelimMixin):
-    pass
+    def convert(self, input_key, user_input, op_dir, staging_dir):
+        path_list = self._get_path_list(user_input, staging_dir)
+        return {input_key: self.to_string(path_list)}

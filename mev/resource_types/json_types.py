@@ -129,7 +129,7 @@ class JsonResource(DataResource):
                 ' to parse the file was JSON. The reported error was: {ex}'.format(ex=ex)
             )
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
         # call the super method to initialize the self.metadata
         # dictionary
         super().setup_metadata()
@@ -140,7 +140,7 @@ class JsonResource(DataResource):
         return self.metadata
 
 
-    def get_contents(self, resource_path, file_format, query_params={}):
+    def get_contents(self, resource_instance, query_params={}):
 
         # since the pagination query params are among the general query parameters, we DON'T
         # want to pass them to the filtering.
@@ -153,10 +153,10 @@ class JsonResource(DataResource):
         logger.info('Get contents of JSON resource and filter'
             ' against query params: {q}'.format(q=filtering_query_params))
         try:
-            logger.info('Using python-native JSON loader to read resource: {p}'.format(
-                p = resource_path
+            logger.info('Using python-native JSON loader to read resource: {pk}'.format(
+                pk = resource_instance.pk
             ))
-            j = json.load(open(resource_path))
+            j = json.load(resource_instance.datafile.open())
             if filtering_query_params:
                 j = self.filter_based_on_query_params(j, filtering_query_params)
             if settings.SORT_PARAM in query_params:

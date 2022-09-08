@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.files import File
 
 from constants import DATABASE_RESOURCE_TYPES
 
@@ -15,15 +16,6 @@ class AbstractResource(models.Model):
     id = models.UUIDField(
         primary_key = True, 
         default = uuid.uuid4
-    )
-
-    # the location of the file.  Since the files can be added in
-    # a multitude of ways (perhaps outside the API), we permit 
-    # this field to be blank.  We later fill that in once we have
-    # all the necessary resource information.
-    path = models.CharField(
-        max_length = 4096,
-        default = ''  
     )
 
     # the name of the Resource.  Allows users to create
@@ -98,6 +90,18 @@ class AbstractResource(models.Model):
                 ' of resource type and file format.'
             )
 
+    def write_to_file(self, fh, file_basename):
+        '''
+        Used as a common way to write files and save to the 
+        datafile member (a FileField).
+
+        `fh` is a file-like object.
+        `file_basename` is a string giving the basename
+        of the file we are saving. The storage system will
+        place it in the correct directory.
+        '''
+        self.datafile = File(fh, file_basename)
+        self.save()
 
     class Meta:
         abstract = True

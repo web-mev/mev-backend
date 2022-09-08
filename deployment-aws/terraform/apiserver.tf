@@ -126,6 +126,11 @@ resource "aws_instance" "api" {
   export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
   export FACTER_SENTRY_URL='${var.sentry_url}'
   export FACTER_STORAGE_LOCATION='${var.storage_location}'
+  export FACTER_STORAGE_BUCKET_NAME='${aws_s3_bucket.api_storage_bucket.id}'
+  export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
+  # TODO: add the ip address of the Cromwell server once we merge with
+  #       the branch containing cromwell setup.
+  export FACTER_CROMWELL_SERVER_URL=''
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT

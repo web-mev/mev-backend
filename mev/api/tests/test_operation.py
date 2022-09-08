@@ -5,7 +5,7 @@ import copy
 import json
 import os
 
-from api.runners import AVAILABLE_RUN_MODES
+from api.runners import AVAILABLE_RUNNERS
 from resource_types import RESOURCE_MAPPING
 from api.serializers.operation import OperationSerializer
 from api.data_structures.operation import Operation
@@ -72,7 +72,7 @@ class OperationTester(unittest.TestCase):
         self.op_id = str(uuid.uuid4())
         self.op_name = 'Some name'
         self.description = 'Here is some desc.'
-        self.mode = AVAILABLE_RUN_MODES[0]
+        self.mode = AVAILABLE_RUNNERS[0]
         self.repository_url = 'https://github.com/some-repo/'
         self.git_hash = 'abcd1234'
         self.repo_name = 'some-repo'

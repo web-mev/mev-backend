@@ -2,8 +2,11 @@ import datetime
 import os
 import logging
 
+from django.core.files import File
+
 from api.models import PublicDataset, Resource
 from api.async_tasks.async_resource_tasks import validate_resource
+from api.utilities.resource_utilities import create_resource
 from .sources.gdc.tcga import TCGARnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
 from .sources.gtex_rnaseq import GtexRnaseqDataSource
@@ -163,12 +166,16 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
 
     # create the Resource instances.
     resource_list = []
-    for path, name, resource_type, file_format in zip(path_list, name_list, resource_type_list, file_format_list):
-        r = Resource.objects.create(
-            name = name,
-            owner = user,
-            path = path,
-            status = Resource.VALIDATING
+    for path, name, resource_type, file_format in \
+            zip(path_list, name_list, resource_type_list, file_format_list):
+        fh = File(open(path, 'rb'), name)
+        r = create_resource(
+            user,
+            file_handle=fh,
+            name=name,
+            resource_type=resource_type,
+            file_format=file_format,
+            status=Resource.VALIDATING
         )
 
         # although we have full control over the creation of files here,

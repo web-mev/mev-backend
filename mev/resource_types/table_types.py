@@ -3,8 +3,10 @@
 import logging
 import re
 import os
+import resource
 import uuid
 from functools import reduce
+from io import BytesIO
 
 import pandas as pd
 import numpy as np
@@ -189,7 +191,7 @@ class TableResource(DataResource):
         return TableResourcePageNumberPagination()
 
     @staticmethod
-    def get_reader(resource_path, file_format):
+    def get_reader(file_format):
         '''
         By using the file extension, we infer the delimiter
         Returns a pandas "reader" (e.g. `read_csv` or `read_table`)
@@ -202,10 +204,8 @@ class TableResource(DataResource):
         elif file_format in [XLS_FORMAT, XLSX_FORMAT]:
             return pd.read_excel
         else:
-            logger.error('Could not infer the file format from the file'
-            ' extension of {ext}.  Full resource path was {path}'.format(
-                ext = file_format,
-                path = resource_path
+            logger.error('Unrecognized file format: {f}'.format(
+                f = file_format
             ))
             return None
 
@@ -220,17 +220,26 @@ class TableResource(DataResource):
         else:
             return False
 
-    def read_resource(self, resource_path, file_format):
+    def read_resource(self, resource_instance, requested_file_format=None):
         '''
-        One common spot to define how the file is read
+        One common spot to define how the file is read.
+
+        Note that validated files "know" their file format.
+        The `requested_file_format` kwarg is used when we are attempting
+        a read on an unvalidated file.
         '''
-        reader = TableResource.get_reader(resource_path, file_format)
+        if requested_file_format is None:
+            file_format = resource_instance.file_format
+        else:
+            file_format = requested_file_format
+
+        reader = TableResource.get_reader(file_format)
         if reader is None:
             raise ParserNotFoundException('')
         else:
             try:
                 # read the table using the appropriate parser:
-                self.table = reader(resource_path, index_col=0, comment='#')
+                self.table = reader(resource_instance.datafile.open(), index_col=0, comment='#')
 
                 # drop extra/empty cols and rows
                 self.table.dropna(axis=0, how='all', inplace=True)
@@ -241,10 +250,10 @@ class TableResource(DataResource):
                 raise FileParseException(str(ex))
 
             except Exception as ex:
-                logger.info('Could not use {reader} to parse the file'
-                ' at {path}'.format(
+                logger.info('Could not use {reader} to parse the resource'
+                ' with pk={pk}'.format(
                     reader = reader,
-                    path = resource_path
+                    pk = resource_instance.pk
                 ))     
                 raise UnexpectedFileParseException('Failed when parsing the table-based resource.')
 
@@ -256,7 +265,7 @@ class TableResource(DataResource):
         '''
         return True
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         '''
         In this base method, we determine attempt to parse the file.
         If there are no restrictions on content, succesful parsing
@@ -267,7 +276,7 @@ class TableResource(DataResource):
         which is then accessible to children.
         '''
         try:
-            self.read_resource(resource_path, file_format)
+            self.read_resource(resource_instance, requested_file_format=file_format)
             if self.table.shape == (0,0):
                 return (False, EMPTY_TABLE_ERROR )
 
@@ -517,17 +526,16 @@ class TableResource(DataResource):
         d['rowname'] = row.name
         return d
 
-    def get_contents(self, resource_path, file_format, query_params={}):
+    def get_contents(self, resource_instance, query_params={}):
         '''
         Returns a dataframe of the table contents
 
         The dataframe allows the caller to subset as needed to 'paginate'
         the rows of the table
         '''
-
         try:
-            logger.info('Read resource at {p}'.format(p=resource_path))
-            self.read_resource(resource_path, file_format)
+            logger.info('Read resource ({pk})'.format(pk=resource_instance.pk))
+            self.read_resource(resource_instance)
             self.additional_exported_cols = []
 
             # if there were any filtering params requested, apply those
@@ -554,14 +562,14 @@ class TableResource(DataResource):
         # catch any other types of exceptions that we did not anticipate.
         except Exception as ex:
             logger.error('An unexpected error occurred when preparing'
-                ' a resource preview for the resource at {path}. Exception'
+                ' a resource preview for resource ({pk}). Exception'
                 ' was: {ex}'.format(
-                    path=resource_path,
+                    pk=resource_instance.pk,
                     ex=ex
                 ))
             raise ex
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
         '''
         This method extracts metadata from the Resource in question and 
         saves it to the database.
@@ -572,29 +580,31 @@ class TableResource(DataResource):
         the primary-key for that ExecutedOperation will be passed.
 
         '''
-        logger.info('Extracting metadata from resource with path ({path}).'.format(
-            path = resource_path
+        logger.info('Extracting metadata from resource ({pk})'.format(
+            pk = resource_instance.pk
         ))
 
         # If the self.table field was not already filled, we need to 
         # read the data
         if self.table is None:
-            logger.info('Resource with path ({path}) was not '
+            logger.info('Resource ({pk}) was not '
                 'previously parsed.  Do that now.'.format(
-                    path=resource_path
+                    pk=resource_instance.pk
                 )
             )
             # if we are extracting metadata, then the file should have been deemed "valid"
             # and hence saved into the standardized format.
-            is_valid, message = self.validate_type(resource_path, self.STANDARD_FORMAT)
+            is_valid, message = self.validate_type(resource_instance, self.STANDARD_FORMAT)
             if not is_valid:
                 raise UnexpectedTypeValidationException(message)
         else:
-            logger.info('Resource with path ({path}) was '
+            logger.info('Resource ({pk}) was '
                 'previously parsed.'.format(
-                    path=resource_path
+                    pk=resource_instance.pk
                 )
-            )        # now we have a table loaded at self.table.  
+            )        
+            
+        # now we have a table loaded at self.table.  
 
         # call the super method to initialize the self.metadata
         # dictionary
@@ -605,23 +615,27 @@ class TableResource(DataResource):
         if parent_op_pk:
             self.metadata[PARENT_OP_KEY] = parent_op_pk
 
-    def save_in_standardized_format(self, resource_path, file_format):
+    def save_in_standardized_format(self, resource_instance, current_file_format):
         '''
         To avoid all the analyses having to concern themselves with data formats
         like csv, tsv, xlsx, etc. we just save table-based formats in a standard
         format, determind by self.STANDARD_FORMAT
+
+        Note that `current_file_format` is the format BEFORE we have standardized.
+        This can obviously match our standard format
         '''
-        logger.info('Saving resource with path ({path}) to the standard format.'
-            ' for a table-based resource'.format(
-            path = resource_path
+        logger.info('Saving resource ({pk}) to the standard format'
+            ' for a table-based resource. The original name was: {n}'.format(
+            pk=resource_instance.pk,
+            n=resource_instance.datafile.name 
         ))
 
         # the 'current' file extension (e.g. 'csv')
         # was used to successfully validate the file.
         # If it happens that this is also our standard format (tsv)
         # then we can just return immediately
-        if file_format.lower() == self.STANDARD_FORMAT.lower():
-            return resource_path
+        if current_file_format.lower() == self.STANDARD_FORMAT.lower():
+            return
 
         # If we are here, then the selected file format did not match our
         # "standard" format.  Have to parse and rewrite to that standard format.
@@ -629,32 +643,31 @@ class TableResource(DataResource):
         # If the self.table field was not already filled, we need to 
         # read the data
         if self.table is None:
-            logger.info('Resource with path ({path}) was not '
+            logger.info('Resource ({pk}) was not '
                 'previously parsed.  Do that now.'.format(
-                    path=resource_path
+                    pk=resource_instance.pk
                 )
             )
             try:
                 # this call will set the self.table member
-                self.read_resource(resource_path, file_format)
+                self.read_resource(resource_instance, 
+                    requested_file_format=current_file_format)
             except Exception as ex:
-                logger.error('Failed when trying to save in standard format.'
-                    ' Specifically, failed when reading the resource, as self.table'
-                    ' was None. Path of resource was: {path}'.format(
-                        path=resource_path
+                logger.error('Failed when trying to save resource ({pk})'
+                    ' in standard format. Specifically, failed when reading'
+                    '  the resource, as self.table was None.'.format(
+                        pk=resource_instance.pk
                     )
                 )
                 raise ex
 
         # ok, self.table is set-- save it.
-        new_path = os.path.join(settings.VALIDATION_TMP_DIR, str(uuid.uuid4()))
-
-        logger.info('Writing the reformatted table-based resource to'
-            ' the temporary location: {p}.'.format(
-            p = new_path
-        ))
-        self.table.to_csv(new_path, sep='\t')
-        return new_path
+        # Recall that our storage mechanism will place the file
+        # into a user-associated directory. We only need the basename
+        new_path = str(uuid.uuid4())
+        with BytesIO() as fh:
+            self.table.to_csv(fh, sep='\t')
+            resource_instance.write_to_file(fh, new_path)
 
 
 class Matrix(TableResource):
@@ -734,8 +747,8 @@ class Matrix(TableResource):
         return problem_columns
 
 
-    def validate_type(self, resource_path, file_format):
-        is_valid, error_msg = super().validate_type(resource_path, file_format)
+    def validate_type(self, resource_instance, file_format):
+        is_valid, error_msg = super().validate_type(resource_instance, file_format)
         if not is_valid:
             return (False, error_msg)
 
@@ -749,9 +762,9 @@ class Matrix(TableResource):
 
         return (True, None)
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
 
-        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
+        super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -829,7 +842,7 @@ class Matrix(TableResource):
         elif len(filters) == 1:
             self.table = self.table.loc[filters[0]]            
 
-    def get_contents(self, resource_path, file_format, query_params={}):
+    def get_contents(self, resource_instance, query_params={}):
         '''
         This method allows us to add on additional content that is
         allowable for matrix types, as they are all numeric.
@@ -847,7 +860,7 @@ class Matrix(TableResource):
 
         # additional filtering/behavior specific to a Matrix (if requested)
         # is handled in the _resource_specific_modifications method
-        return super().get_contents(resource_path, file_format, query_params)
+        return super().get_contents(resource_instance, query_params)
 
 
 class IntegerMatrix(Matrix):
@@ -890,10 +903,10 @@ class IntegerMatrix(Matrix):
         }
     ]
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         # first check that it has all numeric types.  If that fails
         # immediately return--
-        is_valid, error_message = super().validate_type(resource_path, file_format)
+        is_valid, error_message = super().validate_type(resource_instance, file_format)
         
         if not is_valid:
             return (False, error_message)
@@ -1001,10 +1014,10 @@ class ElementTable(TableResource):
     MAX_OBSERVATIONS = 10000
     MAX_FEATURES = 100
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
 
         # check that file can be parsed:
-        is_valid, error_message = super().validate_type(resource_path, file_format)
+        is_valid, error_message = super().validate_type(resource_instance, file_format)
         if not is_valid:
             return (False, error_message)
         
@@ -1118,10 +1131,10 @@ class AnnotationTable(ElementTable):
         }
     ]
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
 
         # check that file can be parsed:
-        is_valid, error_message = super().validate_type(resource_path, file_format)
+        is_valid, error_message = super().validate_type(resource_instance, file_format)
         if not is_valid:
             return (False, error_message)
 
@@ -1149,7 +1162,7 @@ class AnnotationTable(ElementTable):
 
         return (True, None)
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
         '''
         When we extract the metadata from an AnnotationTable, we 
         expect the Observation instances to be the rows.  
@@ -1158,7 +1171,7 @@ class AnnotationTable(ElementTable):
         which we incorporate
         '''
         logger.info('Extract metadata for an AnnotationTable instance.')
-        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
+        super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         observation_list = super().prep_metadata(Observation)
         o_set = ObservationSet(observation_list)
         self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
@@ -1213,7 +1226,7 @@ class FeatureTable(ElementTable):
         }
     ]
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
         '''
         When we extract the metadata from a FeatureTable, we 
         expect the Feature instances to be the rows.  
@@ -1222,7 +1235,7 @@ class FeatureTable(ElementTable):
         which we incorporate
         '''
         logger.info('Extract metadata from a FeatureTable')
-        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
+        super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
 
         # Note: removed the addition of FeatureSets to the metadata as it was causing
         # issues with large json objects being inserted into the database.
@@ -1253,13 +1266,16 @@ class BEDFile(TableResource):
         ' in a tab-delimited format.'
 
 
-    def validate_type(self, resource_path, file_format):
-        reader = TableResource.get_reader(resource_path, file_format)
+    def validate_type(self, resource_instance, file_format):
+
+        # Note that we don't use the TableResource.read_resource since we have
+        # a different way of parsing the table here.
+        reader = TableResource.get_reader(file_format)
 
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
         # the proper integer type.
-        table = reader(resource_path, 
+        table = reader(resource_instance.datafile.open(), 
             names=['chrom','start','stop'],
             usecols=[0,1,2])
         start_col_int = re.match('int\d{0,2}', str(table['start'].dtype))
@@ -1277,6 +1293,6 @@ class BEDFile(TableResource):
             error_message = BED_FORMAT_ERROR.format(cols=cols)
             return (False, error_message)
 
-    def extract_metadata(self, resource_path, parent_op_pk=None):
-        super().extract_metadata(resource_path, parent_op_pk=parent_op_pk)
+    def extract_metadata(self, resource_instance, parent_op_pk=None):
+        super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         return self.metadata

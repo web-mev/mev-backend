@@ -1,98 +1,39 @@
 import uuid
 import logging
 
-from django.core.cache import cache
-
+from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework import status
 from rest_framework.response import Response
 
 from api.models import Resource
-from api.serializers.upload_serializer import UploadSerializer, DropboxUploadSerializer
+from api.serializers.upload_serializer import DropboxUploadSerializer
 from api.serializers.resource import ResourceSerializer
-from api.uploaders import ServerLocalUpload, \
-    get_async_uploader, \
-    DROPBOX
+from api.uploaders import get_async_uploader, DROPBOX
 from api.async_tasks.operation_tasks import submit_async_job
-from api.utilities.resource_utilities import set_resource_to_inactive
-from api.async_tasks.async_resource_tasks import store_resource
 
 logger = logging.getLogger(__name__)
 
-class ServerLocalResourceUpload(APIView):
+
+class ResourceUploadView(CreateAPIView):
     '''
     Endpoint for a direct upload to the server.
     '''
     parser_classes = [MultiPartParser]
-    serializer_class = UploadSerializer
-    upload_handler_class = ServerLocalUpload
+    serializer_class = ResourceSerializer
 
-    def get_serializer(self):
-        return self.serializer_class()
-
-    def post(self, request, *args, **kwargs):
-
-        serializer = self.serializer_class(data=request.data)
-
-        if serializer.is_valid():
-            upload_handler = self.upload_handler_class()
-
-            # get the file on the server:
-            resource = upload_handler.handle_upload(request, serializer.data)
-            
-            # if we somehow did not create an api.models.Resource instance, bail out.
-            if resource is None:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # set and save attributes to prevent "use" of this Resource
-            # before it is (potentially) validated and in its final storage location:
-            set_resource_to_inactive(resource)
-
-            # since the async function below doesn't have a defined time to operate,
-            # set a generic status on the Resource.
-            resource.status = Resource.PROCESSING
-            resource.save()
-
-            # send to the final storage backend
-            store_resource.delay(resource.pk)
-
-            resource_serializer = ResourceSerializer(resource, context={'request': request})
-            return Response(resource_serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ServerLocalResourceUploadProgress(APIView):
-    '''
-    Endpoint for checking the progress of an upload.
-
-    Requests must contain a "X-Progress-ID" header to identify
-    the upload they are monitoring.
-    '''
-    def get(self, request, format=None):
-        progress_id = None
-        if 'HTTP_X_PROGRESS_ID' in self.request.GET :
-            progress_id = request.GET['HTTP_X_PROGRESS_ID']
-        elif 'HTTP_X_PROGRESS_ID' in request.META:
-            progress_id = request.META['HTTP_X_PROGRESS_ID']
-        if progress_id:
-            cache_key = "%s_%s" % (
-                request.META['REMOTE_ADDR'], progress_id
-            )
-            data = cache.get(cache_key)
-            return Response(data)
-        else:
-            error_msg = ('Requests must include a "X-Progress-ID" key'
-            ' in the header or as a query parameter with the GET request')
-            return Response({'errors': error_msg}, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
 class AsyncUpload(APIView):
     '''
-    Base class for uploads that are performed asynchronously, e.g. such as with some third-party API, etc.
+    Base class for uploads that are performed asynchronously,
+    e.g. such as with some third-party API, etc.
 
-    Child classes should define the proper serializer for the request payload and also declare the "type"
+    Child classes should define the proper serializer for the 
+    request payload and also declare the "type"
     of the uploader class that should be used.
     '''
 

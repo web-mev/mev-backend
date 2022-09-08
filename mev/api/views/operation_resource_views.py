@@ -47,5 +47,5 @@ class OperationResourceFieldList(generics.ListAPIView):
         op = Operation.objects.get(pk=op_uuid)
         return OperationResource.objects.filter(
             operation=op,
-            input_field = input_field    
+            input_field=input_field    
         )

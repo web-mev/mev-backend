@@ -27,8 +27,7 @@ from .metadata_operations_views import MetadataIntersectView, \
     MetadataUnionView, \
     MetadataSetDifferenceView
 from .workspace_tree_views import WorkspaceTreeView, WorkspaceTreeSave
-from .resource_upload_views import ServerLocalResourceUpload, \
-    ServerLocalResourceUploadProgress, \
+from .resource_upload_views import ResourceUploadView, \
     DropboxUpload
 from .resource_metadata import ResourceMetadataView, \
     ResourceMetadataObservationsView, \
@@ -53,7 +52,6 @@ from .public_dataset import PublicDatasetList, \
     PublicDatasetQuery, \
     PublicDatasetCreate
 from .feedback_views import SubmitFeedbackView
-
 
 def sentry_debug(request):
     '''

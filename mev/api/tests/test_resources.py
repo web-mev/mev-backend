@@ -1,3 +1,4 @@
+from io import BytesIO
 import uuid
 import os
 import json
@@ -8,7 +9,7 @@ from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.conf import settings
-
+from django.core.files import File
 
 from api.models import Resource, Workspace
 from constants import DATABASE_RESOURCE_TYPES, \
@@ -22,7 +23,7 @@ from constants import DATABASE_RESOURCE_TYPES, \
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
-
+from api.tests.test_helpers import associate_file_with_resource
 
 class ResourceListTests(BaseAPITestCase):
 
@@ -143,8 +144,7 @@ class ResourceContentTests(BaseAPITestCase):
             kwargs={'pk':inactive_resource.pk}
         )
 
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_page_param_ignored_for_non_paginated_resource(self, mock_get_storage_backend):
+    def test_page_param_ignored_for_non_paginated_resource(self):
         '''
         Certain resource types (e.g. JSON) don't have straightforward
         pagination schemes. If the JSON was a list, fine...but generally
@@ -154,13 +154,10 @@ class ResourceContentTests(BaseAPITestCase):
         resource is returned
         '''
         f = os.path.join(self.TESTDIR, 'json_file.json')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # check that full file works without query params
         base_url = reverse(
@@ -192,19 +189,16 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(response.status_code == status.HTTP_404_NOT_FOUND)
 
 
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_response_with_na_and_inf(self, mock_get_storage_backend):
+    def test_response_with_na_and_inf(self):
         '''
         Tests the case where the requested resource has infinities and NA's
         '''
         f = os.path.join(self.TESTDIR, 'demo_file1.tsv')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+
         response = self.authenticated_regular_client.get(
             self.url, format='json'
         )
@@ -219,8 +213,7 @@ class ResourceContentTests(BaseAPITestCase):
         # the third row has a padj of NaN, which gets converted to None 
         self.assertIsNone(j[2]['values']['padj'])
 
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_response_with_na_and_large_number(self, mock_get_storage_backend):
+    def test_response_with_na_and_large_number(self):
         '''
         Tests the case where the requested resource has np.nan AND a large
         number.
@@ -234,13 +227,11 @@ class ResourceContentTests(BaseAPITestCase):
         '''
         #
         f = os.path.join(self.TESTDIR, 'file_with_large_value.tsv')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+
         response = self.authenticated_regular_client.get(
             self.url, format='json'
         )
@@ -294,7 +285,7 @@ class ResourceContentTests(BaseAPITestCase):
         Test that the returned payload matches our expectations
         '''
         f = os.path.join(self.TESTDIR, 'demo_file2.tsv')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = INTEGER_MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
@@ -337,22 +328,19 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertEqual(expected_return, j) 
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_sort_for_json(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_sort_for_json(self, mock_check_resource_request):
         '''
         For certain types of json data structures, we can perform filtering. 
         For instance, if we have an array of simple items where our filter key is at the "top level",
         we can perform a filter based on that.
         '''
         f = os.path.join(self.TESTDIR, 'json_array_file_test_filter.json')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+
         # the base url (no query params) should return all the records
         base_url = reverse(
             'resource-contents', 
@@ -431,22 +419,19 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(len(results) == 13)
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_filter_for_json(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_filter_for_json(self,  mock_check_resource_request):
         '''
         For certain types of json data structures, we can perform filtering. 
         For instance, if we have an array of simple items where our filter key is at the "top level",
         we can perform a filter based on that.
         '''
         f = os.path.join(self.TESTDIR, 'json_array_file_test_filter.json')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+
         # the base url (no query params) should return all the records
         base_url = reverse(
             'resource-contents', 
@@ -565,8 +550,7 @@ class ResourceContentTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_filter_for_json_with_na(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_filter_for_json_with_na(self, mock_check_resource_request):
         '''
         For certain types of json data structures, we can perform filtering. 
         For instance, if we have an array of simple items where our filter key is at the "top level",
@@ -576,14 +560,12 @@ class ResourceContentTests(BaseAPITestCase):
         for instance, if a p-value field is assigned a "NA" value.
         '''
         f = os.path.join(self.TESTDIR, 'json_array_file_with_na.json')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = JSON_FILE_KEY
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+
         # the base url (no query params) should return all the records
         base_url = reverse(
             'resource-contents', 
@@ -618,22 +600,18 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(len(j) == 3)
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_pagination_for_json(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_pagination_for_json(self, mock_check_resource_request):
         f = os.path.join(self.TESTDIR, 'json_array_file.json')
         N = 60 # the number of records in our demo file
 
         # just a double-check to ensure the test data is large enough
         # for the pagination to be general
         self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = 'JSON'
         self.resource.file_format = JSON_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -689,22 +667,18 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(final_record['idx'] == 19)
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_pagination(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_pagination(self, mock_check_resource_request):
         f = os.path.join(self.TESTDIR, 'demo_table_for_pagination.tsv')
         N = 155 # the number of records in our demo file
 
         # just a double-check to ensure the test data is large enough
         # for the pagination to be general
         self.assertTrue(N > settings.REST_FRAMEWORK['PAGE_SIZE'])
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -804,8 +778,7 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(final_record['rowname'] == 'g39')
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_rowname_filter(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_rowname_filter(self, mock_check_resource_request):
         '''
         We allow filtering of tables by the rownames (commonly gene name). Test that
         the implementation works as expected
@@ -813,14 +786,11 @@ class ResourceContentTests(BaseAPITestCase):
         f = os.path.join(self.TESTDIR, 'demo_table_for_pagination.tsv')
         N = 155 # the number of records in our demo file
 
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1055,21 +1025,17 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertCountEqual(returned_genes, selected_genes[:2])
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_table_filter(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_table_filter(self, mock_check_resource_request):
         '''
         For testing if table-based resources are filtered correctly
         '''
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
         
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1175,21 +1141,17 @@ class ResourceContentTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_abs_val_table_filter(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_abs_val_table_filter(self, mock_check_resource_request):
         '''
         For testing if table-based resources are filtered correctly using the absolute value filters
         '''
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1230,21 +1192,17 @@ class ResourceContentTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_table_filter_with_string(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_table_filter_with_string(self, mock_check_resource_request):
         '''
         For testing if table-based resources are filtered correctly on string fields
         '''
         f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
         N = 3 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1295,21 +1253,17 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(len(results) == 0)
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_sort(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_sort(self, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly
         '''
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1446,21 +1400,17 @@ class ResourceContentTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_matrix_specific_content_requests(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_matrix_specific_content_requests(self, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when used
         with filters.
         '''
         f = os.path.join(self.TESTDIR, 'rowmeans_test_file.tsv')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1635,21 +1585,17 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertTrue(len(results) == 12)
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_matrix_specific_content_requests_with_na_and_infty(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_matrix_specific_content_requests_with_na_and_infty(self, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when used
         with filters.
         '''
         f = os.path.join(self.TESTDIR, 'rowmeans_test_file_with_na.tsv')
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1815,22 +1761,18 @@ class ResourceContentTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_resource_contents_sort_and_filter(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_resource_contents_sort_and_filter(self, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when used
         with filters.
         '''
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1871,21 +1813,18 @@ class ResourceContentTests(BaseAPITestCase):
         )
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_malformatted_sort_and_filter(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_malformatted_sort_and_filter(self, mock_check_resource_request):
         '''
         For testing that bad request params are handled well.
         '''
         f = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
         N = 39 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
+
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -1969,22 +1908,18 @@ class ResourceContentTests(BaseAPITestCase):
         self.assertEqual(results['error'], expected_error)
 
     @mock.patch('api.views.resource_views.check_resource_request')
-    @mock.patch('api.utilities.resource_utilities.get_storage_backend')
-    def test_sort_on_string_field(self, mock_get_storage_backend, mock_check_resource_request):
+    def test_sort_on_string_field(self, mock_check_resource_request):
         '''
         For testing if table-based resources are sorted correctly when
         sorting on a non-numeric/string field
         '''
         f = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
         N = 3 # the number of rows in the table
-        self.resource.path = f
+        associate_file_with_resource(self.resource, f)
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
         mock_check_resource_request.return_value = (True, self.resource)
-        mock_storage_backend = mock.MagicMock()
-        mock_storage_backend.localize_resource.return_value = f
-        mock_get_storage_backend.return_value = mock_storage_backend
 
         # the base url (no query params) should return all the records
         base_url = reverse(
@@ -2197,13 +2132,13 @@ class ResourceDetailTests(BaseAPITestCase):
         want that.
         '''
         payload = {'owner_email':self.regular_user_2.email}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_unattached, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         payload = {'owner_email':self.regular_user_2.email}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_workspace_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2211,7 +2146,7 @@ class ResourceDetailTests(BaseAPITestCase):
     def test_user_cannot_directly_edit_resource_workspace(self):
         '''
         Test that the put/patch to the resources endpoint 
-        ignores any request to change teh workspace
+        ignores any request to change the workspace
         '''
         # get the workspace to which the resource is assigned:
         all_workspaces = self.regular_user_workspace_resource.workspaces.all()
@@ -2232,11 +2167,10 @@ class ResourceDetailTests(BaseAPITestCase):
         payload = {'workspace': other_workspace.pk}
 
         # try for a resource already attached to a workspace
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_workspace_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
 
     def test_user_cannot_change_active_status(self):
         '''
@@ -2250,7 +2184,7 @@ class ResourceDetailTests(BaseAPITestCase):
         # check that it was not active to start:
         self.assertTrue(self.regular_user_workspace_resource.is_active)
         payload = {'is_active': False}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_workspace_resource, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_workspace_resource.pk)
@@ -2266,7 +2200,7 @@ class ResourceDetailTests(BaseAPITestCase):
         final_status = not initial_status
 
         payload = {'is_active': final_status}
-        response = self.authenticated_admin_client.put(
+        response = self.authenticated_admin_client.patch(
             self.url_for_unattached, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
@@ -2282,7 +2216,7 @@ class ResourceDetailTests(BaseAPITestCase):
         orig_status = self.regular_user_unattached_resource.status
 
         payload = {'status': 'something'}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_unattached, payload, format='json'
         )
         r = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
@@ -2293,7 +2227,7 @@ class ResourceDetailTests(BaseAPITestCase):
         # Now check that admins can't make changes iether
         orig_status = self.active_resource.status
         payload = {'status': 'something'}
-        response = self.authenticated_admin_client.put(
+        response = self.authenticated_admin_client.patch(
             self.url_for_active_resource, payload, format='json'
         )
         r = Resource.objects.get(pk=self.active_resource.pk)
@@ -2310,7 +2244,7 @@ class ResourceDetailTests(BaseAPITestCase):
 
         date_str = 'May 20, 2018 (16:00:07)'
         payload = {'created': date_str}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_unattached, payload, format='json'
         )
         # since the field is ignored, it will not raise any exception.
@@ -2339,7 +2273,7 @@ class ResourceDetailTests(BaseAPITestCase):
                 kwargs={'pk':private_resource.pk}
             )
             payload = {'is_public': True}
-            response = self.authenticated_regular_client.put(
+            response = self.authenticated_regular_client.patch(
                 url, payload, format='json'
             )
             # we basically ignore it, so 200 response
@@ -2368,7 +2302,7 @@ class ResourceDetailTests(BaseAPITestCase):
                 kwargs={'pk':private_resource.pk}
             )
             payload = {'is_public': True}
-            response = self.authenticated_admin_client.put(
+            response = self.authenticated_admin_client.patch(
                 url, payload, format='json'
             )
             self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -2397,7 +2331,7 @@ class ResourceDetailTests(BaseAPITestCase):
             kwargs={'pk':r.pk}
         )
         payload = {'is_public': False}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             url, payload, format='json'
         )
         # it was ok to try, but we just ignore it.
@@ -2406,9 +2340,9 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertTrue(updated_resource.is_public)
 
 
-    def test_admin_user_can_make_resource_private(self):
+    def test_admin_user_cant_make_resource_private(self):
         '''
-        If a Resource was public, admin users can make it private
+        Admins users can't edit public/private status
         '''
         active_and_public_resources = Resource.objects.filter(
             is_active = True,
@@ -2424,7 +2358,7 @@ class ResourceDetailTests(BaseAPITestCase):
             kwargs={'pk':r.pk}
         )
         payload = {'is_public': False}
-        response = self.authenticated_admin_client.put(
+        response = self.authenticated_admin_client.patch(
             url, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -2439,43 +2373,10 @@ class ResourceDetailTests(BaseAPITestCase):
 
         # just try to change the name
         payload = {'name': 'some_name'}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_inactive_resource, payload, format='json'
         )
         self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
-
-    def test_admin_cannot_change_path(self):
-        '''
-        Path is only relevant for internal/database use so 
-        users cannot change that. Neither can admins
-        '''
-        self.assertTrue(self.active_resource.is_active)
-        original_path = self.active_resource.path
-        new_path = '/some/new/path.txt'
-        payload = {'path': new_path}
-        response = self.authenticated_admin_client.put(
-            self.url_for_active_resource, payload, format='json'
-        )
-        # query db for that same Resource object and verify that the path
-        # has not been changed:
-        obj = Resource.objects.get(pk=self.active_resource.pk)
-        self.assertEqual(obj.path, original_path)
-
-    def test_user_cannot_change_path(self):
-        '''
-        Path is only relevant for internal/database use so 
-        users cannot change that.
-        '''
-        original_path = self.regular_user_unattached_resource.path
-        payload = {'path': '/some/new/path.txt'}
-        response = self.authenticated_regular_client.put(
-            self.url_for_unattached, payload, format='json'
-        )
-        # query db for that same Resource object and verify that the path
-        # has not been changed:
-        obj = Resource.objects.get(pk=self.regular_user_unattached_resource.pk)
-        self.assertEqual(obj.path, original_path)
-
 
     def test_user_can_change_resource_name(self):
         '''
@@ -2486,7 +2387,7 @@ class ResourceDetailTests(BaseAPITestCase):
         original_name = self.active_resource.name
         original_format = self.active_resource.file_format
         payload = {'name': 'newname.txt'}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2520,7 +2421,7 @@ class ResourceDetailTests(BaseAPITestCase):
         self.assertTrue(original_format != requested_format)
 
         payload = {'file_format': requested_format}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2563,7 +2464,7 @@ class ResourceDetailTests(BaseAPITestCase):
             newtype == current_resource_type
         )
         payload = {'resource_type': newtype}
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2613,7 +2514,7 @@ class ResourceDetailTests(BaseAPITestCase):
             'resource_type': newtype,
             'file_format': requested_format
         }
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_active_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2642,7 +2543,7 @@ class ResourceDetailTests(BaseAPITestCase):
             name = 'some_file',
             owner = self.regular_user_1,
             is_active=True,
-            path = '',
+            datafile = File(BytesIO(), 'abc'),
         )
         resource_pk = r.pk
         url = reverse(
@@ -2655,7 +2556,7 @@ class ResourceDetailTests(BaseAPITestCase):
         payload = {
             'resource_type': resource_type
         }
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             url, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2666,6 +2567,8 @@ class ResourceDetailTests(BaseAPITestCase):
         # here, we are only testing the args which are passed.
         mock_api_tasks.validate_resource.delay.assert_called_with(
             resource_pk, resource_type, None)
+
+        
 
     def test_setting_workspace_to_null_fails(self):
         '''
@@ -2679,7 +2582,7 @@ class ResourceDetailTests(BaseAPITestCase):
         orig_workspaces = [x.pk for x in self.regular_user_workspace_resource.workspaces.all()]
 
         # try for an attached resource
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_workspace_resource, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2694,7 +2597,7 @@ class ResourceDetailTests(BaseAPITestCase):
         # get the original set of workspaces for the resource
         orig_workspaces = [x.pk for x in self.regular_user_unattached_resource.workspaces.all()]
 
-        response = self.authenticated_regular_client.put(
+        response = self.authenticated_regular_client.patch(
             self.url_for_unattached, payload, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2822,16 +2725,12 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-    @mock.patch('api.views.resource_views.get_storage_backend')
-    def test_local_storage_backend_fails_request(self, mock_get_storage_backend):
+    def test_local_storage_backend_fails_request(self):
         '''
         If the storage backend is NOT bucket-based, then we 
         can't reasonably handle requests to this endpoint.
         Hence, fail all the requests in this case.
         '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = True
-        mock_get_storage_backend.return_value = mock_storage_impl
         response = self.authenticated_regular_client.post(
             self.url, 
             data = {'bucket_path': 'gs://some-bucket/some-path'},
@@ -2854,19 +2753,15 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_400_BAD_REQUEST)
 
-    @mock.patch('api.views.resource_views.get_storage_backend')
-    def test_nonexistent_url(self, mock_get_storage_backend):
+    @mock.patch('api.views.resource_views.default_storage')
+    def test_nonexistent_url(self, mock_default_storage):
         '''
         Tests the case where the supplied file path does not exist 
         OR it is not accessible. The tests that actually check existence
         vs access are contained at the storage-class implementation level.
-        All that we mock here is that the 'resource_exists` method returns
-        False
+        
         '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = False
-        mock_storage_impl.resource_exists.return_value = False
-        mock_get_storage_backend.return_value = mock_storage_impl
+        mock_default_storage.create_resource_from_interbucket_copy.side_effect = FileNotFoundError
         response = self.authenticated_regular_client.post(
             self.url, 
             data = {'bucket_path': 'gs://some-bucket/some-path'},
@@ -2875,113 +2770,40 @@ class BucketResourceAddTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 
             status.HTTP_400_BAD_REQUEST)
 
-    @mock.patch('api.views.resource_views.get_storage_backend')
     @mock.patch('api.views.resource_views.async_validate_resource')
-    def test_path_edited_correctly(self, 
-        mock_async_validate_resource, 
-        mock_get_storage_backend):
+    @mock.patch('api.views.resource_views.default_storage')
+    @mock.patch('api.views.resource_views.ResourceSerializer')
+    def test_path_added_correctly(self, 
+        mock_serializer,
+        mock_default_storage,
+        mock_async_validate_resource):
         '''
         Tests the case where everything works-- check that the file goes
         where we expect.
         '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = False
-        mock_storage_impl.resource_exists.return_value = True
-        fake_path = 'gs://our-bucket/some-file.txt'
-        mock_storage_impl.store.return_value = fake_path
-        mock_get_storage_backend.return_value = mock_storage_impl
+        u = str(uuid.uuid4())
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = u
+        mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
 
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n0 = len(all_resources)
-
-        original_bucket_path = 'gs://some-bucket/some-path/some-file.txt'
+        mocked_serialization = mock.MagicMock
+        mocked_serialization.data = {}
+        mock_serializer.return_value = mocked_serialization
+        mock_path = 'some_path'
         response = self.authenticated_regular_client.post(
             self.url, 
-            data = {'bucket_path': original_bucket_path},
+            data = {'bucket_path': mock_path},
             format='json'
         )
         self.assertEqual(response.status_code, 
             status.HTTP_201_CREATED)
 
-        j = response.json()
-        new_resource_uuid = j['id']
-        self.assertTrue(j['name'] == 'some-file.txt')
-
-        mock_storage_impl.store.assert_called()
+        mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
+            self.regular_user_1,
+            mock_path
+        )
         mock_async_validate_resource.delay.assert_called_with(
-            uuid.UUID(new_resource_uuid),
+            u,
             None,
             None
         )
-
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n1 = len(all_resources)
-        self.assertEqual(n1-n0, 1)
-
-        # check the new path of the resource.
-        # Note that we don't have to check that the `store`
-        # method is called since the path re-assignment affirms that
-        # already
-        r = Resource.objects.get(id=new_resource_uuid)
-        # the path is not the original path in a bucket
-        self.assertTrue(r.path == fake_path)
-        self.assertTrue(r.path != original_bucket_path)
-        self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)
-
-    @mock.patch('api.views.resource_views.get_storage_backend')
-    @mock.patch('api.views.resource_views.async_validate_resource')
-    def test_resource_added_with_validation(self, 
-        mock_async_validate_resource, 
-        mock_get_storage_backend):
-        '''
-        Tests the case where everything works-- check that the file goes
-        where we expect.
-        '''
-        mock_storage_impl = mock.MagicMock()
-        mock_storage_impl.is_local_storage = False
-        mock_storage_impl.resource_exists.return_value = True
-        fake_path = 'gs://our-bucket/some-file.txt'
-        mock_storage_impl.store.return_value = fake_path
-        mock_get_storage_backend.return_value = mock_storage_impl
-
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n0 = len(all_resources)
-
-        resource_type = 'XYZ'
-        file_format = 'abc'
-        response = self.authenticated_regular_client.post(
-            self.url, 
-            data = {
-                'bucket_path': 'gs://some-bucket/some-path/some-file.txt',
-                'resource_type': resource_type,
-                'file_format': file_format
-                },
-            format='json'
-        )
-        self.assertEqual(response.status_code, 
-            status.HTTP_201_CREATED)
-
-        j = response.json()
-        new_resource_uuid = j['id']
-        self.assertTrue(j['name'] == 'some-file.txt')
-
-        mock_storage_impl.store.assert_called()
-        mock_async_validate_resource.delay.assert_called_with(
-            uuid.UUID(new_resource_uuid),
-            resource_type,
-            file_format
-        )
-
-        # count the number of original resources:
-        all_resources = Resource.objects.all()
-        n1 = len(all_resources)
-        self.assertEqual(n1-n0, 1)
-
-        # Note that since we mocked the async validate and store method,
-        # then the resource will not have the path set yet. Here, we just 
-        # check that we have a new resource and that it has the proper owner
-        r = Resource.objects.get(id=new_resource_uuid)
-        self.assertTrue(r.owner.email == test_settings.REGULAR_USER_1.email)

@@ -2,10 +2,9 @@ import pandas as pd
 from itertools import chain
 from collections import defaultdict
 
-from api.utilities.resource_utilities import localize_resource
 from api.data_structures import PositiveIntegerAttribute
 
-def subset_PANDA_net(resource, query_params):
+def subset_PANDA_net(resource_instance, query_params):
     '''
 
     Given a Resource (database row) and query params,
@@ -41,8 +40,6 @@ def subset_PANDA_net(resource, query_params):
                 )
             )
         return node_children_map
-
-    local_path = localize_resource(resource)
 
     try:
         p = PositiveIntegerAttribute(int(query_params['maxdepth']))
@@ -81,7 +78,7 @@ def subset_PANDA_net(resource, query_params):
         init_nodes = None
 
     # Import file as pandas dataframe
-    df = pd.read_table(local_path, header=0, index_col=0)
+    df = pd.read_table(resource_instance.datafile.open(), header=0, index_col=0)
 
     # Set initial variables
     initial_axis = axis

@@ -10,8 +10,10 @@ from api.exceptions import OutputConversionException
 
 logger = logging.getLogger(__name__)
 
+
 class MissingRequiredFileException(Exception):
     pass
+
 
 class OperationRunner(object):
     '''

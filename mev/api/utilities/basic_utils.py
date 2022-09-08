@@ -143,9 +143,7 @@ def move_resource(source, dest):
 
 def copy_local_resource(src, dest):
     '''
-    Wraps the basic shutil copyfile.
-
-    src and dest are 
+    Wraps the basic shutil copyfile. 
     '''
     logger.info('Copying from {src} to {dest}'.format(
         src=src,

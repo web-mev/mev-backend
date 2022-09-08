@@ -1,10 +1,21 @@
 import uuid
+import os
 
 from django.contrib.auth import get_user_model
 from django.db import models
 
 from api.models.abstract_resource import AbstractResource
 from api.models import Workspace
+
+def get_storage_dir(resource_instance, path):
+    '''
+    A single function to define how we store our files relative to the
+    storage root (settings.MEDIA_ROOT)
+
+    Note that this has a signature such that it can be used by
+    django.db.models.FileField's `upload_to` kwarg.
+    '''
+    return os.path.join(str(resource_instance.owner.pk), path)
 
 class Resource(AbstractResource):
     '''
@@ -67,10 +78,10 @@ class Resource(AbstractResource):
     owner = models.ForeignKey(
         get_user_model(), 
         related_name = 'resources', 
-        on_delete = models.CASCADE,
-        blank = True,
-        null = True
+        on_delete = models.CASCADE
     )
+
+    datafile = models.FileField(upload_to=get_storage_dir)
 
     # Can attach a Resource to a Workspace, but 
     # this is not required.
@@ -96,9 +107,9 @@ class Resource(AbstractResource):
             # If we wish, we can initially set the resource status to indicate
             # that there is some file validation checking (or otherwise)
             self.status = ''
+            self.size = self.datafile.size
 
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         workspaces_str = ','.join([str(x.pk) for x in self.workspaces.all()])

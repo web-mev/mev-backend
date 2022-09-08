@@ -1,6 +1,5 @@
 from django.conf import settings
 
-from .local_upload import ServerLocalUpload
 from .dropbox_upload import DROPBOX, \
     DropboxLocalUpload, \
     DropboxGCPRemoteUpload

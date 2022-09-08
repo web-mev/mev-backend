@@ -1,13 +1,15 @@
+from io import BytesIO
 import unittest.mock as mock
+
 from urllib.parse import quote as param_encoder
 from django.urls import reverse
+from django.core.files import File
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
 from api.models import PublicDataset, Workspace, Resource
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
-
 
 class PublicDataListTests(BaseAPITestCase):
     def setUp(self):
@@ -151,7 +153,6 @@ class PublicDataCreateTests(BaseAPITestCase):
             kwargs={'dataset_id': self.test_active_dataset.index_name}
         )
 
-
     def test_requires_auth(self):
         """
         Test that general requests to the endpoint generate 401
@@ -193,7 +194,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         # this is the new resource that is mock-created
         new_resource = Resource.objects.create(
             owner = self.regular_user_1,
-            path = '/some/dummy_path/file.tsv',
+            datafile = File(BytesIO(), 'something.txt'),
             name = 'foo.tsv'
         )
         mock_create_dataset_from_params.return_value = [new_resource,]
@@ -211,6 +212,10 @@ class PublicDataCreateTests(BaseAPITestCase):
         )
         j = response.json()
         self.assertTrue(j[0]['name'] == 'foo.tsv')
+
+        # cleanup
+        new_resource.datafile.delete()
+        new_resource.delete()
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')
     def test_adds_new_resource_to_workspace_case1(self, mock_create_dataset_from_params):
@@ -230,7 +235,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         # from the call to the creation method
         new_resource = Resource.objects.create(
             owner = self.regular_user_1,
-            path = '/some/dummy_path/file.tsv',
+            datafile = File(BytesIO(), 'something.txt'),
             name = 'foo.tsv'
         )
         mock_create_dataset_from_params.return_value = [new_resource,]
@@ -252,6 +257,10 @@ class PublicDataCreateTests(BaseAPITestCase):
         j = response.json()
         # j is a list of resource instances. We expect only one:
         self.assertTrue(j[0]['name'] == 'foo.tsv')
+
+        # cleanup
+        new_resource.datafile.delete()
+        new_resource.delete()
 
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')
@@ -273,7 +282,7 @@ class PublicDataCreateTests(BaseAPITestCase):
         # from the call to the creation method
         new_resource = Resource.objects.create(
             owner = self.regular_user_1,
-            path = '/some/dummy_path/file.tsv',
+            datafile = File(BytesIO(), 'something.txt'),
             name = 'foo.tsv'
         )
         mock_create_dataset_from_params.return_value = [new_resource,]
@@ -295,6 +304,10 @@ class PublicDataCreateTests(BaseAPITestCase):
         j = response.json()
         # j is a list of resource instances. We expect only one:
         self.assertTrue(j[0]['name'] == 'foo.tsv')
+
+        # cleanup
+        new_resource.datafile.delete()
+        new_resource.delete()
 
 
     @mock.patch('api.views.public_dataset.create_dataset_from_params')

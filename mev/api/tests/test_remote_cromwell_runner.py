@@ -5,6 +5,7 @@ import uuid
 import datetime
 
 from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
 
 from api.tests.base import BaseAPITestCase
 from api.utilities.operations import read_operation_json
@@ -19,13 +20,13 @@ from api.exceptions import OutputConversionException
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files', 'demo_cromwell_workflow')
 
+
+@override_settings(CROMWELL_SERVER_URL='http://mock-cromwell-server:8080')
+@override_settings(CROMWELL_BUCKET_NAME='my-bucket')
 class RemoteCromwellRunnerTester(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()
-
-        os.environ['CROMWELL_SERVER_URL'] = 'http://mock-cromwell-server:8080'
-        os.environ['CROMWELL_BUCKET'] = 'my-bucket'
 
         # create a ExecutedOperation to work with:
         ops = Operation.objects.all()

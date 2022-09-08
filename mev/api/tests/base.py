@@ -1,10 +1,13 @@
 from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.test import override_settings
 
 from api.tests import test_settings
 
+TEST_MEDIA_ROOT='/tmp/webmev_test/media_root'
 
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class BaseAPITestCase(APITestCase):
     '''
     This defines the JSON-format "database" that can be loaded 
@@ -38,4 +41,3 @@ class BaseAPITestCase(APITestCase):
         self.regular_user_2 = get_user_model().objects.get(email=test_settings.REGULAR_USER_2.email)
         self.authenticated_other_client = APIClient()
         self.authenticated_other_client.force_authenticate(user=self.regular_user_2)
-

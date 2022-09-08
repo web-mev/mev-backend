@@ -15,7 +15,7 @@ class OperationResourceSerializer(ResourceSerializer):
             'input_field',
             'operation',
             'resource_type',
-            'path',
+            'datafile',
             'size',
             'readable_resource_type'
         ]

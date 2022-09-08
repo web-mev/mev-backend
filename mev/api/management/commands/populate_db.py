@@ -1,3 +1,4 @@
+from io import BytesIO
 import random 
 import os
 import uuid
@@ -7,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.core.files import File
 
 from constants import TSV_FORMAT, \
     CSV_FORMAT, \
@@ -34,6 +36,7 @@ user_dict = {}
 USER1 = 'regular_user1'
 USER2 = 'regular_user2'
 ADMIN_USER = 'admin_user'
+
 
 class Command(BaseCommand):
     help = 'Populate the database with some basic data.'
@@ -73,80 +76,85 @@ class Command(BaseCommand):
 
         # for creating random file sizes:
         size_low = 1000
-        size_high = 1000000000
+        size_high = settings.MAX_DOWNLOAD_SIZE_BYTES
 
-        Resource.objects.create(
+        # a dummy file-handle to use when creating Resource instances
+        fh = File(BytesIO(), 'dummy.txt')
+
+        r = Resource.objects.create(
             owner=user_dict[USER1],
             name='fileA.tsv',
             resource_type = MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/fileA.txt',
+            datafile=fh,
             is_active = True,
-            is_public = True,
-            size = random.randint(size_low, size_high)
+            is_public = True
         )
-        Resource.objects.create(
+        # need at least one file that has a size that
+        # is "too large" for direct server downloads
+        # (for the testing suite)
+        r.size = size_high + 1
+        r.save()
+
+        r = Resource.objects.create(
             owner=user_dict[USER1],
             name='fileB.csv',
             file_format = CSV_FORMAT,
             resource_type = ANNOTATION_TABLE_KEY,
-            path='/path/to/fileB.txt',
-            size = random.randint(size_low, size_high)
+            datafile=fh
         )  
-        Resource.objects.create(
+        r.size = random.randint(size_low, size_high)
+        r.save()
+
+        r = Resource.objects.create(
             owner=user_dict[USER1],
             name='unset_file.tsv',
-            path='/path/to/unset_file.txt',
-            is_public = True,
-            size = random.randint(size_low, size_high)
+            datafile=fh,
+            is_public = True
         ) 
-        Resource.objects.create(
+        r.size = random.randint(size_low, size_high)
+        r.save()
+
+        r = Resource.objects.create(
             owner=user_dict[USER1],
             name='public_file.csv',
             resource_type = INTEGER_MATRIX_KEY,
             file_format = CSV_FORMAT,
-            path='/path/to/public_file.txt',
-            is_public = True,
-            size = random.randint(size_low, size_high)
+            datafile=fh,
+            is_public = True
         )
-        Resource.objects.create(
+        r.size = random.randint(size_low, size_high)
+        r.save()
+
+        r = Resource.objects.create(
             owner=user_dict[USER1],
             name='abc.csv',
             resource_type = None,
             file_format = '',
-            path='/path/to/abc.csv',
-            is_active = True,
-            size = random.randint(size_low, size_high)
+            datafile=fh,
+            is_active = True
         )  
-        Resource.objects.create(
+        r.size = random.randint(size_low, size_high)
+        r.save()
+
+        r = Resource.objects.create(
             owner=user_dict[USER2],
             name='fileC.tsv',
             resource_type = MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/fileC.txt',
-            size = random.randint(size_low, size_high)
+            datafile=fh
         )
+        r.size = random.randint(size_low, size_high)
+        r.save()
 
         # create a Resource that has the type unset:
-        Resource.objects.create(
+        r = Resource.objects.create(
             owner=user_dict[USER2],
             name='fileD.tsv',
-            path='/path/to/fileD.txt',
-            size = random.randint(size_low, size_high)      
+            datafile=fh
         )
-
-        # create a Resource that has the same path as another
-        # Resource.  This is for testing Resource deletions.
-        Resource.objects.create(
-            owner=user_dict[USER1],
-            name='fileA.tsv',
-            resource_type = MATRIX_KEY,
-            file_format = TSV_FORMAT,
-            path='/path/to/fileA.txt',
-            is_active = True,
-            is_public = True,
-            size = random.randint(size_low, size_high)
-        )
+        r.size = random.randint(size_low, size_high)
+        r.save()
 
     def add_resources_to_workspace(self):
         # for regular user1, associate some Resources
@@ -158,13 +166,16 @@ class Command(BaseCommand):
 
         workspace = user1_workspaces[0]
 
+        # a dummy file-handle to use when creating Resource instances
+        fh = File(BytesIO(), 'dummy.txt')
+
         # create a couple new Resources associated with the first Workspace:
         r1 = Resource.objects.create(
             owner=user_dict[USER1],
             name='file1_in_workspace.tsv',
             resource_type = INTEGER_MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/file1_in_workspace.tsv',
+            datafile=fh,
             is_active = True
         )
         r2 = Resource.objects.create(
@@ -172,7 +183,7 @@ class Command(BaseCommand):
             name='file2_in_workspace.tsv',
             resource_type = INTEGER_MATRIX_KEY,
             file_format = TSV_FORMAT,
-            path='/path/to/file2_in_workspace.tsv',
+            datafile=fh,
             is_active = True
         )
         r1.workspaces.add(workspace)
