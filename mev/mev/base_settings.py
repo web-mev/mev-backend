@@ -280,10 +280,12 @@ if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
         )
     )
 
-CROMWELL = 'CROMWELL'
-
 if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
+
+    # ensure we have the proper variables to work with Cromwell
+    CROMWELL_BUCKET_NAME = get_env('CROMWELL_BUCKET_NAME')
+    CROMWELL_SERVER_URL = get_env('CROMWELL_SERVER_URL')
 else:
     ENABLE_REMOTE_JOBS = False
 
@@ -341,13 +343,6 @@ RESOURCE_CACHE_EXPIRATION_DAYS = 2
 # trying to download BAM or other large files. They can do that with other methods,
 # like via Dropbox.
 MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
-
-# To sign URLs for download.
-# TODO: FIX once django-storages is fully integrated
-if (STORAGE_LOCATION == REMOTE) and (CLOUD_PLATFORM == GOOGLE):
-    STORAGE_CREDENTIALS = get_env('STORAGE_CREDENTIALS')
-else:
-    STORAGE_CREDENTIALS = ''
 
 if STORAGE_LOCATION == REMOTE:
     if CLOUD_PLATFORM == AMAZON:

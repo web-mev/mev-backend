@@ -129,10 +129,12 @@ class LocalDockerCsvResourceConverter(LocalDockerMultipleDataResourceConverter, 
         path_list = self._get_path_list(user_input, staging_dir)
         return {input_key: self.to_string(path_list)}
 
+
 class LocalDockerSpaceDelimResourceConverter(LocalDockerMultipleDataResourceConverter, SpaceDelimMixin):
     def convert(self, input_key, user_input, op_dir, staging_dir):
         path_list = self._get_path_list(user_input, staging_dir)
         return {input_key: self.to_string(path_list)}
+
 
 class CromwellDataResourceConverter(BaseDataResourceConverter):
     '''
@@ -145,30 +147,14 @@ class CromwellDataResourceConverter(BaseDataResourceConverter):
     def _convert_single_resource(self, resource_uuid, staging_dir):
         '''
         Handles the conversion of a UUID referencing an instance that
-        is a child of api.models.AbstractResource and copies to a 
-        staging directory in a Cromwell-accessible bucket.
+        is a child of api.models.AbstractResource 
 
-        Returns the full path to the copied file, e.g.
-        s3://<cromwell bucket>/<execution UUID>/<file UUID>
-
-        Note that we don't preserve any file names- we just 
-        copy to a file named by UUID
+        Returns the full path to the file, e.g.
+        s3://<mev storage bucket>/<object path>
         '''
         r = self.get_resource(resource_uuid)
-        # the staging_dir is where we copy non-data files (e.g. WDL)
-        # and it's local to the server. We also use that UUID to locate
-        # files inside a 'directory' in our Cromwell bucket.
-        # TODO: move this to settings.
-        cromwell_bucket = os.environ['CROMWELL_BUCKET']
-        #TODO: is this appropriate here? should we move this to resource utils?
-        return default_storage.copy_out_to_bucket(
-            r,
-            cromwell_bucket,
-            os.path.join(
-                os.path.basename(staging_dir),
-                str(uuid.uuid4())
-            )
-        )
+        return default_storage.get_absolute_path(r.datafile.name)
+
 
 class CromwellSingleDataResourceConverter(CromwellDataResourceConverter):
     '''

@@ -26,6 +26,9 @@ class mevapi (
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,
   String                  $storage_bucket_name,
+  String                  $cromwell_bucket_name,
+  String                  $cromwell_server_url,
+
 ) {
   if $facts['virtual'] == 'kvm' {
     $platform = 'aws'

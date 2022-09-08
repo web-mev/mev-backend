@@ -15,8 +15,6 @@ from api.data_structures import OperationDataResourceAttribute
 from api.utilities.basic_utils import recursive_copy
 from api.utilities.operations import read_operation_json, \
     validate_operation
-from api.utilities.resource_utilities import get_resource_size, \
-    retrieve_resource_class_standard_format
 from api.runners import get_runner
 from api.exceptions import OperationResourceFileException
 

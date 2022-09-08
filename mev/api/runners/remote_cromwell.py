@@ -32,8 +32,7 @@ class RemoteCromwellRunner(OperationRunner):
     Class that handles execution of `Operation`s using the WDL/Cromwell
     framework
     '''
-    MODE = 'cromwell'
-    NAME = settings.CROMWELL
+    NAME = 'cromwell'
 
     DOCKERFILE = 'Dockerfile'
     MAIN_WDL = 'main.wdl'
@@ -66,34 +65,6 @@ class RemoteCromwellRunner(OperationRunner):
         # the input json file, as a template
         WDL_INPUTS
     ]
-
-    def __init__(self):
-        #TODO: move these to settings or otherwise?
-        self.read_cromwell_url()
-        self.read_cromwell_bucket_name()
-        
-    def read_cromwell_url(self):
-        try:
-            self.CROMWELL_URL = os.environ['CROMWELL_SERVER_URL']
-        except KeyError as ex:
-            raise ImproperlyConfigured('To use the Cromwell runner, you must'
-                ' set the "{k}" environment variable.'.format(
-                    k = ex
-                )
-            )
-
-    def read_cromwell_bucket_name(self):
-        # check that the storage bucket exists-- since remote jobs require
-        # the use of bucket storage, we can simply use the storage backend hook
-        # to verify that the storage bucket exists in the same region as our
-        # application
-        try:
-            self.CROMWELL_BUCKET = os.environ['CROMWELL_BUCKET']
-        except KeyError as ex:
-            raise ImproperlyConfigured('To use the Cromwell runner, you must'
-                ' set the "CROMWELL_BUCKET" environment variable. Set it to the'
-                ' name of the bucket, excluding any filesystem prefix like "gs://" or "s3://"'
-            )
 
     def prepare_operation(self, operation_dir, repo_name, git_hash):
 
@@ -204,7 +175,7 @@ class RemoteCromwellRunner(OperationRunner):
         '''
 
         # check that we can reach the Cromwell server
-        url = self.CROMWELL_URL + self.VERSION_ENDPOINT
+        url = settings.CROMWELL_SERVER_URL + self.VERSION_ENDPOINT
         try:
             response = get_with_retry(url)
         except Exception as ex:
@@ -272,7 +243,7 @@ class RemoteCromwellRunner(OperationRunner):
         wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
 
         # pull together the components of the POST request to the Cromwell server
-        submission_url = self.CROMWELL_URL + self.SUBMIT_ENDPOINT
+        submission_url = settings.CROMWELL_SERVER_URL + self.SUBMIT_ENDPOINT
 
         payload = {}
         payload = {'workflowType': self.WORKFLOW_TYPE, \
@@ -343,7 +314,7 @@ class RemoteCromwellRunner(OperationRunner):
         https://cromwell.readthedocs.io/en/stable/api/RESTAPI/#get-workflow-and-call-level-metadata-for-a-specified-workflow
         '''
         endpoint = self.METADATA_ENDPOINT.format(cromwell_job_id=job_uuid)
-        metadata_url = self.CROMWELL_URL + endpoint
+        metadata_url = settings.CROMWELL_SERVER_URL + endpoint
         response = get_with_retry(metadata_url)
         bad_codes = [404, 400, 500]
         if response.status_code in bad_codes:
@@ -365,7 +336,7 @@ class RemoteCromwellRunner(OperationRunner):
         the response did not have the expected 200 status code.
         '''
         endpoint = self.STATUS_ENDPOINT.format(cromwell_job_id=job_uuid)
-        status_url = self.CROMWELL_URL + endpoint
+        status_url = settings.CROMWELL_SERVER_URL + endpoint
         response = get_with_retry(status_url)
         bad_codes = [404, 400, 500]
         if response.status_code in bad_codes:

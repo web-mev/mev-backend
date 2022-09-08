@@ -32,8 +32,7 @@ class LocalDockerRunner(OperationRunner):
     Class that handles execution of `Operation`s using Docker on the local
     machine
     '''
-    MODE = 'local_docker'
-    NAME = 'LOCAL'
+    NAME = 'local_docker'
 
     # the name of the Dockerfile which resides in the docker directory.
     # Used to build the Docker image

@@ -7,7 +7,7 @@ from api.serializers.operation_output import OperationOutputSerializer
 from api.serializers.operation_input_dict import OperationInputDictSerializer
 from api.serializers.operation_output_dict import OperationOutputDictSerializer
 
-from api.runners import AVAILABLE_RUN_MODES
+from api.runners import AVAILABLE_RUNNERS
 
 class OperationSerializer(serializers.Serializer):
 
@@ -23,11 +23,11 @@ class OperationSerializer(serializers.Serializer):
     workspace_operation = serializers.BooleanField(required=True)
 
     def validate_mode(self, mode):
-        if not mode in AVAILABLE_RUN_MODES:
+        if not mode in AVAILABLE_RUNNERS:
             raise ValidationError('The selected mode ({mode}) is invalid.'
                 ' Please choose from among: {choices}'.format(
                     mode = mode,
-                    choices = ', '.join(AVAILABLE_RUN_MODES)
+                    choices = ', '.join(AVAILABLE_RUNNERS)
                 )
             )
         return mode

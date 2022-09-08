@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 class LocalResourceStorage(FileSystemStorage):
 
+    def get_absolute_path(self, path_relative_to_storage_root):
+        return os.path.join(settings.MEDIA_ROOT, path_relative_to_storage_root)
+
     def localize(self, resource, local_dir):
         '''
         Copies the file/resource from local filesystem storage into
@@ -49,9 +52,22 @@ class S3ResourceStorage(S3Boto3Storage):
     bucket_name = settings.MEDIA_ROOT
     s3_prefix = 's3://'
 
-    # This will append random content to the end so that
-    # files are not overwritten
+    # This will append random chars to the end of the object name
+    # so that files are not overwritten
     file_overwite = False
+
+    def get_absolute_path(self, path_relative_to_storage_root):
+        '''
+        Returns the "full" s3:// 'path'.
+
+        Used for situations like Cromwell, which is looking for a 
+        full path to an object.
+
+        `path_relative_to_storage_root` is typically from the `name`
+        attribute of the FileField of the Resource class, e.g.
+        r.datafile.name
+        '''
+        return f'{self.s3_prefix}{self.bucket_name}/{path_relative_to_storage_root}'
 
     def get_bucket_and_object_from_full_path(self, full_path):
         '''
@@ -190,7 +206,3 @@ class S3ResourceStorage(S3Boto3Storage):
             resource.datafile.name,
             dest_object
         )
-
-class S3CromwellStorage(S3Boto3Storage):
-    #bucket_name = settings.CROMWELL_BUCKET
-    bucket_name = 'brian-cromwell-storage'

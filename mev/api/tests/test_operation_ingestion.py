@@ -16,15 +16,13 @@ from api.serializers.operation_output_dict import OperationOutputDictSerializer
 from api.serializers.operation import OperationSerializer
 from api.data_structures import Operation
 from api.models import Operation as OperationDbModel
-from api.models import OperationResource
-from api.runners import AVAILABLE_RUN_MODES
+from api.runners import AVAILABLE_RUNNERS
 from api.utilities.ingest_operation import add_required_keys_to_operation, \
     perform_operation_ingestion, \
     save_operation, \
     retrieve_repo_name, \
     ingest_dir, \
     check_for_operation_resources
-    #create_operation_resource
 
 from api.tests.base import BaseAPITestCase
 
@@ -500,7 +498,7 @@ class OperationIngestionTester(BaseAPITestCase):
             'Some op description',
             op_input_dict_obj,
             op_output_dict_obj,
-            AVAILABLE_RUN_MODES[0],
+            AVAILABLE_RUNNERS[0],
             'http://github.com/some-repo/',
             'abcd',
             'repo_name',
