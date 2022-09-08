@@ -62,3 +62,9 @@ variable "storage_location" {
   description = "Where the data will be stored. One of remote or local"
   type        = string
 }
+
+variable "additional_cors_origins" {
+  description = "Origins (including protocol and port) to include, in addition to the frontend_domain var."
+  type        = string
+  default     = ""
+}

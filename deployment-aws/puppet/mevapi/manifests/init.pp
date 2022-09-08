@@ -29,6 +29,7 @@ class mevapi (
   String                  $cromwell_bucket_name,
   String                  $cromwell_server_url,
   String                  $aws_region,
+  String                  $django_cors_origins,
 
 ) {
   if $facts['virtual'] == 'kvm' {

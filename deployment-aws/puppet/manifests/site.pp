@@ -19,5 +19,6 @@ node /api/ {
     cromwell_bucket_name        => $facts['cromwell_bucket_name'],
     cromwell_server_url         => $facts['cromwell_server_url'],
     aws_region                  => $facts['aws_region'],
+    django_cors_origins         => $facts['django_cors_origins'],
   }
 }

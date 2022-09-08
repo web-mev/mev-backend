@@ -129,6 +129,7 @@ resource "aws_instance" "api" {
   #       the branch containing cromwell setup.
   export FACTER_CROMWELL_SERVER_URL=''
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
+  export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT
