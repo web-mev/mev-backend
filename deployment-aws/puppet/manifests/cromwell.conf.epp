@@ -29,6 +29,9 @@ backend {
     AWSBATCH {
       actor-factory = "cromwell.backend.impl.aws.AwsBatchBackendLifecycleActorFactory"
       config {
+        numSubmitAttempts = 6
+        numCreateDefinitionAttempts = 6
+
         // Base bucket for workflow executions including s3://
         root = "s3://<%= $cromwell_storage_bucket %>"
 
