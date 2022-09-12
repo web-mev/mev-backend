@@ -1,0 +1,34 @@
+{
+    "name": "Dropbox upload app for AWS", 
+    "description": "Uploads files from Dropbox", 
+    "inputs": {
+        "AWSDropboxUpload.dropbox_link": {
+            "description": "The Dropbox download link.", 
+            "name": "Link", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedString" 
+            }
+        },
+        "AWSDropboxUpload.filename": {
+            "description": "The filename of the file.", 
+            "name": "File name", 
+            "required": true, 
+            "spec": {
+                "attribute_type": "UnrestrictedString" 
+            }
+        }
+    }, 
+    "outputs": {
+        "AWSDropboxUpload.uploaded_file": {
+            "required": true,
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "*",
+                "many": false
+            }
+        }
+    }, 
+    "mode": "cromwell",
+    "workspace_operation": false
+}
