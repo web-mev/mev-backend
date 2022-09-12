@@ -15,6 +15,74 @@ resource "aws_iam_role" "cromwell" {
   })
 }
 
+resource "aws_iam_role_policy" "cromwell_s3_access" {
+  name   = "CromwellS3Access"
+  role   = aws_iam_role.cromwell.id
+  policy = jsonencode(
+    {
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Effect   = "Allow",
+          Resource = [
+            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}",
+            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}/*"
+          ],
+          Action = "s3:*"
+        },
+        {
+          Effect   = "Allow",
+          Resource = "*",
+          Action   = [
+            "s3:ListBucket",
+            "s3:ListAllMyBuckets",
+          ]
+        }
+      ]
+    }
+  )
+}
+
+resource "aws_iam_role_policy" "cromwell_batch_access" {
+  name   = "CromwellBatchAccess"
+  role   = aws_iam_role.cromwell.id
+  policy = jsonencode(
+    {
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Effect   = "Allow",
+          Resource = "*",
+          Action = [
+            "batch:DescribeJobQueues",
+            "batch:DeregisterJobDefinition",
+            "batch:TerminateJob",
+            "batch:DescribeJobs",
+            "batch:CancelJob",
+            "batch:SubmitJob",
+            "batch:RegisterJobDefinition",
+            "batch:DescribeJobDefinitions",
+            "batch:ListJobs",
+            "batch:DescribeComputeEnvironments",
+            "ecs:DescribeContainerInstances",
+            "imagebuilder:GetComponent",
+            "imagebuilder:GetContainerRecipe",
+            "ecr:GetAuthorizationToken",
+            "ecr:BatchGetImage",
+            "ecr:InitiateLayerUpload",
+            "ecr:UploadLayerPart",
+            "ecr:CompleteLayerUpload",
+            "ecr:BatchCheckLayerAvailability",
+            "ecr:GetDownloadUrlForLayer",
+            "ecr:PutImage",
+            "ecr:CreateRepository"
+          ]
+        },
+      ]
+    }
+  )
+}
+
 resource "aws_iam_instance_profile" "cromwell" {
   name = "${local.common_tags.Name}-cromwell"
   role = aws_iam_role.cromwell.name
@@ -33,7 +101,7 @@ resource "aws_instance" "cromwell" {
   tags                   = {
     Name = "${local.common_tags.Name}-cromwell"
   }
-  volume_tags            = merge(local.common_tags, { Name = "${local.common_tags.Name}-cromwell" })
+  volume_tags = merge(local.common_tags, { Name = "${local.common_tags.Name}-cromwell" })
   root_block_device {
     volume_type = "gp3"
   }
