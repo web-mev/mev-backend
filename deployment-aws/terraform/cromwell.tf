@@ -53,7 +53,7 @@ resource "aws_iam_role_policy" "cromwell_batch_access" {
         {
           Effect   = "Allow",
           Resource = "*",
-          Action = [
+          Action   = [
             "batch:DescribeJobQueues",
             "batch:DeregisterJobDefinition",
             "batch:TerminateJob",
@@ -81,6 +81,26 @@ resource "aws_iam_role_policy" "cromwell_batch_access" {
       ]
     }
   )
+}
+
+resource "aws_iam_role_policy" "cromwell_cloudwatch" {
+  name   = "CromwellCloudWatchAccess"
+  role   = aws_iam_role.cromwell.id
+  policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Resource = "arn:aws:logs:*:*:*",
+        Action   = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+      }
+    ]
+  })
 }
 
 resource "aws_iam_instance_profile" "cromwell" {
@@ -150,16 +170,89 @@ resource "aws_instance" "cromwell" {
   EOT
 }
 
-resource "aws_batch_compute_environment" "cromwell" {
-  compute_environment_name = local.common_tags.Name
-  type                     = "MANAGED"
-  compute_resources {
-    max_vcpus          = 16
-    security_group_ids = [aws_security_group.cromwell.id]
-    subnets            = [aws_subnet.public.id]
-    type               = "FARGATE"
+resource "aws_iam_role" "ecs_instance" {
+  name               = "${local.common_tags.Name}-ecs"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Action    = "sts:AssumeRole",
+        Effect    = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_instance" {
+  role       = aws_iam_role.ecs_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+resource "aws_iam_instance_profile" "ecs_instance" {
+  name = "${local.common_tags.Name}-ecs"
+  role = aws_iam_role.ecs_instance.name
+}
+
+resource "aws_iam_role" "batch_service" {
+  name               = "${local.common_tags.Name}-batch"
+  assume_role_policy = jsonencode(
+    {
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Action    = "sts:AssumeRole",
+          Effect    = "Allow",
+          Principal = {
+            Service = "batch.amazonaws.com"
+          }
+        }
+      ]
+    }
+  )
+}
+
+resource "aws_iam_role_policy_attachment" "batch_service" {
+  role       = aws_iam_role.batch_service.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
+}
+
+resource "aws_security_group" "batch_service" {
+  name   = "${local.common_tags.Name}-batch"
+  vpc_id = aws_vpc.main.id
+  # implicit with AWS but Terraform requires this to be explicit
+  egress {
+    description      = "Allow all egress"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "all"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
-  service_role = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch"
+}
+
+resource "aws_batch_compute_environment" "cromwell" {
+  # need to use name prefix and lifecycle meta-argument to avoid a bug
+  # https://github.com/hashicorp/terraform-provider-aws/issues/13221
+  # https://discuss.hashicorp.com/t/error-error-deleting-batch-compute-environment-cannot-delete-found-existing-jobqueue-relationship/5408/4
+  compute_environment_name_prefix = "${local.common_tags.Name}-"
+  lifecycle {
+    create_before_destroy = true
+  }
+  type         = "MANAGED"
+  service_role = aws_iam_role.batch_service.arn
+  depends_on   = [aws_iam_role_policy_attachment.batch_service]
+  compute_resources {
+    instance_role      = aws_iam_instance_profile.ecs_instance.arn
+    instance_type      = ["c6i.large"]
+    max_vcpus          = 16
+    min_vcpus          = 0
+    security_group_ids = [aws_security_group.batch_service.id]
+    subnets            = [aws_subnet.public.id]
+    type               = "EC2"
+  }
 }
 
 resource "aws_batch_job_queue" "cromwell" {
