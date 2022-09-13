@@ -61,23 +61,6 @@ class LocalDropboxUploadTests(BaseAPITestCase):
         self.assertEqual(j['upload_ids'][0], str(u1))
 
 
-class RemoteDropboxUploadTests(BaseAPITestCase):
-
-    def test_reformatting_of_data(self):
-
-        # create an Operation that will yield 
-
-        uploader = DropboxGCPRemoteUpload()
-        op_id = uploader.op_id
-        # copy the files over
-        dest_dir = os.path.join(
-            settings.OPERATION_LIBRARY_DIR, 
-            str(op_id)
-        )
-        src_dir = os.path.join
-
-
-
 class GCPRemoteDropboxUploadTests(BaseAPITestCase):
     def setUp(self):
         self.url = reverse('dropbox-upload')

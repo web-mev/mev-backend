@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 
 from django.core.management.base import BaseCommand
@@ -29,7 +30,7 @@ class Command(BaseCommand):
         git_hash = options['commit_id']
 
         for uploader_cls in uploader_list:
-            op_uuid = uploader_cls.op_id
+
             op_dir = uploader_cls.op_dir
 
             if (not os.path.exists(op_dir)) or (not os.path.isdir(op_dir)):
@@ -49,10 +50,10 @@ class Command(BaseCommand):
                 # create the database object-- the ingestion assumes a non-active
                 # Operation was created prior to ingestion
                 try:
-                    db_op = OperationDbModel.objects.create(id=op_uuid, active=False)
+                    db_op = OperationDbModel.objects.create(active=False)
                 except IntegrityError as ex:
                     logger.info('Operation was already in database. Skipping db entry,'
                         ' but overwriting the operation contents.'
                     )
 
-                ingest_dir(op_dir, op_uuid, git_hash, dir_name, '', overwrite=True)
+                ingest_dir(op_dir, str(db_op.pk), git_hash, dir_name, '', overwrite=True)

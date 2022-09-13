@@ -46,17 +46,15 @@ class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     to the MEV server before going to the final storage backend
     '''
 
+    # The directory containing the Operation components. Relative to the
+    # directory of this file. The actual Operation will be executed from the 
+    # files in the "final" operation dir, but this lets the ingestion script 
+    # know where the source is.
+    op_dir = os.path.join(THIS_DIR, 'local_dropbox_upload')
+
     def __init__(self):
-
-        op_id = OperationDbModel.objects.filter('Dropbox upload app for local storage')\
+        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for local storage')\
             .latest('addition_datetime')
-
-        # The directory containing the Operation components. Relative to the
-        # directory of this file. The actual Operation will be executed from the 
-        # files in the "final" operation dir, but this lets the ingestion script 
-        # know where the source is.
-        op_dir = os.path.join(THIS_DIR, 'local_dropbox_upload')
-
         super().__init__()
 
 
@@ -118,17 +116,15 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
     GCP-specific class
     '''
 
+    # The directory containing the Operation components. Relative to the
+    # directory of this file. The actual Operation will be executed from the 
+    # files in the "final" operation dir, but this lets the ingestion script 
+    # know where the source is.
+    op_dir = os.path.join(THIS_DIR, 'gcp_bucket_dropbox_upload')
+
     def __init__(self):
-
-        op_id = OperationDbModel.objects.filter('Dropbox upload app for GCP')\
+        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for GCP')\
             .latest('addition_datetime')
-
-        # The directory containing the Operation components. Relative to the
-        # directory of this file. The actual Operation will be executed from the 
-        # files in the "final" operation dir, but this lets the ingestion script 
-        # know where the source is.
-        op_dir = os.path.join(THIS_DIR, 'gcp_bucket_dropbox_upload')
-
         super().__init__()
 
     def rename_inputs(self, user, data):
@@ -163,9 +159,8 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
         are the same thing.
         '''
 
-        # get the name of the bucket where we are storing other user files
-        # If we are 
-        bucket_name = None
+        # In django-storages, this is the bucket where we store all user files.
+        bucket_name = settings.MEDIA_ROOT
 
         input_template = {
             'GCPDropboxUpload.dropbox_link': '',
@@ -192,17 +187,15 @@ class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):
     AWS-specific class
     '''
 
+    # The directory containing the Operation components. Relative to the
+    # directory of this file. The actual Operation will be executed from the 
+    # files in the "final" operation dir, but this lets the ingestion script 
+    # know where the source is.
+    op_dir = os.path.join(THIS_DIR, 'aws_bucket_dropbox_upload')
+
     def __init__(self):
-
-        op_id = OperationDbModel.objects.filter('Dropbox upload app for AWS')\
+        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for AWS')\
             .latest('addition_datetime')
-
-        # The directory containing the Operation components. Relative to the
-        # directory of this file. The actual Operation will be executed from the 
-        # files in the "final" operation dir, but this lets the ingestion script 
-        # know where the source is.
-        op_dir = os.path.join(THIS_DIR, 'aws_bucket_dropbox_upload')
-
         super().__init__()
 
     def rename_inputs(self, user, data):
@@ -237,7 +230,7 @@ class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):
 
         input_template = {
             'AWSDropboxUpload.dropbox_link': '',
-            'AWSDropboxUpload.filename': '', 
+            'AWSDropboxUpload.filename': ''
         }
         remapped_inputs = []
         for item in data:
