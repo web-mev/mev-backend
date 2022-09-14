@@ -61,4 +61,5 @@ variable "ssh_key_pair_name" {
 variable "storage_location" {
   description = "Where the data will be stored. One of remote or local"
   type        = string
+  default     = "remote"
 }
