@@ -6,6 +6,7 @@
             "description": "...", 
             "name": "...:", 
             "required": true, 
+            "converter": "...",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "I_MTX", 
@@ -16,6 +17,7 @@
             "description": "The filtering threshold for the p-value", 
             "name": "P-value threshold:", 
             "required": false, 
+            "converter": "...",
             "spec": {
                 "attribute_type": "BoundedFloat", 
                 "min": 0, 
@@ -27,6 +29,7 @@
     "outputs": {
         "norm_counts": {
             "required": true,
+            "converter": "...",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 
@@ -35,6 +38,7 @@
         }, 
         "dge_table": {
             "required": true,
+            "converter": "...",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 

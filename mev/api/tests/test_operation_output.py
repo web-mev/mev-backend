@@ -14,6 +14,7 @@ class OperationOutputTester(unittest.TestCase):
     def setUp(self):
         self.min_val = 0
         self.max_val = 4
+        self.converter = '...'
         self.output_spec_dict1 = {
             'attribute_type': 'BoundedInteger', 
             'min': self.min_val, 
@@ -30,6 +31,7 @@ class OperationOutputTester(unittest.TestCase):
         }   
         self.valid_operation_output1={ 
             'required': True,
+            'converter': self.converter,
             'spec': self.output_spec_dict1
         }
         self.expected_result1 = self.valid_operation_output1.copy()
@@ -54,12 +56,14 @@ class OperationOutputTester(unittest.TestCase):
         }   
         self.valid_operation_output2={ 
             'required': True,
+            'converter': self.converter,
             'spec': self.output_spec_dict2
         }
 
         # this is invalid since it's missing the 'required' key
         self.invalid_operation_output={ 
-            'spec': self.output_spec_dict2
+            'spec': self.output_spec_dict2,
+            'converter': self.converter
         }
 
         self.expected_result2 = self.valid_operation_output2.copy()
@@ -67,6 +71,7 @@ class OperationOutputTester(unittest.TestCase):
 
         self.optional_operation_output = { 
             'required': False,
+            'converter': self.converter,
             'spec': self.output_spec_dict2
         }
 
@@ -75,25 +80,19 @@ class OperationOutputTester(unittest.TestCase):
         Test that an OperationOutput instance serializes to the expected
         dictionary representation
         '''
-        o = OperationOutput(self.output_spec1)
+        o = OperationOutput(self.output_spec1, self.converter, True)
         os = OperationOutputSerializer(o)
         self.assertDictEqual(os.data, self.expected_result1)
 
-        o = OperationOutput(self.output_spec2)
+        o = OperationOutput(self.output_spec2, self.converter, True)
         os = OperationOutputSerializer(o)
         self.assertDictEqual(os.data, self.expected_result2)
 
         # test an optional output (required=False)
-        o = OperationOutput(self.output_spec2, False)
+        o = OperationOutput(self.output_spec2, self.converter, False)
         os = OperationOutputSerializer(o)
         self.assertDictEqual(os.data, self.optional_operation_output)
 
-        # test that the default of required=True (no second boolean arg to
-        # the OperationOutput constructor) causes this to fail
-        o = OperationOutput(self.output_spec2)
-        os = OperationOutputSerializer(o)
-        os_data = os.data
-        self.assertTrue(os_data['required'])
 
     def test_deserialization(self):
         '''
@@ -116,6 +115,7 @@ class OperationOutputTester(unittest.TestCase):
         # Test a VariableDataResource
         valid_variable_resource_operation_output={
             'required': True,
+            'converter': self.converter,
             'spec': {
                 'attribute_type': 'VariableDataResource', 
                 'resource_types': ['MTX', 'I_MTX'],
@@ -128,6 +128,7 @@ class OperationOutputTester(unittest.TestCase):
         # give it a bad input_spec to see that the error percolates:
         invalid_operation_output1={
             'required': True,
+            'converter': self.converter,
             'spec': {
                 'attribute_type': 'DataResource', 
                 'resource_type': 'foo',

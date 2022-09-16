@@ -19,6 +19,7 @@ class OperationInputDictTester(unittest.TestCase):
             'description': 'The count matrix of expressions',
             'name': 'Count matrix:',
             'required': True,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[0],
@@ -30,6 +31,7 @@ class OperationInputDictTester(unittest.TestCase):
             'description': 'The filtering threshold for the p-value',
             'name': 'P-value threshold:',
             'required': False,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'BoundedFloat',
                 'min': 0,

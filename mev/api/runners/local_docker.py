@@ -219,7 +219,7 @@ class LocalDockerRunner(OperationRunner):
         # that the call with use- e.g. making a CSV list to submit as one of the args
         # like:
         # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
-        arg_dict = self._map_inputs(op_dir, validated_inputs, execution_dir)
+        arg_dict = self._map_inputs(op_data, op_dir, validated_inputs, execution_dir)
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)

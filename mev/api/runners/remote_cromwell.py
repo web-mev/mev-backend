@@ -191,7 +191,7 @@ class RemoteCromwellRunner(OperationRunner):
             )
             raise ImproperlyConfigured('Failed to reach Cromwell server.')
 
-    def _create_inputs_json(self, op_dir, validated_inputs, staging_dir):
+    def _create_inputs_json(self, op_data, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
         and make them into something that we can inject into Cromwell's
@@ -201,7 +201,7 @@ class RemoteCromwellRunner(OperationRunner):
         the file), and turns it into a cloud-based path that Cromwell can access.
         '''
         # create/write the input JSON to a file in the staging location
-        arg_dict = self._map_inputs(op_dir, validated_inputs, staging_dir)
+        arg_dict = self._map_inputs(op_data, op_dir, validated_inputs, staging_dir)
         wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
         with open(wdl_input_path, 'w') as fout:
             json.dump(arg_dict, fout)
@@ -499,7 +499,7 @@ class RemoteCromwellRunner(OperationRunner):
         make_local_directory(staging_dir)
 
         # create the Cromwell-compatible inputs.json from the user inputs
-        self._create_inputs_json(op_dir, validated_inputs, staging_dir)
+        self._create_inputs_json(op_data, op_dir, validated_inputs, staging_dir)
 
         # copy over the workflow contents:
         self._copy_workflow_contents(op_dir, staging_dir)

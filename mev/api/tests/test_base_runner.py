@@ -31,9 +31,8 @@ class BaseRunnerTester(BaseAPITestCase):
         self.op_data2= json.load(fp)
         fp.close()
 
-    @mock.patch('api.runners.base.OperationRunner._get_converter_dict')
     @mock.patch('api.runners.base.import_string')
-    def test_input_mapping(self, mock_import_string, mock_get_converter_dict):
+    def test_input_mapping(self, mock_import_string):
 
         final_path = '/some/file/path.txt'
         mock_converter1_class = mock.MagicMock()
@@ -46,9 +45,13 @@ class BaseRunnerTester(BaseAPITestCase):
         mock_converter2_class.return_value = mock_converter2
         mock_import_string.side_effect = [mock_converter1_class, mock_converter2_class]
 
-        mock_get_converter_dict.return_value = {
-            'count_matrix': 'api.converters.data_resource.LocalDockerSingleDataResourceConverter',
-            'p_val': 'api.converters.basic_attributes.BoundedFloatAttributeConverter'
+        mock_op_data = {
+            'count_matrix': {
+                'converter':'api.converters.data_resource.LocalDockerSingleDataResourceConverter'
+            },
+            'p_val': {
+                'converter':'api.converters.basic_attributes.BoundedFloatAttributeConverter'
+            }
         }
         r = Resource.objects.all()[0]
         validated_inputs = {
@@ -57,23 +60,13 @@ class BaseRunnerTester(BaseAPITestCase):
         }
         runner = OperationRunner()
         mock_op_dir = '/some/op/dir'
-        converted_inputs = runner._map_inputs(mock_op_dir, validated_inputs, '')
+        converted_inputs = runner._map_inputs(mock_op_data, mock_op_dir, validated_inputs, '')
         expected_outputs = {
             'count_matrix': final_path,
             'p_val': 0.01 
         }
         self.assertDictEqual(converted_inputs, expected_outputs)
 
-    @mock.patch('api.runners.base.OperationRunner._get_converter_dict')
-    @mock.patch('api.runners.base.os.path.exists')
-    def test_bad_converter_class(self, mock_os_exists, mock_get_converter_dict):
-        '''
-        Test that a bad converter class will raise an exception
-        '''
-        runner = OperationRunner()
-        mock_get_converter_dict.return_value = {'a': 'some junk'}
-        with self.assertRaises(Exception):
-            runner.check_required_files('')
 
     @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.base.alert_admins')

@@ -17,6 +17,7 @@ class OperationOutputDictTester(unittest.TestCase):
 
         self.op_output1_dict = {
             'required': True,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[0],
@@ -25,6 +26,7 @@ class OperationOutputDictTester(unittest.TestCase):
         }
         self.op_output2_dict = {
             'required': True,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -34,6 +36,7 @@ class OperationOutputDictTester(unittest.TestCase):
 
         # this is missing the `required` key
         self.invalid_op_output_dict = {
+            'converter': '...',
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -81,6 +84,7 @@ class OperationOutputDictTester(unittest.TestCase):
         '''
         od1 = {
             'required': True,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -89,6 +93,7 @@ class OperationOutputDictTester(unittest.TestCase):
         }
         od2 = {
             'required': True,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'BoundedInteger',
                 'max': 10,
@@ -97,6 +102,7 @@ class OperationOutputDictTester(unittest.TestCase):
         }
         od3 = {
             'required': True,
+            'converter': '...',
             'spec': {
                 'attribute_type': 'Integer',
             }
@@ -105,11 +111,13 @@ class OperationOutputDictTester(unittest.TestCase):
         # check strict equality
         x1 = {
             'keyA': od1,
-            'keyB': od2
+            'keyB': od2,
+            'converter': '...',
         }
         x2 = {
             'keyA': od1,
-            'keyB': od2
+            'keyB': od2,
+            'converter': '...',
         }
         i1 = OperationOutputDictSerializer(data=x1).get_instance()
         i2 = OperationOutputDictSerializer(data=x2).get_instance()
@@ -118,12 +126,12 @@ class OperationOutputDictTester(unittest.TestCase):
         # give an extra key to the second dict
         x1 = {
             'keyA': od1,
-            'keyB': od2
+            'keyB': od2,
         }
         x2 = {
             'keyA': od1,
             'keyB': od2,
-            'keyC': od3
+            'keyC': od3,
         }
         i1 = OperationOutputDictSerializer(data=x1).get_instance()
         i2 = OperationOutputDictSerializer(data=x2).get_instance()

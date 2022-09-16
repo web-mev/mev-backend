@@ -10,6 +10,7 @@ class OperationInputSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100, required=True)
     required = serializers.BooleanField(required=True)
     spec = InputSpecSerializer(required=True)
+    converter = serializers.CharField(max_length=500, required=True)
 
     def to_representation(self, instance):
         if type(instance) == OperationInput:
@@ -26,6 +27,7 @@ class OperationInputSerializer(serializers.Serializer):
         return OperationInput(validated_data['description'], 
             validated_data['name'], 
             spec, 
+            validated_data['converter'],
             validated_data['required']
         )
 

@@ -29,6 +29,7 @@ class OperationTester(unittest.TestCase):
             'description': 'The count matrix of expressions',
             'name': 'Count matrix:',
             'required': True,
+            'converter': 'api.converters.data_resource.LocalDockerSingleDataResourceConverter',
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[0],
@@ -40,6 +41,7 @@ class OperationTester(unittest.TestCase):
             'description': 'The filtering threshold for the p-value',
             'name': 'P-value threshold:',
             'required': False,
+            'converter': 'api.converters.basic_attributes.BoundedFloatAttributeConverter',
             'spec': {
                 'attribute_type': 'BoundedFloat',
                 'min': 0,
@@ -49,6 +51,7 @@ class OperationTester(unittest.TestCase):
         }
         self.op_output1_dict = {
             'required': True,
+            'converter': 'tmp',
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[0],
@@ -57,6 +60,7 @@ class OperationTester(unittest.TestCase):
         }
         self.op_output2_dict = {
             'required': True,
+            'converter': 'tmp',
             'spec': {
                 'attribute_type': 'DataResource',
                 'resource_type': all_resource_types[1],

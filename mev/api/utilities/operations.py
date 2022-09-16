@@ -143,7 +143,6 @@ def validate_operation_inputs(user, inputs, operation, workspace):
     outside the context of a workspace. In that instance, `workspace`
     should be explicitly set to None
     '''
-
     # get the Operation data structure given the operation database instance:
     operation_spec_dict = get_operation_instance_data(operation)
 

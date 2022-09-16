@@ -478,6 +478,7 @@ class OperationIngestionTester(BaseAPITestCase):
             'description': 'The filtering threshold for the p-value',
             'name': 'P-value threshold:',
             'required': False,
+            'converter': 'api.converters.basic_attributes.BoundedFloatAttributeConverter',
             'spec': {
                 'attribute_type': 'BoundedFloat',
                 'min': 0.0,

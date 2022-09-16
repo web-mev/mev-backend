@@ -24,14 +24,9 @@ class OperationRunner(object):
     # context
     DOCKER_DIR = 'docker'
 
-    # a JSON-format file which tells us which converter should be used to map
-    # the user inputs to a format that the runner can understand/use
-    CONVERTER_FILE = 'converters.json'
-
-    # A list of files that are required to be part of the repository
-    REQUIRED_FILES = [
-        CONVERTER_FILE
-    ]
+    # A list of files that are required to be part of the repository.
+    # Derived classes can add to this for their specific needs
+    REQUIRED_FILES = []
 
     # the name of the file which will direct us to the outputs from an ExecutedOperation.
     # It will be placed in the execution directory by the job
@@ -81,46 +76,7 @@ class OperationRunner(object):
                 )
         logger.info('Done checking for required files.')
 
-        # check that the converters are viable:
-        converter_dict = self._get_converter_dict(operation_dir)
-        for k,v in converter_dict.items():
-            try:
-                import_string(v)
-            except Exception as ex:
-                logger.error('Failed when importing the converter class: {clz}'
-                    ' Exception was: {ex}'.format(
-                        ex=ex,
-                        clz = v
-                    )
-                )
-                raise ex
-
-    def _get_converter_dict(self, op_dir):
-        '''
-        Returns the dictionary that gives the "converter" class strings. 
-        Those strings give the classes which we use to map the 
-        user-supplied inputs to an operation (of type UserOperationInput)
-        to args appropriate for the specific runner. 
-        '''
-        # get the file which states which converters to use:
-        converter_file_path = os.path.join(op_dir, self.CONVERTER_FILE)
-        if not os.path.exists(converter_file_path):
-            logger.error('Could not find the required converter file at {p}.'
-                ' Something must have corrupted the operation directory.'.format(
-                    p = converter_file_path
-                )
-            )
-            raise Exception('The repository must have been corrupted.'
-                ' Failed to find the argument converter file.'
-                ' Check dir at: {d}'.format(
-                    d = op_dir
-                )
-            )
-        d = json.load(open(converter_file_path))
-        logger.info('Read the following converter mapping: {d}'.format(d=d))
-        return d
-
-    def _map_inputs(self, op_dir, validated_inputs, staging_dir):
+    def _map_inputs(self, op_data, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
         and make them into something that we can pass to a command-line
@@ -133,16 +89,9 @@ class OperationRunner(object):
         string of the path and a resource type, etc.) depending on the requirements
         of the analysis.
         '''
-        converter_dict = self._get_converter_dict(op_dir)
         arg_dict = {}
         for k,v in validated_inputs.items():
-            try:
-                converter_class_str = converter_dict[k] # a string telling us which converter to use
-            except KeyError as ex:
-                logger.error('Could not locate a converter for input: {i}'.format(
-                    i = k
-                ))
-                raise ex
+            converter_class_str = op_data[k]['converter']
             try:
                 converter_class = import_string(converter_class_str)
             except Exception as ex:

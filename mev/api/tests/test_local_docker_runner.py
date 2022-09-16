@@ -25,10 +25,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         self.establish_clients()
         self.filepath = os.path.join(TESTDIR, 'valid_operation.json')
 
-    @mock.patch('api.runners.local_docker.OperationRunner.CONVERTER_FILE', 
-        new_callable=mock.PropertyMock, 
-        return_value='bad_converters.json')
-    def test_handles_bad_converter_gracefully(self, mock_OperationRunner):
+    def test_handles_bad_converter_gracefully(self):
         '''
         In the case that a converter class is not found for the input, see that we
         handle this error appropriately.
@@ -40,9 +37,17 @@ class LocalDockerRunnerTester(BaseAPITestCase):
             'count_matrix': str(r.id),
             'p_val': 0.05
         }
+        mock_op_data = {
+            'count_matrix': {
+                'converter':'api.converters.data_resource.LocalDockerSingleDataResourceConverter'
+            },
+            'p_val': {
+                'converter':'someGarbageConverter'
+            }
+        }
         runner = LocalDockerRunner()
         with self.assertRaises(Exception):
-            runner._map_inputs(TESTDIR, inputs)
+            runner._map_inputs(mock_op_data, TESTDIR, inputs)
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')

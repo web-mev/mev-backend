@@ -15,6 +15,7 @@ class OperationInputTester(unittest.TestCase):
         self.min_val = 0
         self.max_val = 4
         self.default=2
+        self.converter = '...'
         self.input_spec_dict = {
             'attribute_type': 'BoundedInteger', 
             'min': self.min_val, 
@@ -36,9 +37,9 @@ class OperationInputTester(unittest.TestCase):
             'description': self.description, 
             'name': self.name, 
             'required': True, 
+            'converter': self.converter,
             'spec': self.input_spec_dict
         }
-
 
         self.expected_result = self.valid_operation_input.copy()
         self.expected_result['spec'] = self.expected_spec_result
@@ -48,7 +49,7 @@ class OperationInputTester(unittest.TestCase):
         Test that an OperationInput instance serializes to the expected
         dictionary representation
         '''
-        o = OperationInput(self.description, self.name, self.input_spec, True)
+        o = OperationInput(self.description, self.name, self.input_spec, self.converter, True)
         os = OperationInputSerializer(o)
         self.assertDictEqual(os.data, self.expected_result)
 

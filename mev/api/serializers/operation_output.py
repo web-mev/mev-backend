@@ -7,6 +7,7 @@ class OperationOutputSerializer(serializers.Serializer):
 
     required = serializers.BooleanField(required=True)
     spec = OutputSpecSerializer(required=True)
+    converter = serializers.CharField(max_length=500, required=True)
 
     def to_representation(self, instance):
         if type(instance) == OperationOutput:
@@ -20,7 +21,11 @@ class OperationOutputSerializer(serializers.Serializer):
         data.
         '''
         spec = OutputSpecSerializer(data=validated_data['spec']).get_instance()
-        return OperationOutput(spec, validated_data['required'])
+        return OperationOutput(
+            spec, 
+            validated_data['converter'], 
+            validated_data['required']
+        )
 
     def get_instance(self):
         '''
