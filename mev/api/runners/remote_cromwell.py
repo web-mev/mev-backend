@@ -11,7 +11,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 from api.exceptions import OutputConversionException
 from api.runners.base import OperationRunner
-from api.utilities.operations import get_operation_instance_data
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource
 from api.utilities.admin_utils import alert_admins
@@ -373,7 +372,7 @@ class RemoteCromwellRunner(OperationRunner):
                 return True
         return False
 
-    def handle_job_success(self, executed_op):
+    def handle_job_success(self, executed_op, op_data):
 
         job_id = executed_op.job_id
         job_metadata = self.query_for_metadata(job_id)
@@ -408,7 +407,7 @@ class RemoteCromwellRunner(OperationRunner):
         # and create MEV-compatible data structures or resources:
         converter = RemoteCromwellOutputConverter()
         try:
-            converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
+            converted_outputs = self.convert_outputs(executed_op, op_data, converter, outputs_dict)
             executed_op.outputs = converted_outputs
             executed_op.execution_stop_datetime = end_time
             executed_op.job_failed = False
@@ -456,7 +455,7 @@ class RemoteCromwellRunner(OperationRunner):
             'the job status of op: {op_id}.'.format(op_id=executed_op.job_id)
         )
 
-    def finalize(self, executed_op):
+    def finalize(self, executed_op, op_data):
         '''
         Finishes up an ExecutedOperation. Does things like registering files 
         with a user, cleanup, etc.
@@ -468,7 +467,7 @@ class RemoteCromwellRunner(OperationRunner):
         else:
             status = None
         if status == self.SUCCEEDED_STATUS:
-            self.handle_job_success(executed_op)
+            self.handle_job_success(executed_op, op_data)
         elif status == self.FAILED_STATUS:
             self.handle_job_failure(executed_op)
         else:

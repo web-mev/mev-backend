@@ -1,24 +1,17 @@
-from ast import Is
-from email.policy import default
 import os
-import uuid
-import json
 import logging
 
-from django.utils.module_loading import import_string
 from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
 from django.core.files.storage import default_storage
 
-from api.models import Resource, ResourceMetadata, ExecutedOperation, OperationResource
-from api.exceptions import AttributeValueError, \
-    StorageException, \
+from api.models import Resource, \
+    ResourceMetadata, \
+    OperationResource
+from api.exceptions import StorageException, \
     ResourceValidationException
 from api.serializers.resource_metadata import ResourceMetadataSerializer
-from .basic_utils import make_local_directory, \
-    move_resource, \
-    copy_local_resource
-from api.data_structures.attributes import DataResourceAttribute
+from .basic_utils import make_local_directory
 from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     RESOURCE_KEY
 from resource_types import get_contents, \
@@ -30,12 +23,15 @@ from resource_types import get_contents, \
     get_standard_format, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
+from api.data_structures import DataResourceAttribute, \
+    VariableDataResourceAttribute
 from api.exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException
 from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
+
 
 def check_resource_request_validity(user, resource_pk):
     '''
@@ -548,3 +544,7 @@ def create_resource(owner,
         resource_instance.workspaces.add(workspace)
     resource_instance.save()
     return resource_instance
+
+
+
+

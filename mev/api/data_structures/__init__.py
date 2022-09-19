@@ -53,6 +53,15 @@ all_attribute_types = numeric_attribute_types + other_attribute_types
 all_attribute_typenames = [x.typename for x in all_attribute_types]
 attribute_mapping = dict(zip(all_attribute_typenames, all_attribute_types))
 
+# List the typenames for "data resources".
+# These can either be "fixed"  (i.e. `DataResource`)
+# or variable (i.e. `VariableDataResource`)
+DATARESOURCE_TYPENAMES = [
+    DataResourceAttribute.typename,
+    VariableDataResourceAttribute.typename,
+    OperationDataResourceAttribute.typename
+]
+
 def create_attribute(attr_key, attribute_dict, allow_null=False):
     '''
     Utility function used by the serializers to create/return

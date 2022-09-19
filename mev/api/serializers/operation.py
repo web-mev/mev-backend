@@ -2,12 +2,10 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.data_structures import Operation
-from api.serializers.operation_input import OperationInputSerializer
-from api.serializers.operation_output import OperationOutputSerializer
 from api.serializers.operation_input_dict import OperationInputDictSerializer
 from api.serializers.operation_output_dict import OperationOutputDictSerializer
-
 from api.runners import AVAILABLE_RUNNERS
+
 
 class OperationSerializer(serializers.Serializer):
 
@@ -30,7 +28,6 @@ class OperationSerializer(serializers.Serializer):
                     choices = ', '.join(AVAILABLE_RUNNERS)
                 )
             )
-        return mode
 
     def to_representation(self, instance):
         return instance.to_dict()

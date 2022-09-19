@@ -6,24 +6,12 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.utilities.basic_utils import read_local_file
-from api.data_structures import create_attribute, \
-    DataResourceAttribute, \
-    VariableDataResourceAttribute, \
-    SimpleDag, \
-    DagNode
-from api.utilities.resource_utilities import get_resource_by_pk
+
 from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
-from api.models import Resource, WorkspaceExecutedOperation
+from api.serializers.operation import OperationSerializer
 
 logger = logging.getLogger(__name__)
 
-# List the typenames for "data resources".
-# These can either be "fixed"  (i.e. `DataResource`)
-# or variable (i.e. `VariableDataResource`)
-DATARESOURCE_TYPENAMES = [
-    DataResourceAttribute.typename,
-    VariableDataResourceAttribute.typename
-]
 
 def read_operation_json(filepath):
     '''
@@ -89,7 +77,7 @@ def validate_operation(operation_dict):
     '''
     logger.info('Validate the dictionary against the definition'
     ' of an Operation...: {d}'.format(d=operation_dict))
-    from api.serializers.operation import OperationSerializer
+    #from api.serializers.operation import OperationSerializer
     op_serializer = OperationSerializer(data=operation_dict)
     op_serializer.is_valid(raise_exception=True)
     logger.info('Operation specification was valid.')
@@ -190,187 +178,3 @@ def validate_operation_inputs(user, inputs, operation, workspace):
         else:
             final_inputs[key] = None
     return final_inputs
-
-def check_for_resource_operations(resource_instance, workspace_instance):
-    '''
-    To prevent deleting critical resources, we check to see if a
-    `Resource` instance has been used for any operations within a
-    `Workspace`.  If it has, return True.  Otherwise return False.
-    '''
-    # need to look through all the executed operations to see if the 
-    # resource was used in any of those, either as an input or output
-    logger.info('Search within workspace ({w}) to see if resource ({r}) was used.'.format(
-        w = str(workspace_instance.pk),
-        r = str(resource_instance.pk)
-    ))
-    workspace_executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace_instance)
-    used_resource_uuids = set()
-    for exec_op in workspace_executed_ops:
-        if exec_op.job_failed:
-            logger.info('Skipping inspection of job ({u}) since it failed.'.format(u = str(exec_op.pk)))
-            continue
-        logger.info('Look in executedOp: {u}'.format(u = str(exec_op.pk)))
-        # get the corresponding operation spec:
-        op = exec_op.operation
-        op_data = get_operation_instance_data(op)
-
-        # the operation spec will tell us what the "types" of each input/output are
-        op_inputs = op_data['inputs']
-        op_outputs = op_data['outputs']
-
-        # the executed ops will have the actual args used. So, for a DataResource
-        # "type", it will be a UUID
-        exec_op_inputs = exec_op.inputs
-        exec_op_outputs = exec_op.outputs
-
-        if exec_op_inputs is not None:
-            # list of dataResources used in the inputs of this executed op:
-            logger.info('Compare inputs:\n{x}\nto\n{y}'.format(
-                x = op_inputs,
-                y = exec_op_inputs
-            ))
-            s1 = collect_resource_uuids(op_inputs, exec_op_inputs)
-            logger.info('Found the following DataResources among'
-                ' the inputs: {u}'.format(
-                    u = ', '.join(s1)
-                ))
-            if str(resource_instance.pk) in s1:
-                return True
-            logger.info('Was not in the inputs. Check the outputs.')
-        else:
-            logger.info('Inputs to the ExecutedOp were None. Moving on.')
-        if exec_op_outputs is not None:
-            s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
-            logger.info('Found the following DataResources among'
-            ' the outputs: {u}'.format(
-                u = ', '.join(s2)
-            ))
-            if str(resource_instance.pk) in s2:
-                return True
-            logger.info('Was not in the outputs. Done checking ExecutedOp ({u}).'.format(
-                u = str(exec_op.pk)
-            ))
-        else:
-            logger.info('Outputs of the ExecutedOp were None. Moving on.')
-    
-    # if we made it this far and have not returned, then the Resource was
-    # not used in any of the ExecutedOps in the Workspace
-    return False
-
-def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
-    '''
-    This function goes through the inputs or outputs of an ExecutedOperation
-    to return a set of resource UUIDs that were "used" either as an input
-    or an output.
-
-    op_input_or_output: the dict of inputs/outputs for an Operation. This comes
-      from parsing the operation specification file.
-    exec_op_input_or_output: the dict of actual inputs or outputs created or used
-      in the course of executing an operation.
-    '''
-    resource_uuids = []
-    for k,v in exec_op_input_or_output.items():
-        # k is the 'key' of the output, v is the actual value assigned
-
-        # Sometimes an operation can declare an output type of DataResource
-        # that is given None as a value. For instance, in a clustering operation,
-        # we may only cluster on one of the dimensions. This results in one of the
-        # output JSON files being unused and hence set to None. If the value is None,
-        # we just move onto the next item.
-        if v is None:
-            continue
-
-        if not k in op_input_or_output:
-            logger.error('The key "{k}" was NOT in the operation inputs/outputs.'
-                ' Expected keys: {keys}'.format(
-                    k=k,
-                    keys = ', '.join(op_input_or_output.keys())
-                )
-            )
-            raise Exception('Discrepancy between the ExecutedOperation and the Operation'
-                ' it was based on. Should NOT happen!'
-            )
-        else:
-            # the key existed in the Operation (as it should). Get the spec dictating
-            spec = op_input_or_output[k]['spec']
-            if spec['attribute_type'] in DATARESOURCE_TYPENAMES:
-                if spec['many']:
-                    assert(type(v) is list)
-                    resource_uuids.extend(v)
-                else:
-                    assert(type(v) is str)
-                    resource_uuids.append(v)
-    return resource_uuids
-
-def create_workspace_dag(workspace_executed_ops):
-    '''
-    Returns a DAG representing the resources and operations contained in a workspace
-
-    `workspace_executed_ops` is a set of ExecutedOperation (database model) objects
-    '''
-    graph = SimpleDag()
-    for exec_op in workspace_executed_ops:
-
-        # don't want to show failed jobs
-        if exec_op.job_failed:
-            continue
-
-        # we need the operation definition to know if any of the inputs
-        # were DataResources
-        op = exec_op.operation
-        op_data = get_operation_instance_data(op)
-
-        # the operation spec will tell us what the "types" of each input/output are
-        op_inputs = op_data['inputs']
-        op_outputs = op_data['outputs']
-
-        # the executed ops will have the actual args used. So, for a DataResource
-        # "type", it will be a UUID
-        exec_op_inputs = exec_op.inputs
-        exec_op_outputs = exec_op.outputs
-
-        # create a spec for the executed op that includes the operation spec
-        # and the actual inputs/outputs
-        full_op_data = {
-            'op_spec': op_data,
-            'inputs': exec_op_inputs,
-            'outputs': exec_op_outputs
-        }
-
-        # create a node for the operation
-        op_node = DagNode(str(exec_op.pk), 
-            DagNode.OP_NODE, 
-            node_name = op_data['name'],
-            op_data = full_op_data)
-        graph.add_node(op_node)
-
-        for k,v in exec_op_inputs.items():
-            # compare with the expected type:
-            op_input_definition = op_inputs[k]
-            op_spec = op_input_definition['spec']
-            input_type = op_spec['attribute_type']
-            if input_type in DATARESOURCE_TYPENAMES:
-                r = get_resource_by_pk(v)
-                resource_node = graph.get_or_create_node(
-                    str(v), 
-                    DagNode.DATARESOURCE_NODE, 
-                    node_name = r.name)
-                op_node.add_parent(resource_node)
-
-        # show the outputs if the operation has completed
-        if exec_op.execution_stop_datetime:
-            for k,v in exec_op_outputs.items():
-                # compare with the expected type:
-                op_output_definition = op_outputs[k]
-                op_spec = op_output_definition['spec']
-                output_type = op_spec['attribute_type']
-                if output_type in DATARESOURCE_TYPENAMES:
-                    if v is not None:
-                        r = get_resource_by_pk(v)
-                        resource_node = graph.get_or_create_node(
-                            str(v), 
-                            DagNode.DATARESOURCE_NODE, 
-                            node_name = r.name)
-                        resource_node.add_parent(op_node)
-    return graph.serialize()
-

@@ -92,7 +92,7 @@ class LocalDockerRunner(OperationRunner):
                 ' should check the analysis operation.'
             )
 
-    def finalize(self, executed_op):
+    def finalize(self, executed_op, op_data):
         '''
         Finishes up an ExecutedOperation. Does things like registering files 
         with a user, cleanup, etc.
@@ -136,7 +136,7 @@ class LocalDockerRunner(OperationRunner):
 
                 # instantiate the output converter class:
                 converter = LocalDockerOutputConverter()
-                converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
+                converted_outputs = self.convert_outputs(executed_op, op_data, converter, outputs_dict)
 
                 executed_op.outputs = converted_outputs
 

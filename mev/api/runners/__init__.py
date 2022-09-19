@@ -38,7 +38,7 @@ def submit_job(executed_op, op_data, validated_inputs):
     runner.run(executed_op, op_data, validated_inputs)
 
 
-def finalize_job(executed_op):
+def finalize_job(executed_op, op_data):
     '''
     Finalizes the job using the proper runner.
 
@@ -46,4 +46,4 @@ def finalize_job(executed_op):
     '''
     runner_class = get_runner(executed_op.mode)
     runner = runner_class()
-    runner.finalize(executed_op)
+    runner.finalize(executed_op, op_data)

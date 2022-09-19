@@ -4,7 +4,6 @@ import logging
 
 from django.utils.module_loading import import_string
 
-from api.utilities.operations import get_operation_instance_data
 from api.utilities.admin_utils import alert_admins
 from api.exceptions import OutputConversionException
 
@@ -111,7 +110,7 @@ class OperationRunner(object):
         )
         return arg_dict
 
-    def convert_outputs(self, executed_op, converter, outputs_dict):
+    def convert_outputs(self, executed_op, op_data, converter, outputs_dict):
         '''
         Handles the mapping from outputs (as provided by the runner)
         to MEV-compatible data structures or resources.
@@ -121,7 +120,6 @@ class OperationRunner(object):
         user_workspace = getattr(executed_op, 'workspace', None)
 
         # get the operation spec so we know which types correspond to each output
-        op_data = get_operation_instance_data(executed_op.operation)
         op_spec_outputs = op_data['outputs']
 
         converted_outputs_dict = {}

@@ -12,7 +12,8 @@ from api.serializers.resource import ResourceSerializer
 from api.serializers.workspace_resource import WorkspaceResourceSerializer
 from api.serializers.workspace_resource_add import WorkspaceResourceAddSerializer
 import api.permissions as api_permissions
-from api.utilities.operations import check_for_resource_operations
+from api.utilities.executed_op_utilities import check_for_resource_operations
+
 
 logger = logging.getLogger(__name__)
 
