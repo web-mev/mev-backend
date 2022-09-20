@@ -68,15 +68,13 @@ class BaseRunnerTester(BaseAPITestCase):
         self.assertDictEqual(converted_inputs, expected_outputs)
 
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.base.alert_admins')
-    def test_bad_keys(self, mock_alert_admins, mock_get_operation_instance_data):
+    def test_bad_keys(self, mock_alert_admins):
         '''
         This tests that differing keys between the operation spec 
         and the actual outputs are handled appropriately.
         '''
 
-        mock_get_operation_instance_data.return_value = self.op_data
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
@@ -92,6 +90,7 @@ class BaseRunnerTester(BaseAPITestCase):
         'Could not locate the output') as ex:
             runner.convert_outputs(
                 mock_executed_op,
+                self.op_data,
                 mock_converter,
                 bad_outputs
             )
@@ -121,6 +120,7 @@ class BaseRunnerTester(BaseAPITestCase):
         'Could not locate the output') as ex:
             runner.convert_outputs(
                 mock_executed_op,
+                self.op_data,
                 mock_converter,
                 bad_outputs
             )
@@ -132,14 +132,10 @@ class BaseRunnerTester(BaseAPITestCase):
         )
         mock_alert_admins.assert_called()
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_output_conversion(self, mock_get_operation_instance_data):
+    def test_output_conversion(self):
         '''
         This tests that proper/valid output conversions go as planned
         '''
-
-        mock_get_operation_instance_data.return_value = self.op_data
-
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
@@ -167,6 +163,7 @@ class BaseRunnerTester(BaseAPITestCase):
 
         d = runner.convert_outputs(
             mock_executed_op,
+            self.op_data,
             mock_converter,
             outputs
         )
@@ -179,8 +176,8 @@ class BaseRunnerTester(BaseAPITestCase):
         )
         mock_cleanup.assert_not_called()
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_output_conversion_error(self, mock_get_operation_instance_data):
+
+    def test_output_conversion_error(self):
         '''
         If any of the outputs do not pass validation (either b/c the tool developer
         did not create outputs.json correctly OR the file is corrupted and doesn't
@@ -193,8 +190,6 @@ class BaseRunnerTester(BaseAPITestCase):
         the cleanup method here really only operates on OTHER inputs which did validate
         successfully)
         '''
-
-        mock_get_operation_instance_data.return_value = self.op_data2
 
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
@@ -218,6 +213,7 @@ class BaseRunnerTester(BaseAPITestCase):
         with self.assertRaises(OutputConversionException) as ex:
             runner.convert_outputs(
                 mock_executed_op,
+                self.op_data2,
                 mock_converter,
                 outputs
             )
@@ -227,8 +223,7 @@ class BaseRunnerTester(BaseAPITestCase):
             {}
         )
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_output_conversion_error_case2(self, mock_get_operation_instance_data):
+    def test_output_conversion_error_case2(self):
         '''
         If any of the outputs do not pass validation (either b/c the tool developer
         did not create outputs.json correctly OR the file is corrupted and doesn't
@@ -238,9 +233,6 @@ class BaseRunnerTester(BaseAPITestCase):
 
         This test checks that the cleanup method is called when an error occurs
         '''
-
-        mock_get_operation_instance_data.return_value = self.op_data
-
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
@@ -266,6 +258,7 @@ class BaseRunnerTester(BaseAPITestCase):
         with self.assertRaises(OutputConversionException) as ex:
             runner.convert_outputs(
                 mock_executed_op,
+                self.op_data,
                 mock_converter,
                 outputs
             )

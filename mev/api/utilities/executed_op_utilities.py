@@ -52,7 +52,8 @@ def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
                     resource_uuids.append(v)
     return resource_uuids
 
-def check_for_resource_operations(self, resource_instance, workspace_instance):
+
+def check_for_resource_operations(resource_instance, workspace_instance):
     '''
     To prevent deleting critical resources, we check to see if a
     `Resource` instance has been used for any operations within a
@@ -65,7 +66,6 @@ def check_for_resource_operations(self, resource_instance, workspace_instance):
         r = str(resource_instance.pk)
     ))
     workspace_executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace_instance)
-    used_resource_uuids = set()
     for exec_op in workspace_executed_ops:
         if exec_op.job_failed:
             logger.info('Skipping inspection of job ({u}) since it failed.'.format(u = str(exec_op.pk)))
@@ -90,7 +90,7 @@ def check_for_resource_operations(self, resource_instance, workspace_instance):
                 x = op_inputs,
                 y = exec_op_inputs
             ))
-            s1 = self.collect_resource_uuids(op_inputs, exec_op_inputs)
+            s1 = collect_resource_uuids(op_inputs, exec_op_inputs)
             logger.info('Found the following DataResources among'
                 ' the inputs: {u}'.format(
                     u = ', '.join(s1)
@@ -101,7 +101,7 @@ def check_for_resource_operations(self, resource_instance, workspace_instance):
         else:
             logger.info('Inputs to the ExecutedOp were None. Moving on.')
         if exec_op_outputs is not None:
-            s2 = self.collect_resource_uuids(op_outputs, exec_op_outputs)
+            s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
             logger.info('Found the following DataResources among'
             ' the outputs: {u}'.format(
                 u = ', '.join(s2)

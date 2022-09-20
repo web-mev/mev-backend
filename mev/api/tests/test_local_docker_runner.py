@@ -19,6 +19,7 @@ from api.models import Resource, Workspace, WorkspaceExecutedOperation, Operatio
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 
+
 class LocalDockerRunnerTester(BaseAPITestCase):
 
     def setUp(self):
@@ -71,7 +72,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_check_container_exit_code.return_value = 1
         mock_get_logs.return_value = 'foo'
 
-        runner.finalize(mock_executed_op)
+        runner.finalize(mock_executed_op, {})
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
@@ -104,7 +105,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 0
 
-        runner.finalize(mock_executed_op)
+        runner.finalize(mock_executed_op, {})
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
@@ -133,7 +134,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_check_container_exit_code.return_value = 137
         mock_get_logs.return_value = 'foo'
 
-        runner.finalize(mock_executed_op)
+        runner.finalize(mock_executed_op, {})
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
@@ -188,7 +189,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_check_container_exit_code.return_value = 1
         mock_get_logs.return_value = 'ACK'
 
-        runner.finalize(workspace_exec_op)
+        runner.finalize(workspace_exec_op, {})
         mock_remove_container.assert_called()
         # query the db:
         workspace_exec_op = WorkspaceExecutedOperation.objects.get(pk=workspace_exec_op_uuid)
@@ -241,11 +242,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
-    @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.local_docker.LocalDockerOutputConverter')
     def test_handles_job_finalization(self, \
         mock_LocalDockerOutputConverter, \
-        mock_get_operation_instance_data, \
         mock_remove_container, \
         mock_get_finish_datetime, \
         mock_check_container_exit_code):
@@ -259,7 +258,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         }
         runner.load_outputs_file = mock_load_outputs
 
-        mock_get_operation_instance_data.return_value = {
+        mock_op_data = {
             'outputs': {
                 'abc': {
                     "spec": {
@@ -282,7 +281,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 0
 
-        runner.finalize(mock_executed_op)
+        runner.finalize(mock_executed_op, mock_op_data)
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertFalse(mock_executed_op.job_failed)
@@ -292,13 +291,11 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
-    @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.local_docker.LocalDockerOutputConverter')
     @mock.patch('api.runners.base.alert_admins')
     def test_handles_extra_output_on_job_finalization(self, \
         mock_alert_admins, \
         mock_LocalDockerOutputConverter, \
-        mock_get_operation_instance_data, \
         mock_remove_container, \
         mock_get_finish_datetime, \
         mock_check_container_exit_code):
@@ -314,7 +311,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         runner.load_outputs_file = mock_load_outputs
 
         # the expected outputs have key 'abc', but not 'def'
-        mock_get_operation_instance_data.return_value = {
+        mock_op_data = {
             'outputs': {
                 'abc': {
                     "spec": {
@@ -337,7 +334,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 0
 
-        runner.finalize(mock_executed_op)
+        runner.finalize(mock_executed_op, mock_op_data)
         mock_alert_admins.assert_called()
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()

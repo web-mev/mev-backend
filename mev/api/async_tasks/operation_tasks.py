@@ -159,5 +159,5 @@ def finalize_executed_op(exec_op_uuid):
     except WorkspaceExecutedOperation.DoesNotExist:
         pass 
 
-    op_data = get_operation_instance_data(op)
+    op_data = get_operation_instance_data(executed_op.operation)
     finalize_job(executed_op, op_data)

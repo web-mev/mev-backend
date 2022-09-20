@@ -19,7 +19,10 @@ class OperationAsyncTester(BaseAPITestCase):
         self.establish_clients()
 
     @mock.patch('api.async_tasks.operation_tasks.finalize_job')
-    def test_gets_correct_op_type(self, mock_finalize_job):
+    @mock.patch('api.async_tasks.operation_tasks.get_operation_instance_data')
+    def test_gets_correct_op_type(self, 
+        mock_get_operation_instance_data, 
+        mock_finalize_job):
         '''
         Tests that the proper type of ExecutedOperation is 
         passed to the finalization methods.
@@ -29,7 +32,6 @@ class OperationAsyncTester(BaseAPITestCase):
         workspace, we need to ensure the proper type is passed to the
         finalization functions
         '''
-
         # add a workspace and a non-workspace operation:
         op_uuid = uuid.uuid4()
         op = Operation.objects.create(id=str(op_uuid))
@@ -68,8 +70,13 @@ class OperationAsyncTester(BaseAPITestCase):
         self.assertTrue(len(ex_ops) > 0)
         self.assertTrue(len(workspace_ex_ops) > 0)
 
+        mock_obj = {
+            'abc':123
+        }
+        mock_get_operation_instance_data.return_value = mock_obj
+
         finalize_executed_op(exec_op_uuid)
-        mock_finalize_job.assert_called_with(exec_op)
+        mock_finalize_job.assert_called_with(exec_op, mock_obj)
 
         finalize_executed_op(workspace_exec_op_uuid)
-        mock_finalize_job.assert_called_with(workspace_exec_op)
+        mock_finalize_job.assert_called_with(workspace_exec_op,  mock_obj)

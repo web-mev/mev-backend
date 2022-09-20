@@ -16,7 +16,7 @@ class TestWorkspaceTree(BaseAPITestCase):
     def setUp(self):
         self.establish_clients()
 
-    @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
+    @mock.patch('api.views.workspace_tree_views.WorkspaceTreeBase.create_workspace_dag')
     def test_tree_response(self, mock_create_workspace_dag):
         workspaces = Workspace.objects.filter(owner=self.regular_user_1)
         if len(workspaces) == 0:
@@ -35,7 +35,7 @@ class TestWorkspaceTree(BaseAPITestCase):
         response_json = response.json() 
         self.assertEqual(expected_response, response_json)       
 
-    @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
+    @mock.patch('api.views.workspace_tree_views.WorkspaceTreeBase.create_workspace_dag')
     def test_rejects_other_user(self, mock_create_workspace_dag):
         '''
         The workspace is owned by someone else, so the request should fail
@@ -53,7 +53,7 @@ class TestWorkspaceTree(BaseAPITestCase):
         self.assertEqual(403, response.status_code)  
 
 
-    @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
+    @mock.patch('api.views.workspace_tree_views.WorkspaceTreeBase.create_workspace_dag')
     def test_rejects_bad_workspace_uuid(self, mock_create_workspace_dag):
         '''
         The workspace arg doesn't reference a valid workspace
@@ -70,7 +70,7 @@ class TestWorkspaceTreeSave(BaseAPITestCase):
     def setUp(self):
         self.establish_clients()
 
-    @mock.patch('api.views.workspace_tree_views.create_workspace_dag')
+    @mock.patch('api.views.workspace_tree_views.WorkspaceTreeBase.create_workspace_dag')
     @mock.patch('api.views.workspace_tree_views.datetime')
     @mock.patch('api.views.workspace_tree_views.initiate_resource_validation')
     def test_tree_response(self, mock_initiate_resource_validation, \

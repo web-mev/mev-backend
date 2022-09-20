@@ -79,7 +79,10 @@ def validate_operation(operation_dict):
     ' of an Operation...: {d}'.format(d=operation_dict))
     #from api.serializers.operation import OperationSerializer
     op_serializer = OperationSerializer(data=operation_dict)
-    op_serializer.is_valid(raise_exception=True)
+    try:
+        op_serializer.is_valid(raise_exception=True)
+    except Exception as ex:
+        raise ex
     logger.info('Operation specification was valid.')
     return op_serializer
 

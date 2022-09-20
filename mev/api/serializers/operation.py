@@ -28,6 +28,7 @@ class OperationSerializer(serializers.Serializer):
                     choices = ', '.join(AVAILABLE_RUNNERS)
                 )
             )
+        return mode
 
     def to_representation(self, instance):
         return instance.to_dict()

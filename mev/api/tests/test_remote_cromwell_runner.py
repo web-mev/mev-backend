@@ -8,7 +8,6 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
 from api.tests.base import BaseAPITestCase
-from api.utilities.operations import read_operation_json
 from api.runners.remote_cromwell import RemoteCromwellRunner
 from api.models.operation import Operation
 from api.models.executed_operation import ExecutedOperation
@@ -335,7 +334,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
         # call the tested func.
         rcr = RemoteCromwellRunner()
-        rcr.finalize(self.executed_op)
+        rcr.finalize(self.executed_op, {})
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
@@ -381,7 +380,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         mock_convert_outputs = mock.MagicMock()
         mock_convert_outputs.return_value = {}
         rcr.convert_outputs = mock_convert_outputs
-        rcr.finalize(self.executed_op)
+        rcr.finalize(self.executed_op, {})
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
@@ -441,7 +440,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
         # call the tested func.
         rcr = RemoteCromwellRunner()
-        rcr.finalize(self.executed_op)
+        rcr.finalize(self.executed_op, {})
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
@@ -475,7 +474,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
             'id': 'abc',
             'status': RemoteCromwellRunner.SUCCEEDED_STATUS
         }
-        rcr.finalize(self.executed_op)
+        rcr.finalize(self.executed_op,{})
         mock_handle_job_success.assert_called()
         mock_handle_job_failure.assert_not_called()
         mock_handle_other_job_outcome.assert_not_called()
@@ -490,7 +489,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
             'id': 'abc',
             'status': RemoteCromwellRunner.FAILED_STATUS
         }
-        rcr.finalize(self.executed_op)
+        rcr.finalize(self.executed_op,{})
         mock_handle_job_success.assert_not_called()
         mock_handle_job_failure.assert_called()
         mock_handle_other_job_outcome.assert_not_called()
@@ -502,7 +501,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
             'id': 'abc',
             'status': 'XYZ'
         }
-        rcr.finalize(self.executed_op)
+        rcr.finalize(self.executed_op,{})
         mock_handle_other_job_outcome.assert_called()
         mock_handle_job_success.assert_not_called()
         mock_handle_job_failure.assert_not_called()
@@ -533,7 +532,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         mock_convert_outputs = mock.MagicMock()
         mock_convert_outputs.side_effect = [OutputConversionException('!!!')]
         rcr.convert_outputs = mock_convert_outputs
-        rcr.handle_job_success(exec_op)
+        rcr.handle_job_success(exec_op, {})
 
         # query to see that the failure was saved in the db
         self.assertTrue(exec_op.job_failed)

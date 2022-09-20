@@ -1,18 +1,13 @@
-import unittest
 import unittest.mock as mock
 import os
 import json
-import copy
 import uuid
-import shutil
 
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
 from api.utilities.operations import read_operation_json, \
     validate_operation_inputs, \
-    collect_resource_uuids, \
-    validate_operation, \
     resource_operations_file_is_valid
 from api.tests.base import BaseAPITestCase
 from api.models import Operation as OperationDbModel
@@ -173,62 +168,6 @@ class OperationUtilsTester(BaseAPITestCase):
         final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
         self.assertIsNone(final_inputs['optional_int_type'])
-
-    def test_collection_of_resource_uuids(self):
-        '''
-        To ensure that we don't erase crucial data resources in a workspace
-        we have a utility function that scans through the executed operations
-        of a workspace and returns a list of the "used" resource UUIDs.
-
-        Here, we test that it returns the expected list
-        '''
-        # first test one where we expect an empty list-- no resources
-        # are used or created:
-        f = os.path.join(
-            TESTDIR,
-            'simple_op_test.json'
-        )
-        d = read_operation_json(f)
-        mock_inputs = {
-            'some_string': 'abc'
-        }
-        result = collect_resource_uuids(d['inputs'], mock_inputs)
-        self.assertEqual(result, [])
-
-        # test empty output/input dict:
-        mock_outputs = {}
-        result = collect_resource_uuids(d['outputs'], mock_outputs)
-        self.assertEqual(result, [])
-
-        # test a non-empty return
-        f = os.path.join(
-            TESTDIR,
-            'valid_workspace_operation.json'
-        )
-        d = read_operation_json(f)
-        mock_outputs = {
-            'norm_counts': 'abc',
-            'dge_table': 'xyz'
-        }
-        result = collect_resource_uuids(d['outputs'], mock_outputs)
-        self.assertEqual(result, ['abc', 'xyz'])
-
-        # test if one of the DataResource outputs was not used (which is fine)
-        # and the output value was assigned to None
-        mock_outputs = {
-            'norm_counts': None,
-            'dge_table': 'xyz'
-        }
-        result = collect_resource_uuids(d['outputs'], mock_outputs)
-        self.assertEqual(result, ['xyz'])
-
-        # test if there is some discrepancy in the expected and actual inputs
-        # or outputs
-        mock_outputs = {
-            'junk': 'abc'
-        }
-        with self.assertRaises(Exception):
-            result = collect_resource_uuids(d['outputs'], mock_outputs)
 
     @mock.patch('api.utilities.operations.get_operation_instance_data')
     def test_list_attr_inputs(self, mock_get_operation_instance_data):
