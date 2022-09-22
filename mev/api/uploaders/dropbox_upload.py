@@ -46,19 +46,16 @@ class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     to the MEV server before going to the final storage backend
     '''
 
-    # This sets a unique identifier on the class which we can use to look up
-    # the corresponding Operation in the database.
-    # Initially had this dynamically generated with uuid.uuid4()
-    # but it caused issues as different django instantiations(
-    # e.g. via python3 manage ...) caused different UUIDs and hence
-    # database lookups failed
-    op_id = '825f00ba-3516-43f8-ab04-751c108d1852'
-
     # The directory containing the Operation components. Relative to the
     # directory of this file. The actual Operation will be executed from the 
     # files in the "final" operation dir, but this lets the ingestion script 
     # know where the source is.
     op_dir = os.path.join(THIS_DIR, 'local_dropbox_upload')
+
+    def __init__(self):
+        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for local storage')\
+            .latest('addition_datetime')
+        super().__init__()
 
 
     def rename_inputs(self, user, data):
@@ -119,19 +116,16 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
     GCP-specific class
     '''
 
-    # This sets a unique identifier on the class which we can use to look up
-    # the corresponding Operation in the database.    
-    # # Initially had this dynamically generated with uuid.uuid4()
-    # but it caused issues as different django instantiations(
-    # e.g. via python3 manage ...) caused different UUIDs and hence
-    # database lookups failed
-    op_id = 'be021ec3-6d3d-42e7-8fac-8db10a140681'
-
     # The directory containing the Operation components. Relative to the
     # directory of this file. The actual Operation will be executed from the 
     # files in the "final" operation dir, but this lets the ingestion script 
     # know where the source is.
     op_dir = os.path.join(THIS_DIR, 'gcp_bucket_dropbox_upload')
+
+    def __init__(self):
+        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for GCP')\
+            .latest('addition_datetime')
+        super().__init__()
 
     def rename_inputs(self, user, data):
         '''
@@ -165,9 +159,8 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
         are the same thing.
         '''
 
-        # get the name of the bucket where we are storing other user files
-        # If we are 
-        bucket_name = None
+        # In django-storages, this is the bucket where we store all user files.
+        bucket_name = settings.MEDIA_ROOT
 
         input_template = {
             'GCPDropboxUpload.dropbox_link': '',
@@ -182,6 +175,70 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
             name = item['filename']
             d['GCPDropboxUpload.dropbox_link'] = link
             d['GCPDropboxUpload.filename'] = name
+            d = self.validate(user, d)
+            remapped_inputs.append(d)
+        return remapped_inputs
+
+
+class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):
+    '''
+    This handles Dropbox-specific behavior for files that go directly to the 
+    storage backend. Since we require AWS-specific behavior, we have an 
+    AWS-specific class
+    '''
+
+    # The directory containing the Operation components. Relative to the
+    # directory of this file. The actual Operation will be executed from the 
+    # files in the "final" operation dir, but this lets the ingestion script 
+    # know where the source is.
+    op_dir = os.path.join(THIS_DIR, 'aws_bucket_dropbox_upload')
+
+    def __init__(self):
+        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for AWS')\
+            .latest('addition_datetime')
+        super().__init__()
+
+    def rename_inputs(self, user, data):
+        '''
+        Takes the data provided by the front-end, which looks like:
+        ```
+        [
+            {
+                'download_link': 'https://dropbox-url.com/foo.txt',
+                'filename': 'foo.txt'
+            },
+            {
+                'download_link': 'https://dropbox-url.com/bar.txt',
+                'filename': 'bar.txt'
+            }
+        ]
+        ```
+        and reformats it into inputs for this AWS-based remote Dropbox 
+        upload, which looks like an array where each element is like:
+        ```
+        {
+            "AWSDropboxUpload.dropbox_link": "",
+            "AWSDropboxUpload.filename": ""
+        }
+        ```
+
+        Note that this is different than the "input mapping" which takes that
+        dictionary above and creates the proper inputs.json for submission to
+        the cromwell server. However, in this case, it's a trivial operation since they
+        are the same thing.
+        '''
+
+        input_template = {
+            'AWSDropboxUpload.dropbox_link': '',
+            'AWSDropboxUpload.filename': ''
+        }
+        remapped_inputs = []
+        for item in data:
+            d = input_template.copy()
+            link = item['download_link']
+            name = item['filename']
+            d['AWSDropboxUpload.dropbox_link'] = link
+            d['AWSDropboxUpload.filename'] = name
             d = self.validate(user, d)
             remapped_inputs.append(d)
         return remapped_inputs

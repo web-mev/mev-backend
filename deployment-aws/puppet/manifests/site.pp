@@ -10,6 +10,7 @@ node /api/ {
     database_superuser          => $facts['database_superuser'],
     database_superuser_password => $facts['database_superuser_password'],
     database_user_password      => $facts['database_user_password'],
+    django_cors_origins         => $facts['django_cors_origins'],
     django_settings_module      => $facts['django_settings_module'],
     django_superuser_password   => $facts['django_superuser_password'],
     email_host_user             => $facts['email_host_user'],

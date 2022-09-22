@@ -1,6 +1,8 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
+
 
 class Operation(models.Model):
     '''
@@ -16,3 +18,5 @@ class Operation(models.Model):
     name = models.CharField(max_length = 100)
     successful_ingestion = models.BooleanField(null=True)
     workspace_operation = models.BooleanField(default=False)
+    addition_datetime = models.DateTimeField(
+        default=timezone.now)

@@ -17,6 +17,7 @@ class mevapi (
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,
   String                  $database_user_password,
+  String                  $django_cors_origins,
   Optional[String]        $django_settings_module,
   String                  $django_superuser_password,
   Optional[String]        $email_host = '',
