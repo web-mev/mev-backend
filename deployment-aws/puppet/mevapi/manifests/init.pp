@@ -7,9 +7,12 @@
 #   }
 class mevapi (
   String                  $admin_email_csv,
+  String                  $aws_region,
   Optional[String]        $app_user,
   String                  $backend_domain,
   Optional[String]        $container_registry = 'github',
+  String                  $cromwell_bucket_name,
+  String                  $cromwell_server_url,
   String                  $database_host,
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,
@@ -26,9 +29,6 @@ class mevapi (
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,
   String                  $storage_bucket_name,
-  String                  $cromwell_bucket_name,
-  String                  $cromwell_server_url,
-  String                  $aws_region,
 
 ) {
   if $facts['virtual'] == 'kvm' {
