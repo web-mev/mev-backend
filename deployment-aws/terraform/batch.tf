@@ -139,10 +139,14 @@ data "cloudinit_config" "batch_instance" {
     - unzip
 
     runcmd:
+    # install aws-cli v2 and copy the static binary in an easy to find location for bind-mounts into containers
+    - curl -s -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    - unzip -q /tmp/awscliv2.zip -d /run
+    - /run/aws/install -b /usr/bin
+    # add fetch and run batch helper script
     - curl -s --output-dir /run -O https://aws-genomics-workflows.s3.amazonaws.com/latest/artifacts/aws-ecs-additions.zip
     - unzip -q /run/aws-ecs-additions.zip -d /usr/local/bin
-
-    output: {all: '| tee -a /var/log/cloud-init-output.log'}
+    - chmod +x /usr/local/bin/fetch_and_run.sh
     EOT
   }
 }
@@ -158,9 +162,9 @@ resource "aws_batch_compute_environment" "cromwell" {
   # https://github.com/hashicorp/terraform-provider-aws/issues/13221
   # https://discuss.hashicorp.com/t/error-error-deleting-batch-compute-environment-cannot-delete-found-existing-jobqueue-relationship/5408/4
   compute_environment_name_prefix = "${local.common_tags.Name}-"
-  #  lifecycle {
-  #    create_before_destroy = true
-  #  }
+    lifecycle {
+      create_before_destroy = true
+    }
   type                            = "MANAGED"
   service_role                    = aws_iam_role.batch_service.arn
   depends_on                      = [aws_iam_role_policy_attachment.batch_service]
