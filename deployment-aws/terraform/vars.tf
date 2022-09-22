@@ -1,3 +1,9 @@
+variable "additional_cors_origins" {
+  description = "Origins (including protocol and port) to include, in addition to the frontend_domain var."
+  type        = string
+  default     = ""
+}
+
 variable "admin_email_csv" {
   description = "A comma-delimited string of administrator emails"
   type        = string
@@ -62,10 +68,4 @@ variable "storage_location" {
   description = "Where the data will be stored. One of remote or local"
   type        = string
   default     = "remote"
-}
-
-variable "additional_cors_origins" {
-  description = "Origins (including protocol and port) to include, in addition to the frontend_domain var."
-  type        = string
-  default     = ""
 }
