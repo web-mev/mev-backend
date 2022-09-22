@@ -4,7 +4,6 @@ import json
 import datetime
 import zipfile
 import logging
-import io
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -20,7 +19,6 @@ from api.utilities.wdl_utils import WDL_SUFFIX, \
     get_docker_images_in_repo, \
     edit_runtime_containers
 from api.utilities.docker import check_image_exists, get_tag_format
-from api.converters.output_converters import RemoteCromwellOutputConverter
 from api.models.executed_operation import ExecutedOperation
 
 logger = logging.getLogger(__name__)
@@ -403,11 +401,8 @@ class RemoteCromwellRunner(OperationRunner):
             logger.info(error_msg)
             alert_admins(error_msg)
 
-        # instantiate the output converter class which will take the job outputs
-        # and create MEV-compatible data structures or resources:
-        converter = RemoteCromwellOutputConverter()
         try:
-            converted_outputs = self.convert_outputs(executed_op, op_data, converter, outputs_dict)
+            converted_outputs = self.convert_outputs(executed_op, op_data, outputs_dict)
             executed_op.outputs = converted_outputs
             executed_op.execution_stop_datetime = end_time
             executed_op.job_failed = False
@@ -417,8 +412,6 @@ class RemoteCromwellRunner(OperationRunner):
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.FINALIZING_ERROR
             alert_admins(str(ex)) 
-
-
 
 
     def handle_job_failure(self, executed_op):

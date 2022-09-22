@@ -1,6 +1,5 @@
 import unittest.mock as mock
 import uuid
-import os
 import json
 import datetime
 

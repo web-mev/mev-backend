@@ -74,6 +74,21 @@ class OperationRunner(object):
                 )
         logger.info('Done checking for required files.')
 
+
+    def _get_converter(self, converter_class_str):
+        try:
+            converter_class = import_string(converter_class_str)
+            return converter_class()
+        except Exception as ex:
+            logger.error('Failed when importing the converter class: {clz}'
+                ' Exception was: {ex}'.format(
+                    ex=ex,
+                    clz = converter_class_str
+                )
+            )
+            raise ex  
+
+
     def _map_inputs(self, op_data, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
@@ -89,27 +104,17 @@ class OperationRunner(object):
         '''
         arg_dict = {}
         for k,v in validated_inputs.items():
-            converter_class_str = op_data[k]['converter']
-            try:
-                converter_class = import_string(converter_class_str)
-            except Exception as ex:
-                logger.error('Failed when importing the converter class: {clz}'
-                    ' Exception was: {ex}'.format(
-                        ex=ex,
-                        clz = converter_class_str
-                    )
-                )
-                raise ex
             # instantiate the converter and convert the arg:
-            c = converter_class()
-            arg_dict.update(c.convert(k,v, op_dir, staging_dir))
+            converter = self._get_converter(op_data[k]['converter'])
+            arg_dict.update(converter.convert_input(k, v, op_dir, staging_dir))
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)
         )
         return arg_dict
 
-    def convert_outputs(self, executed_op, op_data, converter, outputs_dict):
+
+    def convert_outputs(self, executed_op, op_data, outputs_dict):
         '''
         Handles the mapping from outputs (as provided by the runner)
         to MEV-compatible data structures or resources.
@@ -126,7 +131,7 @@ class OperationRunner(object):
             # note that the sort is not necessary, but it incurs little penalty.
             # However, it does make unit testing easier.
             for k in sorted(op_spec_outputs.keys()):
-                current_output = op_spec_outputs[k]
+                current_output_spec = op_spec_outputs[k]
                 try:
                     v = outputs_dict[k]
                 except KeyError as ex:
@@ -143,7 +148,9 @@ class OperationRunner(object):
                 else:
                     if v is not None:
                         logger.info('Executed operation output was not None. Convert.')
-                        converted_outputs_dict[k] = converter.convert_output(executed_op, user_workspace, current_output, v)
+                        converter = self._get_converter(current_output_spec['converter'])
+                        converted_outputs_dict[k] = converter.convert_output(
+                            executed_op, user_workspace, current_output_spec, v)
                     else:
                         logger.info('Executed operation output was null/None.')
                         converted_outputs_dict[k] = None

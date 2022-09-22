@@ -6,7 +6,6 @@ import logging
 from jinja2 import Template
 
 from django.conf import settings
-from django.utils.module_loading import import_string
 
 from api.runners.base import OperationRunner
 from api.utilities.docker import check_if_container_running, \
@@ -23,7 +22,6 @@ from api.utilities.basic_utils import make_local_directory, \
 from api.utilities.admin_utils import alert_admins
 from api.utilities.resource_utilities import delete_resource_by_pk
 from api.models import ExecutedOperation
-from api.converters.output_converters import LocalDockerOutputConverter
 
 logger = logging.getLogger(__name__)
 
@@ -134,10 +132,8 @@ class LocalDockerRunner(OperationRunner):
             try:
                 outputs_dict = self.load_outputs_file(job_id)
 
-                # instantiate the output converter class:
-                converter = LocalDockerOutputConverter()
-                converted_outputs = self.convert_outputs(executed_op, op_data, converter, outputs_dict)
-
+                converted_outputs = self.convert_outputs(
+                    executed_op, op_data, outputs_dict)
                 executed_op.outputs = converted_outputs
 
                 executed_op.job_failed = False

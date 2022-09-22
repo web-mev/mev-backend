@@ -11,6 +11,7 @@ from api.exceptions import StringIdentifierException, \
 
 logger = logging.getLogger(__name__)
 
+
 class BaseAttribute(object):
     '''
     Base object which defines some common methods and members
