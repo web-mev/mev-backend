@@ -63,7 +63,7 @@ database {
   db {
     driver = "org.postgresql.Driver"
     url = "jdbc:postgresql://localhost:5432/cromwell"
-    user = "<%= $cromwell::db_user %>"
+    user = "<%= $cromwell::user %>"
     password = "<%= $cromwell::db_password %>"
     port = 5432
     connectionTimeout = 5000

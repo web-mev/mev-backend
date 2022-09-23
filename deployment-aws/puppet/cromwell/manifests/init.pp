@@ -5,11 +5,10 @@
 # @example
 #   include cromwell
 class cromwell (
-  String           $api_storage_bucket,
-  String           $aws_region,
-  String           $job_queue,
-  String           $storage_bucket,
-  Optional[String] $project_root,
+  Optional[String] $api_storage_bucket,
+  Optional[String] $aws_region,
+  Optional[String] $job_queue,
+  Optional[String] $storage_bucket,
 ) {
   $user = 'ubuntu'
   $log_dir = '/var/log/cromwell'
