@@ -11,7 +11,7 @@ aws {
     }
   ]
 
-  region = <%= $region %>
+  region = <%= "$cromwell::aws_region" %>
 }
 
 engine {
@@ -33,15 +33,15 @@ backend {
         numCreateDefinitionAttempts = 6
 
         // Base bucket for workflow executions including s3://
-        root = "s3://<%= $cromwell_storage_bucket %>"
+        root = "s3://<%= $cromwell::storage_bucket %>"
 
         // A reference to an auth defined in the `aws` stanza at the top.  This auth is used to create
         // Jobs and manipulate auth JSONs.
         auth = "default"
 
         default-runtime-attributes {
-          queueArn: "<%= $cromwell_job_queue %>",
-          scriptBucketName: "<%= $cromwell_storage_bucket %>"
+          queueArn: "<%= $cromwell::job_queue %>",
+          scriptBucketName: "<%= $cromwell::storage_bucket %>"
         }
 
         filesystems {
@@ -63,8 +63,8 @@ database {
   db {
     driver = "org.postgresql.Driver"
     url = "jdbc:postgresql://localhost:5432/cromwell"
-    user = "<%= $cromwell_db_user %>"
-    password = "<%= $cromwell_db_password %>"
+    user = "<%= $cromwell::db_user %>"
+    password = "<%= $cromwell::db_password %>"
     port = 5432
     connectionTimeout = 5000
   }

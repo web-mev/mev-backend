@@ -30,7 +30,6 @@ class mevapi (
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,
   String                  $storage_bucket_name,
-
 ) {
   if $facts['virtual'] == 'kvm' {
     $platform = 'aws'

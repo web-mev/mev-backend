@@ -24,83 +24,10 @@ node /api/ {
 }
 
 node /cromwell/ {
-  if $facts['virtual'] == 'kvm' {
-    $platform = 'aws'
-  } else {
-    # gce or virtualbox
-    $platform = $facts['virtual']
-  }
-
-  $project_root = $platform ? {
-    'aws'        => '/srv/mev-backend',
-    'virtualbox' => '/vagrant',
-  }
-
-  $dependencies = [
-    'apt-transport-https',
-    'build-essential',
-    'ca-certificates',
-    'default-jre',
-    'gnupg2',
-    'software-properties-common',
-    'supervisor',
-  ]
-  package { $dependencies: }
-
-  $version = 81
-  file { "/opt/cromwell.jar":
-    source => "https://github.com/broadinstitute/cromwell/releases/download/${version}/cromwell-${version}.jar"
-  }
-
-  $cromwell_user = 'ubuntu'
-  $cromwell_log_dir = '/var/log/cromwell'
-  $cromwell_db_password = fqdn_rand_string(6)
-
-  file { [$cromwell_log_dir, '/cromwell-workflow-logs']:
-    ensure => directory,
-    owner  => $cromwell_user,
-    group  => $cromwell_user,
-  }
-
-  file { '/etc/cromwell.conf':
-    ensure  => file,
-    content => epp(
-      "${project_root}/deployment-aws/puppet/manifests/cromwell.conf.epp",
-      {
-        'region'                  => $facts['aws_region'],
-        'api_storage_bucket'      => $facts['api_storage_bucket'],
-        'cromwell_storage_bucket' => $facts['cromwell_storage_bucket'],
-        'cromwell_job_queue'      => $facts['cromwell_job_queue'],
-        'cromwell_db_user'        => $cromwell_user,
-        'cromwell_db_password'    => $cromwell_db_password,
-      }
-    ),
-    owner   => $cromwell_user,
-    group   => $cromwell_user,
-  }
-
-  file { '/etc/supervisor/conf.d/cromwell.conf':
-    ensure  => file,
-    content => epp(
-      "${project_root}/deployment-aws/puppet/manifests/cromwell-supervisor.conf.epp",
-      {
-        'cromwell_user'    => $cromwell_user,
-        'cromwell_log_dir' => $cromwell_log_dir,
-      }
-    ),
-    owner   => $cromwell_user,
-    group   => $cromwell_user,
-  }
-
-  class { 'postgresql::server': }
-
-  postgresql::server::db { 'cromwell':
-    user     => $cromwell_user,
-    password => $cromwell_db_password,
-  }
-  ~>
-  service { 'supervisor':
-    ensure => running,
-    enable => true,
+  class { 'cromwell':
+    api_storage_bucket => $facts['api_storage_bucket'],
+    aws_region         => $facts['aws_region'],
+    job_queue          => $facts['cromwell_job_queue'],
+    storage_bucket     => $facts['cromwell_storage_bucket'],
   }
 }
