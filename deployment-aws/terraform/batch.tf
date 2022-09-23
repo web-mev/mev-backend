@@ -158,16 +158,16 @@ resource "aws_launch_template" "batch_instance" {
 }
 
 resource "aws_batch_compute_environment" "cromwell" {
+  type                            = "MANAGED"
+  service_role                    = aws_iam_role.batch_service.arn
+  depends_on                      = [aws_iam_role_policy_attachment.batch_service]
   # need to use name prefix and lifecycle meta-argument to avoid a bug
   # https://github.com/hashicorp/terraform-provider-aws/issues/13221
   # https://discuss.hashicorp.com/t/error-error-deleting-batch-compute-environment-cannot-delete-found-existing-jobqueue-relationship/5408/4
   compute_environment_name_prefix = "${local.common_tags.Name}-"
-    lifecycle {
-      create_before_destroy = true
-    }
-  type                            = "MANAGED"
-  service_role                    = aws_iam_role.batch_service.arn
-  depends_on                      = [aws_iam_role_policy_attachment.batch_service]
+  lifecycle {
+    create_before_destroy = true
+  }
   compute_resources {
     instance_role      = aws_iam_instance_profile.batch_instance.arn
     instance_type      = ["c6i.large"]
