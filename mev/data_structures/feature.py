@@ -24,10 +24,5 @@ class Feature(BaseElement):
     ```
  
     '''
-
-    def __init__(self, id, attribute_dict={}):
-        super().__init__(id, attribute_dict)
-
-
     def __repr__(self):
-        return 'Feature ({id})'.format(id=self.id)
+        return 'Feature ({id})'.format(id=self._id)

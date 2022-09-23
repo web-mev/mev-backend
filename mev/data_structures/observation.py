@@ -20,12 +20,6 @@ class Observation(BaseElement):
         }
     }
     ```
- 
     '''
-
-    def __init__(self, id, attribute_dict={}):
-        super().__init__(id, attribute_dict)
-
-
     def __repr__(self):
         return 'Observation ({id})'.format(id=self.id)

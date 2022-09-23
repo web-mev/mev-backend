@@ -28,12 +28,12 @@ from .base import DataResource, \
     FileParseException, \
     UnexpectedFileParseException, \
     UnexpectedTypeValidationException
+from data_structures.helpers import convert_dtype
 from api.data_structures import Feature, \
     FeatureSet, \
     Observation, \
     ObservationSet, \
     create_attribute, \
-    convert_dtype, \
     numeric_attribute_typenames
 from api.utilities.admin_utils import alert_admins
 from api.serializers.feature_set import FeatureSetSerializer

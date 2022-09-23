@@ -110,3 +110,9 @@ FORMATS_MAPPING = {
     BAM_FORMAT: BAM_DESCRIPTION,
     UNSPECIFIED_FORMAT: GENERAL_DESCRIPTION
 }
+
+# Use these values as 'markers' for dataframes/tables that have infinite values.
+# Since the data needs to be returned as valid JSON and Inf (and other variants)
+# are not permitted
+POSITIVE_INF_MARKER = '++inf++'
+NEGATIVE_INF_MARKER = '--inf--'
