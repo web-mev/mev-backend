@@ -176,6 +176,7 @@ resource "aws_batch_compute_environment" "cromwell" {
     security_group_ids = [aws_security_group.batch_service.id]
     subnets            = [aws_subnet.public.id]
     type               = "EC2"
+    tags               = local.common_tags
     launch_template {
       launch_template_id = aws_launch_template.batch_instance.id
     }
