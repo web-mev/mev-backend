@@ -152,9 +152,19 @@ data "cloudinit_config" "batch_instance" {
 }
 
 resource "aws_launch_template" "batch_instance" {
-  name      = local.common_tags.Name
+  ebs_optimized = true
   # based on https://github.com/aws-samples/aws-genomics-workflows/blob/master/src/templates/gwfcore/gwfcore-launch-template.template.yaml
-  user_data = data.cloudinit_config.batch_instance.rendered
+  user_data     = data.cloudinit_config.batch_instance.rendered
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size = 200
+      volume_type = "gp3"
+    }
+  }
+  monitoring {
+    enabled = true
+  }
 }
 
 resource "aws_batch_compute_environment" "cromwell" {
@@ -172,7 +182,7 @@ resource "aws_batch_compute_environment" "cromwell" {
     ec2_key_pair       = var.ssh_key_pair_name
     instance_role      = aws_iam_instance_profile.batch_instance.arn
     instance_type      = ["optimal"]
-    max_vcpus          = 16
+    max_vcpus          = 64
     min_vcpus          = 0
     security_group_ids = [aws_security_group.batch_service.id]
     subnets            = [aws_subnet.public.id]
