@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from api.data_structures import OperationOutput
+from data_structures.operation_output import OperationOutput
 from api.serializers.output_spec import OutputSpecSerializer
 
 class OperationOutputSerializer(serializers.Serializer):

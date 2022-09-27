@@ -193,3 +193,59 @@ to run the tool, that value is None. Here, the user has submitted a value of 0.1
 Our instance of `OperationInput` has a `spec` member (i.e.`OperationInput.spec`) which returns an instance of `InputSpec`, a derived type of `InputOutputSpec`. `InputSpec` holds an instance of `Attribute`. However,
 for the purposes of validation, we provide a method on the `OperationInput` class so we can verify submitted inputs.
 
+---
+
+Consider how we deal with an `ObservationSet`. Consider the simplest case of no default
+```
+{
+    "description": "...", 
+    "name": "...", 
+    "required": true, 
+    "spec": {
+        "attribute_type": "ObservationSet",
+    }
+}
+```
+In this case, the spec is sent for validation. Then we call `Attribute`'s constructor like `Attribute(d, allow_null=True)` where `d` is:
+```
+{
+    attribute_type: "ObservationSet",
+    value: None
+}
+```
+This then calls the constructor of the `ObservationSet` class with `None` and `{allow_null:True}`, so that's all trivial.
+
+Consider the less-frequent case where there's a default value. Here, make that an empty set of elements:
+```
+{
+    "description": "...", 
+    "name": "...", 
+    "required": true, 
+    "spec": {
+        "attribute_type": "ObservationSet",
+        "default": {
+            "elements": []
+        }
+    }
+}
+```
+In this case, we call the constructor of the `ObservationSet` class with 
+```
+{
+    "elements": []
+}
+```
+Next consider a non-empty `elements` list. The `ObservationSet` constructor gets:
+```
+{
+    "elements": [
+        {
+            "id": <string identifier>,
+            "attributes": {
+                "keyA": <Attribute>,
+                "keyB": <Attribute>
+            }
+        }
+    ]
+}
+```

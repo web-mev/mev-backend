@@ -1,10 +1,11 @@
 import logging
 from copy import deepcopy
 
-from exceptions import WebMevException, \
+from exceptions import WebMeVException, \
     DataStructureValidationException
 
-from data_structures.helpers import get_attribute_implementation
+#from data_structures.attribute import Attribute
+from data_structures.attribute_factory import AttributeFactory
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +81,8 @@ class InputOutputSpec(object):
         # Now try to instantiate the attribute class. If it fails, 
         # then something was wrong with the spec
         try:
-            self._attribute_instance = Attribute(d, allow_null=allow_null)
-        except WebMevException as ex:
+            self._attribute_instance = AttributeFactory(d, allow_null=allow_null)
+        except WebMeVException as ex:
             # this catches expected failures like missing keys,
             # or bad default values
             logger.info(f'Failed to validate an input/output spec.'
@@ -117,4 +118,3 @@ class InputOutputSpec(object):
             d[self.DEFAULT_KEY] = self._default_value
 
         return d
-        

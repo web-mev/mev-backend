@@ -1,6 +1,6 @@
 from rest_framework import serializers, exceptions
 
-from api.data_structures import FeatureSet
+from data_structures.feature_set import FeatureSet
 from .element_set import ElementSetSerializer
 from .feature import FeatureSerializer, NullableFeatureSerializer
 

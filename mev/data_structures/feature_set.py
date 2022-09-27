@@ -1,5 +1,6 @@
-from .element_set import BaseElementSet
-from .feature import Feature
+from data_structures.element_set import BaseElementSet
+from data_structures.feature import Feature
+
 
 class FeatureSet(BaseElementSet):
     '''
@@ -22,7 +23,6 @@ class FeatureSet(BaseElementSet):
     A serialized representation would look like:
     ```
     {
-        "multiple": <bool>,
         "elements": [
             <Feature>,
             <Feature>,
@@ -31,20 +31,22 @@ class FeatureSet(BaseElementSet):
     }
     ```
     '''
-    element_typename = 'feature'
+    typename = 'FeatureSet'
+    elements_type_class = Feature
+    elements_typename = Feature.typename
         
     def set_intersection(self, other):
         intersection_list = super()._set_intersection(other)
         l = []
         for item in intersection_list:
-            l.append(Feature(item['id'], item['attributes']))
+            l.append(Feature(item))
         return FeatureSet(l)
 
     def set_union(self, other):
         union_list = super()._set_union(other)
         l = []
         for item in union_list:
-            l.append(Feature(item['id'], item['attributes']))
+            l.append(Feature(item))
         return FeatureSet(l)
 
     def set_difference(self, other):

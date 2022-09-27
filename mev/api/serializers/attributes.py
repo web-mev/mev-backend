@@ -1,8 +1,11 @@
 from rest_framework import serializers
 
-import api.data_structures as api_ds
 import api.exceptions as api_exceptions
 
+def create_attribute(x,y):
+    pass
+
+all_attribute_types = []
 
 class AttributeSerializer(serializers.BaseSerializer):
     '''
@@ -22,7 +25,7 @@ class AttributeSerializer(serializers.BaseSerializer):
         return output
 
     def _create_attribute(self, k, v):
-        return api_ds.create_attribute(k, v)
+        return create_attribute(k, v)
 
     def to_internal_value(self, data):
         if type(data) != dict:
@@ -34,7 +37,7 @@ class AttributeSerializer(serializers.BaseSerializer):
             if type(v) == dict:
                 v=self._create_attribute(k,v)
                 data[k]=v
-            elif type(v) in api_ds.all_attribute_types:
+            elif type(v) in all_attribute_types:
                 data[k] = v
             else:
                 raise serializers.ValidationError('The key {k}'
@@ -47,7 +50,7 @@ class AttributeSerializer(serializers.BaseSerializer):
         final_attr_dict = {}
         for k in validated_data.keys():
             attr_dict = validated_data[k]
-            attribute_type = api_ds.attributes.attribute_mapping[attr_dict['attribute_type']]
+            attribute_type = ''
             attribute_instance = attribute_type(attr_dict['value'])
             final_attr_dict[k] = attribute_instance
         return final_attr_dict
@@ -68,4 +71,4 @@ class NullableAttributeSerializer(AttributeSerializer):
     values.
     '''
     def _create_attribute(self, k, v):
-        return api_ds.create_attribute(k, v, allow_null=True)
+        return create_attribute(k, v, allow_null=True)

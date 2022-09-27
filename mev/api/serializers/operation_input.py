@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from api.data_structures import OperationInput
+from data_structures.operation_input import OperationInput
 from api.serializers.input_spec import InputSpecSerializer
 
 class OperationInputSerializer(serializers.Serializer):

@@ -23,8 +23,6 @@ from resource_types import get_contents, \
     get_standard_format, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
-from api.data_structures import DataResourceAttribute, \
-    VariableDataResourceAttribute
 from api.exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException

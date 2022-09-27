@@ -7,7 +7,6 @@ from rest_framework.exceptions import ValidationError
 
 from api.utilities.basic_utils import read_local_file
 
-from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 from api.serializers.operation import OperationSerializer
 
 logger = logging.getLogger(__name__)
@@ -161,7 +160,8 @@ def validate_operation_inputs(user, inputs, operation, workspace):
         # now validate that supplied input against the spec
         attribute_typename = spec['attribute_type']
         try:
-            submitted_input_class = submitted_operation_input_or_output_mapping[attribute_typename]
+            # TODO: address this- set to None to avoid import
+            submitted_input_class = None
             logger.info(submitted_input_class)
         except KeyError as ex:
             logger.error('Could not find an appropriate class for handling the user input'

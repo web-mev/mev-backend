@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from api.data_structures import Operation
+from data_structures.operation import Operation
 from api.serializers.operation_input_dict import OperationInputDictSerializer
 from api.serializers.operation_output_dict import OperationOutputDictSerializer
 from api.runners import AVAILABLE_RUNNERS

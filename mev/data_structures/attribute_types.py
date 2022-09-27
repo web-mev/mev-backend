@@ -9,85 +9,14 @@ from exceptions import NullAttributeError, \
     AttributeValueError, \
     InvalidAttributeKeywordError, \
     MissingAttributeKeywordError
+from data_structures.base_attribute import BaseAttributeType
 
 logger = logging.getLogger(__name__)
 
 
-class BaseAttributeType(object):
-    '''
-    This is a base class for all the types of attributes we might
-    implement. It contains common operations/logic. 
-    '''
-
-    def __init__(self, val, **kwargs):
-
-        # do we allow null/NaN? If not explicitly given,
-        # assume we do NOT allow nulls
-        try:
-            self._allow_null = bool(kwargs.pop('allow_null'))
-        except KeyError:
-            self._allow_null = False
-
-        # Kickoff any validation via the setter
-        self.value = val
-
-        # if kwargs is not an empty dict, raise an exception.
-        # The derived classes should pop off the kwargs specific
-        # to their implementation
-        if kwargs != {}:
-            raise AttributeValueError('This type of attribute does not '
-                                      ' accept additional keyword arguments.'
-                                      ' Received: {",".join(kwargs.keys())}')
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, val):
-        '''
-        This setter method will ultimately call a _value_validator method,
-        so override that method to implement custom validation logic.
-        '''
-        if val is None:
-            if not self._allow_null:
-                raise NullAttributeError('Cannot set the value to None unless'
-                                         ' passing "allow_null=True"')
-            self._value = None
-        else:
-            self._value_validator(val)
-
-    def _value_validator(self, val):
-        '''
-        This method is where we perform custom logic for setting the _value
-        attribute. Override in your subclass
-        '''
-        self._value = val
-
-    def to_dict(self):
-        '''
-        Returns a dictionary representation appropriate for use in JSON-like
-        responses.
-
-        Override as required in your subclass.
-        '''
-        return {
-            'attribute_type': self.typename,
-            'value': self.value
-        }
-
-    def __eq__(self, other):
-        same_type = self.typename == other.typename
-        same_val = self.value == other.value
-        return all([same_type, same_val])
-
-    def __repr__(self):
-        return f'{self.typename}: {self.value}'
-
-
 class BoundedBaseAttribute(BaseAttributeType):
     '''
-    This class derives from `BaseAttribute` and adds
+    This class derives from `BaseAttributeType` and adds
     logic for numeric attributes that are bounded between
     specified values.
 
@@ -113,8 +42,8 @@ class BoundedBaseAttribute(BaseAttributeType):
             self._min_value = kwargs_dict.pop(self.MINIMUM_KEY)
             self._max_value = kwargs_dict.pop(self.MAXIMUM_KEY)
         except KeyError as ex:
-            raise MissingAttributeKeywordError(f'Bounds are required.'
-                ' Was missing: {ex}')
+            s = f'Bounds are required. Was missing: {ex}'
+            raise MissingAttributeKeywordError(s)
 
     def _check_bound_types(self, primitive_type_list):
         '''
@@ -125,7 +54,7 @@ class BoundedBaseAttribute(BaseAttributeType):
         The child implementations call this and provide the
         acceptable types as a list.
         '''
-        d={
+        d = {
             'minimum': self._min_value,
             'maximum': self._max_value
         }
@@ -133,8 +62,8 @@ class BoundedBaseAttribute(BaseAttributeType):
             dtype = type(d[k])
             if not dtype in primitive_type_list:
                 raise InvalidAttributeKeywordError(f'The value of the {k}'
-                ' bound ({d[k]}) specified does not match the expected type'
-                ' for this bounded attribute.')
+                    f' bound ( {d[k]} ) specified does not match the expected'
+                    f' type for this bounded attribute.')
 
     def to_dict(self):
         return {
@@ -443,21 +372,21 @@ class OptionStringAttribute(BaseAttributeType):
             if type(options) == list:
                 for opt in options:
                     if not type(opt) == str:
-                        raise InvalidAttributeKeywordError(f'The options need to be'
-                            ' strings. Failed on validating: {opt}')
+                        raise InvalidAttributeKeywordError('The options need to be'
+                            f' strings. Failed on validating: {opt}')
                 self._options = options
             else:
-                raise InvalidAttributeKeywordError(f'Need to supply a list with'
-                    ' the {self.OPTIONS_KEY} key.')
+                raise InvalidAttributeKeywordError('Need to supply a list with'
+                    f' the {self.OPTIONS_KEY} key.')
         except KeyError as ex:
-            raise MissingAttributeKeywordError(f'Need a list of options given via'
-                ' the {ex} key.')
+            raise MissingAttributeKeywordError('Need a list of options given via'
+                f' the {ex} key.')
 
     def _value_validator(self, val):
 
         if not val in self._options:
             raise AttributeValueError(f'The value "{val}" was not among'
-                ' the valid options: {self._options}')
+                f' the valid options: {self._options}')
         self._value = val
 
     def to_dict(self):
@@ -525,12 +454,28 @@ class BaseDataResourceAttribute(BaseAttributeType):
 
     Note that "many" controls whether >1 are allowed. It's not an indicator
     for whether there are multiple Resources specified in the "value" key.
+
+    Also note that the "value" of the derived classes is intended to be 
+    one or more UUIDs and we validate that they are indeed UUIDs.
+    However, we do NOT do any validation that contains API-specific logic.
+    That is, this class is not responsible for determining whether an 
+    actual Resource (the database model from the api package) has the
+    correct type, is able to be used in an analysis, etc. These classes
+    are only responsible for validating that the data structure was
+    structured correctly.
     '''
 
     MANY_KEY = 'many'
 
     def __init__(self, value, **kwargs):
-        self._validate_many_key(kwargs.pop(self.MANY_KEY))
+
+        try:
+            v = kwargs.pop(self.MANY_KEY)
+        except KeyError:
+            raise MissingAttributeKeywordError('You must specify'
+                ' a "many" key.')
+
+        self._validate_many_key(v)
         super().__init__(value, **kwargs)
         
     def _validate_many_key(self, v):
@@ -619,7 +564,11 @@ class DataResourceAttribute(BaseDataResourceAttribute):
     REQUIRED_PARAMS = [BaseDataResourceAttribute.MANY_KEY, RESOURCE_TYPE_KEY]
 
     def __init__(self, value, **kwargs):
-        self._validate_resource_type_key(kwargs.pop(self.RESOURCE_TYPE_KEY))
+        try:
+            self._validate_resource_type_key(kwargs.pop(self.RESOURCE_TYPE_KEY))
+        except KeyError:
+            raise MissingAttributeKeywordError('You must specify'
+                f' a "{self.RESOURCE_TYPE_KEY}" key.')
         super().__init__(value, **kwargs)
 
     def _validate_resource_type_key(self, v):
@@ -627,7 +576,7 @@ class DataResourceAttribute(BaseDataResourceAttribute):
         Checks that the value passed is one of the known
         resource types
         '''
-        #TODO: add the validaton here
+        #TODO: add the validaton here- need all the available resource types
         self._resource_type = v
 
     def to_dict(self):
@@ -685,15 +634,23 @@ class VariableDataResourceAttribute(BaseDataResourceAttribute):
     REQUIRED_PARAMS = [BaseDataResourceAttribute.MANY_KEY, RESOURCE_TYPES_KEY]
 
     def __init__(self, value, **kwargs):
-        self._validate_resource_types_key(kwargs.pop(self.RESOURCE_TYPE_KEY))
+        try:
+            self._validate_resource_types_key(
+                kwargs.pop(self.RESOURCE_TYPES_KEY))
+        except KeyError:
+            raise MissingAttributeKeywordError('You must specify'
+                f' a "{self.RESOURCE_TYPES_KEY}" key.')
         super().__init__(value, **kwargs)
 
-    def _validate_resources_type_key(self, v):
+    def _validate_resource_types_key(self, v):
         '''
         Checks that the value passed is a list
         consisting of only valid resource types
         '''
-        #TODO: add the validaton here
+        if not type(v) is list:
+            raise InvalidAttributeKeywordError(f'The {self.RESOURCE_TYPES_KEY}'
+                ' keyword requires a list.')
+        #TODO: add the validaton here- the various resource types
         self._resource_types = v
 
     def to_dict(self):

@@ -1,3 +1,4 @@
+from numpy import typename
 from .element import BaseElement
 
 class Observation(BaseElement):
@@ -21,5 +22,7 @@ class Observation(BaseElement):
     }
     ```
     '''
+    typename = 'Observation'
+    
     def __repr__(self):
         return 'Observation ({id})'.format(id=self.id)

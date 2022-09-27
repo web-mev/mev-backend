@@ -4,14 +4,13 @@ from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError, PermissionDenied
-from rest_framework import permissions as framework_permissions
 
 from api.models import Workspace, ResourceMetadata
 from api.serializers.observation import NullableObservationSerializer
 from api.serializers.feature import NullableFeatureSerializer
 from api.serializers.observation_set import NullableObservationSetSerializer
 from api.serializers.feature_set import NullableFeatureSetSerializer
-from api.data_structures import merge_element_set
+from data_structures.element_set import merge_element_set
 
 logger = logging.getLogger(__name__)
 

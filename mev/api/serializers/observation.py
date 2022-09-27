@@ -1,4 +1,4 @@
-from api.data_structures import Observation
+from data_structures.observation import Observation
 from api.serializers.element import BaseElementSerializer, NullableBaseElementSerializer
 
 class CreateMixin(object):

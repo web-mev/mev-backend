@@ -29,14 +29,10 @@ from .base import DataResource, \
     UnexpectedFileParseException, \
     UnexpectedTypeValidationException
 from data_structures.helpers import convert_dtype
-from api.data_structures import Feature, \
-    FeatureSet, \
-    Observation, \
-    ObservationSet, \
-    create_attribute, \
-    numeric_attribute_typenames
+from data_structures.observation import Observation
+from data_structures.observation_set import ObservationSet
+from data_structures.simple_attribute_factory import SimpleAttributeFactory
 from api.utilities.admin_utils import alert_admins
-from api.serializers.feature_set import FeatureSetSerializer
 from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
@@ -319,11 +315,11 @@ class TableResource(DataResource):
         except UnexpectedFileParseException as ex:
             return (False, PARSE_ERROR)
      
-    def do_type_cast(self, v, typename):
+    def do_type_cast(self, v, dtype):
         '''
         Used for casting the type when query params are provided.
         '''
-        if typename in numeric_attribute_typenames:
+        if re.fullmatch('(int|float)\d{0,2}', dtype):
             try:
                 val = float(v)
             except ValueError as ex:
@@ -401,7 +397,10 @@ class TableResource(DataResource):
                 # or a delimited string which will dictate the comparison.
                 # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
                 # v would be "[lte]:0.01". The "[lte]" string is set in our general settings file.
-                column_type = type_dict[k] # gets a type name (as a string, e.g. "Float")
+
+                # self.table.dtypes gives a pd.Series which maps the column names to numpy types like
+                # int64, float64, object
+                column_type = str(self.table.dtypes[k]) # a string like int64, object
                 if len(split_v) == 1:
                     # strict equality
                     val = self.do_type_cast(v, column_type)
@@ -1080,7 +1079,7 @@ class ElementTable(TableResource):
                 # Note the 'allow_null=True', so that attributes can be properly serialized
                 # if they are missing a value. This happens, for instance, in FeatureTable
                 # instances where p-values were not assigned.
-                attr = create_attribute(key,
+                attr = SimpleAttributeFactory(
                     {
                         'attribute_type': type_dict[key],
                         'value': val

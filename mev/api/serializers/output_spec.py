@@ -1,7 +1,6 @@
 import copy
 from rest_framework.exceptions import ValidationError
 
-from api.data_structures.operation_output_spec import output_spec_mapping
 from api.serializers.input_output_spec import InputOutputSpecSerializer
 
 class OutputSpecSerializer(InputOutputSpecSerializer):
@@ -10,6 +9,7 @@ class OutputSpecSerializer(InputOutputSpecSerializer):
     '''
 
     def to_internal_value(self, data):
+        output_spec_mapping = {}
         try:
             output_spec_type_str = data['attribute_type']
         except KeyError as ex:
@@ -32,5 +32,5 @@ class OutputSpecSerializer(InputOutputSpecSerializer):
     def create(self, validated_data):
         data_copy = copy.deepcopy(validated_data)
         output_spec_type_str = data_copy.pop('attribute_type')
-        output_spec_type = output_spec_mapping[output_spec_type_str]
+        output_spec_type = None
         return output_spec_type(**data_copy)

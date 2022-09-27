@@ -1,6 +1,16 @@
-from rest_framework.exceptions import ValidationError
+from exceptions import DataStructureValidationException
+from data_structures.attribute_types import BaseAttributeType
 
-class BaseElementSet(object):
+
+def merge_element_set(x):
+    '''
+    A utility method to merge two ElementSet types
+    '''
+    #TODO: create implementation.
+    pass
+
+
+class BaseElementSet(BaseAttributeType):
     '''
     A `BaseElementSet` is a collection of unique `BaseElement` instances
     (more likely the derived children classes) and is typically used as a
@@ -23,7 +33,6 @@ class BaseElementSet(object):
     would look like:
     ```
     {
-        "multiple": <bool>,
         "elements": [
             <Observation>,
             <Observation>,
@@ -33,43 +42,48 @@ class BaseElementSet(object):
     ```
     '''
 
-    # the element_typename allows us to keep the logic here, but raise
-    # appropriate warnings/exceptions based on the concrete implementation.
-    # For instance, an ObservationSet derives from this class.  If someone 
-    # passes duplicate elements, we want to tell them it came from specifying
-    # "observations" incorrectly.  For a FeatureSet, we would obviously want
-    # to warn about incorrect "features".  Child classes will set this field
-    # in their __init__(self)
-    element_typename = None
-
-    def __init__(self, init_elements, multiple=True):
+    def _value_validator(self, val):
         '''
-        Creates a `BaseElementSet` instance.
+        This method is where the validation of the `ElementSet` (or subclass)
+        happens. It's called when the `value` member is set.
 
-        `init_elements` is an iterable of `BaseElement` instances
-        `multiple` defines whether we should permit multiple `BaseElement`
-          instances.
+        The `BaseAttributeType` class has already handled the case where 
+        `val` is None. If we are here, then it is *something* non-None.
         '''
-        if self.element_typename is None:
-            raise NotImplementedError('Set the member "element_typename"'
-            ' in your child class implementation')
+        if not type(val) is dict:
+            raise DataStructureValidationException('The constructor for an'
+                ' ElementSet or subclass expects a dictionary.')
 
-        if (not multiple) and (len(init_elements) > 1):
-            raise ValidationError({'elements':
-                'The {element_typename}Set was declared to be a singleton, but'
-                ' multiple elements were passed to the constructor.'.format(
-                    element_typename=self.element_typename.capitalize())
-                })
+        # a list (even if empty) is required and addressed by the
+        # `elements` key
+        try:
+            self.elements = val['elements']
+        except KeyError:
+            raise DataStructureValidationException('An ElementSet type'
+                ' requires an "elements" key.')
 
-        self.elements = set(init_elements)
-        if len(self.elements) < len(init_elements):
-            raise ValidationError({'elements':
-                'Attempted to create an {element_typename}Set with a' 
-                ' duplicate element.'.format(
-                    element_typename=self.element_typename.capitalize())
-            })
+        self._value = val
 
-        self.multiple = multiple
+    @property
+    def elements(self):
+        return self._element_list
+
+    @elements.setter
+    def elements(self, elements_val):
+        if not type(elements_val) is list:
+            raise DataStructureValidationException(f'Within a {self.typename},'
+                ' the nested "elements" key should address a list.')
+        list_of_elements = set()
+        for item in elements_val:
+            # each item in the list should be an Element subclass 
+            # (e.g. Feature, Observation). The implementing class
+            # e.g. ObservationSet defines a member that provides
+            # the "type" of the nested Element. In the case of the
+            # ObservationSet, that's obviously an Observation.
+            list_of_elements.add(
+                self.elements_type_class(item)
+            )
+        self._element_list = list_of_elements
 
 
     def add_element(self, new_element):
@@ -78,22 +92,12 @@ class BaseElementSet(object):
         (or `Feature` to `FeatureSet`)
         '''
 
-        # if it's a singleton (multiple=False), prevent adding more
-        # if the set length is already 1.
-        if not self.multiple and len(self.elements) == 1:
-            raise ValidationError(
-                'Tried to add a second {element_type} to a singleton'
-                ' {element_type}Set.'.format(
-                    element_type=self.element_typename.capitalize()
-                )
-            )
-
-        prev_length = len(self.elements)
-        self.elements.add(new_element)
-        if len(self.elements) == prev_length:
-            raise ValidationError(
+        prev_length = len(self._element_list)
+        self._element_list.add(new_element)
+        if len(self._element_list) == prev_length:
+            raise DataStructureValidationException(
                 'Tried to add a duplicate entry to an {element_type}Set.'.format(
-                    element_type=self.element_typename.capitalize()
+                    element_type=self.elements_typename.capitalize()
                 )
             )
 
@@ -114,30 +118,29 @@ class BaseElementSet(object):
         the properly typed sets by the child/calling class.
         '''
         return_list = []
-        intersection_set = self.elements.intersection(other.elements)
+        intersection_set = self._element_list.intersection(other._element_list)
         for x in intersection_set:
             attr_dict = {}
             _id = x.id
-            el1 = BaseElementSet._get_element_with_id(self.elements, _id)
-            el2 = BaseElementSet._get_element_with_id(other.elements, _id)
+            el1 = BaseElementSet._get_element_with_id(self._element_list, _id)
+            el2 = BaseElementSet._get_element_with_id(other._element_list, _id)
             if el1 and el2:
                 # check that we don't have conflicting info. 
                 # e.g. if one attribute dict sets a particular attribute
                 # to one value and the other is different, reject it.
                 # Don't make any assumptions about how that conflict should be handled.
+                # these are dicts where the key is a string and the value is a type  
+                # like an int, bounded float, etc.
                 d1 = el1.attributes
                 d2 = el2.attributes
                 intersecting_attributes = [x for x in d1 if x in d2]
                 for k in intersecting_attributes:
                     if d1[k] != d2[k]:
-                        raise ValidationError('When performing an intersection'
-                            ' of two sets, encountered a conflict in the attributes.'
-                            ' The key "{k}" has differing values of {x} and {y}'.format(
-                                k = k,
-                                x = d1[k],
-                                y = d2[k]
-                            )
-                        )
+                        raise DataStructureValidationException(f'When'
+                            ' performing an intersection of two sets,'
+                            ' encountered a conflict in the attributes.'
+                            ' The key "{k}" has differing values of'
+                            ' {d1[k]} and {d2[k]}')
                 attr_dict.update(el1.attributes)
                 attr_dict.update(el2.attributes)
             return_list.append({'id':_id, 'attributes': attr_dict})
@@ -154,7 +157,7 @@ class BaseElementSet(object):
         # need to check that the intersecting elements don't have any issues like
         # conflicting attributes:
         intersection_set = self.set_intersection(other)
-        union_set = self.elements.union(other.elements)
+        union_set = self._element_list.union(other._element_list)
         for x in union_set:
             _id = x.id
             el = BaseElementSet._get_element_with_id(intersection_set.elements, _id)
@@ -170,7 +173,7 @@ class BaseElementSet(object):
         to the calling class of the child, which will be responsible
         for creating a full ObservationSet or FeatureSet
         '''        
-        return self.elements.difference(other.elements)
+        return self._element_list.difference(other.elements)
 
 
     def is_equivalent_to(self, other):
@@ -186,26 +189,24 @@ class BaseElementSet(object):
 
 
     def __len__(self):
-        return len(self.elements)
+        return len(self._element_list)
 
     def __eq__(self, other):
-        return (self.elements == other.elements) \
-            & (self.multiple == other.multiple)
+        return (self._element_list == other._element_list)
 
 
     def __hash__(self):
-        return hash(tuple(self.elements))
+        return hash(tuple(self._element_list))
 
 
     def __repr__(self):
-        s = ','.join([str(x) for x in self.elements])
+        s = ','.join([str(x) for x in self._element_list])
         return 'A set of {element_type}s:{{{obs}}}'.format(
             obs=s, 
-            element_type=self.element_typename.capitalize()
+            element_type=self.elements_typename.capitalize()
         )
 
     def to_dict(self):
         d = {}
-        d['multiple'] = self.multiple
-        d['elements'] = [x.to_dict() for x in self.elements]
+        d['elements'] = [x.to_dict() for x in self._element_list]
         return d

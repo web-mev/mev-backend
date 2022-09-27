@@ -1,8 +1,9 @@
 from rest_framework import serializers
 
-from api.data_structures import create_attribute
 from .attributes import AttributeSerializer, NullableAttributeSerializer
 
+def create_attribute(x,y):
+    pass
 
 class BaseElementSerializer(serializers.Serializer):
     '''

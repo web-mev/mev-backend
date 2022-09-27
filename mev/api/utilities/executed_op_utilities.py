@@ -2,10 +2,18 @@ import logging
 
 from api.models import WorkspaceExecutedOperation
 from api.utilities.operations import get_operation_instance_data
-from api.data_structures import DATARESOURCE_TYPENAMES
+from data_structures.attribute_types import DataResourceAttribute, \
+    VariableDataResourceAttribute, \
+    OperationDataResourceAttribute
 
 logger = logging.getLogger(__name__)
 
+DATARESOURCE_TYPES = [
+    DataResourceAttribute,
+    VariableDataResourceAttribute,
+    OperationDataResourceAttribute
+]
+DATARESOURCE_TYPENAMES = [x.typename for x in DATARESOURCE_TYPES]
 
 def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
     '''

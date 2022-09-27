@@ -6,7 +6,8 @@ from rest_framework.exceptions import ValidationError
 
 from api.serializers.observation_set import ObservationSetSerializer
 from api.serializers.feature_set import FeatureSetSerializer
-from api.data_structures import ObservationSet, FeatureSet
+from data_structures.observation_set import ObservationSet
+from data_structures.feature_set import FeatureSet
 
 
 class MetadataMixin(object):

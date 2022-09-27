@@ -1,5 +1,6 @@
-from .element_set import BaseElementSet
-from .observation import Observation
+from data_structures.element_set import BaseElementSet
+from data_structures.observation import Observation
+
 
 class ObservationSet(BaseElementSet):
     '''
@@ -22,7 +23,6 @@ class ObservationSet(BaseElementSet):
     A serialized representation would look like:
     ```
     {
-        "multiple": <bool>,
         "elements": [
             <Observation>,
             <Observation>,
@@ -31,20 +31,22 @@ class ObservationSet(BaseElementSet):
     }
     ```
     '''
-    element_typename = 'observation'
+    typename = 'ObservationSet'
+    elements_type_class = Observation
+    elements_typename = Observation.typename
         
     def set_intersection(self, other):
         intersection_list = super()._set_intersection(other)
         l = []
         for item in intersection_list:
-            l.append(Observation(item['id'], item['attributes']))
+            l.append(Observation(item))
         return ObservationSet(l)
         
     def set_union(self, other):
         union_list = super()._set_union(other)
         l = []
         for item in union_list:
-            l.append(Observation(item['id'], item['attributes']))
+            l.append(Observation(item))
         return ObservationSet(l)
 
     def set_difference(self, other):

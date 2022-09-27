@@ -17,10 +17,21 @@ from api.utilities.resource_utilities import initiate_resource_validation, \
     create_resource, \
     get_resource_by_pk
 from api.utilities.operations import get_operation_instance_data
-from api.data_structures import SimpleDag, DagNode, DATARESOURCE_TYPENAMES
+from data_structures.dag_components import SimpleDag, DagNode
+from data_structures.attribute_types import DataResourceAttribute, \
+    VariableDataResourceAttribute, \
+    OperationDataResourceAttribute
 from api.models import Workspace, WorkspaceExecutedOperation
 
 logger = logging.getLogger(__name__)
+
+
+DATARESOURCE_TYPES = [
+    DataResourceAttribute,
+    VariableDataResourceAttribute,
+    OperationDataResourceAttribute
+]
+DATARESOURCE_TYPENAMES = [x.typename for x in DATARESOURCE_TYPES]
 
 
 class WorkspaceTreeBase(object):

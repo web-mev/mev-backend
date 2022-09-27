@@ -2,7 +2,7 @@ import pandas as pd
 from itertools import chain
 from collections import defaultdict
 
-from api.data_structures import PositiveIntegerAttribute
+from data_structures.attribute_types import PositiveIntegerAttribute
 
 def subset_PANDA_net(resource_instance, query_params):
     '''

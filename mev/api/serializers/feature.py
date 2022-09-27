@@ -1,4 +1,4 @@
-from api.data_structures import Feature
+from data_structures.feature import Feature
 from api.serializers.element import BaseElementSerializer, NullableBaseElementSerializer
 
 class CreateMixin(object):

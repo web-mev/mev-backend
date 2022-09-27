@@ -1,8 +1,9 @@
-from exceptions import DataStructureValidationException
+from exceptions import DataStructureValidationException, \
+    AttributeValueError
 
 from data_structures.attribute_types import BaseAttributeType
-from data_structures.attribute import Attribute
-from data_structures.basic_attributes import StringAttribute
+from data_structures.simple_attribute_factory import SimpleAttributeFactory
+from data_structures.attribute_types import StringAttribute
 
 
 class BaseElement(BaseAttributeType):
@@ -45,6 +46,19 @@ class BaseElement(BaseAttributeType):
     The nested dict `attributes` CAN be empty. 
     '''        
 
+    def __init__(self, val, **kwargs):
+        # We need to initialize the _value dict. Otherwise, when
+        # the constructor (of BaseAttributeType) calls _value_validator,
+        # we get missing attribute errors raised by the setter
+        # methods. 
+        # The reason for doing this is that we are modifying the _value
+        # dict in the property setters which allows dynamic
+        # updating of the Element instance. During the initial
+        # creation, ff we attempt to set the 'id' field in the 
+        # setter, we don't have a _value field yet.
+        self._value = {}
+        super().__init__(val, **kwargs)
+
     def _value_validator(self, val):
         '''
         This method is where the validation of the `Element` (or subclass)
@@ -56,9 +70,9 @@ class BaseElement(BaseAttributeType):
         if not type(val) is dict:
             raise DataStructureValidationException('The constructor for an'
                 ' Element or subclass expects a dictionary.')
-
+        
         try:
-            self.id = val['id']
+            self.id = val.pop('id')
         except KeyError:
             raise DataStructureValidationException('An Element type'
                 ' requires an "id" key.')
@@ -68,9 +82,35 @@ class BaseElement(BaseAttributeType):
         # Note that setting this ends up calling the setter
         # which attempts validation-- the inner, nested items
         # need to be checked.
-        self.attributes = val.get('attributes', {})
+        try:
+            self.attributes = val.pop('attributes')
+        except KeyError:
+            self.attributes = {}
 
-        self._value = val
+        if len(val.keys()) > 0:
+            raise DataStructureValidationException('Received extra keys'
+                f' when creating a {self.typename} instance:'
+                f' {",".join(val.keys())}')
+
+        # now set the _value field:
+        #self._set_value_field()
+        self._value = {
+            'id': self._id,
+            'attributes': self._attributes
+        }
+        
+    def _set_value_field(self):
+        '''
+        The `value` @property (established in the parent class)
+        returns self._value when the `value` attribute is accessed.
+
+        In this class _value is a dict.
+        Since we allow modification of those dict's attributes, we also
+        need to provide a way to update _value. This method gives us one
+        single place to set _value
+        '''
+        pass
+
 
     @property
     def id(self):
@@ -81,6 +121,9 @@ class BaseElement(BaseAttributeType):
         # If this fails, it will raise an AttributeValueError
         s = StringAttribute(id_val)
         self._id = s.value
+        # now reset the 'id' field of_value field so 
+        # that changes are reflected 
+        self._value['id'] = self._id
 
     @property
     def attributes(self):
@@ -89,31 +132,48 @@ class BaseElement(BaseAttributeType):
     @attributes.setter
     def attributes(self, v):
         if not type(v) is dict:
-            raise DataStructureValidationException('The constructor for an'
-                ' Element or subclass expects a dictionary.')
+            raise DataStructureValidationException(f'Within a {self.typename}'
+                ' the nested "attributes" key should address a dict/object.')
 
         validated_attributes = {}
         for key, attr_dict in v.items():
             # key is the name of the attribute
-            # attr_dict is a dict.
+            # attr_dict is a dict, e.g. 
+            # {
+            #     "attribute_type": "PositiveInteger",
+            #     "value":5
+            # }
             # Calling the Attribute constructor allows
             # us to check that it's formatted properly.
-            validated_attributes[key] = Attribute(attr_dict)
+            try:
+                validated_attributes[key] = SimpleAttributeFactory(attr_dict)
+            except (DataStructureValidationException, AttributeValueError) as ex:
+                s = (f'When attempting to create a {self.typename} instance,'
+                    f' the nested attributes contained a key ("{key}") which'
+                    ' referenced an improperly formatted attribute.'
+                    f' The error was: {ex}')
+                raise DataStructureValidationException(s)
         self._attributes = validated_attributes
+
+        # reset the 'attributes' key of _value
+        self._value['attributes'] = self._attributes
 
     def add_attribute(self, attribute_key, attr_dict, overwrite=False):
         '''
         If an additional attribute is to be added, we have to check
         that it is valid and does not conflict with existing attributes
         '''
-        if (attribute_key in self.attributes) and (not overwrite):
-            raise DataStructureValidationException(f'The attribute'
-                ' identifier {attribute_key} already existed'
+        if (attribute_key in self._attributes) and (not overwrite):
+            raise DataStructureValidationException('The attribute'
+                f' identifier {attribute_key} already existed'
                 ' and overwriting was blocked.')
         else:
             # we either have a new key or we can overwrite
             # first validate the attribute instance
-            self._attributes[attribute_key] = Attribute(attr_dict)
+            self._attributes[attribute_key] = SimpleAttributeFactory(attr_dict)
+
+            # reset the 'attributes' key of _value
+            self._value['attributes'] = self._attributes
 
     def __eq__(self, other):
         '''
@@ -132,7 +192,18 @@ class BaseElement(BaseAttributeType):
         return 'Element ({id})'.format(id=self.id)
 
     def to_dict(self):
+        '''
+        Since the _attributes member is a dict that
+        can contain nested 'simple' types (e.g. PositiveIntegerAttribute),
+        we need to serialize that properly.
+        '''
         d = {}
-        d['id'] = self._id 
-        d['attributes'] = {k:v.to_dict() for k,v in self._attributes.items()}
+        d['attribute_type'] = self.typename
+        val_dict = {}
+        val_dict['id'] = self._id
+        serialized_attributes = {}
+        for k,v in self._attributes.items():
+            serialized_attributes[k] = v.to_dict()
+        val_dict['attributes'] = serialized_attributes
+        d['value'] = val_dict
         return d

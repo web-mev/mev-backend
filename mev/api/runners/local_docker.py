@@ -15,7 +15,7 @@ from api.utilities.docker import check_if_container_running, \
     get_logs, \
     pull_image, \
     get_image_name_and_tag
-from api.data_structures.attributes import DataResourceAttribute, \
+from data_structures.attribute_types import DataResourceAttribute, \
     VariableDataResourceAttribute
 from api.utilities.basic_utils import make_local_directory, \
     run_shell_command

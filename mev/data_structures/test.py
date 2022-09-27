@@ -28,17 +28,3 @@ class PositiveNumber(Number):
         if value < 0:
             raise Exception('!!!')
         self._value = value
-
-class BoundedNumber(Number):
-    
-    def __init__(self, )
-
-    def _validator(self, value):
-        if value < 0:
-            raise Exception('!!!')
-        self._value = value
-
-
-class Something(object):
-    def __init__(self, d):
-        pass

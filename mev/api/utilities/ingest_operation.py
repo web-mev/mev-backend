@@ -10,13 +10,11 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.models import Operation as OperationDbModel
-from api.models import OperationResource
-from api.data_structures import OperationDataResourceAttribute
+from data_structures.attribute_types import OperationDataResourceAttribute
 from api.utilities.basic_utils import recursive_copy
 from api.utilities.operations import read_operation_json, \
     validate_operation
 from api.runners import get_runner
-from api.exceptions import OperationResourceFileException
 
 logger = logging.getLogger(__name__)
 

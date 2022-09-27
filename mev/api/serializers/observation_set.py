@@ -1,6 +1,6 @@
 from rest_framework import serializers, exceptions
 
-from api.data_structures import ObservationSet
+from data_structures.observation_set import ObservationSet
 from .element_set import ElementSetSerializer
 from .observation import ObservationSerializer, NullableObservationSerializer
 

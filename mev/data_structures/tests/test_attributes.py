@@ -3,7 +3,7 @@ import uuid
 
 from constants import POSITIVE_INF_MARKER, NEGATIVE_INF_MARKER
 
-from data_structures.basic_attributes import IntegerAttribute, \
+from data_structures.attribute_types import IntegerAttribute, \
     PositiveIntegerAttribute, \
     NonnegativeIntegerAttribute, \
     FloatAttribute, \
@@ -20,45 +20,64 @@ from data_structures.basic_attributes import IntegerAttribute, \
     OptionStringAttribute
 
 from exceptions import NullAttributeError, \
-    StringIdentifierException, \
     AttributeValueError, \
     InvalidAttributeKeywordError, \
     MissingAttributeKeywordError
 
 
-class TestAttributes(unittest.TestCase):
+class TestSimpleAttributes(unittest.TestCase):
+    '''
+    Tests that the simple attribute types behave
+    as expected.
+    '''
 
     def test_attribute_equality(self):
         a1 = FloatAttribute(2.3)
         a2 = FloatAttribute(2.3)
         self.assertTrue(a1 == a2)
 
-
     def test_integer_attribute(self):
         i = IntegerAttribute(44)
         self.assertEqual(i.value, 44)
+
+        # test the dict representation
+        self.assertDictEqual(
+            i.to_dict(),
+            {
+                'attribute_type': IntegerAttribute.typename,
+                'value': 44
+            }
+        )
+
         i = IntegerAttribute(-3)
         self.assertEqual(i.value, -3)
+
         i = IntegerAttribute(None, allow_null=True)
-        with self.assertRaises(AttributeValueError):
+
+        with self.assertRaises(NullAttributeError):
             i = IntegerAttribute(None)
+
         with self.assertRaises(AttributeValueError):
             i = IntegerAttribute(POSITIVE_INF_MARKER)        
-
 
     def test_float_rejected_for_integer(self):
         with self.assertRaises(AttributeValueError):
             IntegerAttribute(1.2)
 
-
     def test_int_string_rejected_for_integer(self):
         with self.assertRaises(AttributeValueError):
             IntegerAttribute('2')
 
-
     def test_positive_integer_attribute(self):
         i = PositiveIntegerAttribute(44)
         self.assertEqual(i.value, 44)
+        self.assertDictEqual(
+            i.to_dict(),
+            {
+                'attribute_type': PositiveIntegerAttribute.typename,
+                'value': 44
+            }
+        )
 
         with self.assertRaises(AttributeValueError):
             PositiveIntegerAttribute(-3)
@@ -67,14 +86,20 @@ class TestAttributes(unittest.TestCase):
             PositiveIntegerAttribute(0)
 
         i = PositiveIntegerAttribute(None, allow_null=True)
-        with self.assertRaises(AttributeValueError):
-            PositiveIntegerAttribute(None)
 
+        with self.assertRaises(NullAttributeError):
+            PositiveIntegerAttribute(None)
 
     def test_nonnegative_integer_attribute(self):
         i = NonnegativeIntegerAttribute(44)
         self.assertEqual(i.value, 44)
-
+        self.assertDictEqual(
+            i.to_dict(),
+            {
+                'attribute_type': NonnegativeIntegerAttribute.typename,
+                'value': 44
+            }
+        )
         i = NonnegativeIntegerAttribute(0)
         self.assertEqual(i.value, 0)
 
@@ -82,13 +107,20 @@ class TestAttributes(unittest.TestCase):
             NonnegativeIntegerAttribute(-3)
 
         i = NonnegativeIntegerAttribute(None, allow_null=True)
-        with self.assertRaises(AttributeValueError):
+
+        with self.assertRaises(NullAttributeError):
             NonnegativeIntegerAttribute(None)
 
     def test_float_attribute(self):
         f = FloatAttribute(3.4)
         self.assertEqual(f.value, 3.4)
-
+        self.assertDictEqual(
+            f.to_dict(),
+            {
+                'attribute_type': FloatAttribute.typename,
+                'value': 3.4
+            }
+        )
         # accepts integers and converts to float
         f = FloatAttribute(3)
         self.assertEqual(f.value, 3.0)
@@ -109,13 +141,19 @@ class TestAttributes(unittest.TestCase):
         f = FloatAttribute(None, allow_null=True)
         self.assertIsNone(f.value)
 
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(NullAttributeError):
             FloatAttribute(None)
 
     def test_positive_float_attribute(self):
         f = PositiveFloatAttribute(4.4)
         self.assertEqual(f.value, 4.4)
-
+        self.assertDictEqual(
+            f.to_dict(),
+            {
+                'attribute_type': PositiveFloatAttribute.typename,
+                'value': 4.4
+            }
+        )
         with self.assertRaises(AttributeValueError):
             PositiveFloatAttribute(-3.2)
 
@@ -131,7 +169,13 @@ class TestAttributes(unittest.TestCase):
     def test_nonnegative_float_attribute(self):
         f = NonnegativeFloatAttribute(4.4)
         self.assertEqual(f.value, 4.4)
-
+        self.assertDictEqual(
+            f.to_dict(),
+            {
+                'attribute_type': NonnegativeFloatAttribute.typename,
+                'value': 4.4
+            }
+        )
         f = NonnegativeFloatAttribute(0.0)
         self.assertEqual(f.value, 0.0)
 
@@ -148,10 +192,23 @@ class TestAttributes(unittest.TestCase):
         # this is sort of double test-coverage, but that can't hurt
         s = StringAttribute('abc')
         self.assertEqual(s.value, 'abc')
+        self.assertDictEqual(
+            s.to_dict(),
+            {
+                'attribute_type': StringAttribute.typename,
+                'value': 'abc'
+            }
+        )
 
         s = StringAttribute('a string with space')
         self.assertEqual(s.value, 'a_string_with_space')
-
+        self.assertDictEqual(
+            s.to_dict(),
+            {
+                'attribute_type': StringAttribute.typename,
+                'value': 'a_string_with_space'
+            }
+        )
         with self.assertRaises(AttributeValueError):
             StringAttribute('-9abc')
 
@@ -162,6 +219,13 @@ class TestAttributes(unittest.TestCase):
         # this is sort of double test-coverage, but that can't hurt
         s = UnrestrictedStringAttribute('-9abc')
         self.assertEqual(s.value, '-9abc')
+        self.assertDictEqual(
+            s.to_dict(),
+            {
+                'attribute_type': UnrestrictedStringAttribute.typename,
+                'value': '-9abc'
+            }
+        )
 
         s = UnrestrictedStringAttribute('String with space')
         self.assertEqual(s.value, 'String with space')
@@ -173,23 +237,31 @@ class TestAttributes(unittest.TestCase):
 
         for clazz in [BoundedIntegerAttribute, BoundedFloatAttribute]:
             # test missing min key
-            with self.assertRaises(AttributeValueError):
+            with self.assertRaises(MissingAttributeKeywordError):
                 i = clazz(3, max=10)
         
             # test missing max key
-            with self.assertRaises(AttributeValueError):
+            with self.assertRaises(MissingAttributeKeywordError):
                 i = clazz(3, min=0)
 
             # test missing both keys
-            with self.assertRaises(AttributeValueError):
+            with self.assertRaises(MissingAttributeKeywordError):
                 i = clazz(3)
 
-    def test_bounded_integer_atttribute(self):
+    def test_bounded_integer_attribute(self):
 
         # test a valid bounded int
         i = BoundedIntegerAttribute(3, min=0, max=5)
         self.assertEqual(i.value, 3)
-
+        self.assertDictEqual(
+            i.to_dict(),
+            {
+                'attribute_type': BoundedIntegerAttribute.typename,
+                'value': 3,
+                'min': 0,
+                'max':5
+            }
+        )
         # within bounds, but a float
         with self.assertRaises(AttributeValueError):
             i = BoundedIntegerAttribute(3.3, min=0, max=5)
@@ -208,19 +280,19 @@ class TestAttributes(unittest.TestCase):
 
         # bounds are wrong type.  Since we want an integer,
         # the bounds should be integers also.
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(InvalidAttributeKeywordError):
             i = BoundedIntegerAttribute(2, min=0.1, max=10)
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(InvalidAttributeKeywordError):
             i = BoundedIntegerAttribute(2, min=0, max=10.2)
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(InvalidAttributeKeywordError):
             i = BoundedIntegerAttribute(2, min=0.1, max=10.2)
 
         # out of bounds AND wrong type of bounds
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(InvalidAttributeKeywordError):
             i = BoundedIntegerAttribute(22, min=0.1, max=10.2)
 
         # can't use positive inf as a bound
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(InvalidAttributeKeywordError):
             i = BoundedIntegerAttribute(22, min=0, max=POSITIVE_INF_MARKER)
 
         # can't use inf as a value in a bounded int
@@ -232,7 +304,15 @@ class TestAttributes(unittest.TestCase):
         # test a valid bounded float
         f = BoundedFloatAttribute(0.2, min=0, max=1.0)
         self.assertEqual(f.value, 0.2)
-
+        self.assertDictEqual(
+            f.to_dict(),
+            {
+                'attribute_type': BoundedFloatAttribute.typename,
+                'value': 0.2,
+                'min': 0.0,
+                'max':1.0
+            }
+        )
         # within bounds, but int
         f = BoundedFloatAttribute(3.3, min=0, max=5)
         self.assertEqual(f.value, 3.3)
@@ -254,7 +334,7 @@ class TestAttributes(unittest.TestCase):
         f = BoundedFloatAttribute(2.2, min=0.2, max=10.5)
 
         # can't use positive inf as a bound
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaises(InvalidAttributeKeywordError):
             i = BoundedFloatAttribute(22, min=0, max=POSITIVE_INF_MARKER)
 
         # can't use inf as a value in a bounded float
@@ -268,6 +348,13 @@ class TestAttributes(unittest.TestCase):
         '''
         b = BooleanAttribute('true')
         self.assertTrue(b.value)
+        self.assertDictEqual(
+            b.to_dict(),
+            {
+                'attribute_type': BooleanAttribute.typename,
+                'value': True
+            }
+        )
         b = BooleanAttribute('True')
         self.assertTrue(b.value)
         b = BooleanAttribute(1)
@@ -296,48 +383,118 @@ class TestAttributes(unittest.TestCase):
 
         tested_classes = [
             DataResourceAttribute, 
-            VariableDataResourceAttribute, 
             OperationDataResourceAttribute
         ]
 
         for clazz in tested_classes:
 
             # works:
-            d = clazz(str(uuid.uuid4()), many=True)
-            d = clazz(str(uuid.uuid4()), many=False)
+            u = str(uuid.uuid4())
+            d = clazz(u, many=True, resource_type='XYZ')
+            self.assertDictEqual(
+                d.to_dict(),
+                {
+                    'attribute_type': clazz.typename,
+                    'value': u,
+                    'many': True,
+                    'resource_type': 'XYZ'
+                }
+            )
+            d = clazz(str(uuid.uuid4()), many=False, resource_type='XYZ')
+            d = clazz(str(uuid.uuid4()), many=1, resource_type='XYZ')
 
             # should fail since multiple UUID passed, but many=False
             with self.assertRaises(AttributeValueError):
                 clazz(
                     [str(uuid.uuid4()), str(uuid.uuid4())], 
-                    many=False
+                    many=False,
+                    resource_type='XYZ'
                 )
 
             # should fail since one of the vals is NOT a UUID
             with self.assertRaises(AttributeValueError):
                 clazz(
                     [str(uuid.uuid4()), 'abc'], 
-                    many=True
+                    many=True,
+                    resource_type='XYZ'
                 )
 
             # the "value" is not a UUID. Should fail:
             with self.assertRaises(AttributeValueError):
-                clazz('abc', many=True)
+                clazz('abc', many=True, resource_type='XYZ')
 
             # missing the "many" key
-            with self.assertRaises(InvalidAttributeKeywords):
-                clazz('abc')
+            with self.assertRaises(MissingAttributeKeywordError):
+                clazz(str(uuid.uuid4()), resource_type='XYZ')
+
+    def test_variable_dataresource_attribute(self):
+        '''
+        Tests the VariableDataResourceAttribute classes, 
+        which permits multiple resource types
+        '''
+
+        # works:
+        u = str(uuid.uuid4())
+        d = VariableDataResourceAttribute(
+            u, many=True, resource_types=['XYZ'])
+        self.assertDictEqual(
+            d.to_dict(),
+            {
+                'attribute_type': VariableDataResourceAttribute.typename,
+                'value': u,
+                'many': True,
+                'resource_types': ['XYZ']
+            }
+        )
+        d = VariableDataResourceAttribute(
+            str(uuid.uuid4()), many=False, resource_types=['XYZ'])
+
+        # should fail since multiple UUID passed, but many=False
+        with self.assertRaises(AttributeValueError):
+            VariableDataResourceAttribute(
+                [str(uuid.uuid4()), str(uuid.uuid4())], 
+                many=False,
+                resource_types=['XYZ']
+            )
+
+        # should fail since one of the vals is NOT a UUID
+        with self.assertRaises(AttributeValueError):
+            VariableDataResourceAttribute(
+                [str(uuid.uuid4()), 'abc'], 
+                many=True,
+                resource_types=['XYZ']
+            )
+
+        # the "value" is not a UUID. Should fail:
+        with self.assertRaises(AttributeValueError):
+            VariableDataResourceAttribute('abc', 
+                many=True, resource_types=['XYZ'])
+
+        # missing the "many" key
+        with self.assertRaisesRegex(MissingAttributeKeywordError, 'many'):
+            VariableDataResourceAttribute(str(uuid.uuid4()), resource_types=['XYZ'])
+
+        # missing the "resource_types" key since it's given as "resource_type"
+        # (singular, no "s" at the end). Likely a common mistake
+        with self.assertRaisesRegex(MissingAttributeKeywordError, 'resource_types'):
+            VariableDataResourceAttribute(str(uuid.uuid4()), resource_type=['XYZ'])
+
+        # The "resource_types" key is a string, not a list as required
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
+            VariableDataResourceAttribute(str(uuid.uuid4()), 
+                many=True, resource_types='XYZ')
 
     def test_option_string_attribute(self):
 
         # test that leaving out the 'options' key causes a problem
-        with self.assertRaises(InvalidAttributeKeywords):
+        with self.assertRaises(MissingAttributeKeywordError):
             s = OptionStringAttribute('abc')
 
         # test that a valid spec works
         s = OptionStringAttribute('abc', options=['xyz','abc'])
         self.assertEqual(s.value, 'abc')
-        expected_dict_representation = {'attribute_type': 'OptionString', 
+        expected_dict_representation = {
+            'attribute_type': 'OptionString', 
             'value': 'abc', 
             'options': ['xyz', 'abc']
         }
@@ -351,26 +508,19 @@ class TestAttributes(unittest.TestCase):
         s = OptionStringAttribute(None, options=['xyz','abc'], allow_null=True)
         self.assertIsNone(s.value)
 
-        # test value not set when explicitly prevented:
-        s = OptionStringAttribute('abc', options=['xyz','abc'], set_value = False)
-        self.assertIsNone(s.value)
-
-        # test value is set when explicitly asked (same as default):
-        s = OptionStringAttribute('abc', options=['xyz','abc'], set_value = True)
-        self.assertEqual(s.value, 'abc')
-
         # test that exception raised if value is not in the valid options
-        with self.assertRaises(AttributeValueError):
+        with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
             s = OptionStringAttribute('x', options=['xyz','abc'])
 
         # test that exception raised if options are not a list
-        with self.assertRaises(InvalidAttributeKeywords):
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
             s = OptionStringAttribute('abc', options='abc')
-        with self.assertRaises(InvalidAttributeKeywords):
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
             s = OptionStringAttribute('abc', options={})
 
         # test that exception raised if value if one of the options is
         # not a string. The value is valid against one of the options, but
         # we require everything to be perfect.
-        with self.assertRaises(InvalidAttributeKeywords):
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 
+            'need to be strings'):
             s = OptionStringAttribute('xyz', options=['xyz',1,'abc'])

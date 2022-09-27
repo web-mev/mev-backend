@@ -22,7 +22,8 @@ class Feature(BaseElement):
         }
     }
     ```
- 
     '''
+    typename = 'Feature'
+    
     def __repr__(self):
         return 'Feature ({id})'.format(id=self._id)
