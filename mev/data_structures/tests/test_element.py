@@ -1,5 +1,4 @@
 import unittest
-from copy import deepcopy
 
 from data_structures.observation import Observation
 from data_structures.feature import Feature
@@ -438,3 +437,19 @@ class TestElement(unittest.TestCase):
             dict_rep,
             expected_dict
         )
+
+    def test_respects_null_kwarg(self):
+        # this is ok:
+        x = Observation(None, allow_null=True)
+        dict_rep = x.to_dict()
+        expected_dict = {
+            'attribute_type': 'Observation',
+            'value': None
+        }
+        self.assertDictEqual(
+            dict_rep,
+            expected_dict
+        )        
+
+        with self.assertRaises(NullAttributeError):
+            x = Observation(None)

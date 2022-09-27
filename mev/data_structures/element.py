@@ -199,11 +199,16 @@ class BaseElement(BaseAttributeType):
         '''
         d = {}
         d['attribute_type'] = self.typename
-        val_dict = {}
-        val_dict['id'] = self._id
-        serialized_attributes = {}
-        for k,v in self._attributes.items():
-            serialized_attributes[k] = v.to_dict()
-        val_dict['attributes'] = serialized_attributes
-        d['value'] = val_dict
-        return d
+        if self._value:
+
+            val_dict = {}
+            val_dict['id'] = self._id
+            serialized_attributes = {}
+            for k,v in self._attributes.items():
+                serialized_attributes[k] = v.to_dict()
+            val_dict['attributes'] = serialized_attributes
+            d['value'] = val_dict
+            return d
+        else:
+            d['value'] = None
+            return d

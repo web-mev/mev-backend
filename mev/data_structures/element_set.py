@@ -208,5 +208,8 @@ class BaseElementSet(BaseAttributeType):
 
     def to_dict(self):
         d = {}
-        d['elements'] = [x.to_dict() for x in self._element_list]
+        d['attribute_type'] = self.typename
+        d['value'] = {
+            'elements': [x.to_dict() for x in self._element_list]
+        }
         return d

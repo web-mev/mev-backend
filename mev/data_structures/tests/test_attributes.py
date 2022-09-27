@@ -53,6 +53,15 @@ class TestSimpleAttributes(unittest.TestCase):
         self.assertEqual(i.value, -3)
 
         i = IntegerAttribute(None, allow_null=True)
+        dict_rep = i.to_dict()
+        expected_dict = {
+            'attribute_type': 'Integer',
+            'value': None
+        }
+        self.assertDictEqual(
+            dict_rep,
+            expected_dict
+        )   
 
         with self.assertRaises(NullAttributeError):
             i = IntegerAttribute(None)
