@@ -62,7 +62,9 @@ class BaseElementSet(BaseAttributeType):
             raise DataStructureValidationException('An ElementSet type'
                 ' requires an "elements" key.')
 
-        self._value = val
+        self._value = {
+            'elements': self._element_list
+        }
 
     @property
     def elements(self):
@@ -86,14 +88,14 @@ class BaseElementSet(BaseAttributeType):
         self._element_list = list_of_elements
 
 
-    def add_element(self, new_element):
+    def add_element(self, new_element_dict):
         '''
         Adds a new `Observation` to the `ObservationSet` 
         (or `Feature` to `FeatureSet`)
         '''
-
+        el = self.elements_type_class(new_element_dict)
         prev_length = len(self._element_list)
-        self._element_list.add(new_element)
+        self._element_list.add(el)
         if len(self._element_list) == prev_length:
             raise DataStructureValidationException(
                 'Tried to add a duplicate entry to an {element_type}Set.'.format(
@@ -118,7 +120,11 @@ class BaseElementSet(BaseAttributeType):
         the properly typed sets by the child/calling class.
         '''
         return_list = []
+
+        # this set operation leverages the fact that _element_list is a set
+        # and that we have overloaded __eq__ on the nested Element classes.
         intersection_set = self._element_list.intersection(other._element_list)
+
         for x in intersection_set:
             attr_dict = {}
             _id = x.id
@@ -131,18 +137,31 @@ class BaseElementSet(BaseAttributeType):
                 # Don't make any assumptions about how that conflict should be handled.
                 # these are dicts where the key is a string and the value is a type  
                 # like an int, bounded float, etc.
+
+                # these are dicts where the keys reference instances of 
+                # BaseAttributeTypes (e.g. a PositiveIntegerAttribute, etc.)
                 d1 = el1.attributes
                 d2 = el2.attributes
                 intersecting_attributes = [x for x in d1 if x in d2]
                 for k in intersecting_attributes:
+                    # here we are leveraging the overloaded __eq__ on the
+                    # "simple" types (such as PositiveIntegerAttribute)
                     if d1[k] != d2[k]:
                         raise DataStructureValidationException(f'When'
                             ' performing an intersection of two sets,'
                             ' encountered a conflict in the attributes.'
                             ' The key "{k}" has differing values of'
                             ' {d1[k]} and {d2[k]}')
-                attr_dict.update(el1.attributes)
-                attr_dict.update(el2.attributes)
+
+                # we are eventually passing `return_list` back to the child
+                # class who will then return an ObservationSet or FeatureSet.
+                # Since the constructor of Obs/FeatureSet expects a fully
+                # serialized representation, we need to serialize the
+                # nested types. 
+                d1 = {k:v.to_dict() for k,v in d1.items()}
+                d2 = {k:v.to_dict() for k,v in d2.items()}
+                attr_dict.update(d1)
+                attr_dict.update(d2)
             return_list.append({'id':_id, 'attributes': attr_dict})
         return return_list
 
@@ -155,16 +174,27 @@ class BaseElementSet(BaseAttributeType):
         return_list = []
 
         # need to check that the intersecting elements don't have any issues like
-        # conflicting attributes:
+        # conflicting attributes. Calling the intersection also "merges" any 
+        # complementary attributes that the common elements might have
         intersection_set = self.set_intersection(other)
         union_set = self._element_list.union(other._element_list)
         for x in union_set:
             _id = x.id
+            # for the elements that were intersecting, we want to the potentially
+            # "updated" elements that came from calling the set intersection method
             el = BaseElementSet._get_element_with_id(intersection_set.elements, _id)
             if el: # was part of the intersection set
-                return_list.append(el.to_dict())
+                # Recall that the to_dict method puts the data we want inside a dict
+                # that looks like:
+                # {'attribute_type':'...', 'value':...}
+                # so we need to extract the 'value' field
+                d = el.to_dict()
+                return_list.append(d['value'])
             else: # was NOT part of the intersection set
-                return_list.append({'id':_id, 'attributes': x.attributes})
+                return_list.append({
+                    'id':_id, 
+                    'attributes': {k:v.to_dict() for k,v in x.attributes.items()}
+                })
         return return_list
 
     def _set_difference(self, other):
@@ -209,7 +239,10 @@ class BaseElementSet(BaseAttributeType):
     def to_dict(self):
         d = {}
         d['attribute_type'] = self.typename
-        d['value'] = {
-            'elements': [x.to_dict() for x in self._element_list]
-        }
+        if self._value:
+            d['value'] = {
+                'elements': [x.to_dict() for x in self._element_list]
+            }
+        else:
+            d['value'] = None
         return d

@@ -36,18 +36,12 @@ class ObservationSet(BaseElementSet):
     elements_typename = Observation.typename
         
     def set_intersection(self, other):
-        intersection_list = super()._set_intersection(other)
-        l = []
-        for item in intersection_list:
-            l.append(Observation(item))
-        return ObservationSet(l)
+        intersection_list = super()._set_intersection(other)       
+        return ObservationSet({'elements': intersection_list})
         
     def set_union(self, other):
         union_list = super()._set_union(other)
-        l = []
-        for item in union_list:
-            l.append(Observation(item))
-        return ObservationSet(l)
+        return ObservationSet({'elements': union_list})
 
     def set_difference(self, other):
         diff_set = super()._set_difference(other)

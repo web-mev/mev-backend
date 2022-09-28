@@ -1,8 +1,11 @@
+from copy import deepcopy
 import unittest
 import json
 
 from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
+from data_structures.observation import Observation
+from data_structures.feature import Feature
 
 from exceptions import NullAttributeError, \
     AttributeValueError, \
@@ -212,7 +215,6 @@ class TestElementSet(unittest.TestCase):
     def test_malformatted_elements(self):
         self._malformatted_element_tester(ObservationSet)
 
-
     def test_equality(self):
         '''
         We check equality by the set of Element instances
@@ -253,270 +255,447 @@ class TestElementSet(unittest.TestCase):
             t2 = t(set2)
             self.assertFalse(t1 == t2)
 
-    # def test_attribute_setter(self):
-    #     '''
-    #     Test that we can add attributes and that 
-    #     poorly formatted attributes fail.
-    #     '''
-    #     d = {
-    #         'id': self.element['id']
-    #     }
-    #     # this is set up to match the nested attributes
-    #     # in self.element so that we can easily check
-    #     # that new attributes were properly added
-    #     attr_dict = {
-    #         "stage": {
-    #             "attribute_type": "String",
-    #             "value": "IV"
-    #         },
-    #         "age": {
-    #             "attribute_type": "PositiveInteger",
-    #             "value": 5
-    #         }        
-    #     }
-    #     x = Observation(d)
-    #     x.attributes = attr_dict
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': self.element
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )
+    def _element_setter(self, SetClass, nested_element_type):
+        '''
+        Test that the setter for the element
+        class member works as expected. This method
+        is used to test both ObservationSet/FeatureSet
+        '''
+        el_set = SetClass(self.valid_set)
+        elements = el_set.elements
+        self.assertCountEqual(
+            elements,
+            [
+                nested_element_type(self.element1),
+                nested_element_type(self.element2)
+            ]
+        )
 
-    #     # test that it will fail if a bad dict is passed:
-    #     bad_attr_dict = {
-    #         "stage": {
-    #             "attribute_type": "BAD TYPE",
-    #             "value": "IV"
-    #         }       
-    #     }
-    #     x = Observation(d)
-    #     with self.assertRaisesRegex(AttributeTypeError, 'Could not locate type'):
-    #         x.attributes = bad_attr_dict 
+        # now try resetting. It should completely change
+        element3 = {
+            "id": 'ID3',
+            "attributes": {}
+        }
+        el_set.elements = [element3]
+        self.assertCountEqual(
+            el_set.elements,
+            [
+                nested_element_type(element3),
+            ]
+        )
 
-    # def test_id_setter(self):
-    #     '''
-    #     Test that we can modify the 'id' field.
-    #     '''
-    #     d = {
-    #         'id': 'foo'
-    #     }
-    #     x = Observation(d)
-    #     self.assertTrue(x.id == 'foo')
+        # try setting to empty set:
+        el_set.elements = []
+        self.assertCountEqual(
+            el_set.elements,
+            []
+        )
 
-    #     # now update:
-    #     x.id = 'bar'
-    #     self.assertTrue(x.id == 'bar')
+        # attempt to reset with something that is invalid.
+        # Should keep it unchanged
+        el_set = SetClass(self.valid_set)
+        # this is missing the 'id' key:
+        element4 = {
+            "attributes": {}
+        }
+        with self.assertRaisesRegex(
+            DataStructureValidationException, 'requires an "id" key'):
+            el_set.elements = [element4]
+        # check that the elements are unchanged:
+        self.assertCountEqual(
+            elements,
+            [
+                nested_element_type(self.element1),
+                nested_element_type(self.element2)
+            ]
+        )
+    def test_element_setter(self):
+        self._element_setter(ObservationSet, Observation)
+        self._element_setter(FeatureSet, Feature)
 
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': {
-    #             'id': 'bar',
-    #             'attributes': {}
-    #         }
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )
+    def _add_to_empty(self, SetClass, nested_element_type):
+        '''
+        Check that a new element can be added to an ElementSet
+        that has no members. This method is used by the actual
+        class to test both types of ElementSet
+        '''
+        element_set = SetClass({'elements':[]})
+        element_dict = {
+            "id": 'ID3',
+            "attributes": {}
+        }
+        element_set.add_element(element_dict)
+        self.assertCountEqual(
+            element_set.elements,
+            [
+                nested_element_type(element_dict),
+            ]
+        )
 
-    # def test_add_attribute_to_empty_attributes(self):
-    #     '''
-    #     Tests the add_attribute method, which
-    #     allows us to add additional attribute info
-    #     to an existing Observation/Feature.
+    def test_add_element_to_empty_set(self):
+        '''
+        Tests the add_element method, which
+        allows us to append additional elements
+        to an existing ObservationSet/FeatureSet.
 
-    #     Add to an instance that does not have any
-    #     existing attributes.
-    #     '''
-    #     # add to an Observation without any attributes
-    #     d = {
-    #         'id': 'foo'
-    #     }
-    #     x = Observation(d)
-    #     self.assertTrue(x.attributes == {})
-    #     new_attr_dict = {
-    #         'attribute_type': 'PositiveInteger',
-    #         'value': 5
-    #     }
-    #     x.add_attribute('keyA', new_attr_dict)       
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': {
-    #             'id': 'foo',
-    #             'attributes': {
-    #                 'keyA': new_attr_dict
-    #             }
-    #         }        
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )
+        Add to an instance that does not have any
+        existing elements
+        '''
+        self._add_to_empty(ObservationSet, Observation)
+        self._add_to_empty(FeatureSet, Feature)
 
-    # def test_add_attribute_to_existing_attributes(self):
-    #     '''
-    #     Tests the add_attribute method, which
-    #     allows us to add additional attribute info
-    #     to an existing Observation/Feature.
+    def _add_to_existing(self, SetClass, nested_element_type):
+        '''
+        Check that a new element can be added to an ElementSet
+        that has some members. This method is used by the actual
+        class to test both types of ElementSet
+        '''
+        element_set = SetClass({
+                'elements':[
+                    self.element1
+                ]
+            }
+        )
+        element_dict = {
+            "id": 'ID3',
+            "attributes": {}
+        }
+        element_set.add_element(element_dict)
+        self.assertCountEqual(
+            element_set.elements,
+            [
+                nested_element_type(self.element1),
+                nested_element_type(element_dict),
+            ]
+        )
 
-    #     Here we test that we add to the existing
-    #     attributes
-    #     '''
-    #     # an Observation without one attribute, keyA
-    #     d = {
-    #         'id': 'foo',
-    #         'attributes': {
-    #             'keyA': {
-    #                 'attribute_type':'PositiveInteger',
-    #                 'value':5
-    #             }
-    #         }
-    #     }
-    #     x = Observation(d)
-    #     self.assertTrue(
-    #         list(x.attributes.keys()) == ['keyA']
-    #     )
-    #     new_attr_dict = {
-    #         'attribute_type': 'String',
-    #         'value': 'abc'
-    #     }
-    #     x.add_attribute('keyB', new_attr_dict)       
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': {
-    #             'id': 'foo',
-    #             'attributes': {
-    #                 'keyA': {
-    #                     'attribute_type':'PositiveInteger',
-    #                     'value':5
-    #                 },
-    #                 'keyB': new_attr_dict
-    #             }
-    #         }        
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )
+    def test_add_element_to_existing_set(self):
+        '''
+        Tests the add_element method, which
+        allows us to append additional elements
+        to an existing ObservationSet/FeatureSet.
 
-    # def test_add_duplicate_attribute_fails(self):
-    #     '''
-    #     Tests the add_attribute method, which
-    #     allows us to add additional attribute info
-    #     to an existing Observation/Feature.
+        Add to an instance that does not have any
+        existing elements
+        '''
+        self._add_to_existing(ObservationSet, Observation)
+        self._add_to_existing(FeatureSet, Feature)
 
-    #     Test that we can't overwrite an existing 
-    #     attribute unless that's explicit.
-    #     '''
-    #     # add to an Observation with one attribute, keyA
-    #     orig_attr_dict = {
-    #         'attribute_type':'PositiveInteger',
-    #         'value':5
-    #     }
-    #     d = {
-    #         'id': 'foo',
-    #         'attributes': {
-    #             'keyA': orig_attr_dict
-    #         }
-    #     }
-    #     x = Observation(d)
-    #     self.assertTrue(
-    #         list(x.attributes.keys()) == ['keyA']
-    #     )
-    #     # the new attribute- doesn't really matter
-    #     # what this is.
-    #     new_attr_dict = {
-    #         'attribute_type': 'PositiveInteger',
-    #         'value': 3
-    #     }
-    #     # try to assign to keyA. should fail:
-    #     with self.assertRaisesRegex(
-    #         DataStructureValidationException, 'already existed'):
-    #         x.add_attribute('keyA', new_attr_dict)       
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': {
-    #             'id': 'foo',
-    #             'attributes': {
-    #                 'keyA': orig_attr_dict
-    #             }
-    #         }        
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )
+    def _add_duplicate(self, SetClass, nested_element_type):
+        '''
+        Check that addition of a duplicated element does not
+        change the ElementSet.
+        This method is used by the actual
+        class to test both types of ElementSet
+        '''
+        element_set = SetClass({
+                'elements':[
+                    self.element1,
+                    self.element2
+                ]
+            }
+        )
+        element_set.add_element(self.element1)
+        self.assertCountEqual(
+            element_set.elements,
+            [
+                nested_element_type(self.element1),
+                nested_element_type(self.element2),
+            ]
+        )
 
-    # def test_add_duplicate_attribute_with_overwrite(self):
-    #     '''
-    #     Tests the add_attribute method, which
-    #     allows us to add additional attribute info
-    #     to an existing Observation/Feature.
+    def test_add_duplicate_element(self):
+        '''
+        Tests the add_element method, which
+        allows us to append additional elements
+        to an existing ObservationSet/FeatureSet.
 
-    #     Test that we CAN overwrite an existing 
-    #     attribute if we pass the overwrite keyword arg.
-    #     '''
-    #     # add to an Observation with one attribute, keyA
-    #     orig_attr_dict = {
-    #         'attribute_type':'PositiveInteger',
-    #         'value':5
-    #     }
-    #     d = {
-    #         'id': 'foo',
-    #         'attributes': {
-    #             'keyA': orig_attr_dict
-    #         }
-    #     }
-    #     x = Observation(d)
-    #     self.assertTrue(
-    #         list(x.attributes.keys()) == ['keyA']
-    #     )
-    #     # the new attribute- doesn't really matter
-    #     # what this is.
-    #     new_attr_dict = {
-    #         'attribute_type': 'BoundedInteger',
-    #         'value': 3,
-    #         'min': 0,
-    #         'max': 5
-    #     }
-    #     # try to assign to keyA. should work since we pass
-    #     # the overwrite=True kwarg
-    #     x.add_attribute('keyA', new_attr_dict, overwrite=True)       
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': {
-    #             'id': 'foo',
-    #             'attributes': {
-    #                 'keyA': new_attr_dict
-    #             }
-    #         }        
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )
+        Add an element that already exists. should not
+        change the set.
+        '''
+        self._add_to_existing(ObservationSet, Observation)
+        self._add_to_existing(FeatureSet, Feature)
 
-    # def test_respects_null_kwarg(self):
-    #     # this is ok:
-    #     x = Observation(None, allow_null=True)
-    #     dict_rep = x.to_dict()
-    #     expected_dict = {
-    #         'attribute_type': 'Observation',
-    #         'value': None
-    #     }
-    #     self.assertDictEqual(
-    #         dict_rep,
-    #         expected_dict
-    #     )        
+    def _respects_null_kwarg(self, SetClass):
+        '''
+        Allows us to test for both types of ElementSet
+        '''
+        # this is ok:
+        x = SetClass(None, allow_null=True)
+        dict_rep = x.to_dict()
+        expected_dict = {
+            'attribute_type': SetClass.typename,
+            'value': None
+        }
+        self.assertDictEqual(
+            dict_rep,
+            expected_dict
+        )        
 
-    #     with self.assertRaises(NullAttributeError):
-    #         x = Observation(None)
+        with self.assertRaises(NullAttributeError):
+            x = SetClass(None)
+
+    def test_respects_null_kwarg(self):
+        self._respects_null_kwarg(ObservationSet)
+        self._respects_null_kwarg(FeatureSet)
+
+    def _equality_test(self, SetClass):
+        '''
+        Tests the equality and equivalency of ElementSet.
+        '''
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element2,
+                self.element1
+            ]
+        })
+        self.assertTrue(element_set1 == element_set2)
+
+        element_set1.is_equivalent_to(element_set2)
+
+    def test_equality_operator(self):
+        self._equality_test(ObservationSet)
+        self._equality_test(FeatureSet)
+
+    def _intersection_test(self, SetClass, nested_type):
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element1
+            ]
+        })
+        intersection_set = element_set1.set_intersection(element_set2)
+        self.assertCountEqual(
+            intersection_set.elements,
+            [
+                nested_type(self.element1)
+            ]
+        )
+
+        # intersect two sets that have complementary info.
+        # The attributes dict have different info which we combine
+        comp_element = deepcopy(self.element1)
+        # change the "stage" attribute from "IV" to "foo":
+        comp_element['attributes']['other'] = {
+            'attribute_type': 'Float',
+            'value': 0.5
+        }
+        element_set2 = SetClass({
+            'elements':[
+                comp_element
+            ]
+        })
+        intersection_set = element_set1.set_intersection(element_set2)
+        dict_rep = intersection_set.to_dict()
+        expected_dict = {
+            'attribute_type': SetClass.typename,
+            'value': {
+                'elements': [
+                    {
+                        'attribute_type': nested_type.typename,
+                        'value': {
+                            "id": 'ID1',
+                            "attributes": {
+                                "stage": {
+                                    "attribute_type": "String",
+                                    "value": "IV"
+                                },
+                                "age": {
+                                    "attribute_type": "PositiveInteger",
+                                    "value": 5
+                                },
+                                "other": {
+                                    'attribute_type': 'Float',
+                                    'value': 0.5
+                                }      
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        self._check_element_set_equality(dict_rep, expected_dict)
+
+        # intersect two sets with no common elements:
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element2
+            ]
+        })
+        intersection_set = element_set1.set_intersection(element_set2)
+        # the intersection should be empty:
+        self.assertCountEqual(
+            intersection_set.elements,
+            []
+        )
+
+        # intersect two sets that have conflicting info.
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        conflicting_element = deepcopy(self.element1)
+        # change the "stage" attribute from "IV" to "foo":
+        conflicting_element['attributes']['stage']['value'] = 'foo'
+        element_set2 = SetClass({
+            'elements':[
+                conflicting_element,
+                self.element2
+            ]
+        })
+        with self.assertRaisesRegex(
+            DataStructureValidationException, 'conflict in the attributes'):
+            intersection_set = element_set1.set_intersection(element_set2)
+
+    def test_set_intersection(self):
+        self._intersection_test(ObservationSet, Observation)
+        self._intersection_test(FeatureSet, Feature)
+
+    def _union_test(self, SetClass, nested_type):
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element1
+            ]
+        })
+        union_set = element_set1.set_union(element_set2)
+        self.assertCountEqual(
+            union_set.elements,
+            [
+                nested_type(self.element1),
+                nested_type(self.element2)
+            ]
+        )
+
+        # Get the union of two sets where one element has complementary info.
+        # The attributes dict have different info which we combine
+        comp_element = deepcopy(self.element1)
+        # change the "stage" attribute from "IV" to "foo":
+        comp_element['attributes']['other'] = {
+            'attribute_type': 'Float',
+            'value': 0.5
+        }
+        element_set2 = SetClass({
+            'elements':[
+                comp_element
+            ]
+        })
+        # In this union element_set1 has element1, element2.
+        # element_set2 has a slight, complementary/allowable
+        # modification to element1. Hence, the union should have
+        # the 'augmented' element1 AND element2
+        union_set = element_set1.set_union(element_set2)
+        dict_rep = union_set.to_dict()
+        expected_dict = {
+            'attribute_type': SetClass.typename,
+            'value': {
+                'elements': [
+                    {
+                        'attribute_type': nested_type.typename,
+                        'value': {
+                            "id": 'ID1',
+                            "attributes": {
+                                "stage": {
+                                    "attribute_type": "String",
+                                    "value": "IV"
+                                },
+                                "age": {
+                                    "attribute_type": "PositiveInteger",
+                                    "value": 5
+                                },
+                                "other": {
+                                    'attribute_type': 'Float',
+                                    'value': 0.5
+                                }      
+                            }
+                        }
+                    },
+                    {
+                        'attribute_type': nested_type.typename,
+                        'value': {
+                            "id": 'ID2',
+                            "attributes": {
+                                "stage": {
+                                    "attribute_type": "String",
+                                    "value": "III"
+                                },
+                                "age": {
+                                    "attribute_type": "PositiveInteger",
+                                    "value": 3
+                                }        
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        self._check_element_set_equality(dict_rep, expected_dict)
+
+        # union of two sets with no common elements:
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element2
+            ]
+        })
+        union_set = element_set1.set_union(element_set2)
+        # the union should be empty:
+        self.assertCountEqual(
+            union_set.elements,
+            [
+                nested_type(self.element1),
+                nested_type(self.element2)
+            ]
+        )
+
+        # union of two sets where one of the elements has conflicting
+        # info.
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        conflicting_element = deepcopy(self.element1)
+        # change the "stage" attribute from "IV" to "foo":
+        conflicting_element['attributes']['stage']['value'] = 'foo'
+        element_set2 = SetClass({
+            'elements':[
+                conflicting_element,
+                self.element2
+            ]
+        })
+        with self.assertRaisesRegex(
+            DataStructureValidationException, 'conflict in the attributes'):
+            union_set = element_set1.set_union(element_set2)
+
+    def test_set_union(self):
+        self._union_test(ObservationSet, Observation)
+        self._union_test(FeatureSet, Feature)

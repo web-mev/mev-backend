@@ -208,7 +208,6 @@ class BaseElement(BaseAttributeType):
                 serialized_attributes[k] = v.to_dict()
             val_dict['attributes'] = serialized_attributes
             d['value'] = val_dict
-            return d
         else:
             d['value'] = None
-            return d
+        return d
