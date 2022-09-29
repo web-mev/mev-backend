@@ -118,3 +118,9 @@ class InputOutputSpec(object):
             d[self.DEFAULT_KEY] = self._default_value
 
         return d
+
+    def __eq__(self, other):
+        a1 = self._attribute_instance
+        a2 = other._attribute_instance
+        return a1 == a2
+

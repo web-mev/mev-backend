@@ -75,8 +75,13 @@ class BoundedBaseAttribute(BaseAttributeType):
 
     def __repr__(self):
         return (f'{self.typename}: {self.value}'
-            ' with bounds: [{self._min_val},{self._max_val}]')
+            f' with bounds: [{self._min_val},{self._max_val}]')
 
+    def __eq__(self, other):
+        val_and_type_equal = super().__eq__(other)
+        a = self._min_value == other._min_value
+        b = self._max_value == other._max_value
+        return all([val_and_type_equal, a, b])
 
 class IntegerAttribute(BaseAttributeType):
     '''
@@ -120,7 +125,7 @@ class PositiveIntegerAttribute(BaseAttributeType):
                     ' positive integer.')
         else:
             raise AttributeValueError(f'A positive integer was expected,'
-                ' but "{val}" is not an integer.')
+                f' but "{val}" is not an integer.')
 
 
 class NonnegativeIntegerAttribute(BaseAttributeType):
@@ -146,7 +151,7 @@ class NonnegativeIntegerAttribute(BaseAttributeType):
         else:
             raise AttributeValueError(
                 f'A non-negative integer attribute was expected,'
-                ' but "{val}" is not an integer.')
+                f' but "{val}" is not an integer.')
 
 
 class BoundedIntegerAttribute(BoundedBaseAttribute):
@@ -210,8 +215,8 @@ class FloatAttribute(BaseAttributeType):
             self._value = val
         else:
             raise AttributeValueError(
-                f'A float attribute was expected, but'
-                ' received "{val}"')
+                'A float attribute was expected, but'
+                f' received "{val}"')
 
 
 class PositiveFloatAttribute(BaseAttributeType):
@@ -242,7 +247,7 @@ class PositiveFloatAttribute(BaseAttributeType):
         else:
             raise AttributeValueError(
                 f'A positive float attribute was expected, but'
-                ' received "{val}"')
+                f' received "{val}"')
 
 
 class NonnegativeFloatAttribute(BaseAttributeType):
@@ -272,8 +277,8 @@ class NonnegativeFloatAttribute(BaseAttributeType):
             self._value = val
         else:
             raise AttributeValueError(
-                f'A float attribute was expected, but'
-                ' received "{val}"')
+                'A float attribute was expected, but'
+                f' received "{val}"')
 
 
 class BoundedFloatAttribute(BoundedBaseAttribute):
@@ -302,11 +307,11 @@ class BoundedFloatAttribute(BoundedBaseAttribute):
             else:
                 raise AttributeValueError(
                     f'The value {val} is not within the bounds' 
-                    ' of [{self._min_value},{self._max_value}]') 
+                    f' of [{self._min_value},{self._max_value}]') 
         else:
             raise AttributeValueError(
-                f'A bounded float attribute was expected,'
-                ' but "{val}" is not a float.')
+                'A bounded float attribute was expected,'
+                f' but "{val}" is not a float.')
 
 
 class StringAttribute(BaseAttributeType):
@@ -434,12 +439,12 @@ class BooleanAttribute(BaseAttributeType):
                 self._value = False
             else:
                 raise Exception(f'Hit an edge case when trying to validate'
-                    ' a boolean value.  Value was {val} and the "final value"'
-                    ' was {final_val}')
+                    f' a boolean value.  Value was {val} and the "final value"'
+                    f' was {final_val}')
         else:
             raise AttributeValueError(
-                f'A boolean attribute was expected,'
-                ' but "{val}" cannot be interpreted as such.') 
+                'A boolean attribute was expected,'
+                f' but "{val}" cannot be interpreted as such.') 
 
 
 class BaseDataResourceAttribute(BaseAttributeType):
@@ -529,7 +534,7 @@ class BaseDataResourceAttribute(BaseAttributeType):
             except Exception as ex:
                 raise AttributeValueError('Encountered an unknown exception'
                     ' when validating a DataResourceAttribute instance.'
-                    ' Value was: {v}')
+                    f' Value was: {v}')
         self._value = val
 
     def to_dict(self):
@@ -576,7 +581,6 @@ class DataResourceAttribute(BaseDataResourceAttribute):
         Checks that the value passed is one of the known
         resource types
         '''
-        #TODO: add the validaton here- need all the available resource types
         self._resource_type = v
 
     def to_dict(self):
@@ -650,7 +654,6 @@ class VariableDataResourceAttribute(BaseDataResourceAttribute):
         if not type(v) is list:
             raise InvalidAttributeKeywordError(f'The {self.RESOURCE_TYPES_KEY}'
                 ' keyword requires a list.')
-        #TODO: add the validaton here- the various resource types
         self._resource_types = v
 
     def to_dict(self):

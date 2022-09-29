@@ -308,7 +308,22 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaises(AttributeValueError):
             i = BoundedIntegerAttribute(POSITIVE_INF_MARKER, min=0, max=100)
 
-    def test_bounded_float_atttribute(self):
+        # test the equality operator overload
+        i1 = BoundedIntegerAttribute(3, min=0, max=10)
+        i2 = BoundedIntegerAttribute(3, min=0, max=10)
+        self.assertTrue(i1 == i2)
+
+        # not equal if the value is different
+        i1 = BoundedIntegerAttribute(3, min=0, max=10)
+        i2 = BoundedIntegerAttribute(5, min=0, max=10)
+        self.assertFalse(i1 == i2)
+
+        # not equal if the bounds are different
+        i1 = BoundedIntegerAttribute(3, min=0, max=8)
+        i2 = BoundedIntegerAttribute(3, min=0, max=10)
+        self.assertFalse(i1 == i2)
+
+    def test_bounded_float_attribute(self):
 
         # test a valid bounded float
         f = BoundedFloatAttribute(0.2, min=0, max=1.0)
@@ -349,6 +364,21 @@ class TestSimpleAttributes(unittest.TestCase):
         # can't use inf as a value in a bounded float
         with self.assertRaises(AttributeValueError):
             i = BoundedFloatAttribute(POSITIVE_INF_MARKER, min=0, max=100)
+
+        # test the equality operator overload
+        i1 = BoundedFloatAttribute(3.1, min=0, max=10)
+        i2 = BoundedFloatAttribute(3.1, min=0, max=10)
+        self.assertTrue(i1 == i2)
+
+        # not equal if the value is different
+        i1 = BoundedFloatAttribute(3.1, min=0, max=10)
+        i2 = BoundedFloatAttribute(5.1, min=0, max=10)
+        self.assertFalse(i1 == i2)
+
+        # not equal if the bounds are different
+        i1 = BoundedFloatAttribute(3.1, min=0, max=8)
+        i2 = BoundedFloatAttribute(3.1, min=0, max=10)
+        self.assertFalse(i1 == i2)
 
     def test_boolean_attribute(self):
         '''

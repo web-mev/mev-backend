@@ -1,11 +1,6 @@
-from copy import deepcopy
 import unittest
+from copy import deepcopy
 
-# from data_structures.observation_set import ObservationSet
-# from data_structures.feature_set import FeatureSet
-# from data_structures.observation import Observation
-# from data_structures.feature import Feature
-from data_structures.operation_input_and_output_spec import InputOutputSpec
 from data_structures.operation_input_spec import InputSpec
 from data_structures.operation_output_spec import OutputSpec
 
@@ -116,3 +111,25 @@ class TestInputOutputSpec(unittest.TestCase):
 
         with self.assertRaisesRegex(AttributeTypeError, 'Could not locate type'):
             i = OutputSpec(spec)
+
+    def test_equality_overload(self):
+        spec1 = {
+            'attribute_type': 'BoundedInteger',
+            'min': 0,
+            'max': 5
+        }
+        spec2 = deepcopy(spec1)
+        i1 = InputSpec(spec1)
+        i2 = InputSpec(spec2)
+        self.assertTrue(i1 == i2)
+
+        # even adding a default to something that is otherwise the same
+        # fails
+        spec2['default'] = 3
+        i2 = InputSpec(spec2)
+        self.assertFalse(i1 == i2)
+
+        spec2 = deepcopy(spec1)
+        spec2['max'] = 3
+        i2 = InputSpec(spec2)
+        self.assertFalse(i1 == i2)
