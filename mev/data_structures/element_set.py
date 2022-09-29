@@ -1,3 +1,4 @@
+from numpy import diff
 from exceptions import DataStructureValidationException
 from data_structures.attribute_types import BaseAttributeType
 
@@ -203,27 +204,23 @@ class BaseElementSet(BaseAttributeType):
         to the calling class of the child, which will be responsible
         for creating a full ObservationSet or FeatureSet
         '''        
-        return self._element_list.difference(other.elements)
-
+        diff_set = self._element_list.difference(other.elements)
+        return [x.to_dict()['value'] for x in diff_set]
 
     def is_equivalent_to(self, other):
         return self.__eq__(other)
 
-
     def is_proper_subset_of(self, other):
         return len(other.set_difference(self)) > 0
 
-
     def is_proper_superset_of(self, other):
         return len(self.set_difference(other)) > 0
-
 
     def __len__(self):
         return len(self._element_list)
 
     def __eq__(self, other):
         return (self._element_list == other._element_list)
-
 
     def __hash__(self):
         return hash(tuple(self._element_list))

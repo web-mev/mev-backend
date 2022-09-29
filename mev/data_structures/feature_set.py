@@ -43,7 +43,6 @@ class FeatureSet(BaseElementSet):
         union_list = super()._set_union(other)
         return FeatureSet({'elements': union_list})
 
-
     def set_difference(self, other):
         diff_set = super()._set_difference(other)
-        return FeatureSet(diff_set)
+        return FeatureSet({'elements': diff_set})

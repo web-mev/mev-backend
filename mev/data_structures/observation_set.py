@@ -45,4 +45,4 @@ class ObservationSet(BaseElementSet):
 
     def set_difference(self, other):
         diff_set = super()._set_difference(other)
-        return ObservationSet(diff_set)
+        return ObservationSet({'elements': diff_set})

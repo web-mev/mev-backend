@@ -177,11 +177,11 @@ class BoundedIntegerAttribute(BoundedBaseAttribute):
             else:
                 raise AttributeValueError(
                     f'The value {val} is not within the bounds' 
-                    ' of [{self._min_value},{self._max_value}]')    
+                    f' of [{self._min_value},{self._max_value}]')    
         else:
             raise AttributeValueError(
                 f'A bounded integer attribute was expected,'
-                ' but "{val}" is not an integer.')
+                f' but "{val}" is not an integer.')
 
 
 class FloatAttribute(BaseAttributeType):

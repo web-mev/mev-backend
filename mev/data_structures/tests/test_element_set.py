@@ -1,6 +1,5 @@
 from copy import deepcopy
 import unittest
-import json
 
 from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
@@ -8,9 +7,6 @@ from data_structures.observation import Observation
 from data_structures.feature import Feature
 
 from exceptions import NullAttributeError, \
-    AttributeValueError, \
-    AttributeTypeError, \
-    MissingAttributeKeywordError, \
     DataStructureValidationException
 
 
@@ -699,3 +695,126 @@ class TestElementSet(unittest.TestCase):
     def test_set_union(self):
         self._union_test(ObservationSet, Observation)
         self._union_test(FeatureSet, Feature)
+
+    def _difference_test(self, SetClass, nested_type):
+
+        # test a true difference in sets
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element1
+            ]
+        })
+        diff_set = element_set1.set_difference(element_set2)
+        self.assertCountEqual(
+            diff_set.elements,
+            [
+                nested_type(self.element2)
+            ]
+        )
+
+        # test difference of equivalent sets
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element1
+            ]
+        })
+        diff_set = element_set1.set_difference(element_set2)
+        self.assertCountEqual(
+            diff_set.elements,
+            []
+        )
+
+        # test difference when compared against empty set
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[]
+        })
+        diff_set = element_set1.set_difference(element_set2)
+        self.assertCountEqual(
+            diff_set.elements,
+            [
+                nested_type(self.element1)
+            ]
+        )
+
+        # test the difference where a common
+        # element has differing attributes.
+        # Should ignore those differences
+        # and remove it.
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        el = deepcopy(self.element1)
+        el['attributes']['other'] = {
+            'attribute_type': 'Float',
+            'value': 0.5
+        }
+        element_set2 = SetClass({
+            'elements':[
+                el
+            ]
+        })
+        diff_set = element_set1.set_difference(element_set2)
+        self.assertCountEqual(
+            diff_set.elements,
+            [
+                nested_type(self.element2)
+            ]
+        )
+        
+    def test_set_difference(self):
+        self._difference_test(ObservationSet, Observation)
+        self._difference_test(FeatureSet, Feature)
+
+    def _sub_and_superset_methods_test(self, SetClass):
+
+        element_set1 = SetClass({
+            'elements':[
+                self.element1,
+                self.element2
+            ]
+        })
+        element_set2 = SetClass({
+            'elements':[
+                self.element1
+            ]
+        })
+        # modify element1 so the attributes are not 
+        # exactly the same.
+        el = deepcopy(self.element1)
+        el['attributes']['other'] = {
+            'attribute_type': 'Float',
+            'value': 0.5
+        }        
+        element_set3 = SetClass({
+            'elements':[
+                el,
+                self.element2
+            ]
+        }) 
+        self.assertTrue(element_set1.is_proper_superset_of(element_set2))
+        self.assertTrue(element_set2.is_proper_subset_of(element_set1))
+        self.assertFalse(element_set1.is_proper_superset_of(element_set3))
+        self.assertFalse(element_set3.is_proper_subset_of(element_set1))
+
+    def test_sub_and_superset_methods(self):
+        self._sub_and_superset_methods_test(ObservationSet)        
+        self._sub_and_superset_methods_test(FeatureSet)
