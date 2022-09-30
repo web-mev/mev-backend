@@ -1,6 +1,12 @@
 import logging
 
+from exceptions import DataStructureValidationException
+
+from data_structures.operation_input import OperationInput
+from data_structures.operation_output import OperationOutput
+
 logger = logging.getLogger(__name__)
+
 
 class OperationInputOutputDict(object):
     '''
@@ -10,41 +16,49 @@ class OperationInputOutputDict(object):
     Basically a mapping of unique keys to OperationInput/OperationOuput objects.
     '''
 
-    def __init__(self, d):
-        self.d = d
-        
+    def __init__(self, submitted_dict):
+        if not type(submitted_dict) is dict:
+            raise DataStructureValidationException('The constructor for an'
+                ' input expects a dictionary.')  
+
+        d = {}
+        for k,v in submitted_dict.items():
+            d[k] = self.input_type(v)
+        self._value = d
+
     def to_dict(self):
         m = {}
-        for k,v in self.d.items():
+        for k,v in self._value.items():
             m[k] = v.to_dict()
         return m
 
     def __getitem__(self, key):
-        return self.d[key]
+        return self._value[key]
 
     def __eq__(self, other):
         # first check they have the same set of keys
-        if not (self.d.keys() == other.d.keys()):
+        if not (self._value.keys() == other._value.keys()):
             return False
 
         # now dive-in and look at the individual dicts
         equal_vals_list = []
-        for key, val in self.d.items():
-            other_val = other.d[key]
+        for key, val in self._value.items():
+            other_val = other._value[key]
             equal_vals_list.append(val == other_val)
         return all(equal_vals_list)
 
+
 class OperationInputDict(OperationInputOutputDict):
-    
+    input_type = OperationInput
     def __repr__(self):
         return 'OperationInputDict with keys: {k}'.format(
-            k = ', '.join(self.d.keys())
+            k = ', '.join(self._value.keys())
         )
 
 
 class OperationOutputDict(OperationInputOutputDict):
-    
+    input_type = OperationOutput
     def __repr__(self):
         return 'OperationOutputDict with keys: {k}'.format(
-            k = ', '.join(self.d.keys())
+            k = ', '.join(self._value.keys())
         )
