@@ -1,7 +1,7 @@
 from exceptions import DataStructureValidationException, \
     AttributeValueError
 
-from data_structures.attribute_types import BaseAttributeType
+from data_structures.base_attribute import BaseAttributeType
 from data_structures.simple_attribute_factory import SimpleAttributeFactory
 from data_structures.attribute_types import StringAttribute
 

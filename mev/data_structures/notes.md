@@ -249,3 +249,18 @@ Next consider a non-empty `elements` list. The `ObservationSet` constructor gets
     ]
 }
 ```
+What about listed attributes. Consider a BoundedIntegerList attribute with structure
+
+```
+{
+    'attribute_type': 'BoundedFloatList',
+    'min':0,
+    'max':1,
+    'default': [0.05, 0.1, 0.2]
+}
+```
+The input spec calls the `AttributeFactory` with `d` equivalent to that above, except where we have used submitted that `default` value as the `value` key. In the factory function, we pop the `attribute_type` to get the `BoundedFloatList` class. We then submit to that class' constructor the following:
+```
+BoundedFloatList.__init__([0.05, 0.1, 0.2], min=0, max=1))
+```
+Now `BoundedFloatList` ultimately derives from `BoundedFloatAttribute` which derives from `BaseBoundedAttribute` who has an `init` method. That method pops the min/max kwargs and then calls the `BaseAttributeType` constructor. That attempts to set the `value` member which calls `_value_validator`. At this point, we could technically check each of those values against the min/max. However, it's cleaner to instead attempt to instantiate the 'basic type' (e.g. a `BoundedFloatAttribute`).
