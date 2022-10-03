@@ -21,18 +21,3 @@ def convert_dtype(dtype_str, **kwargs):
         if 'allow_unrestricted_strings' in kwargs:
             return UnrestrictedStringAttribute.typename
         return StringAttribute.typename
-
-
-def get_factory(attribute_key):
-    '''
-    Given a 'key' (the typename attribute), return
-    the factory capable of returning the class that 
-    implements the desired type.
-
-    For instance, given "PositiveInteger", return the
-    PositiveIntegerAttribute class.
-
-    Note that this returns the class itself, not an
-    instance of said class
-    '''
-    pass

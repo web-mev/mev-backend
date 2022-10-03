@@ -116,6 +116,10 @@ class TestOperationInputOutput(unittest.TestCase):
             o = OperationInput(d)
 
     def test_bad_spec_raises_ex(self):
+        '''
+        Test that exceptions with the nested objects
+        are raised.
+        '''
         d = deepcopy(self.input)
         bad_spec = {
             'attribute_type': 'BoundedFloat',
@@ -131,17 +135,22 @@ class TestOperationInputOutput(unittest.TestCase):
 
     def test_equality_overload(self):
 
-        o1 = OperationInput(self.input)
-        o2 = OperationInput(self.input)
-        self.assertTrue(o1 == o2)
+        i1 = OperationInput(self.input)
+        i2 = OperationInput(self.input)
+        self.assertTrue(i1 == i2)
 
         # specify 'required' key differently
         d = deepcopy(self.input)
         d['required'] = 1
-        o2 = OperationInput(d)
-        self.assertTrue(o1 == o2)
+        i2 = OperationInput(d)
+        self.assertTrue(i1 == i2)
 
         d = deepcopy(self.input)
         d['name'] = d['name'] + '???'
-        o2 = OperationInput(d)
-        self.assertFalse(o1 == o2)
+        i2 = OperationInput(d)
+        self.assertFalse(i1 == i2)
+
+        d = deepcopy(self.output)
+        o1 = OperationOutput(self.output)
+        o2 = OperationOutput(d)
+        self.assertTrue(o1 == o2)

@@ -55,3 +55,9 @@ class OperationInput(OperationInputOutput):
         d[self.DESCRIPTION_KEY] = self.description
         d[self.NAME_KEY] = self.name
         return d
+
+    def __eq__(self, other):
+        base_objects_equal = super().__eq__(other)
+        b = self.description == other.description
+        c = self.name == other.name
+        return all([base_objects_equal,b,c])

@@ -27,6 +27,7 @@ class SimpleDag(object):
         '''
         return node in self.nodes
 
+
 class DagNode(object):
     
     OP_NODE = 'op_node'

@@ -1,7 +1,8 @@
 import unittest
 import uuid
 
-from api.data_structures import DagNode, SimpleDag
+from data_structures.dag_components import DagNode, SimpleDag
+
 
 class NodeTester(unittest.TestCase):
 
@@ -57,6 +58,7 @@ class NodeTester(unittest.TestCase):
 
         d = n1.serialize()
         self.assertCountEqual(d['parentIds'], [str(u2), str(u3)])
+
 
 class GraphTester(unittest.TestCase):
 

@@ -4,9 +4,8 @@ from data_structures.list_attributes import StringListAttribute, \
     UnrestrictedStringListAttribute, \
     BoundedFloatListAttribute
 
-from exceptions import NullAttributeError, \
+from exceptions import DataStructureValidationException, \
     AttributeValueError, \
-    InvalidAttributeKeywordError, \
     MissingAttributeKeywordError
 
 
@@ -35,6 +34,9 @@ class TestStringListAttributes(unittest.TestCase):
         mylist = ['a','-b','c']
         with self.assertRaisesRegex(AttributeValueError, '-b'):
             s = StringListAttribute(mylist)
+
+        with self.assertRaisesRegex(DataStructureValidationException, 'list'):
+            raise StringListAttribute('a')
 
 
 class TestBoundedFloatListAttributes(unittest.TestCase):
