@@ -21,7 +21,9 @@ from constants import CSV_FORMAT, \
     XLSX_FORMAT, \
     JSON_FORMAT, \
     OBSERVATION_SET_KEY, \
-    PARENT_OP_KEY
+    PARENT_OP_KEY, \
+    POSITIVE_INF_MARKER, \
+    NEGATIVE_INF_MARKER
 
 from .base import DataResource, \
     ParseException, \
@@ -486,8 +488,8 @@ class TableResource(DataResource):
         strings and the filter won't work properly.
         '''
         self.table = self.table.replace({
-            -np.infty: settings.NEGATIVE_INF_MARKER, 
-            np.infty: settings.POSITIVE_INF_MARKER,
+            -np.infty: NEGATIVE_INF_MARKER, 
+            np.infty: POSITIVE_INF_MARKER,
             np.nan: None
         })
 
@@ -772,8 +774,10 @@ class Matrix(TableResource):
         # self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
 
         # the ObservationSet comes from the cols:
-        o_set = ObservationSet([Observation(x) for x in self.table.columns])
-        self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
+        o_set = ObservationSet({
+            'elements': [{'id': x} for x in self.table.columns]
+        })
+        self.metadata[OBSERVATION_SET_KEY] = o_set.to_simple_dict()
         return self.metadata
 
     def _resource_specific_modifications(self):
@@ -1076,8 +1080,9 @@ class ElementTable(TableResource):
             d = row_series.to_dict()
             attr_dict = {}
             for key, val in d.items():
-                # Note the 'allow_null=True', so that attributes can be properly serialized
-                # if they are missing a value. This happens, for instance, in FeatureTable
+                # Note the 'allow_null=True', so that attributes can 
+                # be properly serialized if they are missing a value. 
+                # This happens, for instance, in FeatureTable
                 # instances where p-values were not assigned.
                 attr = SimpleAttributeFactory(
                     {
@@ -1086,8 +1091,21 @@ class ElementTable(TableResource):
                     },
                     allow_null=True
                 )
-                attr_dict[key] = attr
-            element_list.append(element_class(id, attr_dict))
+                # We create `attr` above as a means to verify
+                # the attribute is correctly formatted
+                attr_dict[key] = attr.to_dict()
+
+            # Now create the data_structures.element.Element instance
+            element = element_class(
+                {
+                    'id': id,
+                    'attributes': attr_dict
+                }
+            )
+            # the dict representation of the Element has
+            # an `attribute_type` and `value` key. We only
+            # want the value:
+            element_list.append(element.to_dict()['value'])
         return element_list
 
 
@@ -1172,8 +1190,8 @@ class AnnotationTable(ElementTable):
         logger.info('Extract metadata for an AnnotationTable instance.')
         super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         observation_list = super().prep_metadata(Observation)
-        o_set = ObservationSet(observation_list)
-        self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
+        o_set = ObservationSet({'elements': observation_list})
+        self.metadata[OBSERVATION_SET_KEY] = o_set.to_simple_dict()
         return self.metadata
 
 

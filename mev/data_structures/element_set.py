@@ -243,3 +243,41 @@ class BaseElementSet(BaseAttributeType):
         else:
             d['value'] = None
         return d
+
+    def to_simple_dict(self):
+        '''
+        This is a slight variant on to_dict that makes life
+        easier for the users of the API.
+
+        Note that `to_dict` would normally return something like:
+        {
+            "attribute_type": "ObservationSet",
+            "value": {
+                "elements": [
+                    {
+                        "attribute_type": "Observation",
+                        "value": {
+                            "id": "SW4_Treated",
+                            "attributes": {}
+                        }
+                    },
+                    ...
+                ]
+            }
+        }
+        However, there are situations where we want a 
+        simpler representation like
+        {
+            "elements": [
+                {
+                    "id": "SW4_Treated",
+                    "attributes": {}
+                },
+                ...
+            ]
+        }
+        '''
+        d = self.to_dict()['value']
+        d['elements'] = [x['value'] for x in d['elements']]
+        return d
+        

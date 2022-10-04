@@ -8,6 +8,8 @@ from exceptions import DataStructureValidationException, \
     AttributeValueError, \
     MissingAttributeKeywordError
 
+from helpers import normalize_identifier
+
 
 class TestStringListAttributes(unittest.TestCase):
 
@@ -21,6 +23,16 @@ class TestStringListAttributes(unittest.TestCase):
         }
         self.assertDictEqual(dict_rep, expected)
 
+        mylist = ['a b','c']
+        modified_list = [normalize_identifier(x) for x in mylist]
+        s = StringListAttribute(mylist)
+        dict_rep = s.to_dict()
+        expected = {
+            'attribute_type': 'StringList',
+            'value': modified_list
+        }
+        self.assertDictEqual(dict_rep, expected)
+
         s = UnrestrictedStringListAttribute(mylist)
         dict_rep = s.to_dict()
         expected = {
@@ -29,12 +41,14 @@ class TestStringListAttributes(unittest.TestCase):
         }
         self.assertDictEqual(dict_rep, expected)
 
-    def test_creation_fail(self):
+    def test_creation_fail(self):        
+
         # the second entry is invalid:
         mylist = ['a','-b','c']
         with self.assertRaisesRegex(AttributeValueError, '-b'):
             s = StringListAttribute(mylist)
 
+        # test that we need a list
         with self.assertRaisesRegex(DataStructureValidationException, 'list'):
             raise StringListAttribute('a')
 

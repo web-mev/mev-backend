@@ -101,7 +101,7 @@ class IntegerAttribute(BaseAttributeType):
             self._value = val
         else:
             raise AttributeValueError(f'An integer attribute was expected,'
-                ' but the value "{val}" could not be cast as an integer.')
+                f' but the value "{val}" could not be cast as an integer.')
 
 
 class PositiveIntegerAttribute(BaseAttributeType):

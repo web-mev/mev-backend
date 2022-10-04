@@ -61,6 +61,36 @@ class TestElement(unittest.TestCase):
             expected_dict
         )
 
+        # test with a nested boolean element
+        el = {
+            "id": 'ID',
+            "attributes": {
+                "alive": {
+                    "attribute_type": "Boolean",
+                    "value": 1
+                }      
+            }
+        }
+        o = Observation(el)
+        dict_rep = o.to_dict()
+
+        expected_dict = {
+            'attribute_type': 'Observation',
+            'value': {
+                "id": 'ID',
+                "attributes": {
+                    "alive": {
+                        "attribute_type": "Boolean",
+                        "value": True
+                    }      
+                }
+            }
+        }
+        self.assertDictEqual(
+            dict_rep,
+            expected_dict
+        )
+
         # test that we can pass a dict
         # containing only the 'id' and
         # an empty 'attributes' dict will

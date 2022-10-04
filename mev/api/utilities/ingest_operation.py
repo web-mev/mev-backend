@@ -9,8 +9,12 @@ import requests
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
-from api.models import Operation as OperationDbModel
+from exceptions import DataStructureValidationException
+
 from data_structures.attribute_types import OperationDataResourceAttribute
+from data_structures.operation import Operation
+
+from api.models import Operation as OperationDbModel
 from api.utilities.basic_utils import recursive_copy
 from api.utilities.operations import read_operation_json, \
     validate_operation
@@ -269,33 +273,21 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
 
     # attempt to validate the data for the operation:
     try:
-        op_serializer = validate_operation(j)
-    except ValidationError as ex:
-        logger.info('A validation error was raised when validating'
-            ' the information parsed from {path}. Exception was: {ex}.\n '
-            'Full info was: {j}'.format(
-                path = operation_json_filepath,
-                j = json.dumps(j, indent=2),
-                ex = ex
-            )
-        )
+        op = Operation(j)
+    except DataStructureValidationException as ex:
+        logger.info('A formatting error was raised when validating'
+            ' the information parsed from the operation spec file'
+            f' located at {operation_json_filepath}. Exception was: {ex}.')
         raise ex
     except Exception as ex:
         logger.info('An unexpected error was raised when validating'
-            ' the information parsed from {path}. Exception was: {ex}.\n '
-            'Full info was: {j}'.format(
-                path = operation_json_filepath,
-                j = json.dumps(j, indent=2),
-                ex = ex
-            )
-        )
+            ' the information parsed from the operation spec file'
+            f' located at {operation_json_filepath}. Exception was: {ex}.')
         raise ex
 
-    # get an instance of the Operation (the data structure, NOT the database model)
-    op = op_serializer.get_instance()
+    # Get the dict representation of the Operation (data structure, not database model)
     op_data = op.to_dict()
-    #op_data = OperationSerializer(op).data
-    logging.info('After parsing operation spec, we have: {spec}'.format(spec=op_data))
+    logging.info(f'After parsing operation spec, we have: {op_data}')
 
     # check that the required files, etc. are there for the particular run mode:
     check_required_files(op_data, staging_dir)
@@ -319,8 +311,7 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
         o.save()
     except OperationDbModel.DoesNotExist:
         logger.error('Could not find the Operation corresponding to'
-            ' id={u}'.format(u=op_uuid)
-        )
+            f' id={op_uuid}')
         raise Exception('Encountered issue when trying update an Operation'
             ' database instance after ingesting from repository.'
         )
@@ -333,7 +324,7 @@ def save_operation(op_data, staging_dir, overwrite):
         op_uuid
     )
     logger.info('Destination directory for'
-        ' this operation at {p}'.format(p=dest_dir))
+        f' this operation at {dest_dir}')
 
     # copy the cloned directory and include the .git folder
     # and any other hidden files/dirs:

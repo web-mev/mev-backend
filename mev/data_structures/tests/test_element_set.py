@@ -116,6 +116,12 @@ class TestElementSet(unittest.TestCase):
             expected_dict
         )
 
+        # check the simplified representation also:
+        simple_dict_rep = o.to_simple_dict()
+        self.assertCountEqual(
+            simple_dict_rep['elements'], self.valid_set['elements'])
+
+
     def _creation_of_empty_set(self, SetClass, nested_typename):
         o = SetClass({
             'elements': []

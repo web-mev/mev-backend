@@ -5,9 +5,13 @@ import logging
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
+from exceptions import WebMeVException
+
 from api.utilities.basic_utils import read_local_file
 
 from api.serializers.operation import OperationSerializer
+
+from data_structures.operation import Operation
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +33,12 @@ def read_operation_json(filepath):
         return j
     except Exception as ex:
         logger.error('Could not read the operation JSON-format file at {path}.'
-            ' Exception was {ex}'.format(
-                path = filepath,
-                ex = ex
-            )
-        )
+                     ' Exception was {ex}'.format(
+                         path=filepath,
+                         ex=ex
+                     )
+                     )
+
 
 def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
     '''
@@ -51,7 +56,7 @@ def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
         l = operation_resource_dict[k]
         if not type(l) is list:
             return False
-        namelist, pathlist = [],[]
+        namelist, pathlist = [], []
         for item in l:
             if not type(item) is dict:
                 return False
@@ -65,25 +70,32 @@ def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
         if len(set(namelist)) < len(namelist):
             return False
         if len(set(pathlist)) < len(pathlist):
-            return False 
+            return False
     return True
 
 
 def validate_operation(operation_dict):
     '''
     Takes a dictionary and validates it against the definition
-    of an `Operation`. Returns an instance of an `OperationSerializer`.
+    of an `Operation`. Returns an instance of 
+    data_structures.operation.Operation
     '''
     logger.info('Validate the dictionary against the definition'
-    ' of an Operation...: {d}'.format(d=operation_dict))
-    #from api.serializers.operation import OperationSerializer
-    op_serializer = OperationSerializer(data=operation_dict)
+                f' of an Operation...: {operation_dict}')
+
     try:
-        op_serializer.is_valid(raise_exception=True)
-    except Exception as ex:
+        return Operation(operation_dict)
+    except WebMeVException as ex:
+        logger.info('Failed to validate the operation dict.'
+                    f' The exception was: {ex}\n'
+                    f' The data was: {operation_dict}')
         raise ex
-    logger.info('Operation specification was valid.')
-    return op_serializer
+    except Exception as ex:
+        logger.info('Unexpected exception when validating the operation dict.'
+                    f' The exception was: {ex}\n'
+                    f' The data was: {operation_dict}')
+        raise ex
+
 
 def get_operation_data_list(uuid_list):
     '''
@@ -93,6 +105,7 @@ def get_operation_data_list(uuid_list):
     '''
     pass
 
+
 def get_operation_instance_data(operation_db_model):
     '''
     Using an Operation (database model) instance, return the
@@ -100,24 +113,20 @@ def get_operation_instance_data(operation_db_model):
     '''
 
     f = os.path.join(
-        settings.OPERATION_LIBRARY_DIR, 
-        str(operation_db_model.id), 
+        settings.OPERATION_LIBRARY_DIR,
+        str(operation_db_model.id),
         settings.OPERATION_SPEC_FILENAME
     )
     if os.path.exists(f):
         j = read_operation_json(f)
-        op_serializer = validate_operation(j)
-
-        # get an instance of the data structure corresponding to an Operation
-        op_data_structure = op_serializer.get_instance()
-        return op_data_structure.to_dict()
+        op = validate_operation(j)
+        return op.to_dict()
     else:
         logger.error('Integrity error: the queried Operation with'
-            ' id={uuid} did not have a corresponding folder.'.format(
-                uuid=str(operation_db_model.id)
-            )
-        )
-        return None
+                     f' id={operation_db_model.id} did not have a'
+                     ' corresponding folder.')
+        raise Exception('Missing operation files.')
+
 
 def validate_operation_inputs(user, inputs, operation, workspace):
     '''
@@ -144,15 +153,16 @@ def validate_operation_inputs(user, inputs, operation, workspace):
 
         if key_is_present:
             supplied_input = inputs[key]
-        elif required: # key not there, but it is required
+        elif required:  # key not there, but it is required
             logger.info('The key ({key}) was not among the inputs, but it'
-                ' is required.'.format(key=key)
-            )
+                        ' is required.'.format(key=key)
+                        )
             raise ValidationError({key: 'This is a required input field.'})
-        else: # key not there, but NOT required
+        else:  # key not there, but NOT required
             logger.info('key was not there, but also NOT required.')
-            if 'default' in spec: # is there a default to use?
-                logger.info('There was a default value in the operation spec. Since no value was given, use that.')
+            if 'default' in spec:  # is there a default to use?
+                logger.info(
+                    'There was a default value in the operation spec. Since no value was given, use that.')
                 supplied_input = spec['default']
             else:
                 supplied_input = None
@@ -165,19 +175,20 @@ def validate_operation_inputs(user, inputs, operation, workspace):
             logger.info(submitted_input_class)
         except KeyError as ex:
             logger.error('Could not find an appropriate class for handling the user input'
-                ' for the typename of {t}'.format(
-                    t=attribute_typename
-                )
-            )
+                         ' for the typename of {t}'.format(
+                             t=attribute_typename
+                         )
+                         )
             raise Exception('Could not find an appropriate class for typename {t} for'
-                ' the input named {x}.'.format(
-                    x = key,
-                    t = attribute_typename
-                )
-            )
+                            ' the input named {x}.'.format(
+                                x=key,
+                                t=attribute_typename
+                            )
+                            )
         if supplied_input is not None:
             logger.info('Check supplied input: {d}'.format(d=supplied_input))
-            final_inputs[key] = submitted_input_class(user, operation, workspace, key, supplied_input, spec)
+            final_inputs[key] = submitted_input_class(
+                user, operation, workspace, key, supplied_input, spec)
         else:
             final_inputs[key] = None
     return final_inputs

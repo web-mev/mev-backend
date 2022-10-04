@@ -1,9 +1,12 @@
 import unittest
 
+from constants import POSITIVE_INF_MARKER
+
 from exceptions import MissingAttributeKeywordError, \
     DataStructureValidationException, \
     NullAttributeError, \
-    AttributeTypeError
+    AttributeTypeError, \
+    AttributeValueError
 
 from data_structures.attribute_types import PositiveIntegerAttribute, \
     BoundedFloatAttribute
@@ -37,6 +40,28 @@ class TestAttributeFactories(unittest.TestCase):
         x = tested_factory(d)
         self.assertTrue(type(x) is BoundedFloatAttribute)
         self.assertTrue(x.value == 5)
+
+        # works
+        d = {
+            'attribute_type': 'Float',
+            'value': None
+        }
+        x = tested_factory(d, allow_null=True)
+        self.assertIsNone(x.value)
+
+        d = {
+            'attribute_type': 'Float',
+            'value': POSITIVE_INF_MARKER
+        }
+        x = tested_factory(d)
+
+        d = {
+            'attribute_type': 'Integer',
+            'value': POSITIVE_INF_MARKER
+        }
+        with self.assertRaisesRegex(
+            AttributeValueError, 'could not be cast as an integer'):
+            x = tested_factory(d)
 
         # provide a badly-formatted spec. Missing the 'max' key
         d = {
