@@ -14,15 +14,16 @@ from data_structures.attribute_types import IntegerAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
-    DataResourceAttribute, \
-    VariableDataResourceAttribute, \
-    OperationDataResourceAttribute, \
     OptionStringAttribute
+from data_structures.data_resource_attributes import DataResourceAttribute, \
+    VariableDataResourceAttribute, \
+    OperationDataResourceAttribute
 
 from exceptions import NullAttributeError, \
     AttributeValueError, \
     InvalidAttributeKeywordError, \
-    MissingAttributeKeywordError
+    MissingAttributeKeywordError, \
+    InvalidResourceTypeException
 
 
 class TestSimpleAttributes(unittest.TestCase):
@@ -522,6 +523,69 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
             VariableDataResourceAttribute(str(uuid.uuid4()), 
                 many=True, resource_types='XYZ')
+
+    def test_resource_type_setter(self):
+        '''
+        For both DataResourceAttribute and VariableDataResourceAttribute,
+        check that the setters work as intended
+        '''
+
+        d = DataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_type='XYZ')
+        # now set and check:
+        d.resource_type = 'foo'
+        self.assertEqual('foo', d.resource_type)
+
+        d = VariableDataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_types=['XYZ', 'ABC'])
+        d.resource_types = ['DEF']
+        self.assertCountEqual(d.resource_types, ['DEF'])
+
+        # try setting to a non-list:
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'requires a list'):
+            d.resource_types = 'xyz'
+
+
+    def test_dataresource_type_validation(self):
+        '''
+        While the data structures are agnostic to the actual resource types of WebMeV
+        (e.g. numeric matrix is "MTX"), we provide a 
+        validation method which is called with the permissible types.
+        '''
+        # this works:
+        d = DataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_type='XYZ')
+        permissible_types = set(['abc', 'XYZ'])
+        d.check_resource_type_keys(permissible_types)
+
+        # this fails:
+        permissible_types = set(['abc', 'def'])
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'XYZ'):
+            d.check_resource_type_keys(permissible_types)
+
+        # this works:
+        d = OperationDataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_type='XYZ')
+        permissible_types = set(['abc', 'XYZ'])
+        d.check_resource_type_keys(permissible_types)
+
+        # this fails:
+        permissible_types = set(['abc', 'def'])
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'XYZ'):
+            d.check_resource_type_keys(permissible_types)
+
+        # this works:
+        d = VariableDataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_types=['ABC', 'DEF'])
+        permissible_types = set(['ABC', 'DEF', 'XYZ'])
+        d.check_resource_type_keys(permissible_types)
+
+        # this fails:
+        permissible_types = set(['ABC', 'GHI'])
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'DEF'):
+            d.check_resource_type_keys(permissible_types)
+
+
 
     def test_option_string_attribute(self):
 

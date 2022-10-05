@@ -62,6 +62,38 @@ class TestInputOutputSpec(unittest.TestCase):
         dict_rep = o.to_dict()
         self.assertDictEqual(dict_rep, spec)
 
+        spec = {
+            'attribute_type': 'ObservationSet',
+            'default': {
+                'elements': [
+                    {
+                        'id': 'sampleA',
+                        'attributes': {
+                            'age': {
+                                'attribute_type': 'PositiveInteger',
+                                'value': 5
+                            }
+                        }
+                    },
+                    {
+                        'id': 'sampleB',
+                        'attributes': {
+                            'age': {
+                                'attribute_type': 'PositiveInteger',
+                                'value': 4
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        i = InputSpec(spec)
+        dict_rep = i.to_dict()
+        self.assertDictEqual(dict_rep, spec)
+        o = OutputSpec(spec)
+        dict_rep = o.to_dict()
+        self.assertDictEqual(dict_rep, spec)
+
     def test_spec_with_invalid_default_fails(self):
         spec = {
             'attribute_type': 'BoundedInteger',
@@ -85,6 +117,35 @@ class TestInputOutputSpec(unittest.TestCase):
             i = InputSpec(spec)
         with self.assertRaisesRegex(DataStructureValidationException, 'expects a dict'):
             i = OutputSpec(spec)
+
+        spec = {
+            'attribute_type': 'ObservationSet',
+            'default': {
+                'elements': [
+                    {
+                        'id': 'sampleA',
+                        'attributes': {
+                            'age': {
+                                'attribute_type': 'PositiveInteger',
+                                'value': 5
+                            }
+                        }
+                    },
+                    {
+                        # missing the 'id' field, which is required
+                        'attributes': {
+                            'age': {
+                                'attribute_type': 'PositiveInteger',
+                                'value': 4
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        with self.assertRaisesRegex(DataStructureValidationException, 'requires an "id" key'):
+            i = InputSpec(spec)
+
 
     def test_spec_with_invalid_format_fails(self):
         # this spec is missing the 'max' key:

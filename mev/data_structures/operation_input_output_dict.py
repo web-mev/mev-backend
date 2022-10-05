@@ -32,6 +32,9 @@ class OperationInputOutputDict(object):
             m[k] = v.to_dict()
         return m
 
+    def keys(self):
+        return self._value.keys()
+
     def __getitem__(self, key):
         return self._value[key]
 

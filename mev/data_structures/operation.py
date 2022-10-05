@@ -27,7 +27,7 @@ class Operation(object):
         "mode": <string>,
         "repository_url": <string url>,
         "git_hash": <string>,
-        "repo_name": <string>,
+        "repository_name": <string>,
         "workspace_operation": <bool>
     }
     ```

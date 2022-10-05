@@ -12,8 +12,8 @@ from data_structures.attribute_types import IntegerAttribute, \
     StringAttribute, \
     UnrestrictedStringAttribute, \
     OptionStringAttribute, \
-    BooleanAttribute, \
-    DataResourceAttribute, \
+    BooleanAttribute
+from data_structures.data_resource_attributes import DataResourceAttribute, \
     OperationDataResourceAttribute, \
     VariableDataResourceAttribute
 

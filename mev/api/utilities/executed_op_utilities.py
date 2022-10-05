@@ -2,18 +2,10 @@ import logging
 
 from api.models import WorkspaceExecutedOperation
 from api.utilities.operations import get_operation_instance_data
-from data_structures.attribute_types import DataResourceAttribute, \
-    VariableDataResourceAttribute, \
-    OperationDataResourceAttribute
+from data_structures.data_resource_attributes import get_all_data_resource_typenames
 
 logger = logging.getLogger(__name__)
 
-DATARESOURCE_TYPES = [
-    DataResourceAttribute,
-    VariableDataResourceAttribute,
-    OperationDataResourceAttribute
-]
-DATARESOURCE_TYPENAMES = [x.typename for x in DATARESOURCE_TYPES]
 
 def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
     '''
@@ -51,7 +43,7 @@ def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
         else:
             # the key existed in the Operation (as it should). Get the spec dictating
             spec = op_input_or_output[k]['spec']
-            if spec['attribute_type'] in DATARESOURCE_TYPENAMES:
+            if spec['attribute_type'] in get_all_data_resource_typenames():
                 if spec['many']:
                     assert(type(v) is list)
                     resource_uuids.extend(v)

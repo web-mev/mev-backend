@@ -142,3 +142,19 @@ class DataStructureValidationException(WebMeVException):
     or validation issue.
     '''
     pass
+
+
+class InvalidResourceTypeException(WebMeVException):
+    '''
+    This is raised if an invalid shorthand key is encountered
+    when working with DataResource objects
+    '''
+    pass
+
+
+class InvalidRunModeException(WebMeVException):
+    '''
+    Raised if an operation spec specifies an operation 
+    mode that is not valid
+    '''
+    pass

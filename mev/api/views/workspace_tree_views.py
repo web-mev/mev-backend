@@ -18,7 +18,7 @@ from api.utilities.resource_utilities import initiate_resource_validation, \
     get_resource_by_pk
 from api.utilities.operations import get_operation_instance_data
 from data_structures.dag_components import SimpleDag, DagNode
-from data_structures.attribute_types import DataResourceAttribute, \
+from data_structures.data_resource_attributes import DataResourceAttribute, \
     VariableDataResourceAttribute, \
     OperationDataResourceAttribute
 from api.models import Workspace, WorkspaceExecutedOperation

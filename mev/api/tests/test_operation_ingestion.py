@@ -1,4 +1,3 @@
-import unittest
 import unittest.mock as mock
 import os
 import json
@@ -7,22 +6,21 @@ import uuid
 import shutil
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
-from rest_framework.exceptions import ValidationError
 
-from api.serializers.operation_input import OperationInputSerializer
-from api.serializers.operation_input_dict import OperationInputDictSerializer
-from api.serializers.operation_output_dict import OperationOutputDictSerializer
+from exceptions import InvalidResourceTypeException, \
+    DataStructureValidationException, \
+    InvalidRunModeException
+
 from api.serializers.operation import OperationSerializer
-from api.data_structures import Operation
+from data_structures.operation import Operation
 from api.models import Operation as OperationDbModel
-from api.runners import AVAILABLE_RUNNERS
 from api.utilities.ingest_operation import add_required_keys_to_operation, \
     perform_operation_ingestion, \
     save_operation, \
     retrieve_repo_name, \
     ingest_dir, \
-    check_for_operation_resources
+    check_for_operation_resources, \
+    validate_operation_spec
 
 from api.tests.base import BaseAPITestCase
 
@@ -47,7 +45,6 @@ class OperationIngestionTester(BaseAPITestCase):
         add_required_keys_to_operation(d, abc=1, xyz='foo')
         self.assertTrue(d['abc'] == 1)
         self.assertTrue(d['xyz'] == 'foo')
-
 
     @mock.patch('api.utilities.ingest_operation.clone_repository')
     @mock.patch('api.utilities.ingest_operation.requests')
@@ -388,7 +385,7 @@ class OperationIngestionTester(BaseAPITestCase):
         n2 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n1-n0,1)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(DataStructureValidationException):
             perform_operation_ingestion(
                 repo_url, 
                 str(op_uuid),
@@ -455,7 +452,7 @@ class OperationIngestionTester(BaseAPITestCase):
         n2 = len(OperationDbModel.objects.filter(active=True))
         self.assertEqual(n1-n0,1)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(DataStructureValidationException):
             perform_operation_ingestion(
                 repo_url, 
                 str(op_uuid),
@@ -486,25 +483,25 @@ class OperationIngestionTester(BaseAPITestCase):
                 'default': 0.05
             }
         }
-        op_input = OperationInputSerializer(data=op_input_dict).get_instance()
-        op_input_dict_obj = OperationInputDictSerializer(data={
-            'p_val': op_input
-        }).get_instance()
-        op_output_dict_obj = OperationOutputDictSerializer(data={}).get_instance()
         op_id = str(uuid.uuid4())
 
-        operation_instance = Operation(
-            op_id,
-            'Some op name',
-            'Some op description',
-            op_input_dict_obj,
-            op_output_dict_obj,
-            AVAILABLE_RUNNERS[0],
-            'http://github.com/some-repo/',
-            'abcd',
-            'repo_name',
-            True
-        )
+        op_dict = {
+            'id': op_id,
+            'name': 'Some name', 
+            'description': 'Here is some description of the process', 
+            'inputs': {
+                'p_val': op_input_dict
+            }, 
+            'outputs': {}, 
+            'mode': 'local_docker', 
+            'workspace_operation': True,
+            'git_hash': 'abc123',
+            "repository_url": '',
+            "repository_name": '',
+            "workspace_operation": True
+        }
+
+        operation_instance = Operation(op_dict)
 
         # make a dummy git repo:
         dummy_src_path = os.path.join('/tmp', 'test_dummy_dir')
@@ -742,6 +739,60 @@ class OperationIngestionTester(BaseAPITestCase):
         op_data = json.load(open(p))
         result = check_for_operation_resources(op_data)
         self.assertTrue(len(result.keys()) == 0)
+
+    # the patched list here matches that of the file we use in this test:
+    @mock.patch('api.utilities.ingest_operation.RESOURCE_TYPE_SET', 
+        new=['I_MTX', 'EXP_MTX', 'OTHER'])
+    def test_correctly_validates_operation_spec(self):
+        '''
+        While the structure of a data_structures.operation.Operation
+        is checked/tested in the data_structures package, we intentionally
+        avoid placing api-specific logic there.
+
+        Hence, when an admin is attempting to add a new Operation, we need
+        to validate parts of that data structure that depend on our API.
+        An example is the resource type(s) for a particular operation
+        input representing a file input. We need to check that the values
+        they use are correct given the types of files we allow in the api
+        '''
+        fp = os.path.join(TESTDIR, 'valid_complete_workspace_operation.json')
+        j = json.load(open(fp))
+        op = Operation(j)
+        validate_operation_spec(op)
+
+    # the patched list here does NOT match that of the file we use in this test.
+    # By removing 'EXP_MTX', we are testing that invalid resource types appearing
+    # in the operation spec cause exceptions to be raised.
+    @mock.patch('api.utilities.ingest_operation.RESOURCE_TYPE_SET', 
+        new=['I_MTX', 'OTHER'])
+    def test_correctly_fails_operation_spec(self):
+        '''
+        While the structure of a data_structures.operation.Operation
+        is checked/tested in the data_structures package, we intentionally
+        avoid placing api-specific logic there.
+
+        Hence, when an admin is attempting to add a new Operation, we need
+        to validate parts of that data structure that depend on our API.
+        An example is the resource type(s) for a particular operation
+        input representing a file input. We need to check that the values
+        they use are correct given the types of files we allow in the api
+
+        Here we fail due to an unknown/unexpected resource type in the spec
+        file.
+        '''
+        fp = os.path.join(TESTDIR, 'valid_complete_workspace_operation.json')
+        j = json.load(open(fp))
+        op = Operation(j)
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'EXP_MTX'):
+            validate_operation_spec(op)
+
+    def test_correctly_fails_operation_spec_case2(self):
+        fp = os.path.join(TESTDIR, 'valid_complete_workspace_operation.json')
+        j = json.load(open(fp))
+        j['mode'] = 'garbage'
+        op = Operation(j)
+        with self.assertRaisesRegex(InvalidRunModeException, 'garbage'):
+            validate_operation_spec(op)  
 
     # @mock.patch('api.utilities.ingest_operation.get_resource_size')
     # @mock.patch('api.utilities.ingest_operation.move_resource_to_final_location')

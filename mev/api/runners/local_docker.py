@@ -15,8 +15,7 @@ from api.utilities.docker import check_if_container_running, \
     get_logs, \
     pull_image, \
     get_image_name_and_tag
-from data_structures.attribute_types import DataResourceAttribute, \
-    VariableDataResourceAttribute
+from data_structures.data_resource_attributes import get_all_data_resource_typenames
 from api.utilities.basic_utils import make_local_directory, \
     run_shell_command
 from api.utilities.admin_utils import alert_admins
@@ -43,12 +42,6 @@ class LocalDockerRunner(OperationRunner):
     REQUIRED_FILES = OperationRunner.REQUIRED_FILES + [
         os.path.join(OperationRunner.DOCKER_DIR, DOCKERFILE),
         ENTRYPOINT_FILE
-    ]
-
-    # This is a list of typenames for file types
-    RESOURCE_ATTR_TYPES = [
-        DataResourceAttribute.typename,
-        VariableDataResourceAttribute.typename
     ]
 
     # the template docker command to be run:
@@ -281,15 +274,12 @@ class LocalDockerRunner(OperationRunner):
         converted.
         '''
 
-        # the types that we should clean up.
-        types_to_clean = [
-            DataResourceAttribute.typename,
-            VariableDataResourceAttribute.typename
-        ]
+        # the types that we should clean up on error. 
+        data_resource_typenames = get_all_data_resource_typenames()
         for k,v in converted_outputs_dict.items():
             spec = op_spec_outputs[k]['spec']
             output_attr_type = spec['attribute_type']
-            if output_attr_type in types_to_clean:
+            if output_attr_type in data_resource_typenames:
                 logger.info('Will cleanup the output "{k}" with'
                     ' value of {v}'.format(
                         k = k,
