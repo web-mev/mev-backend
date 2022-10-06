@@ -5,11 +5,11 @@ import logging
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
-from exceptions import WebMeVException
+from exceptions import WebMeVException, \
+    ExecutedOperationInputOutputException
 
 from api.utilities.basic_utils import read_local_file
-
-from api.serializers.operation import OperationSerializer
+from api.utilities.resource_utilities import check_resource_request_validity
 
 from data_structures.operation import Operation
 
@@ -105,13 +105,11 @@ def get_operation_data_list(uuid_list):
     '''
     pass
 
-
-def get_operation_instance_data(operation_db_model):
+def get_operation_instance(operation_db_model):
     '''
-    Using an Operation (database model) instance, return the
-    Operation instance (the data structure)
+    Using an Operation (database model) instance, return an
+    instance of data_structures.operation.Operation
     '''
-
     f = os.path.join(
         settings.OPERATION_LIBRARY_DIR,
         str(operation_db_model.id),
@@ -119,8 +117,7 @@ def get_operation_instance_data(operation_db_model):
     )
     if os.path.exists(f):
         j = read_operation_json(f)
-        op = validate_operation(j)
-        return op.to_dict()
+        return validate_operation(j)
     else:
         logger.error('Integrity error: the queried Operation with'
                      f' id={operation_db_model.id} did not have a'
@@ -128,14 +125,25 @@ def get_operation_instance_data(operation_db_model):
         raise Exception('Missing operation files.')
 
 
-def validate_operation_inputs(user, inputs, operation, workspace):
+def get_operation_instance_data(operation_db_model):
+    '''
+    Using an Operation (database model) instance, return the
+    dict representation of data_structures.operation.Operation
+    '''
+    op = get_operation_instance(operation_db_model)
+    return op.to_dict()
+
+
+def validate_operation_inputs(
+        user, user_inputs, operation_db_instance, workspace):
     '''
     This function validates the inputs to check that they are compatible
     with the Operation that a user wishes to run.
 
     `user` is the user (database object) requesting the executed Operation
-    `inputs` is a dictionary of input parameters for the Operation
-    `operation` is an instance of Operation (the database model)
+    `user_inputs` is a dictionary of input parameters for the Operation
+        as submitted by a user
+    `operation_db_instance` is an instance of Operation (the database model)
     `workspace` is an instance of Workspace (database model)
 
     Note that `workspace` is not required, as some operations can be run
@@ -143,16 +151,18 @@ def validate_operation_inputs(user, inputs, operation, workspace):
     should be explicitly set to None
     '''
     # get the Operation data structure given the operation database instance:
-    operation_spec_dict = get_operation_instance_data(operation)
+    operation = get_operation_instance(operation_db_instance)
 
     final_inputs = {}
-    for key, op_input in operation_spec_dict['inputs'].items():
-        required = op_input['required']
-        spec = op_input['spec']
-        key_is_present = key in inputs.keys()
+    op_inputs = operation.inputs
+    for key in op_inputs.keys():
+        op_input = op_inputs[key]
+        required = op_input.required
+        spec = op_input.spec
+        key_is_present = key in user_inputs.keys()
 
         if key_is_present:
-            supplied_input = inputs[key]
+            supplied_input = user_inputs[key]
         elif required:  # key not there, but it is required
             logger.info('The key ({key}) was not among the inputs, but it'
                         ' is required.'.format(key=key)
@@ -160,12 +170,40 @@ def validate_operation_inputs(user, inputs, operation, workspace):
             raise ValidationError({key: 'This is a required input field.'})
         else:  # key not there, but NOT required
             logger.info('key was not there, but also NOT required.')
-            if 'default' in spec:  # is there a default to use?
+            if spec.default is not None:  # is there a default to use?
                 logger.info(
-                    'There was a default value in the operation spec. Since no value was given, use that.')
-                supplied_input = spec['default']
+                    'There was a default value in the operation spec.' 
+                    ' Since no value was given, use that.')
+                supplied_input = spec.default
             else:
                 supplied_input = None
+
+        # validate the input. Note that for simple inputs
+        # this is all we need. However, for inputs like 
+        # data resources, we need to perform additional checks (below)
+        op_input.check_value(supplied_input)
+
+        if op_input.is_data_resource_input():
+            logger.info('Input corresponds to a data resource. Perform'
+                ' additional checks.')
+            # if we are dealing with a file-type, we need
+            # to ensure that:
+            # - the file is owned by the requesting user
+            # - the file is in the workspace
+            # - the file has the proper resource type
+
+            # if this doens't raise an exception, then the user does own
+            # the file:
+            resource_instance = check_resource_request_validity(
+                user, supplied_input)
+            if not workspace in resource_instance.workspaces:
+                raise ExecutedOperationInputOutputException('The resource'
+                    f' ({submitted_input}) was not part of the workspace'
+                    ' where the analysis operation was requested.')
+            # now need to check the resource type:
+            # this gets the instance, e.g. an instance of
+            # data_structures.data_resource_attributes.DataResourceAttribute
+            op_input.spec.value
 
         # now validate that supplied input against the spec
         attribute_typename = spec['attribute_type']

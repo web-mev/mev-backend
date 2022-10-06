@@ -3,7 +3,9 @@ import logging
 from exceptions import DataStructureValidationException, \
     AttributeValueError
 
-from data_structures.operation_input_spec import InputSpec
+from data_structures.attribute_factory import AttributeFactory
+from data_structures.data_resource_attributes import \
+    get_all_data_resource_types
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ class OperationInputOutput(object):
         # This allows, 0,"0",False (and the True equivalents)
         # but rejects strings that can't be cast to int.
         try:
-            self.required = bool(int(submitted_dict[self.IS_REQUIRED_KEY]))
+            self._required = bool(int(submitted_dict[self.IS_REQUIRED_KEY]))
         except ValueError as ex:
             raise AttributeValueError('The "required" key should'
                 ' be specified using standard boolean values.')
@@ -73,7 +75,8 @@ class OperationInputOutput(object):
         self.converter = str(submitted_dict[self.CONVERTER_KEY])
 
         # a nested object which describes the input itself (e.g. 
-        # a number, a string, a file). Of type `InputSpec`
+        # a number, a string, a file). Of type `InputSpec` or `OutputSpec`.
+        # `self.spec_type` is defined in the child class.
         self.spec = self.spec_type(submitted_dict[self.SPEC_KEY])
         
     def _check_keys(self, keys):
@@ -86,6 +89,49 @@ class OperationInputOutput(object):
         elif extra_keys:
             raise DataStructureValidationException('The input contained'
                 f' invalid extra keys: {",".join(extra_keys)}')
+
+
+    def is_data_resource_input(self):
+        '''
+        This is a convenience method which let's us know whether
+        the input corresponds to one of our "file types" like
+        DataResourceAttribute, etc.
+        '''
+        return type(self.spec.value) in get_all_data_resource_types()
+
+
+    def check_value(self, v):
+        '''
+        This is the entry method for allowing us to validate
+        user-submitted values. 
+
+        We use the nested spec (`InputSpec`/`OutputSpec`)
+        with the value to see if it's valid.
+
+        If there is a problem with the submitted value, an 
+        exception will be raised.
+        '''
+        spec_dict = self.spec.to_dict()
+        spec_dict['value'] = v
+
+        # need to pop off the default (if any).
+        try:
+            spec_dict.pop('default')
+        except KeyError as ex:
+            pass
+
+        if self._required:
+            allow_null = False
+        else:
+            allow_null = True
+            
+        # if this has an issue, it will raise an exception
+        # which is caught by the caller
+        AttributeFactory(spec_dict, allow_null=allow_null)
+
+    @property
+    def required(self):
+        return self._required
 
     def to_dict(self):
         d = {}

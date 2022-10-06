@@ -13,6 +13,10 @@ from data_structures.attribute_types import IntegerAttribute, \
     UnrestrictedStringAttribute, \
     OptionStringAttribute, \
     BooleanAttribute
+from data_structures.list_attributes import StringListAttribute, \
+    UnrestrictedStringListAttribute, \
+    BoundedIntegerListAttribute, \
+    BoundedFloatListAttribute
 from data_structures.data_resource_attributes import DataResourceAttribute, \
     OperationDataResourceAttribute, \
     VariableDataResourceAttribute
@@ -32,7 +36,11 @@ simple_attribute_types = [
     BooleanAttribute,
     DataResourceAttribute,
     OperationDataResourceAttribute,
-    VariableDataResourceAttribute
+    VariableDataResourceAttribute,
+    StringListAttribute,
+    UnrestrictedStringListAttribute,
+    BoundedIntegerListAttribute,
+    BoundedFloatListAttribute
 ]
 simple_attribute_type_mapping = {x.typename: x for x in simple_attribute_types}
 

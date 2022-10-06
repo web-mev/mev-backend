@@ -5,15 +5,21 @@ from django.db.utils import OperationalError
 from rest_framework.exceptions import ValidationError
 from django.core.files.storage import default_storage
 
+from exceptions import NoResourceFoundException, \
+    InactiveResourceException, \
+    OwnershipException, \
+    StorageException, \
+    ResourceValidationException
+
+from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
+    RESOURCE_KEY
+
 from api.models import Resource, \
     ResourceMetadata, \
     OperationResource
-from api.exceptions import StorageException, \
-    ResourceValidationException
 from api.serializers.resource_metadata import ResourceMetadataSerializer
 from .basic_utils import make_local_directory
-from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
-    RESOURCE_KEY
+
 from resource_types import get_contents, \
     get_resource_paginator as _get_resource_paginator, \
     format_is_acceptable_for_type, \
@@ -23,9 +29,7 @@ from resource_types import get_contents, \
     get_standard_format, \
     RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW, \
     RESOURCE_MAPPING
-from api.exceptions import NoResourceFoundException, \
-    InactiveResourceException, \
-    OwnershipException
+
 from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)

@@ -12,13 +12,16 @@ from data_structures.attribute_types import BooleanAttribute
 logger = logging.getLogger(__name__)
 
 
-def get_all_data_resource_typenames():
-    data_resource_types = [
+def get_all_data_resource_types():
+    return [
         DataResourceAttribute,
         VariableDataResourceAttribute,
         OperationDataResourceAttribute
     ]
-    return [x.typename for x in data_resource_types]
+
+
+def get_all_data_resource_typenames():
+    return [x.typename for x in get_all_data_resource_types()]
 
 
 class BaseDataResourceAttribute(BaseAttributeType):

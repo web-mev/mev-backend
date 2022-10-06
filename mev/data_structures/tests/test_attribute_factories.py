@@ -9,7 +9,9 @@ from exceptions import MissingAttributeKeywordError, \
     AttributeValueError
 
 from data_structures.attribute_types import PositiveIntegerAttribute, \
-    BoundedFloatAttribute
+    BoundedFloatAttribute, \
+    StringAttribute
+from data_structures.list_attributes import StringListAttribute
 from data_structures.observation import Observation
 from data_structures.observation_set import ObservationSet
 
@@ -67,7 +69,7 @@ class TestAttributeFactories(unittest.TestCase):
         d = {
             'attribute_type': 'BoundedFloat',
             'value': 5,
-            'min':0
+            'min': 0
         }
         with self.assertRaisesRegex(MissingAttributeKeywordError, 'max'):
             x = tested_factory(d)
@@ -110,7 +112,27 @@ class TestAttributeFactories(unittest.TestCase):
         x = tested_factory(d, allow_null=True)
         self.assertIsNone(x.value)
 
+        # test the list types:
+        mylist = ['a','b','c']
+        d = {
+            'attribute_type': 'StringList',
+            'value': mylist 
+        }
+        x = tested_factory(d)
+        l = [v.value for v in x.value]
+        self.assertCountEqual(mylist, l)
 
+        mylist = [1,2,3]
+        d = {
+            'attribute_type': 'BoundedIntegerList',
+            'value': mylist,
+            'min': 0,
+            'max': 10
+        }
+        x = tested_factory(d)
+        l = [v.value for v in x.value]
+        self.assertCountEqual(mylist, l)
+        
     def test_simple_attribute_factory(self):
         '''
         We already have tests for the various simple types

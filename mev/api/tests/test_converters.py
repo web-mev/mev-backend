@@ -4,9 +4,14 @@ import os
 import uuid
 from django.core.exceptions import ImproperlyConfigured
 
+from exceptions import AttributeValueError, InputMappingException
+
+from data_structures.observation import Observation
+from data_structures.observation_set import ObservationSet
+from data_structures.feature import Feature
+from data_structures.feature_set import FeatureSet
+
 from api.models import Resource
-from api.exceptions import AttributeValueError, InputMappingException
-from api.data_structures import Observation, ObservationSet, Feature, FeatureSet
 from api.converters.basic_attributes import StringConverter, \
     IntegerConverter, \
     StringListConverter, \

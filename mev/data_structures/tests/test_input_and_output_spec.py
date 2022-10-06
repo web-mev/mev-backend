@@ -21,9 +21,12 @@ class TestInputOutputSpec(unittest.TestCase):
         i = InputSpec(spec)
         dict_rep = i.to_dict()
         self.assertDictEqual(dict_rep, spec)
+        self.assertIsNone(i.default)
+
         o = OutputSpec(spec)
         dict_rep = o.to_dict()
         self.assertDictEqual(dict_rep, spec)
+        self.assertIsNone(o.default)
 
         spec = {
             'attribute_type': 'ObservationSet',
@@ -48,6 +51,7 @@ class TestInputOutputSpec(unittest.TestCase):
         o = OutputSpec(spec)
         dict_rep = o.to_dict()
         self.assertDictEqual(dict_rep, spec)
+        self.assertTrue(i.default == 4)
 
         spec = {
             'attribute_type': 'ObservationSet',

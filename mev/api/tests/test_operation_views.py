@@ -1,7 +1,6 @@
 import uuid
 import unittest.mock as mock
 import shutil
-import json
 import os
 import datetime
 
@@ -17,13 +16,10 @@ from api.models import Workspace, \
     WorkspaceExecutedOperation, \
     ExecutedOperation
 from api.tests.base import BaseAPITestCase
-from api.tests import test_settings
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.ingest_operation import perform_operation_ingestion
 from api.utilities.operations import read_operation_json
 from api.views.executed_operation_views import OperationRun
-from api.data_structures import StringAttribute
-from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
 
 
 TESTDIR = os.path.dirname(__file__)

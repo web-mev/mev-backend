@@ -41,7 +41,8 @@ def ingest_new_operation(operation_uuid_str, repository_url, commit_id):
 
 
 @shared_task(name='submit_async_job')
-def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, validated_inputs):
+def submit_async_job(executed_op_pk, 
+        op_pk, user_pk, workspace_pk, job_name, validated_inputs):
     '''
 
     '''
@@ -55,7 +56,7 @@ def submit_async_job(executed_op_pk, op_pk, user_pk, workspace_pk, job_name, val
     # get the workspace instance if the pk was given:
     if workspace_pk is not None:
         logger.info(f'the workspace PK ({workspace_pk}) was given, so this'
-            ' is a workspace-associated job.')
+                    ' is a workspace-associated job.')
         workspace_related_job = True
         workspace = Workspace.objects.get(id=workspace_pk)
     else:

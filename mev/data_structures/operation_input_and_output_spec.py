@@ -4,7 +4,6 @@ from copy import deepcopy
 from exceptions import WebMeVException, \
     DataStructureValidationException
 
-#from data_structures.attribute import Attribute
 from data_structures.attribute_factory import AttributeFactory
 
 logger = logging.getLogger(__name__)
@@ -99,6 +98,10 @@ class InputOutputSpec(object):
         Use the `value` getter for consistency.
         '''
         return self._attribute_instance
+
+    @property
+    def default(self):
+        return self._default_value
 
     def to_dict(self):
         d = self._attribute_instance.to_dict()

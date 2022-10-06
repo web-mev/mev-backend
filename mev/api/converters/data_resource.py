@@ -4,14 +4,17 @@ import logging
 from django.core.files import File
 from django.core.files.storage import default_storage
 
+from data_structures.data_resource_attributes import \
+    DataResourceAttribute, \
+    VariableDataResourceAttribute
+
 from api.utilities.resource_utilities import get_resource_by_pk, \
     localize_resource, \
     initiate_resource_validation, \
     delete_resource_by_pk, \
     retrieve_resource_class_standard_format, \
     create_resource
-from api.data_structures.attributes import DataResourceAttribute, \
-    VariableDataResourceAttribute
+
 from api.converters.mixins import CsvMixin, SpaceDelimMixin
 from api.models import ResourceMetadata
 from api.exceptions import OutputConversionException, StorageException

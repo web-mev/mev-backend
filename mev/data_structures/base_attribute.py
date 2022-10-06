@@ -32,7 +32,7 @@ class BaseAttributeType(object):
         if kwargs != {}:
             raise AttributeValueError('This type of attribute does not '
                                       ' accept additional keyword arguments.'
-                                      ' Received: {",".join(kwargs.keys())}')
+                                      f' Received: {",".join(kwargs.keys())}')
 
     @property
     def value(self):

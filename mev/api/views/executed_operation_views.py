@@ -223,7 +223,6 @@ class OperationRun(APIView):
             return Response(response_payload, 
                 status=status.HTTP_400_BAD_REQUEST)
 
-        
         # Get the `Operation` instance. This catches both the case 
         # where the UUID is malformatted (400) or not found (404)
         op_uuid = payload[self.OP_UUID]

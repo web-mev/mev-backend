@@ -90,6 +90,24 @@ class InactiveResourceException(WebMeVException):
     pass
 
 
+class ExecutedOperationInputOutputException(WebMeVException):
+    '''
+    This is raised if we can't validate an input or output.
+
+    Note that this isn't for simple cases like a bad user input
+    (e.g. a pvalue > 1).
+
+    This is for cases that are possible, but unlikely.
+    An example would be passing a valid resource pk (UUID)
+    as an input. Technically, it's possible to POST a UUID
+    to a file that the user doesn't own (or is not part of
+    their workspace). Such an event is unlikely if using
+    the frontend application, but not impossible
+    if the POST request submitted by other means.
+    '''
+    pass
+
+
 class OwnershipException(WebMeVException):
     '''
     Raised if there is a conflict between the "owner" of a database resource

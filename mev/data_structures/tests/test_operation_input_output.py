@@ -5,7 +5,8 @@ from data_structures.operation_input import OperationInput
 from data_structures.operation_output import OperationOutput
 
 from exceptions import AttributeValueError, \
-    DataStructureValidationException
+    DataStructureValidationException, \
+    NullAttributeError
 
 
 class TestOperationInputOutput(unittest.TestCase):
@@ -154,3 +155,71 @@ class TestOperationInputOutput(unittest.TestCase):
         o1 = OperationOutput(self.output)
         o2 = OperationOutput(d)
         self.assertTrue(o1 == o2)
+
+    def test_data_resource_input_method(self):
+        '''
+        For convenience, we provide a method that checks
+        whether an input/output corresponds to one of our
+        file-inputs (DataResource, etc.)
+
+        Here we check that it works as expected
+        '''
+        dr_spec = {
+            "attribute_type": "DataResource",
+            "many": False,
+            "resource_type": "MTX"
+        }
+        variable_dr_spec = {
+            "attribute_type": "VariableDataResource",
+            "many": False,
+            "resource_types": ["MTX", "ANN"]
+        }
+        dr_input = {
+            "description": 'some desc',
+            "name": 'a name',
+            "required": True,
+            "converter": '',
+            "spec": dr_spec
+        }
+        variable_dr_input = {
+            "description": 'some desc',
+            "name": 'a name',
+            "required": True,
+            "converter": '',
+            "spec": variable_dr_spec
+        }
+        i = OperationInput(dr_input)
+        self.assertTrue(i.is_data_resource_input())
+        i = OperationInput(variable_dr_input)
+        self.assertTrue(i.is_data_resource_input())
+
+        # this one corresponds to a PositiveInteger:
+        i = OperationInput(self.input)
+        self.assertFalse(i.is_data_resource_input())
+
+    def test_check_value_method(self):
+
+        # this one corresponds to a PositiveInteger:
+        i = OperationInput(self.input)
+        i.check_value(4)
+        with self.assertRaisesRegex(AttributeValueError, 'not a positive integer'):
+            i.check_value(-4)
+
+        # try with an optional input
+        input_dict = {
+            "description": 'some desc',
+            "name": 'a name',
+            "required": False,
+            "converter": '',
+            "spec": {
+                "attribute_type": "PositiveInteger",
+                "default": 3
+            }
+        }
+        i = OperationInput(input_dict)
+        i.check_value(None)
+
+        input_dict['required'] = True
+        i = OperationInput(input_dict)
+        with self.assertRaises(NullAttributeError):
+            i.check_value(None)

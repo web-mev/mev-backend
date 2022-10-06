@@ -1,22 +1,18 @@
-import unittest
 import unittest.mock as mock
 import os
 import json
 import uuid
 
 from django.core.exceptions import ImproperlyConfigured
-from rest_framework.exceptions import ValidationError
 
 from api.tests.base import BaseAPITestCase
 from api.models import Workspace, \
-    Resource, \
-    ExecutedOperation, \
     WorkspaceExecutedOperation, \
     Operation
 from api.converters.output_converters import BaseOutputConverter, \
     LocalOutputConverter, \
     RemoteCromwellOutputConverter
-from api.exceptions import OutputConversionException, \
+from exceptions import OutputConversionException, \
     StorageException, \
     ResourceValidationException
 
