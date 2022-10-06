@@ -16,17 +16,18 @@ class TestDataresourceAttributes(unittest.TestCase):
 
     def test_dataresource_attribute(self):
         '''
-        Tests the various iterations of DataResourceAttribute classes, 
-        which is used when specifying files for use in analysis `Operation`s.
+        Tests the DataResourceAttribute, which is used when specifying
+        files for use in analysis `Operation`s.
+
+        Note that this test is set up to test 
         '''
 
         tested_classes = [
-            DataResourceAttribute, 
+            DataResourceAttribute,
             OperationDataResourceAttribute
         ]
 
         for clazz in tested_classes:
-
             # works:
             u = str(uuid.uuid4())
             d = clazz(u, many=True, resource_type='XYZ')
@@ -65,6 +66,7 @@ class TestDataresourceAttributes(unittest.TestCase):
             # missing the "many" key
             with self.assertRaises(MissingAttributeKeywordError):
                 clazz(str(uuid.uuid4()), resource_type='XYZ')
+
 
     def test_variable_dataresource_attribute(self):
         '''
@@ -144,16 +146,42 @@ class TestDataresourceAttributes(unittest.TestCase):
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 'requires a list'):
             d.resource_types = 'xyz'
 
+    def test_dataresource_verification(self):
+        '''
+        While the underlying method in the base class is the same, this 
+        tests the method we use to verify that user-submitted inputs
+        corresponding to data resource types are valid for the input.
+        That is, given an input that expects a MTX type, ensure that the
+        requested resource has type MTX
+        '''
+        d = DataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_type='XYZ')
+        d.verify_resource_type('XYZ')
 
-    def test_dataresource_type_validation(self):
+        d = VariableDataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_types=['ABC','XYZ'])
+        d.verify_resource_type('XYZ')
+
+        d = DataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_type='XYZ')
+        with self.assertRaisesRegex(
+            InvalidResourceTypeException, 'not valid: ABC'):
+            d.verify_resource_type('ABC')
+
+        d = VariableDataResourceAttribute(str(uuid.uuid4()), 
+            many=True, resource_types=['ABC', 'XYZ'])
+        with self.assertRaisesRegex(
+            InvalidResourceTypeException, 'not valid: DEF'):
+            d.verify_resource_type('DEF')
+
+    def test_dataresource_type_check(self):
         '''
         While the data structures are agnostic to the actual resource types of WebMeV
         (e.g. numeric matrix is "MTX"), we provide a 
         validation method which is called with the permissible types.
 
-        Note that the method ALSO functions as a way to check if a submitted
-        input (by a user wishing to run a job) corresponds to a resource
-        with the proper resource type
+        The method tested here is used to check that the types specified in
+        an operation spec file are valid for the types defined in our API.
         '''
 
         # although redundant, make a specific test that is 

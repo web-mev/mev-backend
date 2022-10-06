@@ -48,7 +48,8 @@ def check_resource_request_validity(user, resource_pk):
 
     if resource.owner == user:
         if not resource.is_active:
-            raise InactiveResourceException()
+            raise InactiveResourceException('The resource was not'
+                ' active and could not be used.')
         # requester can access, resource is active. Return the instance
         return resource
     else:
@@ -78,6 +79,15 @@ def get_resource_by_pk(resource_pk):
     raise NoResourceFoundException('Could not find any resource'
         ' identified by the ID {u}'.format(u=resource_pk)
     )
+
+def get_operation_resources_for_field(operation_db_instance, field_name):
+    '''
+    Given an instance of api.models.operation.Operation and a field name
+    (a string), return all the OperationResource's associated with that
+    field
+    '''
+    return OperationResource.objects.filter(
+        operation=operation_db_instance, input_field=field_name)
 
 def delete_resource_by_pk(resource_pk):
     '''

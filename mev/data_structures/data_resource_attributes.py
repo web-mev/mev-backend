@@ -13,12 +13,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_all_data_resource_types():
+    '''
+    Return the classes which correspond to file inputs.
+    '''
     return [
         DataResourceAttribute,
         VariableDataResourceAttribute,
         OperationDataResourceAttribute
     ]
 
+def get_owned_data_resource_types():
+    '''
+    Return the classes which correspond to file inputs
+    that are user-associated (owned). 
+    '''
+    return [
+        DataResourceAttribute,
+        VariableDataResourceAttribute
+    ]
 
 def get_all_data_resource_typenames():
     return [x.typename for x in get_all_data_resource_types()]
@@ -185,7 +197,8 @@ class DataResourceAttribute(BaseDataResourceAttribute):
     def check_resource_type_keys(self, available_set):
         '''
         Checks that the submitted `resource_type` is valid.
-        `available_set` is a set of valid strings
+        `available_set` is a set of valid strings (e.g. "MTX", etc). 
+        Used for verifying operation specifications on ingestion
         '''
         # ensure we have a set, just in case we are passed a list
         available_set = set(available_set)
@@ -194,6 +207,19 @@ class DataResourceAttribute(BaseDataResourceAttribute):
         submitted_set = set([self._resource_type])
 
         self._check_resource_type_keys(available_set, submitted_set)
+
+    def verify_resource_type(self, rt):
+        '''
+        Check that a resource type is valid for the types
+        defined in this attribute. Used when checking the 
+        inputs for an operation; we assert that the
+        resource type of a user-submitted input is valid for
+        the input.
+
+        `rt` is the resource type of the api.models.Resource
+        the user is requesting to use for the input.
+        '''
+        self._check_resource_type_keys(set([self._resource_type]), set([rt,]))
 
     def to_dict(self):
         d = super().to_dict()
@@ -206,11 +232,14 @@ class OperationDataResourceAttribute(DataResourceAttribute):
     Used to specify a reference to one or more Resource
     instances which are user-independent, such as database-like 
     resources which are used for analyses.
+
+    Structure
     ```
     {
         "attribute_type": "OperationDataResource",
         "value": <one or more Resource UUIDs>,
         "many": <bool>,
+        "resource_type": <str>,
     }
     ```
     Note that "many" controls whether >1 are allowed. It's not an indicator
@@ -284,6 +313,19 @@ class VariableDataResourceAttribute(BaseDataResourceAttribute):
         submitted_set = set(self._resource_types)
 
         self._check_resource_type_keys(available_set, submitted_set)
+
+    def verify_resource_type(self, rt):
+        '''
+        Check that a resource type is valid for the types
+        defined in this attribute. Used when checking the 
+        inputs for an operation; we assert that the
+        resource type of a user-submitted input is valid for
+        the input.
+
+        `rt` is the resource type of the api.models.Resource
+        the user is requesting to use for the input.
+        '''
+        self._check_resource_type_keys(set(self._resource_types), set([rt,]))
 
     def to_dict(self):
         d = super().to_dict()

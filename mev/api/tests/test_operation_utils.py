@@ -6,6 +6,12 @@ import uuid
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.exceptions import ValidationError
 
+from exceptions import ExecutedOperationInputOutputException, \
+    InvalidResourceTypeException, \
+    InactiveResourceException
+
+from data_structures.operation import Operation
+
 from api.utilities.operations import read_operation_json, \
     validate_operation_inputs, \
     resource_operations_file_is_valid
@@ -24,7 +30,6 @@ class OperationUtilsTester(BaseAPITestCase):
         fp = open(self.filepath)
         self.valid_dict = json.load(fp)
         fp.close()
-
 
         # the function we are testing requires an Operation database instance
         # Note, however, that we mock out the function that converts that into
@@ -50,8 +55,8 @@ class OperationUtilsTester(BaseAPITestCase):
         d = read_operation_json(self.filepath)
         self.assertDictEqual(d, self.valid_dict)
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_user_input_validation(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_user_input_validation(self, mock_get_operation_instance):
         '''
         Test that we receive back an appropriate object following
         successful validation. All the inputs below are valid
@@ -61,7 +66,8 @@ class OperationUtilsTester(BaseAPITestCase):
             'sample_for_basic_types_no_default.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         # some valid user inputs corresponding to the input specifications
         sample_inputs = {
@@ -69,22 +75,25 @@ class OperationUtilsTester(BaseAPITestCase):
             'positive_int_no_default_type': 3, 
             'nonnegative_int_no_default_type': 0, 
             'bounded_int_no_default_type': 2, 
-            'float_no_default_type':0.2, 
+            'float_no_default_type': 0.2, 
             'bounded_float_no_default_type': 0.4, 
             'positive_float_no_default_type': 0.01, 
             'nonnegative_float_no_default_type': 0.1, 
             'string_no_default_type': 'abc', 
-            'boolean_no_default_type': True
+            'boolean_no_default_type': True,
+            'unrestrictedstring_no_default_type': 'A B',
+            'option_string_no_default_type': 'xyz'
         }
 
         workspaces = Workspace.objects.all()
         if len(workspaces) == 0:
             raise ImproperlyConfigured('Need at least one Workspace to run this test.')
-        validate_operation_inputs(self.regular_user_1, 
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
+        self.assertDictEqual(final_inputs, sample_inputs)
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_no_default_for_required_param(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_no_default_for_required_param(self, mock_get_operation_instance):
         '''
         Test that a missing required parameter triggers a validation error
         '''
@@ -93,18 +102,19 @@ class OperationUtilsTester(BaseAPITestCase):
             'required_without_default.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         # one input was optional, one required. An empty payload
         # qualifies as a problem since it's missing the required key
         sample_inputs = {}
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaisesRegex(ValidationError, 'required_int_type'):
             validate_operation_inputs(self.regular_user_1, 
                 sample_inputs, self.db_op, self.workspace)
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_optional_value_filled_by_default(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_optional_value_filled_by_default(self, mock_get_operation_instance):
         '''
         Test that a missing optional parameter gets the default value
         '''
@@ -113,7 +123,8 @@ class OperationUtilsTester(BaseAPITestCase):
             'required_without_default.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         # one input was optional, one required. An empty payload
         # qualifies as a problem since it's missing the required key
@@ -121,13 +132,13 @@ class OperationUtilsTester(BaseAPITestCase):
 
         final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
-        self.assertEqual(final_inputs['required_int_type'].submitted_value, 22)
+        self.assertEqual(final_inputs['required_int_type'], 22)
         expected_default = d['inputs']['optional_int_type']['spec']['default']
         self.assertEqual(
-            final_inputs['optional_int_type'].submitted_value, expected_default)
+            final_inputs['optional_int_type'], expected_default)
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_optional_value_overridden(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_optional_value_overridden(self, mock_get_operation_instance):
         '''
         Test that the optional parameter is overridden when given
         '''
@@ -136,7 +147,8 @@ class OperationUtilsTester(BaseAPITestCase):
             'required_without_default.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         sample_inputs = {
             'required_int_type': 22,
@@ -145,11 +157,11 @@ class OperationUtilsTester(BaseAPITestCase):
 
         final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
-        self.assertEqual(final_inputs['required_int_type'].submitted_value, 22)
-        self.assertEqual(final_inputs['optional_int_type'].submitted_value, 33)
+        self.assertEqual(final_inputs['required_int_type'], 22)
+        self.assertEqual(final_inputs['optional_int_type'], 33)
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_optional_without_default_becomes_none(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_optional_without_default_becomes_none(self, mock_get_operation_instance):
         '''
         Generally, Operations with optional inputs should have defaults. However,
         if that is violated, the "input" should be assigned to be None
@@ -159,7 +171,8 @@ class OperationUtilsTester(BaseAPITestCase):
             'optional_without_default.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         # the only input is optional, so this is technically fine.
         sample_inputs = {}
@@ -169,8 +182,8 @@ class OperationUtilsTester(BaseAPITestCase):
             sample_inputs, self.db_op, self.workspace)
         self.assertIsNone(final_inputs['optional_int_type'])
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_list_attr_inputs(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_list_attr_inputs(self, mock_get_operation_instance):
         '''
         Test the case where inputs are of a list type (e.g. a list of strings)
         Check that it all validates as expected
@@ -182,7 +195,8 @@ class OperationUtilsTester(BaseAPITestCase):
             'valid_op_with_list_inputs.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
         l1 = ['https://foo.com/bar', 'https://foo.com/baz']
         l2 = ['abc', 'def']
         inputs = {
@@ -194,9 +208,158 @@ class OperationUtilsTester(BaseAPITestCase):
         result = validate_operation_inputs(self.regular_user_1,
                 inputs, op, None)
         self.assertIsNone(result['optional_input'])
-        self.assertCountEqual(result['link_list'].get_value(), l1)
-        self.assertCountEqual(result['regular_string_list'].get_value(), l2)
+        self.assertCountEqual(result['link_list'], l1)
+        self.assertCountEqual(result['regular_string_list'], l2)
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    @mock.patch('api.utilities.operations.check_resource_request_validity')
+    def test_owned_resource_input(self, 
+        mock_check_resource_request_validity, mock_get_operation_instance):
+        '''
+        Tests the cases where we have an input that is of type
+        VaribleDataResource, which is owned. 
         
+        In that case, we need to check that the passed
+        input (a UUID) is a owned by the requesting user and associated
+        with the workspace. Also test we raise an exceptionwhen those 
+        checks fail
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'valid_complete_workspace_operation.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+
+        # test a case that works:
+        mock_resource = mock.MagicMock()
+        mock_resource.resource_type = 'I_MTX'
+        mock_resource.workspaces = [
+            self.workspace,
+            mock.MagicMock() # just something so the workspaces is > 1
+        ]
+        mock_check_resource_request_validity.return_value = mock_resource
+        resource_uuid = str(uuid.uuid4())
+        sample_inputs = {
+            'p_val': 0.05,
+            'count_matrix': resource_uuid
+        }
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
+            sample_inputs, self.db_op, self.workspace)
+        self.assertDictEqual(final_inputs, sample_inputs)
+     
+        # test a case where the resource_type is invalid:
+        mock_resource.resource_type = 'ACK'
+        mock_resource.workspaces = [
+            self.workspace,
+            mock.MagicMock() # just something so the workspaces is > 1
+        ]
+        mock_check_resource_request_validity.return_value = mock_resource
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'ACK'):
+            final_inputs = validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+
+        # test a case where the resource was not in the workspace
+        mock_resource.resource_type = 'I_MTX'
+        mock_resource.workspaces = []
+        mock_check_resource_request_validity.return_value = mock_resource
+        with self.assertRaisesRegex(
+            ExecutedOperationInputOutputException, 
+            'not part of the workspace'):
+            final_inputs = validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+
+        # test a case where there is an issue in the
+        # `check_resource_request_validity` function
+        # In this case, we mock that the resource was inactive
+        mock_check_resource_request_validity.side_effect = \
+            InactiveResourceException
+        with self.assertRaises(InactiveResourceException):
+            final_inputs = validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    @mock.patch('api.utilities.operations.get_operation_resources_for_field')
+    def test_resource_operation_inputs(self, 
+        mock_get_operation_resources_for_field, mock_get_operation_instance):
+        '''
+        Tests the cases where we have an input that is of type
+        OperationDataResource. In that case, we need to check that the passed
+        input (a UUID) is an operation-associated resource for the 
+        correct input field
+        '''
+
+        f = os.path.join(
+            TESTDIR,
+            'valid_op_with_operation_resource.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+
+        # first test a case where this all works:
+        pathway_file_uuid = uuid.uuid4()
+        mock_db_op_resource1 = mock.MagicMock()
+        mock_db_op_resource1.pk = pathway_file_uuid
+        # the resource_type matches the type in the op file. 
+        mock_db_op_resource1.resource_type = 'FT'     
+        mock_db_op_resource2 = mock.MagicMock()
+        mock_db_op_resource2.pk = str(uuid.uuid4())
+        mock_get_operation_resources_for_field.return_value = [
+            mock_db_op_resource2,
+            mock_db_op_resource1
+        ]
+        sample_inputs = {
+            'p_val': 0.05,
+            'pathway_file': str(pathway_file_uuid)
+        }
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
+            sample_inputs, self.db_op, self.workspace)
+        self.assertDictEqual(sample_inputs, final_inputs)
+
+        # test the case where we get a matching resource op, but
+        # *somehow* it has become corrupted and the resource_type
+        # is no longer valid
+        mock_db_op_resource1 = mock.MagicMock()
+        mock_db_op_resource1.pk = pathway_file_uuid
+        # the resource_type does NOT match the type in the op file. 
+        mock_db_op_resource1.resource_type = 'ACK'     
+        mock_get_operation_resources_for_field.return_value = [
+            mock_db_op_resource2,
+            mock_db_op_resource1
+        ]
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'ACK'):
+            final_inputs = validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+
+        # Now test the case where a matching resource op is NOT found. 
+        # First the case where OTHER resources are associated, but not
+        # the one passed as an input
+        mock_db_op_resource1 = mock.MagicMock()
+        mock_db_op_resource1.pk = str(uuid.uuid4())   
+        mock_db_op_resource2 = mock.MagicMock()
+        mock_db_op_resource2.pk = str(uuid.uuid4())
+        mock_get_operation_resources_for_field.return_value = [
+            mock_db_op_resource2,
+            mock_db_op_resource1
+        ]
+        sample_inputs = {
+            'p_val': 0.05,
+            'pathway_file': str(pathway_file_uuid)
+        }
+        with self.assertRaisesRegex(
+            ExecutedOperationInputOutputException, 'not associated'):
+            final_inputs = validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+        
+        # Now the case where no OperationResources are associated 
+        mock_get_operation_resources_for_field.return_value = []
+        with self.assertRaisesRegex(
+            ExecutedOperationInputOutputException, 'not associated'):
+            final_inputs = validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+
     def test_resource_operation_file_formatting(self):
         '''
         Test that we correctly parse resource operation specification files
@@ -377,8 +540,8 @@ class OperationUtilsTester(BaseAPITestCase):
         }
         self.assertFalse(resource_operations_file_is_valid(bad_op_resource_data, inputs.keys()))
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_optional_boolean_value_filled_by_default(self, mock_get_operation_instance_data):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_optional_boolean_value_filled_by_default(self, mock_get_operation_instance):
         '''
         Test that a missing optional boolean parameter gets the default value
         '''
@@ -387,7 +550,8 @@ class OperationUtilsTester(BaseAPITestCase):
             'valid_op_with_default_bool.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         # one input was optional, one required. An empty payload
         # qualifies as a problem since it's missing the required key
@@ -395,7 +559,7 @@ class OperationUtilsTester(BaseAPITestCase):
 
         final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
-        self.assertEqual(final_inputs['some_boolean'].submitted_value, False)
+        self.assertEqual(final_inputs['some_boolean'], False)
         expected_default = d['inputs']['some_boolean']['spec']['default']
         self.assertEqual(
-            final_inputs['some_boolean'].submitted_value, expected_default)
+            final_inputs['some_boolean'], expected_default)

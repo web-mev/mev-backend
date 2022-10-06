@@ -1,6 +1,7 @@
 import logging
 
-from exceptions import DataStructureValidationException
+from exceptions import WebMeVException, \
+    DataStructureValidationException
 
 from data_structures.operation_input import OperationInput
 from data_structures.operation_output import OperationOutput
@@ -23,7 +24,13 @@ class OperationInputOutputDict(object):
 
         d = {}
         for k,v in submitted_dict.items():
-            d[k] = self.input_type(v)
+            try:
+                d[k] = self.input_type(v)
+            except WebMeVException as ex:
+                message = f'Problem with input key "{k}". {ex}'
+                # This raises the original type, but with additional
+                # info to make fixing the issue easier.
+                raise type(ex)(message)
         self._value = d
 
     def to_dict(self):

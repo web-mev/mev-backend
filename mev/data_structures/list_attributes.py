@@ -39,9 +39,13 @@ class AttributeListMixin(object):
         #     {'attribute_type': 'String', 'value': 'c'}
         # ]
         # when we only want ['a',...,'c']
+        if self._value:
+            val = [x.value for x in self._value]
+        else:
+            val = None
         return {
             'attribute_type': self.typename,
-            'value': [x.value for x in self._value]
+            'value': val
         }
 
 

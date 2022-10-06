@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import resource
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
@@ -9,7 +10,9 @@ from exceptions import WebMeVException, \
     ExecutedOperationInputOutputException
 
 from api.utilities.basic_utils import read_local_file
-from api.utilities.resource_utilities import check_resource_request_validity
+from api.utilities.resource_utilities import get_resource_by_pk, \
+    check_resource_request_validity, \
+    get_operation_resources_for_field
 
 from data_structures.operation import Operation
 
@@ -184,49 +187,67 @@ def validate_operation_inputs(
         op_input.check_value(supplied_input)
 
         if op_input.is_data_resource_input():
-            logger.info('Input corresponds to a data resource. Perform'
-                ' additional checks.')
-            # if we are dealing with a file-type, we need
-            # to ensure that:
-            # - the file is owned by the requesting user
-            # - the file is in the workspace
-            # - the file has the proper resource type
 
-            # if this doens't raise an exception, then the user does own
-            # the file:
-            resource_instance = check_resource_request_validity(
-                user, supplied_input)
-            if not workspace in resource_instance.workspaces:
-                raise ExecutedOperationInputOutputException('The resource'
-                    f' ({submitted_input}) was not part of the workspace'
-                    ' where the analysis operation was requested.')
+            # if the input resource is user-associated:
+            if op_input.is_user_data_resource_input():
+
+                logger.info('Input corresponds to a data resource. Perform'
+                    ' additional checks.')
+                # if we are dealing with a file-type, we need
+                # to ensure that:
+                # - the file is owned by the requesting user
+                # - the file is in the workspace
+                # - the file has the proper resource type
+
+                # if this doens't raise an exception, then the user does own
+                # the file:
+                resource_instance = check_resource_request_validity(
+                    user, supplied_input)
+
+                if not workspace in resource_instance.workspaces:
+                    raise ExecutedOperationInputOutputException('The resource'
+                        f' ({supplied_input}) was not part of the workspace'
+                        ' where the analysis operation was requested.')
+
+            else:
+                # if we are here, then we have a resource that is NOT
+                # user-associated. Need to check that the supplied input
+                # UUID corresponds to an OperationResource (database model)
+                # AND that it's meant for this input field. Recall that
+                # the OperationResource model has a field called `input_field`
+                # such that files are associated with specific inputs.
+                # Otherwise, tools with multiple fields using OperationResource
+                # inputs could have a confusing mess of files.
+
+                resources_for_field = get_operation_resources_for_field(
+                    operation_db_instance, op_input.name)
+                matching_resource_found = False
+                idx = 0
+                while (not matching_resource_found) \
+                    and (idx < len(resources_for_field)):
+                    r = resources_for_field[idx]
+                    if str(r.pk) == supplied_input:
+                        resource_instance = r
+                        matching_resource_found = True
+                    idx += 1
+                if not matching_resource_found:
+                    raise ExecutedOperationInputOutputException('The'
+                        f' provided input ({supplied_input}) was not'
+                        ' associated with the input field for this'
+                        ' operation.')
+
             # now need to check the resource type:
             # this gets the instance, e.g. an instance of
             # data_structures.data_resource_attributes.DataResourceAttribute
-            op_input.spec.value
+            # (or one of the sibling classes)
+            data_resource_attr = op_input.spec.value
 
-        # now validate that supplied input against the spec
-        attribute_typename = spec['attribute_type']
-        try:
-            # TODO: address this- set to None to avoid import
-            submitted_input_class = None
-            logger.info(submitted_input_class)
-        except KeyError as ex:
-            logger.error('Could not find an appropriate class for handling the user input'
-                         ' for the typename of {t}'.format(
-                             t=attribute_typename
-                         )
-                         )
-            raise Exception('Could not find an appropriate class for typename {t} for'
-                            ' the input named {x}.'.format(
-                                x=key,
-                                t=attribute_typename
-                            )
-                            )
-        if supplied_input is not None:
-            logger.info('Check supplied input: {d}'.format(d=supplied_input))
-            final_inputs[key] = submitted_input_class(
-                user, operation, workspace, key, supplied_input, spec)
-        else:
-            final_inputs[key] = None
+            # this method will raise an exception if the resource_type
+            # of the requested resource does not match the requirements
+            # of the specification
+            data_resource_attr.verify_resource_type(
+                resource_instance.resource_type)
+
+        final_inputs[key] = supplied_input
+
     return final_inputs

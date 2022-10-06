@@ -19,7 +19,7 @@ from api.utilities.ingest_operation import add_required_keys_to_operation, \
     save_operation, \
     retrieve_repo_name, \
     ingest_dir, \
-    check_for_operation_resources, \
+    handle_operation_specific_resources, \
     validate_operation_spec
 
 from api.tests.base import BaseAPITestCase
@@ -721,24 +721,28 @@ class OperationIngestionTester(BaseAPITestCase):
         shutil.rmtree(mock_ops_dir)
         shutil.rmtree(mock_staging_dir)
 
-    def test_check_for_operation_resources(self):
+    def test_handle_operation_specific_resources(self):
         '''
         Tests that we get the expected inputs from the operation spec file.
         This should be a subset of the inputs that correspond to user-independent
         OperationResource types.
         '''
-        # should only get a single key back 
+
+        # This is kind of a temporary test that blocks use of OperationResource
+        # inputs until they are implemented
+        # TODO: remove when necessary
         p = os.path.join(TESTDIR, 'valid_op_with_operation_resource.json')
         op_data = json.load(open(p))
-        result = check_for_operation_resources(op_data)
-        self.assertTrue(result.keys() == set(['pathway_file']))
-        self.assertTrue(result.keys() != op_data['inputs'].keys())
+        op = Operation(op_data)
+        with self.assertRaises(NotImplementedError):
+            handle_operation_specific_resources(op, '', '')
 
-        # check that no keys are returned
-        p = os.path.join(TESTDIR, 'valid_operation.json')
+        # check that there are no OperationDataResource inputs
+        # so we don't get the NYI error raised.
+        p = os.path.join(TESTDIR, 'valid_complete_workspace_operation.json')
         op_data = json.load(open(p))
-        result = check_for_operation_resources(op_data)
-        self.assertTrue(len(result.keys()) == 0)
+        op = Operation(op_data)
+        handle_operation_specific_resources(op, '', '')
 
     # the patched list here matches that of the file we use in this test:
     @mock.patch('api.utilities.ingest_operation.RESOURCE_TYPE_SET', 

@@ -171,24 +171,7 @@ def check_required_files(op_data, staging_dir):
     runner.check_required_files(staging_dir)
 
 
-def check_for_operation_resources(op_data):
-    '''
-    This function looks through the operation spec to check if there are any inputs
-    that correspond to "static" operation resources (i.e. user-independent/operation-specific files)
-
-    If yes, returns a dict which is a subset of the `inputs` object from the operation spec file.
-    Only the inputs that correspond to operation resources are included. If none of the inputs
-    are operation resources, then return an empty dict
-    '''
-    d = {}
-    for input_key, op_input in op_data['inputs'].items():
-        spec = op_input['spec']
-        if spec['attribute_type'] == OperationDataResourceAttribute.typename:
-            d[input_key] = op_input
-    return d
-
-
-def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
+def handle_operation_specific_resources(op, staging_dir, op_uuid):
     '''
     This function looks through the operation's inputs and handles any 
     operation-specific resources. These are user-independent resources (such as 
@@ -196,15 +179,16 @@ def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
     distinct from a user's files.
     '''
 
-    # look through the inputs and see if any correspond to OperationDataResource.
+    # look through the inputs to see if any are OperationDataResource type.
     # If not, immediately return
-    relevant_inputs = check_for_operation_resources(op_data)
-    if not relevant_inputs:
-        return
-    else:
-        raise NotImplementedError('To use/incorporate operation resources,'
-                                  ' you must first create the logic.'
-                                  )
+    op_inputs = op.inputs
+    for key in op_inputs.keys():
+        op_input = op_inputs[key]
+        if op_input.is_data_resource_input() \
+            and (not op_input.is_user_data_resource_input()):
+            # TODO: implement when ready.
+            raise NotImplementedError('To use/incorporate operation resources,'
+                                  ' you must first create the logic.')
 
 
 def prepare_operation(op_data, staging_dir, repo_name, git_hash):
@@ -362,7 +346,7 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
     check_required_files(op_data, staging_dir)
 
     # handle any operation-specific resources/files:
-    handle_operation_specific_resources(op_data, staging_dir, op_uuid)
+    handle_operation_specific_resources(op, staging_dir, op_uuid)
 
     # prepare any elements required for running the operation:
     prepare_operation(op_data, staging_dir, repo_name, git_hash)

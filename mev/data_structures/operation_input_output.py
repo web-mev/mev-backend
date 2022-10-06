@@ -5,7 +5,8 @@ from exceptions import DataStructureValidationException, \
 
 from data_structures.attribute_factory import AttributeFactory
 from data_structures.data_resource_attributes import \
-    get_all_data_resource_types
+    get_all_data_resource_types, \
+    get_owned_data_resource_types
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,6 @@ class OperationInputOutput(object):
             raise DataStructureValidationException('The input contained'
                 f' invalid extra keys: {",".join(extra_keys)}')
 
-
     def is_data_resource_input(self):
         '''
         This is a convenience method which let's us know whether
@@ -99,6 +99,20 @@ class OperationInputOutput(object):
         '''
         return type(self.spec.value) in get_all_data_resource_types()
 
+    def is_user_data_resource_input(self):
+        '''
+        This is a convenience method which let's us know whether
+        the input corresponds to one of our "file types" like
+        DataResourceAttribute, etc. that are OWNED by someone.
+
+        Recall that we can have Operation-linked files which are not
+        associated with any user (`OperationDataResource`). 
+
+        This is used to signal whether additional checks might be 
+        necessary. For instance, whether a resource has the correct
+        owner and is in the current workspace, etc.
+        '''
+        return type(self.spec.value) in get_owned_data_resource_types()
 
     def check_value(self, v):
         '''
