@@ -83,10 +83,13 @@ class LocalDockerRunner(OperationRunner):
                 ' should check the analysis operation.'
             )
 
-    def finalize(self, executed_op, op_data):
+    def finalize(self, executed_op, op):
         '''
         Finishes up an ExecutedOperation. Does things like registering files 
         with a user, cleanup, etc.
+
+        `executed_op` is an instance of api.models.ExecutedOperation
+        `op` is an instance of data_structures.operation.Operation
         '''
         job_id = str(executed_op.job_id)
         exit_code = check_container_exit_code(job_id)
@@ -125,8 +128,8 @@ class LocalDockerRunner(OperationRunner):
             try:
                 outputs_dict = self.load_outputs_file(job_id)
 
-                converted_outputs = self.convert_outputs(
-                    executed_op, op_data, outputs_dict)
+                converted_outputs = self._convert_outputs(
+                    executed_op, op, outputs_dict)
                 executed_op.outputs = converted_outputs
 
                 executed_op.job_failed = False
@@ -179,12 +182,12 @@ class LocalDockerRunner(OperationRunner):
                 ' local Docker container. See logs.'
             )
 
-    def run(self, executed_op, op_data, validated_inputs):
+    def run(self, executed_op, op, validated_inputs):
         logger.info('Running in local Docker mode.')
-        logger.info('Executed op type: %s' % type(executed_op))
-        logger.info('Executed op ID: %s' % str(executed_op.id))
-        logger.info('Op data: %s' % op_data)
-        logger.info(validated_inputs)
+        logger.info(f'Executed op type: {type(executed_op)}')
+        logger.info(f'Executed op ID: {executed_op.id}')
+        logger.info(f'Op data: {op.to_dict()}')
+        logger.info(f'Validated inputs: {validated_inputs}')
 
         # the UUID identifying the execution of this operation:
         execution_uuid = str(executed_op.id)
@@ -192,7 +195,7 @@ class LocalDockerRunner(OperationRunner):
         # get the operation dir so we can look at which converters and command to use:
         op_dir = os.path.join(
             settings.OPERATION_LIBRARY_DIR, 
-            str(op_data['id'])
+            str(op.id)
         )
 
         # To avoid conflicts or corruption of user data, we run each operation in its
@@ -208,7 +211,7 @@ class LocalDockerRunner(OperationRunner):
         # that the call with use- e.g. making a CSV list to submit as one of the args
         # like:
         # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
-        arg_dict = self._map_inputs(op_data, op_dir, validated_inputs, execution_dir)
+        arg_dict = self._convert_inputs(op, op_dir, validated_inputs, execution_dir)
 
         logger.info('After mapping the user inputs, we have the'
             ' following structure: {d}'.format(d = arg_dict)
@@ -231,8 +234,8 @@ class LocalDockerRunner(OperationRunner):
         entrypoint_cmd = self._get_entrypoint_command(entrypoint_file_path, arg_dict)
 
         image_str = get_image_name_and_tag(
-            op_data['repo_name'],
-            op_data['git_hash']
+            op.repository_name,
+            op.git_hash
         )
 
         cmd = self.DOCKER_RUN_CMD.format(

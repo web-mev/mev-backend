@@ -9,6 +9,7 @@ def normalize_identifier(original_name):
     spaces and checks that string consists of only
     - characters
     - underscore
+    - dots
     '''
     if not type(original_name) is str:
         raise StringIdentifierException(f'The value {original_name}'
@@ -24,7 +25,7 @@ def normalize_identifier(original_name):
     # 9a
     # .A
     # -A
-    pattern = '^(?!\d)\w*'
+    pattern = '^(?!\d)[\.\w]*'
     if re.fullmatch(pattern, name):
         return name
     else:

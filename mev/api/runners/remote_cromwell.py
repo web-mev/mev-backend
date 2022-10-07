@@ -188,7 +188,7 @@ class RemoteCromwellRunner(OperationRunner):
             )
             raise ImproperlyConfigured('Failed to reach Cromwell server.')
 
-    def _create_inputs_json(self, op_data, op_dir, validated_inputs, staging_dir):
+    def _create_inputs_json(self, op, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
         and make them into something that we can inject into Cromwell's
@@ -196,9 +196,11 @@ class RemoteCromwellRunner(OperationRunner):
 
         For instance, this takes a DataResource (which is a UUID identifying
         the file), and turns it into a cloud-based path that Cromwell can access.
+
+        Note that `op` is an instance of data_structures.operation.Operation
         '''
         # create/write the input JSON to a file in the staging location
-        arg_dict = self._map_inputs(op_data, op_dir, validated_inputs, staging_dir)
+        arg_dict = self._convert_inputs(op, op_dir, validated_inputs, staging_dir)
         wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
         with open(wdl_input_path, 'w') as fout:
             json.dump(arg_dict, fout)
@@ -370,7 +372,10 @@ class RemoteCromwellRunner(OperationRunner):
                 return True
         return False
 
-    def handle_job_success(self, executed_op, op_data):
+    def handle_job_success(self, executed_op, op):
+        '''
+        `op` is an instance of data_structures.operation.Operation
+        '''
 
         job_id = executed_op.job_id
         job_metadata = self.query_for_metadata(job_id)
@@ -402,7 +407,7 @@ class RemoteCromwellRunner(OperationRunner):
             alert_admins(error_msg)
 
         try:
-            converted_outputs = self.convert_outputs(executed_op, op_data, outputs_dict)
+            converted_outputs = self._convert_outputs(executed_op, op, outputs_dict)
             executed_op.outputs = converted_outputs
             executed_op.execution_stop_datetime = end_time
             executed_op.job_failed = False
@@ -448,7 +453,7 @@ class RemoteCromwellRunner(OperationRunner):
             'the job status of op: {op_id}.'.format(op_id=executed_op.job_id)
         )
 
-    def finalize(self, executed_op, op_data):
+    def finalize(self, executed_op, op):
         '''
         Finishes up an ExecutedOperation. Does things like registering files 
         with a user, cleanup, etc.
@@ -460,7 +465,7 @@ class RemoteCromwellRunner(OperationRunner):
         else:
             status = None
         if status == self.SUCCEEDED_STATUS:
-            self.handle_job_success(executed_op, op_data)
+            self.handle_job_success(executed_op, op)
         elif status == self.FAILED_STATUS:
             self.handle_job_failure(executed_op)
         else:
@@ -470,12 +475,12 @@ class RemoteCromwellRunner(OperationRunner):
         executed_op.save()
 
 
-    def run(self, executed_op, op_data, validated_inputs):
+    def run(self, executed_op, op, validated_inputs):
         logger.info('Running in remote Cromwell mode.')
-        logger.info('Executed op type: %s' % type(executed_op))
-        logger.info('Executed op ID: %s' % str(executed_op.id))
-        logger.info('Op data: %s' % op_data)
-        logger.info(validated_inputs)
+        logger.info(f'Executed op type: {type(executed_op)}')
+        logger.info(f'Executed op ID: {executed_op.id}')
+        logger.info(f'Op data: {op.to_dict()}')
+        logger.info(f'Validated inputs: {validated_inputs}')
 
         # the UUID identifying the execution of this operation:
         execution_uuid = str(executed_op.id)
@@ -483,7 +488,7 @@ class RemoteCromwellRunner(OperationRunner):
         # get the operation dir so we can look at which converters to use:
         op_dir = os.path.join(
             settings.OPERATION_LIBRARY_DIR, 
-            str(op_data['id'])
+            str(op.id)
         )
 
         # create a sandbox directory where we will store the files:
@@ -491,7 +496,7 @@ class RemoteCromwellRunner(OperationRunner):
         make_local_directory(staging_dir)
 
         # create the Cromwell-compatible inputs.json from the user inputs
-        self._create_inputs_json(op_data, op_dir, validated_inputs, staging_dir)
+        self._create_inputs_json(op, op_dir, validated_inputs, staging_dir)
 
         # copy over the workflow contents:
         self._copy_workflow_contents(op_dir, staging_dir)

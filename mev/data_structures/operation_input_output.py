@@ -164,5 +164,3 @@ class OperationInputOutput(object):
         c = self.required == other.required
         return all([a,b,c])
 
-    def __repr__(self):
-        return f'{self.typename} ({self.name}).\n Spec:\n{self.spec}'

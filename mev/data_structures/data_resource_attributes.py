@@ -80,6 +80,10 @@ class BaseDataResourceAttribute(BaseAttributeType):
         b = BooleanAttribute(v)
         self._many = b.value
 
+    @property
+    def many(self):
+        return self._many
+
     def _value_validator(self, val):
         '''
         Validates that the value (or values)

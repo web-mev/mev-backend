@@ -10,7 +10,7 @@ from api.models import Operation, \
     Workspace
 from api.utilities.ingest_operation import perform_operation_ingestion
 from api.runners import submit_job, finalize_job, get_runner
-from api.utilities.operations import get_operation_instance_data
+from api.utilities.operations import get_operation_instance
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +64,8 @@ def submit_async_job(executed_op_pk,
         workspace_related_job = False
 
     try:
-        op = Operation.objects.get(pk=op_pk)
-        logger.info(op)
+        db_op = Operation.objects.get(pk=op_pk)
+        logger.info(db_op)
     except Operation.DoesNotExist:
         logger.error('An async task received a primary key for an Operation'
                      f' that did not exist. PK={op_pk}')
@@ -74,7 +74,7 @@ def submit_async_job(executed_op_pk,
                         )
 
     # need to read the Operation definition to get the run mode:
-    op_data = get_operation_instance_data(op)
+    op = get_operation_instance(db_op)
 
     # Create an ExecutedOperation to track the job
     if workspace_related_job:
@@ -86,7 +86,7 @@ def submit_async_job(executed_op_pk,
             job_name=job_name,
             inputs=validated_inputs,
             operation=op,
-            mode=op_data['mode'],
+            mode=op.mode,
             status=ExecutedOperation.SUBMITTED
         )
     else:
@@ -97,10 +97,10 @@ def submit_async_job(executed_op_pk,
             job_name=job_name,
             inputs=validated_inputs,
             operation=op,
-            mode=op_data['mode'],
+            mode=op.mode,
             status=ExecutedOperation.SUBMITTED
         )
-    submit_job(executed_op, op_data, validated_inputs)
+    submit_job(executed_op, op, validated_inputs)
 
     # also start a task that will watch for job status changes
     check_executed_op.delay(executed_op_pk)
@@ -161,5 +161,5 @@ def finalize_executed_op(exec_op_uuid):
     except WorkspaceExecutedOperation.DoesNotExist:
         pass
 
-    op_data = get_operation_instance_data(executed_op.operation)
-    finalize_job(executed_op, op_data)
+    op = get_operation_instance(executed_op.operation)
+    finalize_job(executed_op, op)

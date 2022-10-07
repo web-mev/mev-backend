@@ -16,3 +16,6 @@ class OperationOutput(OperationInputOutput):
     '''
     typename = 'OperationOutput'
     spec_type = OutputSpec
+
+    def __repr__(self):
+        return f'{self.typename}\n Spec:\n{self.spec}'

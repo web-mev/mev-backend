@@ -61,3 +61,6 @@ class OperationInput(OperationInputOutput):
         b = self.description == other.description
         c = self.name == other.name
         return all([base_objects_equal,b,c])
+
+    def __repr__(self):
+        return f'{self.typename} ({self.name}).\n Spec:\n{self.spec}'

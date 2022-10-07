@@ -11,7 +11,6 @@ from rest_framework.exceptions import ValidationError, APIException
 
 from constants import TSV_FORMAT
 from api.models import Resource
-from api.utilities import normalize_filename
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings

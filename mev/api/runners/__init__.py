@@ -24,26 +24,27 @@ def get_runner(run_mode):
         raise ex
  
 
-def submit_job(executed_op, op_data, validated_inputs):
+def submit_job(executed_op, op, validated_inputs):
     '''
     Submits the job to the proper runner.
 
     `executed_op` is an instance of ExecutedOperation (database model)
-    `op_data` is a dict parsed from an `Operation` spec (data structure, NOT db model)
+    `op` is an instance of data_structures.operation.Operation
     `validated_inputs` is a dict of inputs. Each key matches a key 
       from the `op_data` and the value is an instance of `UserOperationInput`
     '''
-    runner_class = get_runner(op_data['mode'])
+    runner_class = get_runner(executed_op.mode)
     runner = runner_class()
-    runner.run(executed_op, op_data, validated_inputs)
+    runner.run(executed_op, op, validated_inputs)
 
 
-def finalize_job(executed_op, op_data):
+def finalize_job(executed_op, op):
     '''
     Finalizes the job using the proper runner.
 
     `executed_op` is an instance of ExecutedOperation (database model)
+    `op` is an instance of data_structures.operation.Operation
     '''
     runner_class = get_runner(executed_op.mode)
     runner = runner_class()
-    runner.finalize(executed_op, op_data)
+    runner.finalize(executed_op, op)

@@ -89,11 +89,13 @@ class OperationRunner(object):
             raise ex  
 
 
-    def _map_inputs(self, op_data, op_dir, validated_inputs, staging_dir):
+    def _convert_inputs(self, op, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
         and make them into something that we can pass to a command-line
         call. 
+
+        Note that `op` is an instance of data_structures.operation.Operation
 
         For instance, this might take a DataResource (which is a UUID identifying
         the file), and turns it into a local path. The actual mapping depends
@@ -104,17 +106,17 @@ class OperationRunner(object):
         '''
         arg_dict = {}
         for k,v in validated_inputs.items():
+            op_input = op.inputs[k]
             # instantiate the converter and convert the arg:
-            converter = self._get_converter(op_data[k]['converter'])
-            arg_dict.update(converter.convert_input(k, v, op_dir, staging_dir))
+            converter = self._get_converter(op_input.converter)
+            arg_dict[k] = converter.convert_input(v, op_dir, staging_dir)
 
         logger.info('After mapping the user inputs, we have the'
-            ' following structure: {d}'.format(d = arg_dict)
-        )
+            f' following structure: {arg_dict}')
         return arg_dict
 
 
-    def convert_outputs(self, executed_op, op_data, outputs_dict):
+    def _convert_outputs(self, executed_op, op, outputs_dict):
         '''
         Handles the mapping from outputs (as provided by the runner)
         to MEV-compatible data structures or resources.
@@ -123,8 +125,9 @@ class OperationRunner(object):
         # the workspace so we know which workspace to associate outputs with:
         user_workspace = getattr(executed_op, 'workspace', None)
 
-        # get the operation spec so we know which types correspond to each output
-        op_spec_outputs = op_data['outputs']
+        # get the operation spec so we know which types
+        # correspond to each output
+        op_spec_outputs = op.outputs
 
         converted_outputs_dict = {}
         try:
@@ -135,11 +138,9 @@ class OperationRunner(object):
                 try:
                     v = outputs_dict[k]
                 except KeyError as ex:
-                    error_msg = ('Could not locate the output with key={k} in'
-                        ' the outputs of operation with ID: {id}'.format(
-                            k = k,
-                            id = str(executed_op.operation.id)
-                        )
+                    error_msg = (f'Could not locate the output with key={k}'
+                        ' in the outputs of executed operation with ID:'
+                        f' {executed_op.id}'
                     )
                     logger.info(error_msg)
                     alert_admins(error_msg)
@@ -147,8 +148,8 @@ class OperationRunner(object):
 
                 else:
                     if v is not None:
-                        logger.info('Executed operation output was not None. Convert.')
-                        converter = self._get_converter(current_output_spec['converter'])
+                        converter = self._get_converter(
+                            current_output_spec.converter)
                         converted_outputs_dict[k] = converter.convert_output(
                             executed_op, user_workspace, current_output_spec, v)
                     else:
@@ -162,8 +163,8 @@ class OperationRunner(object):
             # We don't fail the job, but we alert the admins.
             extra_keys = set(outputs_dict.keys()).difference(op_spec_outputs.keys())
             if len(extra_keys) > 0:
-                error_msg = ('There were extra keys ({keys}) in the output of'
-                    ' the operation. Check this.'.format(keys=','.join(extra_keys)))
+                error_msg = (f'There were extra keys ({",".join(extra_keys)})'
+                    ' in the output of the operation. Check this.')
                 logger.info(error_msg)
                 alert_admins(error_msg)
 
