@@ -2,7 +2,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.models import Operation, OperationCategory
-from api.serializers.operation import OperationSerializer
 from api.utilities.operations import get_operation_instance_data
 
 
@@ -17,13 +16,14 @@ class OperationCategorySerializer(serializers.Serializer):
             return operation_id
         except Operation.DoesNotExist as ex:
             raise ValidationError('Could not find Operation with'
-                ' id={id}'.format(id=operation_id)
+                f' id={operation_id}'
             )
+
 
 class OperationCategoryListSerializer(serializers.Serializer):
 
     name = serializers.CharField(max_length=200, read_only=True)
-    children = OperationSerializer(many=True, read_only=True)
+    children = serializers.JSONField()
 
     def to_representation(self, instance):
         category = instance['category']

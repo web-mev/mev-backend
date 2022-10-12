@@ -1,4 +1,3 @@
-from distutils.command.clean import clean
 from io import BytesIO
 import os
 import copy
@@ -26,17 +25,20 @@ from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
     MATRIX_KEY, \
     INTEGER_MATRIX_KEY, \
     ANNOTATION_TABLE_KEY
+
+from data_structures.observation_set import ObservationSet
+
 from resource_types import RESOURCE_MAPPING, \
     GeneralResource, \
     AnnotationTable, \
     Matrix, \
     IntegerMatrix
+
 from api.models import Resource, \
     ResourceMetadata, \
-    Operation, \
+    Operation as OperationDb, \
     OperationResource
 from api.serializers.resource_metadata import ResourceMetadataSerializer
-from api.serializers.observation_set import ObservationSetSerializer
 from api.utilities.resource_utilities import initiate_resource_validation, \
     handle_valid_resource, \
     handle_invalid_resource, \
@@ -51,7 +53,7 @@ from api.utilities.resource_utilities import initiate_resource_validation, \
     retrieve_metadata, \
     retrieve_resource_class_standard_format, \
     check_if_resource_unset
-from api.exceptions import NoResourceFoundException, \
+from exceptions import NoResourceFoundException, \
     ResourceValidationException, \
     InactiveResourceException, \
     OwnershipException
@@ -61,6 +63,7 @@ from api.tests.test_helpers import associate_file_with_resource
 BASE_TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(BASE_TESTDIR, 'operation_test_files')
 VALIDATION_TESTDIR = os.path.join(BASE_TESTDIR, 'resource_validation_test_files')
+
 
 class TestResourceUtilities(BaseAPITestCase):
     '''
@@ -129,7 +132,7 @@ class TestResourceUtilities(BaseAPITestCase):
         r2 = get_resource_by_pk(r.pk)
         self.assertEqual(r,r2)
 
-        ops = Operation.objects.all()
+        ops = OperationDb.objects.all()
         op = ops[0]
         r3 = OperationResource.objects.create(
             operation = op,
@@ -634,12 +637,8 @@ class TestResourceUtilities(BaseAPITestCase):
         mock_format_is_acceptable_for_type.side_effect = KeyError('ack')
         requested_type = 'foo_type'
         file_format = 'xyz'
-        with self.assertRaises(ResourceValidationException) as ex:
+        with self.assertRaisesRegex(ResourceValidationException, 'foo_type is not a known type'):
             check_file_format_against_type(requested_type, file_format)
-            expected_status = Resource.UNKNOWN_RESOURCE_TYPE_ERROR.format(
-                requested_resource_type = requested_type
-            )
-            self.assertEqual(str(ex), expected_status)
 
     @mock.patch('api.utilities.resource_utilities.get_resource_type_instance')
     def test_bad_resource_type_when_retrieving_resource_type_instance(self,
@@ -780,7 +779,6 @@ class TestResourceUtilities(BaseAPITestCase):
         rm_pk = rm.pk
 
         mock_obs_set = {
-            'multiple': True,
             'elements': [
                 {
                     'id': 'sampleA'
@@ -791,8 +789,8 @@ class TestResourceUtilities(BaseAPITestCase):
             ]
         }
         # verify that the mock above is valid
-        oss = ObservationSetSerializer(data=mock_obs_set)
-        self.assertTrue(oss.is_valid())
+        oss = ObservationSet(mock_obs_set)
+
         add_metadata_to_resource(
             r, 
             {
@@ -806,7 +804,6 @@ class TestResourceUtilities(BaseAPITestCase):
         elements = expected_obs_set['elements']
         for el in elements:
             el.update({'attributes': {}})
-        self.assertEqual(rm2.observation_set['multiple'], mock_obs_set['multiple'])
         self.assertCountEqual(rm2.observation_set['elements'], elements)
 
         # OK, now get a Resource that does not already have metadata
@@ -829,7 +826,6 @@ class TestResourceUtilities(BaseAPITestCase):
         elements = expected_obs_set['elements']
         for el in elements:
             el.update({'attributes': {}})
-        self.assertEqual(rm3.observation_set['multiple'], mock_obs_set['multiple'])
         self.assertCountEqual(rm3.observation_set['elements'], elements)
 
     @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
@@ -910,7 +906,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock there being a failure when trying to save this,
         # but we at least give it real data here
         mock_obs_set = {
-            'multiple': True,
             'elements': [
                 {
                     'id': 'sampleA'
@@ -921,8 +916,7 @@ class TestResourceUtilities(BaseAPITestCase):
             ]
         }
         # verify that the mock above is valid
-        oss = ObservationSetSerializer(data=mock_obs_set)
-        self.assertTrue(oss.is_valid())
+        oss = ObservationSet(mock_obs_set)
 
         # create a mock object that will raise an exception
         from django.db.utils import OperationalError
@@ -984,7 +978,6 @@ class TestResourceUtilities(BaseAPITestCase):
         # mock there being a failure when trying to save this,
         # but we at least give it real data here
         mock_obs_set = {
-            'multiple': True,
             'elements': [
                 {
                     'id': 'sampleA'
@@ -995,8 +988,7 @@ class TestResourceUtilities(BaseAPITestCase):
             ]
         }
         # verify that the mock above is valid
-        oss = ObservationSetSerializer(data=mock_obs_set)
-        self.assertTrue(oss.is_valid())
+        oss = ObservationSet(mock_obs_set)
 
         # create a mock object that will raise an exception
         mock_serializer1 = mock.MagicMock()

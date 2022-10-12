@@ -11,7 +11,6 @@ from exceptions import InvalidResourceTypeException, \
     DataStructureValidationException, \
     InvalidRunModeException
 
-from api.serializers.operation import OperationSerializer
 from data_structures.operation import Operation
 from api.models import Operation as OperationDbModel
 from api.utilities.ingest_operation import add_required_keys_to_operation, \
@@ -531,7 +530,7 @@ class OperationIngestionTester(BaseAPITestCase):
         self.assertFalse(os.path.exists(expected_final_dir))
 
         # call the save function:
-        op_data = OperationSerializer(operation_instance).data
+        op_data = operation_instance.to_dict()
         save_operation(op_data, dummy_src_path, True)
         self.assertTrue(os.path.exists(expected_final_dir))
 

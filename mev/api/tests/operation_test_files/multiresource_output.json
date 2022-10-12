@@ -1,4 +1,5 @@
 {
+    "id": "b39ecd15-3737-4ef1-8f16-4b66cd7f6ff7",
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
@@ -6,6 +7,7 @@
             "description": "The count matrix of expressions", 
             "name": "Count matrix:", 
             "required": true, 
+            "converter": "abc",
             "spec": {
                 "attribute_type": "VariableDataResource", 
                 "resource_types": ["I_MTX", "EXP_MTX"], 
@@ -16,6 +18,7 @@
             "description": "The filtering threshold for the p-value", 
             "name": "P-value threshold:", 
             "required": false, 
+            "converter": "abc",
             "spec": {
                 "attribute_type": "BoundedFloat", 
                 "min": 0, 
@@ -27,6 +30,7 @@
     "outputs": {
         "norm_counts": {
             "required": true,
+            "converter": "nc_converter",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 
@@ -35,6 +39,7 @@
         }, 
         "dge_table": {
             "required": true,
+            "converter": "dge_table_converter",
             "spec": {
                 "attribute_type": "VariableDataResource", 
                 "resource_types": ["MTX","EXP_MTX"],
@@ -44,6 +49,7 @@
     }, 
     "mode": "local_docker", 
     "repository_url": "https://github.com/some-repo/", 
+    "repository_name": "github",
     "git_hash": "abcd1234",
     "workspace_operation": true
 }

@@ -13,7 +13,7 @@ from constants import JSON_FILE_KEY, \
     JSON_FORMAT
 
 from .base import DataResource, ParseException
-from api.exceptions import NonIterableContentsException
+from exceptions import NonIterableContentsException
 
 logger = logging.getLogger(__name__)
 

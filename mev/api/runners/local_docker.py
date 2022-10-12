@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import logging
+import uuid
 
 from jinja2 import Template
 
@@ -15,7 +16,8 @@ from api.utilities.docker import check_if_container_running, \
     get_logs, \
     pull_image, \
     get_image_name_and_tag
-from data_structures.data_resource_attributes import get_all_data_resource_typenames
+from data_structures.data_resource_attributes import \
+    get_all_data_resource_typenames
 from api.utilities.basic_utils import make_local_directory, \
     run_shell_command
 from api.utilities.admin_utils import alert_admins
@@ -46,7 +48,7 @@ class LocalDockerRunner(OperationRunner):
 
     # the template docker command to be run:
     DOCKER_RUN_CMD = ('docker run -d --name {container_name}'
-        ' -v {execution_mount}:/{work_dir}'
+        ' -v {execution_mount}:{work_dir}'
         ' --env WORKDIR={job_dir}'
         ' --entrypoint="" {docker_image} {cmd}')
 
@@ -71,17 +73,14 @@ class LocalDockerRunner(OperationRunner):
             outputs_dict = json.load(open(
                 os.path.join(execution_dir, self.OUTPUTS_JSON)
             ))
-            logger.info('After parsing the outputs file, we have: {j}'.format(
-                j = json.dumps(outputs_dict)
-            ))
+            logger.info('After parsing the outputs file,'
+                f' we have: {json.dumps(outputs_dict)}')
             return outputs_dict
         except FileNotFoundError as ex:
-            logger.info('The outputs file for job {id} was not'
-                ' found.'.format(id=job_id)
-            )
+            logger.info(f'The outputs file for job {job_id} was not'
+                ' found.')
             raise Exception('The outputs file was not found. An administrator'
-                ' should check the analysis operation.'
-            )
+                ' should check the analysis operation.')
 
     def finalize(self, executed_op, op):
         '''
@@ -97,12 +96,9 @@ class LocalDockerRunner(OperationRunner):
         executed_op.execution_stop_datetime = finish_datetime
 
         if exit_code != 0:
-            logger.info('Received a non-zero exit code ({n}) from container'
-                ' executing job: {op_id}'.format(
-                    op_id = executed_op.job_id,
-                    n = exit_code
-                )
-            )
+            logger.info('Received a non-zero exit code'
+                f' ({exit_code}) from container'
+                f' executing job: {executed_op.job_id}')
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
 
@@ -112,15 +108,14 @@ class LocalDockerRunner(OperationRunner):
 
             # handle the out of memory error-- we can't do it all!
             if exit_code == 137:
-                logger.info('Executed job {op_id} exhausted the available'
-                    ' memory.'.format(op_id = executed_op.job_id)
-                )
+                logger.info(f'Executed job {executed_op.job_id}'
+                    ' exhausted the available memory.')
                 message_list.append('The process ran out of memory and exited.'
                 ' Sometimes the job parameters can result in analyses exceeding'
                 ' the processing capabilities of WebMeV.')
                 
             executed_op.error_messages = message_list
-            alert_admins(','.join(log_msg))
+            alert_admins(','.join(message_list))
             
         else:
             logger.info('Container exit code was zero. Fetch outputs.')
@@ -136,8 +131,8 @@ class LocalDockerRunner(OperationRunner):
                 executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
 
             except Exception as ex:
-                # if the outputs file was not found or if some other exception was
-                # raised, mark the job failed.
+                # if the outputs file was not found or if some
+                # other exception was raised, mark the job failed.
                 executed_op.job_failed = True
                 executed_op.status = str(ex)
                 alert_admins(str(ex))
@@ -145,7 +140,8 @@ class LocalDockerRunner(OperationRunner):
         # finally, we cleanup the docker container
         remove_container(job_id)
 
-        executed_op.is_finalizing = False # so future requests don't think it is still finalizing
+        # so future requests don't think it is still finalizing:
+        executed_op.is_finalizing = False
         executed_op.save()
         return
 
@@ -168,7 +164,9 @@ class LocalDockerRunner(OperationRunner):
         ENTRYPOINT command for the Docker container.
         '''
         # read the template command
+        print(entrypoint_file_path)
         entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
+        print(entrypoint_cmd_template)
         try:
             entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
             return entrypoint_cmd
@@ -214,8 +212,7 @@ class LocalDockerRunner(OperationRunner):
         arg_dict = self._convert_inputs(op, op_dir, validated_inputs, execution_dir)
 
         logger.info('After mapping the user inputs, we have the'
-            ' following structure: {d}'.format(d = arg_dict)
-        )
+            f' following structure: {arg_dict}')
 
         # Construct the command that will be run in the container:
         entrypoint_file_path = os.path.join(op_dir, self.ENTRYPOINT_FILE)
@@ -280,23 +277,22 @@ class LocalDockerRunner(OperationRunner):
         # the types that we should clean up on error. 
         data_resource_typenames = get_all_data_resource_typenames()
         for k,v in converted_outputs_dict.items():
-            spec = op_spec_outputs[k]['spec']
+            spec = op_spec_outputs[k].spec.to_dict()
             output_attr_type = spec['attribute_type']
             if output_attr_type in data_resource_typenames:
-                logger.info('Will cleanup the output "{k}" with'
-                    ' value of {v}'.format(
-                        k = k,
-                        v = v
-                    )
-                )
+                logger.info(f'Will cleanup the output "{k}" with'
+                    f' value of {v}')
+
                 # ok, so we are dealing with an output type
                 # that represents a file/Resource. This can either
                 # be singular (so the value v is a UUID) or multiple
                 # in which case the value is a list of UUIDs
 
-                # if a single UUID, put that in a list
-                if type(v) is str:
-                    v = [v,]
+                # if a single UUID, put that in a list. This way
+                # we can handle single and multiple outputs 
+                # in the same way
+                if (type(v) is str) or (type(v) is uuid.UUID):
+                    v = [str(v),]
                 
                 for resource_uuid in v:
                     delete_resource_by_pk(resource_uuid)

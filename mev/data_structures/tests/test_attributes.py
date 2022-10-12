@@ -219,6 +219,11 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaises(AttributeValueError):
             StringAttribute(3.4)
 
+        # can't have excessively long strings
+        max_len = StringAttribute.MAX_LENGTH
+        with self.assertRaises(AttributeValueError):
+            s = StringAttribute('x'*(max_len + 1))
+
     def test_unrestrictedstring_attribute(self):
         # this is sort of double test-coverage, but that can't hurt
         s = UnrestrictedStringAttribute('-9abc')
@@ -236,6 +241,11 @@ class TestSimpleAttributes(unittest.TestCase):
 
         s = UnrestrictedStringAttribute(3.4)
         self.assertEqual(s.value, '3.4')
+
+        # can't have excessively long strings
+        max_len = StringAttribute.MAX_LENGTH
+        with self.assertRaises(AttributeValueError):
+            s = StringAttribute('x'*(max_len + 1))
 
     def test_missing_keys_for_bounded_attributes(self):
 

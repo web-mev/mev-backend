@@ -11,9 +11,10 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
-from api.exceptions import NoResourceFoundException, \
+from exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException
+    
 from api.utilities.resource_utilities import check_resource_request_validity
 
 

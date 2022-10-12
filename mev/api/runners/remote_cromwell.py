@@ -8,7 +8,8 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from api.exceptions import OutputConversionException
+from exceptions import OutputConversionException
+
 from api.runners.base import OperationRunner
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource

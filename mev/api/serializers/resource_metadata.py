@@ -10,70 +10,57 @@ from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
 
 from api.models import ResourceMetadata, \
-    Resource, \
-    ExecutedOperation
+    Resource
 
 class ResourceMetadataSerializer(serializers.ModelSerializer):
 
     resource = serializers.PrimaryKeyRelatedField(
         queryset=Resource.objects.all()
     )
-    # parent_operation = serializers.PrimaryKeyRelatedField(
-    #     queryset=ExecutedOperation.objects.all(),
-    #     many=True,
-    #     allow_null=True
-    # )
-    observation_set = serializers.JSONField(allow_null=True)
-    feature_set = serializers.JSONField(allow_null=True)
+    observation_set = serializers.JSONField(allow_null=True, default=None)
+    feature_set = serializers.JSONField(allow_null=True, default=None)
 
-    # def _check_observation_set(self, obs_set_data):
-    def validate_operation_set(self, obs_set_data):
+    def validate_observation_set(self, obs_set_data):
         if obs_set_data is not None:
             try:
-                ObservationSet(obs_set_data)
-            except:
-                raise ValidationError(
-                    {OBSERVATION_SET_KEY: 'Invalid observation set'})
+                o = ObservationSet(obs_set_data)
+                return o.to_simple_dict()
+            except Exception as ex:
+                raise ValidationError(f'Invalid observation set: {ex}')
         return obs_set_data
 
-    # def _check_feature_set(self, feature_set_data):
     def validate_feature_set(self, feature_set_data):
         if feature_set_data is not None:
             try:
-                FeatureSet(feature_set_data)
-            except:
-                raise ValidationError(
-                    {FEATURE_SET_KEY: 'Invalid feature set'})
+                f = FeatureSet(feature_set_data)
+                return f.to_simple_dict()
+            except Exception as ex:
+                raise ValidationError(f'Invalid feature set: {ex}')
         return feature_set_data
 
-    # def create(self, validated_data):
-    #     # check that the obs/featuresets are ok:
-    #     self._check_observation_set(validated_data[OBSERVATION_SET_KEY])
-    #     self._check_feature_set(validated_data[FEATURE_SET_KEY])
+    def create(self, validated_data):
+        try:
+            parent_operation = validated_data[PARENT_OP_KEY]
+        except KeyError as ex:
+            parent_operation = None
 
-    #     rm = ResourceMetadata.objects.create(
-    #         observation_set = validated_data[OBSERVATION_SET_KEY],
-    #         feature_set = validated_data[FEATURE_SET_KEY],
-    #         parent_operation = parent_op,
-    #         resource = validated_data['resource']
-    #     )
-    #     return rm
+        rm = ResourceMetadata.objects.create(
+            observation_set=validated_data[OBSERVATION_SET_KEY],
+            feature_set=validated_data[FEATURE_SET_KEY],
+            parent_operation=parent_operation,
+            resource=validated_data[RESOURCE_KEY]
+        )
+        return rm
 
     def update(self, instance, validated_data):
-        # self._check_observation_set(validated_data[OBSERVATION_SET_KEY])
-        # self._check_feature_set(validated_data[FEATURE_SET_KEY])
-        instance.observation_set = obs_set_dict
-        instance.feature_set = feature_set_dict
-        instance.parent_operation = parent_op
+        instance.observation_set = validated_data[OBSERVATION_SET_KEY]
+        instance.feature_set = validated_data[FEATURE_SET_KEY]
+        try:
+            parent_operation = validated_data[PARENT_OP_KEY]
+        except KeyError as ex:
+            parent_operation = None
+        instance.parent_operation = parent_operation
         return instance
-
-    def validate_parent_operation(self, value):
-        if value is not None:
-            try:
-                ex_op = ExecutedOperation.objects.get(pk=value)
-            except ExecutedOperation.DoesNotExist as ex:
-                raise ValidationError({'parent_operation': 'Parent operation not found.'})
-        return value
 
     class Meta:
         model = ResourceMetadata

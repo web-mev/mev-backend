@@ -25,7 +25,7 @@ def normalize_identifier(original_name):
     # 9a
     # .A
     # -A
-    pattern = '^(?!\d)[\.\w]*'
+    pattern = '^(?!\d|\-|\.)[\.\-\w]*'
     if re.fullmatch(pattern, name):
         return name
     else:

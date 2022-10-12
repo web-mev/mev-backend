@@ -13,8 +13,7 @@ from constants import TSV_FORMAT, \
     OBSERVATION_SET_KEY, \
     RESOURCE_KEY
 
-from api.data_structures import Observation
-from api.models import Resource
+from data_structures.observation import Observation
 
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type

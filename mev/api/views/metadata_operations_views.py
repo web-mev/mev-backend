@@ -1,11 +1,12 @@
 from functools import reduce
 
+from constants import OBSERVATION_SET_KEY, \
+    FEATURE_SET_KEY
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
-from api.serializers.observation_set import ObservationSetSerializer
-from api.serializers.feature_set import FeatureSetSerializer
 from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
 
@@ -22,27 +23,24 @@ class MetadataMixin(object):
     # worry about that dictionary
     IGNORE_ATTR_KEY = 'ignore_attributes'
 
-    serializer_choices = {
-        'observation': ObservationSetSerializer,
-        'feature': FeatureSetSerializer
-    }
     elementset_choices = {
-        'observation': ObservationSet,
-        'feature': FeatureSet
+        OBSERVATION_SET_KEY: ObservationSet,
+        FEATURE_SET_KEY: FeatureSet
     }
 
-    def _get_serializer(self, set_type):
+    def _get_element_set_class(self, set_type):
         try:
-            return self.serializer_choices[set_type]
+            return self.elementset_choices[set_type]
         except KeyError as ex:
             raise ValidationError({
-                self.SET_TYPE:'This must be one of: {s}.'.format(
-                    s=','.join(self.serializer_choices.keys()))
-                })
+                self.SET_TYPE: 
+                'This must be one of:'
+                f' {",".join(self.elementset_choices.keys())}.'})
 
     def prep(self, request):
         required_keys = [self.SETS, self.SET_TYPE]        
-        all_args_present = all([x in request.data.keys() for x in required_keys])
+        all_args_present = all(
+            [x in request.data.keys() for x in required_keys])
         if all_args_present:
             try:
                 ignore_attributes = bool(request.data[self.IGNORE_ATTR_KEY])
@@ -50,26 +48,30 @@ class MetadataMixin(object):
                 ignore_attributes = False # default to being strict
             sets = request.data[self.SETS]
             if len(sets) < 2:
-                raise ValidationError('Cannot perform set operations with fewer than'
-                    ' two sets.'
-                )
+                raise ValidationError('Cannot perform set operations with'
+                    ' fewer than two sets.')
             if type(sets) is list:
                 element_set_list = []
-                serializer = self._get_serializer(request.data[self.SET_TYPE])
+                elementset_class = self._get_element_set_class(
+                    request.data[self.SET_TYPE])
                 for s in sets:
                     if ignore_attributes:
                         # if we are ignoring the attributes, we only care about
                         # the identifier
-                        el_list = [{'id': x['id']} for x in s['elements']]
+                        el_list = [
+                            {'id': x['id']} for x in s['elements']
+                        ]
                         s = {
-                            'multiple': s['multiple'],
                             'elements': el_list
                         }
                     try:
-                        element_set_list.append(serializer(data=s).get_instance())
+                        element_set_list.append(
+                            elementset_class(s)
+                        )
                     except Exception as ex:
                         raise ValidationError({
-                            'error':'Error occurred when parsing the request payload.'
+                            'error': 'Error occurred when parsing the'
+                                     ' request payload.'
                         })
                 return element_set_list
             else:
@@ -77,38 +79,39 @@ class MetadataMixin(object):
                     ' reference list-like data.'
                 })  
         else:
-            raise ValidationError({'error': 'This endpoint requires the following'
-                ' keys in the payload: {k}'.format(k=','.join(required_keys))
+            raise ValidationError({'error': 'This endpoint requires'
+                ' the following keys in the payload:'
+                f' {",".join(required_keys)}'
             })
+
 
 class MetadataIntersectView(APIView, MetadataMixin):
 
-
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
-        r = reduce(lambda x,y: x.set_intersection(y), element_set_list)
-        serializer = self._get_serializer(request.data[self.SET_TYPE])
+        r = reduce(lambda x, y: x.set_intersection(y), element_set_list)
+        serializer = self._get_element_set_class(request.data[self.SET_TYPE])
         return Response(serializer(r).data)
 
 
 class MetadataUnionView(APIView, MetadataMixin):
 
-
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
-        r = reduce(lambda x,y: x.set_union(y), element_set_list)
-        serializer = self._get_serializer(request.data[self.SET_TYPE])
+        r = reduce(lambda x, y: x.set_union(y), element_set_list)
+        serializer = self._get_element_set_class(request.data[self.SET_TYPE])
         return Response(serializer(r).data)
 
 
 class MetadataSetDifferenceView(APIView, MetadataMixin):
+
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
         if len(element_set_list) > 2:
             raise ValidationError('Cannot perform a set difference on'
                 ' more than two sets.'
             )
-        x,y = element_set_list
+        x, y = element_set_list
         r = x.set_difference(y)
-        serializer = self._get_serializer(request.data[self.SET_TYPE])
+        serializer = self._get_element_set_class(request.data[self.SET_TYPE])
         return Response(serializer(r).data)

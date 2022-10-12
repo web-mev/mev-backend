@@ -7,13 +7,14 @@ import datetime
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
+from exceptions import OutputConversionException
+
 from api.tests.base import BaseAPITestCase
 from api.runners.remote_cromwell import RemoteCromwellRunner
 from api.models.operation import Operation
 from api.models.executed_operation import ExecutedOperation
 from api.models.workspace_executed_operation import WorkspaceExecutedOperation
 from api.models.workspace import Workspace
-from api.exceptions import OutputConversionException
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)

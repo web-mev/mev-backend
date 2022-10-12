@@ -6,14 +6,21 @@ import copy
 import uuid
 import shutil
 import datetime 
+from tempfile import NamedTemporaryFile
 
 from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
 
-from api.exceptions import OutputConversionException
+from exceptions import OutputConversionException
+
+from data_structures.operation import Operation
+
 from api.tests.base import BaseAPITestCase
-from api.utilities.operations import read_operation_json
 from api.runners.local_docker import LocalDockerRunner
-from api.models import Resource, Workspace, WorkspaceExecutedOperation, Operation
+from api.models import Resource, \
+    Workspace, \
+    WorkspaceExecutedOperation, \
+    Operation as OperationDb
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -24,37 +31,16 @@ class LocalDockerRunnerTester(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()
-        self.filepath = os.path.join(TESTDIR, 'valid_operation.json')
-
-    def test_handles_bad_converter_gracefully(self):
-        '''
-        In the case that a converter class is not found for the input, see that we
-        handle this error appropriately.
-        '''
-        # need a resource to populate the field
-        all_r = Resource.objects.all()
-        r = all_r[0]
-        inputs = {
-            'count_matrix': str(r.id),
-            'p_val': 0.05
-        }
-        mock_op_data = {
-            'count_matrix': {
-                'converter':'api.converters.data_resource.LocalDockerSingleDataResourceConverter'
-            },
-            'p_val': {
-                'converter':'someGarbageConverter'
-            }
-        }
-        runner = LocalDockerRunner()
-        with self.assertRaises(Exception):
-            runner._map_inputs(mock_op_data, TESTDIR, inputs)
+        self.filepath = os.path.join(TESTDIR, 
+            'valid_complete_workspace_operation.json')
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
     @mock.patch('api.runners.local_docker.get_logs')
-    def test_handles_job_failure(self, mock_get_logs, \
+    @mock.patch('api.runners.local_docker.alert_admins')
+    def test_handles_job_failure(self, mock_alert_admins, \
+        mock_get_logs, \
         mock_remove_container, \
         mock_get_finish_datetime, \
         mock_check_container_exit_code):
@@ -76,11 +62,15 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
+        self.assertFalse(mock_executed_op.is_finalizing)
+        mock_alert_admins.assert_called()
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
+    @mock.patch('api.runners.local_docker.alert_admins')
     def test_handles_output_conversion_error(self, \
+        mock_alert_admins, \
         mock_remove_container, \
         mock_get_finish_datetime, \
         mock_check_container_exit_code):
@@ -93,10 +83,10 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_load_outputs_file = mock.MagicMock()
         mock_load_outputs_file.return_value = {} # doesn't matter what this is
         mock_convert_outputs = mock.MagicMock()
-        mock_convert_outputs.side_effect = [OutputConversionException('!!!')]
+        mock_convert_outputs.side_effect = OutputConversionException('!!!')
 
         runner.load_outputs_file = mock_load_outputs_file
-        runner.convert_outputs = mock_convert_outputs
+        runner._convert_outputs = mock_convert_outputs
 
         mock_executed_op = mock.MagicMock()
         u = str(uuid.uuid4())
@@ -109,6 +99,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
+        mock_alert_admins.assert_called()
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
@@ -172,7 +163,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
             raise ImproperlyConfigured(msg)
         workspace = user_workspaces[0]
         workspace_exec_op_uuid = uuid.uuid4()
-        ops = Operation.objects.all()
+        ops = OperationDb.objects.all()
         op = ops[0]
         op.workspace_operation = True
         op.save()
@@ -201,7 +192,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.make_local_directory')
     @mock.patch('api.runners.local_docker.os.path.exists')
     @mock.patch('api.runners.local_docker.run_shell_command')
+    @mock.patch('api.runners.local_docker.get_image_name_and_tag')
     def test_handles_container_start_failure(self, \
+        mock_get_image_name_and_tag, \
         mock_run_shell_command, \
         mock_os_exists, \
         mock_make_local_directory, \
@@ -216,7 +209,8 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_get_entrypoint_command = mock.MagicMock()
         mock_get_entrypoint_command.return_value = 'some_command'
         mock_map_inputs.return_value = {'abc':123}
-        runner._map_inputs = mock_map_inputs
+        mock_get_image_name_and_tag.return_value = ''
+        runner._convert_inputs = mock_map_inputs
         runner._copy_data_resources = mock_copy_data_resources
         runner._get_entrypoint_command = mock_get_entrypoint_command
 
@@ -226,13 +220,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_executed_op = mock.MagicMock()
         u = str(uuid.uuid4())
         mock_executed_op.job_id = u
-        mock_op_data = {
-            'id': 'some ID',
-            'repo_name': 'name',
-            'git_hash': 'abc123'
-        }
+        op = Operation(json.load(open(self.filepath)))
         mock_inputs = {'some': 'input'}
-        runner.run(mock_executed_op, mock_op_data, mock_inputs)
+        runner.run(mock_executed_op, op, mock_inputs)
         mock_alert_admins.assert_called()
         mock_make_local_directory.assert_called()
         mock_run_shell_command.assert_called()
@@ -242,9 +232,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
     @mock.patch('api.runners.local_docker.remove_container')
-    @mock.patch('api.runners.local_docker.LocalDockerOutputConverter')
     def test_handles_job_finalization(self, \
-        mock_LocalDockerOutputConverter, \
         mock_remove_container, \
         mock_get_finish_datetime, \
         mock_check_container_exit_code):
@@ -253,20 +241,17 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         '''
         runner = LocalDockerRunner()
         mock_load_outputs = mock.MagicMock()
-        mock_load_outputs.return_value = {
-            'abc': 123
-        }
+        mock_outputs = {'abc': 123}
+        mock_load_outputs.return_value = mock_outputs
         runner.load_outputs_file = mock_load_outputs
 
-        mock_op_data = {
-            'outputs': {
-                'abc': {
-                    "spec": {
-                        'attribute_type': 'Integer'
-                    }
-                }
-            }
+        mock_convert_outputs = mock.MagicMock()
+        mock_convert_outputs.return_value = {
+            'abc': 246 # the "conversion" doubled the number
         }
+        runner._convert_outputs = mock_convert_outputs
+
+        mock_op = mock.MagicMock()
 
         mock_executed_op = mock.MagicMock()
         u = str(uuid.uuid4())
@@ -274,71 +259,106 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_workspace = mock.MagicMock()
         mock_executed_op.workspace = mock_workspace
 
-        converter_instance = mock.MagicMock()
-        converter_instance.convert_output.return_value = 456
-        mock_LocalDockerOutputConverter.return_value = converter_instance
-
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 0
 
-        runner.finalize(mock_executed_op, mock_op_data)
+        runner.finalize(mock_executed_op, mock_op)
+
+        mock_convert_outputs.assert_called_once_with(
+            mock_executed_op, mock_op, mock_outputs
+        )
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertFalse(mock_executed_op.job_failed)
-        self.assertDictEqual(mock_executed_op.outputs,{'abc': 456})
+        self.assertFalse(mock_executed_op.is_finalizing)
+        self.assertDictEqual(mock_executed_op.outputs,{'abc': 246})
 
-
-    @mock.patch('api.runners.local_docker.check_container_exit_code')
-    @mock.patch('api.runners.local_docker.get_finish_datetime')
-    @mock.patch('api.runners.local_docker.remove_container')
-    @mock.patch('api.runners.local_docker.LocalDockerOutputConverter')
-    @mock.patch('api.runners.base.alert_admins')
-    def test_handles_extra_output_on_job_finalization(self, \
-        mock_alert_admins, \
-        mock_LocalDockerOutputConverter, \
-        mock_remove_container, \
-        mock_get_finish_datetime, \
-        mock_check_container_exit_code):
+    def test_entrypoint_command_creation(self):
         '''
-        If a job succeeds, but an output is unknown, we handle this
+        Tests that we create the entrypoint command
+        from the template as expected
         '''
+        input_path = '/home/xyz/input.tsv'
+        a_arg = 10
+        cmd = b'Rscript something.R {{input_file}} -a {{a_arg}}'
+        expected_cmd = 'Rscript something.R ' + \
+            input_path + ' -a ' + str(a_arg)
         runner = LocalDockerRunner()
-        mock_load_outputs = mock.MagicMock()
-        mock_load_outputs.return_value = {
-            'abc': 123,
-            'def': 'xyz'
-        }
-        runner.load_outputs_file = mock_load_outputs
-
-        # the expected outputs have key 'abc', but not 'def'
-        mock_op_data = {
-            'outputs': {
-                'abc': {
-                    "spec": {
-                        'attribute_type': 'Integer'
-                    }
-                }
+        with NamedTemporaryFile() as tf:
+            tf.write(cmd)
+            tf.seek(0)
+            fname = tf.name
+            arg_dict = {
+                'a_arg': a_arg,
+                'input_file': input_path
             }
-        }
+            final_cmd = runner._get_entrypoint_command(fname, arg_dict)
+            self.assertEqual(final_cmd, expected_cmd)
 
+    @override_settings(OPERATION_LIBRARY_DIR='/data/op_dir')
+    @override_settings(OPERATION_EXECUTION_DIR='/data/ex_dir')
+    @mock.patch('api.runners.local_docker.run_shell_command')
+    @mock.patch('api.runners.local_docker.get_image_name_and_tag')
+    @mock.patch('api.runners.local_docker.make_local_directory')
+    @mock.patch('api.runners.local_docker.os.path.exists')
+    def test_run_initiation(self, \
+        mock_exists, \
+        mock_make_local_directory, \
+        mock_get_image_name_and_tag, \
+        mock_run_shell_command):
+
+        mock_exists.return_value = True
+        mock_image_name = 'docker.io/foo:bar'
+        mock_get_image_name_and_tag.return_value = mock_image_name
+
+        runner = LocalDockerRunner()
+        mock_convert_inputs = mock.MagicMock()
+        mock_convert_inputs.return_value = {}
+        mock_entrypoint_cmd = mock.MagicMock()
+        mock_cmd = 'Rscript something.R'
+        mock_entrypoint_cmd.return_value = mock_cmd
+        runner._convert_inputs = mock_convert_inputs
+        runner._get_entrypoint_command = mock_entrypoint_cmd
+
+        op = Operation(json.load(open(self.filepath)))
+        validated_inputs = {'abc': 1}
         mock_executed_op = mock.MagicMock()
-        u = str(uuid.uuid4())
-        mock_executed_op.job_id = u
-        mock_workspace = mock.MagicMock()
-        mock_executed_op.workspace = mock_workspace
+        u = uuid.uuid4()
+        mock_executed_op.id = u
 
-        converter_instance = mock.MagicMock()
-        converter_instance.convert_output.return_value = 456
-        mock_LocalDockerOutputConverter.return_value = converter_instance
+        runner.run(mock_executed_op, op, validated_inputs)
+        mock_op_dir = f'/data/op_dir/{op.id}'
+        mock_ex_dir = f'/data/ex_dir/{u}'
+        mock_make_local_directory.assert_called_once_with(mock_ex_dir)
+        mock_convert_inputs.assert_called_once_with(
+            op,
+            mock_op_dir,
+            validated_inputs,
+            mock_ex_dir
+        )
+        expected_docker_cmd = LocalDockerRunner.DOCKER_RUN_CMD.format(
+            container_name = str(u),
+            execution_mount = '/data/ex_dir',
+            work_dir = '/data/ex_dir',
+            job_dir = mock_ex_dir,
+            docker_image = mock_image_name,
+            cmd = mock_cmd
+        )
+        mock_run_shell_command.assert_called_once_with(expected_docker_cmd)
+    
+    @mock.patch('api.runners.local_docker.delete_resource_by_pk')
+    def test_cleanup_on_error(self, mock_delete):
+        op = Operation(json.load(open(self.filepath)))
+        runner = LocalDockerRunner()
+        u1 = str(uuid.uuid4())
+        u2 = str(uuid.uuid4())
+        mock_outputs = {
+            'norm_counts': u1,
+            'dge_table': u2
+        }
+        runner.cleanup_on_error(op.outputs, mock_outputs)
+        mock_delete.assert_has_calls([
+            mock.call(u1),
+            mock.call(u2)
+        ])    
 
-        mock_get_finish_datetime.return_value = datetime.datetime.now()
-        mock_check_container_exit_code.return_value = 0
-
-        runner.finalize(mock_executed_op, mock_op_data)
-        mock_alert_admins.assert_called()
-        mock_executed_op.save.assert_called()
-        mock_remove_container.assert_called()
-        self.assertFalse(mock_executed_op.job_failed)
-
-        # the 'extra' "def" key not included in the outputs
-        self.assertDictEqual(mock_executed_op.outputs,{'abc': 456})

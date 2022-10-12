@@ -87,7 +87,7 @@ class Operation(object):
         self.description = submitted_dict[self.DESC_FIELD]
         self.mode = submitted_dict[self.MODE_FIELD]
         self.repository_url = submitted_dict[self.REPO_URL_FIELD]
-        self.repo_name = submitted_dict[self.REPO_NAME_FIELD]
+        self.repository_name = submitted_dict[self.REPO_NAME_FIELD]
         self.git_hash = submitted_dict[self.GIT_HASH_FIELD]
 
         # needs to be a bool. Just use our BooleanAttribute as a 
@@ -112,7 +112,7 @@ class Operation(object):
             self.NAME_FIELD: self.name,
             self.DESC_FIELD: self.description,
             self.REPO_URL_FIELD: self.repository_url,
-            self.REPO_NAME_FIELD: self.repo_name,
+            self.REPO_NAME_FIELD: self.repository_name,
             self.MODE_FIELD: self.mode,
             self.GIT_HASH_FIELD: self.git_hash,
             self.INPUTS_FIELD: self.inputs.to_dict(),
@@ -127,6 +127,6 @@ class Operation(object):
         d = self.outputs == other.outputs
         e = self.repository_url == other.repository_url
         f = self.git_hash == other.git_hash
-        g = self.repo_name == other.repo_name
+        g = self.repository_name == other.repository_name
         h = self.workspace_operation == other.workspace_operation
         return all([a,b,c,d,e,f,g,h])

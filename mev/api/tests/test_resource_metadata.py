@@ -15,23 +15,18 @@ from rest_framework.serializers import ValidationError
 
 from api.models import Resource, ResourceMetadata
 
-from api.data_structures import Observation, \
-    ObservationSet, \
-    Feature, \
-    FeatureSet, \
-    StringAttribute, \
+from data_structures.observation_set import ObservationSet
+from data_structures.feature_set import FeatureSet
+from data_structures.attribute_types import StringAttribute, \
     UnrestrictedStringAttribute, \
     IntegerAttribute
 
 from api.serializers.resource_metadata import ResourceMetadataSerializer
-from api.serializers.observation import ObservationSerializer
-from api.serializers.feature import FeatureSerializer
-from api.serializers.observation_set import ObservationSetSerializer
-from api.serializers.feature_set import FeatureSetSerializer
-from resource_types import OBSERVATION_SET_KEY, \
-    FEATURE_SET_KEY, \
-    RESOURCE_KEY, \
-    PARENT_OP_KEY
+from api.models import WorkspaceExecutedOperation, \
+    ExecutedOperation, \
+    Workspace, \
+    Operation as OperationDb
+
 from resource_types.table_types import TableResource, \
     Matrix, \
     IntegerMatrix, \
@@ -53,47 +48,68 @@ TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
 
 def create_observation_set():
     # create a couple Observations to use and a corresponding serializer
-    el1 = Observation('sampleA', {
-        'phenotype': StringAttribute('WT')
-    })
-    el1_serializer = ObservationSerializer(el1)
-
-    el2 = Observation('sampleB', {
-        'phenotype': StringAttribute('KO')
-    })
-    el2_serializer = ObservationSerializer(el2)
-
-    # the correct serialized representation of an ElementSet instance
-    observation_set_data = {
-        'multiple': True,
-        'elements': [
-            el1_serializer.data,
-            el2_serializer.data
-        ]
+    el1 = {
+        'id':'sampleA', 
+        'attributes': {
+            'phenotype': {
+                'attribute_type': 'String',
+                'value': 'WT'
+            }
+        }
     }
-    return observation_set_data
+
+    el2 = {
+        'id':'sampleB', 
+        'attributes': {
+            'phenotype': {
+                'attribute_type': 'String',
+                'value': 'KO'
+            }
+        }
+    }
+
+    obs_set = ObservationSet(
+        {
+            'elements': [
+                el1,
+                el2
+            ]
+        }
+    )
+    return obs_set.to_simple_dict()
 
 def create_feature_set():
-    # create a couple Features to use and a corresponding serializer
-    el1 = Feature('featureA', {
-        'pathway': StringAttribute('foo')
-    })
-    el1_serializer = FeatureSerializer(el1)
 
-    el2 = Feature('sampleB', {
-        'pathway': StringAttribute('bar')
-    })
-    el2_serializer = FeatureSerializer(el2)
-
-    # the correct serialized representation of an ElementSet instance
-    feature_set_data = {
-        'multiple': True,
-        'elements': [
-            el1_serializer.data,
-            el2_serializer.data
-        ]
+    f1 = {
+        'id':'featureA', 
+        'attributes': {
+            'pathway': {
+                'attribute_type': 'String',
+                'value': 'foo'
+            }
+        }
     }
-    return feature_set_data
+
+    f2 = {
+        'id':'featureB', 
+        'attributes': {
+            'pathway': {
+                'attribute_type': 'String',
+                'value': 'bar'
+            }
+        }
+    }
+
+    fset = FeatureSet(
+        {
+            'elements': [
+                f1,
+                f2
+            ]
+        }
+    )
+    return fset.to_simple_dict()
+
 
 class TestRetrieveResourceMetadata(BaseAPITestCase):
 
@@ -343,17 +359,17 @@ class TestMatrixMetadata(BaseAPITestCase):
         line = open(resource_path).readline()
         contents = line.strip().split('\t')
         samplenames = contents[1:]
-        obs_list = [Observation(x) for x in samplenames]
+        obs_list = [{'id':x} for x in samplenames]
 
         gene_list = []
         for i, line in enumerate(open(resource_path)):
             if i > 0:
                 g = line.split('\t')[0]
                 gene_list.append(g)
-        feature_list = [Feature(x) for x in gene_list]
+        feature_list = [{'id':x} for x in gene_list]
 
-        obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
-        feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
+        obs_set = ObservationSet({'elements': obs_list}).to_simple_dict()
+        feature_set = FeatureSet({'elements': feature_list}).to_simple_dict()
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
         # Commented out when removed the feature metadata, as it was causing database
@@ -361,8 +377,6 @@ class TestMatrixMetadata(BaseAPITestCase):
         #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
-
-        
 
     def test_metadata_correct_case2(self):
         '''
@@ -380,17 +394,17 @@ class TestMatrixMetadata(BaseAPITestCase):
         line = open(resource_path).readline()
         contents = line.strip().split('\t')
         samplenames = contents[1:]
-        obs_list = [Observation(x) for x in samplenames]
+        obs_list = [{'id': x}  for x in samplenames]
 
         gene_list = []
         for i, line in enumerate(open(resource_path)):
             if i > 0:
                 g = line.split('\t')[0]
                 gene_list.append(g)
-        feature_list = [Feature(x) for x in gene_list]
+        feature_list = [{'id': x} for x in gene_list]
 
-        obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
-        feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
+        obs_set = ObservationSet({'elements': obs_list}).to_simple_dict()
+        feature_set = FeatureSet({'elements': feature_list}).to_simple_dict()
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
         # Commented out when removed the feature metadata, as it was causing database
@@ -400,8 +414,6 @@ class TestMatrixMetadata(BaseAPITestCase):
         self.assertIsNone(metadata[PARENT_OP_KEY])
 
         
-
-
 class TestIntegerMatrixMetadata(BaseAPITestCase):
 
     def setUp(self):
@@ -428,27 +440,16 @@ class TestIntegerMatrixMetadata(BaseAPITestCase):
         line = open(resource_path).readline()
         contents = line.strip().split('\t')
         samplenames = contents[1:]
-        obs_list = [Observation(x) for x in samplenames]
+        obs_list = [{'id': x} for x in samplenames]
 
-        gene_list = []
-        for i, line in enumerate(open(resource_path)):
-            if i > 0:
-                g = line.split('\t')[0]
-                gene_list.append(g)
-        feature_list = [Feature(x) for x in gene_list]
-
-        obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
-        feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
-
-        self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
-        # Commented out when removed the feature metadata, as it was causing database
-        # issues due to the size of the json object.
-        #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
+        obs_set = ObservationSet(
+            {
+                'elements': obs_list
+            }
+        )
+        self.assertDictEqual(obs_set.to_simple_dict(), metadata[OBSERVATION_SET_KEY])
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
-
-        
-
 
     def test_metadata_correct_case2(self):
         '''
@@ -465,17 +466,17 @@ class TestIntegerMatrixMetadata(BaseAPITestCase):
         line = open(resource_path).readline()
         contents = line.strip().split('\t')
         samplenames = contents[1:]
-        obs_list = [Observation(x) for x in samplenames]
+        obs_list = [{'id': x} for x in samplenames]
 
         gene_list = []
         for i, line in enumerate(open(resource_path)):
             if i > 0:
                 g = line.split('\t')[0]
                 gene_list.append(g)
-        feature_list = [Feature(x) for x in gene_list]
+        feature_list = [{'id': x} for x in gene_list]
 
-        obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
-        feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
+        obs_set = ObservationSet({'elements': obs_list}).to_simple_dict()
+        feature_set = FeatureSet({'elements': feature_list}).to_simple_dict()
 
         self.assertEqual(obs_set, metadata[OBSERVATION_SET_KEY])
         # Commented out when removed the feature metadata, as it was causing database
@@ -483,8 +484,7 @@ class TestIntegerMatrixMetadata(BaseAPITestCase):
         #self.assertEqual(feature_set, metadata[FEATURE_SET_KEY])
         self.assertIsNone( metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
-
-        
+       
 
 class TestAnnotationTableMetadata(BaseAPITestCase):
 
@@ -529,16 +529,17 @@ class TestAnnotationTableMetadata(BaseAPITestCase):
                 attr_dict = {}
                 for j,v in enumerate(contents[1:]):
                     attr = UnrestrictedStringAttribute(v)
-                    attr_dict[column_dict[j]] = attr
-                obs = Observation(samplename, attr_dict)
+                    attr_dict[column_dict[j]] = attr.to_dict()
+                obs = {'id': samplename, 'attributes': attr_dict}
                 obs_list.append(obs)
-        expected_obs_set = ObservationSetSerializer(ObservationSet(obs_list)).data
+        expected_obs_set = ObservationSet(
+            {'elements': obs_list}
+        ).to_simple_dict()
         metadata = t.extract_metadata(r)
         self.assertEqual(metadata[OBSERVATION_SET_KEY], expected_obs_set)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
         
-
 
 class TestFeatureTableMetadata(BaseAPITestCase):
 
@@ -568,10 +569,10 @@ class TestFeatureTableMetadata(BaseAPITestCase):
                     except ValueError:
                         attr = StringAttribute(v)
 
-                    attr_dict[column_dict[j]] = attr
-                f = Feature(gene_name, attr_dict)
+                    attr_dict[column_dict[j]] = attr.to_dict()
+                f = {'id': gene_name, 'attributes': attr_dict}
                 feature_list.append(f)
-        expected_feature_set = FeatureSetSerializer(FeatureSet(feature_list)).data
+        expected_feature_set = FeatureSet({'elements': feature_list})
         metadata = t.extract_metadata(r)
         # Commented out when we removed the automatic creation of Feature metadata
         # for FeatureTable resource types. For large files, it was causing issues
@@ -653,7 +654,6 @@ class TestFeatureTableMetadata(BaseAPITestCase):
         j = response.json()
         
 
-
 class TestBedFileMetadata(BaseAPITestCase):
 
     def setUp(self):
@@ -670,8 +670,10 @@ class TestBedFileMetadata(BaseAPITestCase):
         self.assertIsNone(metadata[PARENT_OP_KEY])
         
 
-
 class TestResourceMetadataSerializer(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
 
     def test_good_obs_set(self):
         '''
@@ -682,7 +684,6 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         r = r[0]
         # the bad obs set is missing the `elements` key
         good_obs_set = {
-            'multiple': True,
             'elements':[
                 {
                     'id': 'foo'
@@ -699,7 +700,7 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
             PARENT_OP_KEY:None
         }
         rms = ResourceMetadataSerializer(data=d)
-        self.assertTrue(rms.is_valid())
+        self.assertTrue(rms.is_valid(raise_exception=True))
 
     def test_bad_obs_set(self):
         '''
@@ -712,6 +713,7 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         bad_obs_set = {
             'multiple': True
         }
+
         d = {
             RESOURCE_KEY: r.pk,
             OBSERVATION_SET_KEY: bad_obs_set,
@@ -732,7 +734,6 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         self.assertFalse(rms.is_valid())
 
         bad_obs_set = {
-            'multiple': True,
             'elements':[
                 {
                     'id': 'foo'
@@ -782,7 +783,6 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         r = r[0]
         # the bad obs set is missing the `elements` key
         good_feature_set = {
-            'multiple': True,
             'elements':[
                 {
                     'id': 'foo'
@@ -799,7 +799,7 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
             PARENT_OP_KEY:None
         }
         rms = ResourceMetadataSerializer(data=d)
-        self.assertTrue(rms.is_valid())
+        self.assertTrue(rms.is_valid(raise_exception=True))
 
     def test_bad_feature_set(self):
         '''
@@ -853,7 +853,6 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
 
         long_name = 'x'*200
         bad_feature_set = {
-            'multiple': True,
             'elements':[
                 {
                     'id': 'foo'
@@ -872,6 +871,7 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=d)
         with self.assertRaisesRegex(ValidationError, long_name) as ex:
             rms.is_valid(raise_exception=True)
+
     def test_missing_keys_in_resource_metadata(self):
         '''
         Tests
@@ -902,7 +902,7 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
             PARENT_OP_KEY:None
         }
         rms = ResourceMetadataSerializer(data=d)
-        self.assertTrue(rms.is_valid())
+        self.assertTrue(rms.is_valid(raise_exception=True))
         rm = rms.save()
         self.assertIsNone(rm.observation_set)
         self.assertIsNone(rm.feature_set)
@@ -919,8 +919,87 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         if len(rr) == 1:
              rr.delete()
         rms = ResourceMetadataSerializer(data=d)
+        rms.is_valid(raise_exception=True)
         self.assertTrue(rms.is_valid())
         rm = rms.save()
         self.assertIsNone(rm.observation_set)
         self.assertIsNone(rm.feature_set)
         self.assertIsNone(rm.parent_operation)
+
+    def test_parent_op_validation(self):
+        '''
+        Test that providing the UUID referencing a
+        ExecutedOperation leads to a proper lookup
+        of the instance.
+        '''
+
+        ops = OperationDb.objects.all()
+        if len(ops) > 0:
+            op = ops[0]
+        else:
+            raise ImproperlyConfigured('Need at least one Operation'
+                ' to use for this test'
+            )
+
+        workspace_with_resource = None
+        all_workspaces = Workspace.objects.all()
+        for w in all_workspaces:
+            if len(w.resources.all()) > 0:
+                workspace_with_resource = w
+
+        mock_used_resource = workspace_with_resource.resources.all()[0]
+        mock_validated_inputs = {
+            'count_matrix': str(mock_used_resource.pk), 
+            'p_val': 0.01
+        }
+
+        executed_op_pk = uuid.uuid4()
+        ex_op = WorkspaceExecutedOperation.objects.create(
+            id=executed_op_pk,
+            owner = self.regular_user_1, 
+            workspace = workspace_with_resource,
+            job_name = 'abc',
+            inputs = mock_validated_inputs,
+            outputs = {},
+            operation = op,
+            mode = 'local_docker',
+            status = ExecutedOperation.SUBMITTED
+        )
+
+        # can use any random resource which acts like
+        # a mock output where we would use the ex_op
+        # as the `parent_operation`
+        r = Resource.objects.all()
+        r = r[0]
+        d = {
+            RESOURCE_KEY: r.pk,
+            PARENT_OP_KEY: ex_op.pk
+        }
+        # delete any existing metadata on this resource (in case it's there
+        # from a prior test)
+        rr = ResourceMetadata.objects.filter(resource=r)
+        if len(rr) == 1:
+             rr.delete()
+        rms = ResourceMetadataSerializer(data=d)
+        rms.is_valid(raise_exception=True)
+        self.assertTrue(rms.is_valid())
+        rm = rms.save()
+        self.assertIsNone(rm.observation_set)
+        self.assertIsNone(rm.feature_set)
+        self.assertEqual(ex_op.pk, rm.parent_operation.pk)
+
+        # try again, but now give it a non-existent reference
+        # to an executed op:
+        d = {
+            RESOURCE_KEY: r.pk,
+            PARENT_OP_KEY: uuid.uuid4()
+        }
+        # delete any existing metadata on this resource (in case it's there
+        # from a prior test)
+        rr = ResourceMetadata.objects.filter(resource=r)
+        if len(rr) == 1:
+             rr.delete()
+        rms = ResourceMetadataSerializer(data=d)
+        with self.assertRaisesRegex(ValidationError, 'does not exist'):
+            rms.is_valid(raise_exception=True)
+        

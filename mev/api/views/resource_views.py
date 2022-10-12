@@ -9,21 +9,22 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
+from exceptions import NonIterableContentsException, \
+    OwnershipException, \
+    InactiveResourceException, \
+    NoResourceFoundException
+
 from api.models import Resource
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     resource_supports_pagination, \
-    check_resource_request_validity, \
-    create_resource
+    check_resource_request_validity
 from api.data_transformations import get_transformation_function
 from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
 from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
-from api.exceptions import NonIterableContentsException, \
-    OwnershipException, \
-    InactiveResourceException, \
-    NoResourceFoundException
+
 from resource_types import ParseException
 
 

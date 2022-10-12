@@ -35,9 +35,9 @@ from data_structures.observation import Observation
 from data_structures.observation_set import ObservationSet
 from data_structures.simple_attribute_factory import SimpleAttributeFactory
 from api.utilities.admin_utils import alert_admins
-from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
+
 
 class ParserNotFoundException(Exception):
     '''

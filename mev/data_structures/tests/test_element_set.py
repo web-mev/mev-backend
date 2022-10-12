@@ -441,6 +441,30 @@ class TestElementSet(unittest.TestCase):
         self._respects_null_kwarg(ObservationSet)
         self._respects_null_kwarg(FeatureSet)
 
+
+    def _reject_duplicate_elements(self, SetClass):
+        '''
+        Runs the tests for `test_rejects_duplicate_elements`
+        so we can test both class types more easily.
+        '''
+        with self.assertRaisesRegex(DataStructureValidationException, 'duplicate entry'):
+            element_set = SetClass({
+                'elements':[
+                        {'id': 'foo'},
+                        {'id': 'foo'}
+                    ]
+                }
+            )
+
+    def test_rejects_duplicate_elements(self):
+        '''
+        Rather than silently ignore duplicate elements, 
+        check that we raise an exception
+        '''
+        self._reject_duplicate_elements(ObservationSet)
+        self._reject_duplicate_elements(FeatureSet)
+
+
     def _equality_test(self, SetClass):
         '''
         Tests the equality and equivalency of ElementSet.
@@ -824,3 +848,14 @@ class TestElementSet(unittest.TestCase):
     def test_sub_and_superset_methods(self):
         self._sub_and_superset_methods_test(ObservationSet)        
         self._sub_and_superset_methods_test(FeatureSet)
+
+    def _reject_extra_keys_test(self, SetClass):
+        with self.assertRaisesRegex(DataStructureValidationException, 'extra'):
+            SetClass({
+                'elements': [],
+                'multiple': True
+            })
+
+    def test_rejects_extra_keys(self):
+        self._reject_extra_keys_test(ObservationSet)        
+        self._reject_extra_keys_test(FeatureSet)

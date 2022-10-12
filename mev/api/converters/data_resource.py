@@ -3,12 +3,9 @@ import logging
 
 from django.core.files import File
 from django.core.files.storage import default_storage
+from numpy import result_type
 
 from exceptions import OutputConversionException, StorageException
-
-from data_structures.data_resource_attributes import \
-    DataResourceAttribute, \
-    VariableDataResourceAttribute
 
 from api.utilities.resource_utilities import get_resource_by_pk, \
     localize_resource, \
@@ -28,17 +25,18 @@ class BaseResourceConverter(object):
     '''
     A base class for operations common to all the types of
     DataResource-like classes
-    '''    
+    '''
 
     def convert_input(self, user_input, op_dir, staging_dir):
         raise NotImplementedError('You must implement the convert_input'
-            ' method in the chosen class.')
+                                  ' method in the chosen class.')
 
-    def convert_output(self, executed_op, workspace, output_definition, output_val):
+    def convert_output(self,
+                       executed_op, workspace, output_definition, output_val):
         raise NotImplementedError('You must implement the convert_output'
-            ' method in the chosen class.')
+                                  ' method in the chosen class.')
 
-    def _handle_storage_failure(output_required):
+    def _handle_storage_failure(self, output_required):
         '''
         A method to customize how we react if a DataResource fails to convert
         (i.e. create a valid Resource instance)
@@ -46,7 +44,8 @@ class BaseResourceConverter(object):
         Override in a subclass if further customization is needed.
         '''
         if output_required:
-            raise OutputConversionException('Failed to convert a required output.')
+            raise OutputConversionException(
+                'Failed to convert a required output.')
 
     def _handle_invalid_resource_type(self, resource):
         '''
@@ -56,80 +55,86 @@ class BaseResourceConverter(object):
         If more customization is required, override in a subclass.
         '''
         logger.info('The validation method did not set the resource type'
-            ' which indicates that validation did not succeed. Hence, the'
-            ' resource ({pk}) will be removed.'.format(pk=resource.pk)
-        )            
-        # delete the current Resource that failed
-        # The cast to a str is not necessary, but makes unit testing slightly simpler
+                    ' which indicates that validation did not succeed. Hence,'
+                    f' the resource ({resource.pk}) will be removed.')
+
+        # Delete the current Resource that failed
+        # The cast to a str is not necessary, but makes unit testing
+        # slightly simpler
         delete_resource_by_pk(str(resource.pk))
 
     def _create_output_filename(self, path, job_name):
+        '''
+        Names the output file based on the user-submitted job name.
+        '''
         if len(job_name) > 0:
             return f'{job_name}.{os.path.basename(path)}'
         else:
             return os.path.basename(path)
 
-    def _attempt_resource_addition(self, executed_op, \
-        workspace, path, resource_type, output_required):
+    def _attempt_resource_addition(self, executed_op,
+                                   workspace, path, resource_type, 
+                                   output_required):
 
         # the "name"  of the file as the user will see it.
-        name = self._create_output_filename(path, executed_op.job_name) 
+        name = self._create_output_filename(path, executed_op.job_name)
 
-        # try to create the resource in the db. This involves 
+        # try to create the resource in the db. This involves
         # moving/copying files, so there can be exceptions raised
         # Initialize `resource` to None. If we successfully
-        # return from the `create_resource` method, then this 
+        # return from the `create_resource` method, then this
         # will be reset.
         resource = None
         try:
-            # this self.create_resource calls a method 
+            # this self.create_resource calls a method
             # defined in a derived class. Depending on whether
             # the resource is local or remote, the behavior
             # is different.
-            resource = self._create_resource(executed_op, \
-                workspace, path, name)
+            resource = self._create_resource(executed_op,
+                                             workspace, path, name)
         except (FileNotFoundError, StorageException):
             # For optional outputs, Cromwell will report output files
             # that do not actually exist. In this case, the copy will
             # fail, but it's not necessarily a problem.
             logger.info('Received a file not found or storage exception for a'
-                ' job output. Depending on the analysis, this may not be'
-                ' a problem.'
-            )
+                        ' job output. Depending on the analysis, this may not'
+                        ' be a problem.'
+                        )
         except Exception as ex:
-            logger.info('Received an unexpected exception when creating a resource'
-                ' for a job output'
-            )
-            # since this was unexpected, we want the admins to know about it, even
-            # if the output was optional
-            alert_admins(f'Unexpected exception was raised during resource'
-                ' creation for executed operation {executed_op.pk}'
-            )
-        
+            logger.info('Received an unexpected exception when creating a'
+                        ' resource for a job output'
+                        )
+            # since this was unexpected, we want the admins to know 
+            # about it, even if the output was optional
+            alert_admins('Unexpected exception was raised during resource'
+                         f' creation for executed operation {executed_op.pk}'
+                         )
+
         if resource is None:
             self._handle_storage_failure(output_required)
-            # if handle_storage_failure does not raise an 
+            # if handle_storage_failure does not raise an
             # exception, then it was "ok" that this file
-            # did not store correctly (as in the case of 
+            # did not store correctly (as in the case of
             # optional outputs)
             return None
 
-        # Now attempt to validate the resource. IF this succeeds, the resource_type
-        # field will be set.
+        # Now attempt to validate the resource. IF this succeeds, 
+        # the resource_type field will be set.
         # If there is an unrecoverable failure, this method will raise
         # an exception that is caught in the calling method
         try:
-            # by default, the outputs we create should be in the standard format 
-            # for their resource type
-            file_format = retrieve_resource_class_standard_format(resource_type)
+            # by default, the outputs we create should be in 
+            # the standard format for their resource type
+            file_format = retrieve_resource_class_standard_format(
+                resource_type)
             initiate_resource_validation(resource, resource_type, file_format)
         except Exception as ex:
-            # if the validation fails, it will raise an Exception (or derived class of
-            # an Exception). If that's the case, we need to roll-back
+            # if the validation fails, it will raise an Exception (or derived 
+            # class of an Exception). If that's the case, we need to roll-back
             self._handle_invalid_resource_type(resource)
             raise OutputConversionException('Failed to validate the expected'
-                ' resource type'
-            )
+                                            ' resource type'
+                                            )
 
         # everything worked out correctly!
         resource.is_active = True
@@ -142,7 +147,7 @@ class BaseResourceConverter(object):
         return str(resource.pk)
 
     def _convert_resource_output(
-        self, executed_op, workspace, output_definition, output_val):
+            self, executed_op, workspace, output_definition, output_val):
         '''
         A method that handles the addition of a single resource output.
 
@@ -161,8 +166,8 @@ class BaseResourceConverter(object):
         except Exception as ex:
             # raise this exception which will trigger cleanup of any
             # other outputs for this ExecutedOperation
-            raise OutputConversionException('')
-        
+            raise OutputConversionException(str(ex))
+
 
 class DataResourceMixin(object):
     '''
@@ -182,14 +187,14 @@ class DataResourceMixin(object):
         `output_spec` is an instance of data_structures.output_spec.OutputSpec
         '''
         return (output_val, output_spec.value.resource_type)
-    
+
 
 class VariableDataResourceMixin(object):
     '''
     This class handles common behavior for converting VariableDataResource
     instances which can be of multiple types.
     '''
-    
+
     def _get_output_path_and_resource_type(self, output_val, output_spec):
         '''
         This method looks at the output value and spec, checks that 
@@ -204,9 +209,11 @@ class VariableDataResourceMixin(object):
 
         if not type(output_val) is dict:
             raise OutputConversionException('For a VariableResourceType,'
-                ' we expect that the output format is a list of'
-                f' objects/dicts. The value received was {output_val}'
-            )
+                                            ' we expect that the output is'
+                                            ' an object/dict.'
+                                            ' The value received was'
+                                            f'{output_val}'
+                                            )
 
         # in the case where the output has variable type, we need
         # to ensure the potential types and the requested type
@@ -217,30 +224,29 @@ class VariableDataResourceMixin(object):
             resource_type = output_val['resource_type']
         except KeyError as ex:
             raise OutputConversionException('In the output object, we expect'
-                f' the following key: {ex}')
+                                            f' the following key: {ex}')
 
         if resource_type in potential_resource_types:
             return (p, resource_type)
         else:
-            raise OutputConversionException('The specified resource type of {rt}'
-                ' was not consistent with the permitted types of {t}'.format(
-                    rt = resource_type,
-                    t = ','.join(potential_resource_types)
-                )
-            )  
+            raise OutputConversionException('The specified resource type of'
+                                    f' {result_type} was not consistent'
+                                    ' with the permitted types of'
+                                    f' {",".join(potential_resource_types)}'
+                                    )
 
 
 class SingleDataResourceMixin(object):
-    
+
     def _convert_output(
-        self, executed_op, workspace, output_definition, output_val):
+            self, executed_op, workspace, output_definition, output_val):
         return self._convert_resource_output(
             executed_op, workspace, output_definition, output_val)
 
     def _convert_input(self, user_input, staging_dir):
 
         # `convert_single_resource` is dependent on
-        # the runner, so the method is found in the 
+        # the runner, so the method is found in the
         # mixin specific to local, cromwell, etc.
         return self._convert_resource_input(user_input, staging_dir)
 
@@ -256,7 +262,7 @@ class MultipleDataResourceMixin(object):
             for u in user_input:
                 path_list.append(
                     # `convert_single_resource` is dependent on
-                    # the runner, so the method is found in the 
+                    # the runner, so the method is found in the
                     # mixin specific to local, cromwell, etc.
                     self._convert_resource_input(u, staging_dir)
                 )
@@ -267,9 +273,8 @@ class MultipleDataResourceMixin(object):
                 self._convert_resource_input(user_input, staging_dir)
             )
         else:
-            logger.error('Unrecognized type submitted for DataResource value: {v}'.format(
-                v = user_input
-            ))
+            logger.error('Unrecognized type submitted for DataResource'
+                f' value: {user_input}')
         return path_list
 
     def _cleanup_other_outputs(self, resource_uuids):
@@ -282,19 +287,19 @@ class MultipleDataResourceMixin(object):
         [delete_resource_by_pk(x) for x in resource_uuids]
 
     def _convert_output(
-        self,executed_op, workspace, output_definition, output_val):
-        
+            self, executed_op, workspace, output_definition, output_val):
+
         # the specification- what kind of output data do we expect?
         output_spec = output_definition.spec
-        
+
         if not output_spec.value.many:
             raise OutputConversionException('This converter is only'
-                ' appropriate for multiple resource outputs.')
+                                ' appropriate for multiple resource outputs.')
 
         if not type(output_val) is list:
             raise OutputConversionException('When there are multiple'
-                ' outputs, we expect a list.')
-        
+                                            ' outputs, we expect a list.')
+
         resource_uuids = []
         for x in output_val:
             try:
@@ -303,7 +308,7 @@ class MultipleDataResourceMixin(object):
                 resource_uuids.append(u)
             except OutputConversionException as ex:
                 # if one of the attempts raises an exception (e.g.
-                # if a required output was missing) then we need to 
+                # if a required output was missing) then we need to
                 # cleanup other resources that were part of this output
                 # field. This way we don't generate partial outputs
                 self._cleanup_other_outputs(resource_uuids)
@@ -334,15 +339,15 @@ class LocalResourceMixin(object):
 
     def _create_resource(self, executed_op, workspace, path, name):
         logger.info('From executed operation outputs based on a local job,'
-            ' create a resource with name {n}'.format(
-                n = name
-            )
-        )
+                    ' create a resource with name {n}'.format(
+                        n=name
+                    )
+                    )
         fh = File(open(path, 'rb'), name)
         return create_resource(
-            executed_op.owner, 
+            executed_op.owner,
             file_handle=fh,
-            name=name, 
+            name=name,
             workspace=workspace
         )
 
@@ -366,16 +371,14 @@ class CromwellResourceMixin(object):
 
     def _create_resource(self, executed_op, workspace, path, name):
         '''
-        Returns an instance of api.models.Resource based on the passed parameters.
+        Returns an instance of api.models.Resource based on the 
+        passed parameters.
 
-        Note that `path` is the path in the Cromwell bucket and we have to move the 
-        file into WebMeV storage.
+        Note that `path` is the path in the Cromwell bucket and 
+        we have to move the file into WebMeV storage.
         '''
-        logger.info('From executed operation outputs based on a Cromwell-based job,'
-            ' create a resource with name {n}'.format(
-                n = name
-            )
-        )
+        logger.info('From executed operation outputs based on a Cromwell-based'
+                    f' job, create a resource with name {name}')
         try:
             r = default_storage.create_resource_from_interbucket_copy(
                 executed_op.owner,
@@ -385,16 +388,16 @@ class CromwellResourceMixin(object):
             return r
         except Exception as ex:
             logger.info('Caught exception when copying a Cromwell output'
-                ' to our storage. Removing the dummy Resource and re-raising.'
-            )
+                        ' to our storage. Removing the dummy Resource'
+                        ' and re-raising.')
             raise ex
 
 
 class LocalDockerSingleDataResourceConverter(
-    BaseResourceConverter,
-    LocalResourceMixin, 
-    SingleDataResourceMixin,
-    DataResourceMixin):
+        BaseResourceConverter,
+        LocalResourceMixin,
+        SingleDataResourceMixin,
+        DataResourceMixin):
     '''
     This converter handles inputs and outputs which are related to jobs
     that are run using the local Docker-based runner.
@@ -412,7 +415,8 @@ class LocalDockerSingleDataResourceConverter(
         '''
         return self._convert_resource_input(user_input, staging_dir)
 
-    def convert_output(self, executed_op, workspace, output_definition, output_val):
+    def convert_output(self,
+                       executed_op, workspace, output_definition, output_val):
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
@@ -422,10 +426,10 @@ class LocalDockerSingleDataResourceConverter(
 
 
 class LocalDockerSingleVariableDataResourceConverter(
-    BaseResourceConverter,
-    LocalResourceMixin, 
-    SingleDataResourceMixin,
-    VariableDataResourceMixin):
+        BaseResourceConverter,
+        LocalResourceMixin,
+        SingleDataResourceMixin,
+        VariableDataResourceMixin):
     '''
     This converter handles inputs and outputs which are related to jobs
     that are run using the local Docker-based runner.
@@ -447,11 +451,10 @@ class LocalDockerSingleVariableDataResourceConverter(
         and returns the path to the copied file. That file path
         is then used to run the local, Docker-based job
         '''
-        resource_uuid = user_input
-        dest = self._convert_resource_input(resource_uuid, staging_dir)
-        return dest
+        return self._convert_resource_input(user_input, staging_dir)
 
-    def convert_output(self, executed_op, workspace, output_definition, output_val):
+    def convert_output(self,
+                       executed_op, workspace, output_definition, output_val):
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
@@ -461,27 +464,30 @@ class LocalDockerSingleVariableDataResourceConverter(
 
 
 class LocalDockerSingleDataResourceWithTypeConverter(
-    BaseResourceConverter,
-    LocalResourceMixin, 
-    SingleDataResourceMixin,
-    DataResourceMixin):
+        BaseResourceConverter,
+        LocalResourceMixin,
+        SingleDataResourceMixin,
+        DataResourceMixin):
     '''
     This converter takes a DataResource instance (for a single file,
     which is simply a UUID) and returns a delimited string which includes
     the path and the resource type
 
-    This converter takes that UUID, finds the Resource/file, brings it local, and returns
-    the local path concatenated with the resource type.
+    This converter takes that UUID, finds the Resource/file, brings it
+    local, and returns the local path concatenated with the resource type.
 
-    This converter saves us from having to define additional input fields for certain ops. 
+    This converter saves us from having to define additional input fields 
+    for certain ops. 
+
     As an example:
-    consider an operation where we can take in a type of matrix (e.g. MTX, EXP_MTX, etc.)
-    and subset it (by rows or cols). 
+    consider an operation where we can take in a type of matrix 
+    (e.g. MTX, EXP_MTX, etc.) and subset it (by rows or cols). 
     To output a resource of the same type, we need to know the input type.
-    We don't need to solicit that input from the user since we already have it in our db.
-    Hence, we convert to a delimited string which will indicate to the tool the 
-    resource type of the input. Often this means that the tool will perform some operation
-    and echo back that resource type in the outputs.
+    We don't need to solicit that input from the user since we already have
+    it in our db.
+    Hence, we convert to a delimited string which will indicate to the tool the
+    resource type of the input. Often this means that the tool will perform 
+    some operation and echo back that resource type in the outputs.
     '''
 
     # This is the delimiter we use to separate the path from the resource type
@@ -489,7 +495,8 @@ class LocalDockerSingleDataResourceWithTypeConverter(
 
     def convert_input(self, user_input, op_dir, staging_dir):
         '''
-        user_input is the dictionary-representation of a api.data_structures.UserOperationInput
+        user_input is the dictionary-representation of a 
+        api.data_structures.UserOperationInput
         '''
         resource_uuid = user_input
         resource = get_resource_by_pk(resource_uuid)
@@ -500,10 +507,10 @@ class LocalDockerSingleDataResourceWithTypeConverter(
 
 
 class LocalDockerMultipleDataResourceConverter(
-    BaseResourceConverter,
-    LocalResourceMixin,
-    MultipleDataResourceMixin,
-    DataResourceMixin):
+        BaseResourceConverter,
+        LocalResourceMixin,
+        MultipleDataResourceMixin,
+        DataResourceMixin):
     '''
     This converter takes a DataResource instance (for >1 file) and
     returns the path to the local files as a list. Typically, this 
@@ -516,14 +523,16 @@ class LocalDockerMultipleDataResourceConverter(
         'value': [<UUID>, <UUID>, <UUID>]
     }
 
-    This converter takes the list UUIDs, finds each Resource/file, brings it local,
-    copies to a staging dir and returns a list of paths to those copies.
+    This converter takes the list UUIDs, finds each Resource/file,
+    brings it local, copies to a staging dir and returns a list of
+    paths to those copies.
     '''
 
     def convert_input(self, user_input, op_dir, staging_dir):
         return self._convert_input(user_input, staging_dir)
 
-    def convert_output(self, executed_op, workspace, output_definition, output_val):
+    def convert_output(self, 
+        executed_op, workspace, output_definition, output_val):
         '''
         This converts multiple output resources (paths) to Resource instances
         and returns their pk/UUIDs for the newly created database resources.
@@ -533,10 +542,10 @@ class LocalDockerMultipleDataResourceConverter(
 
 
 class LocalDockerMultipleVariableDataResourceConverter(
-    BaseResourceConverter,
-    LocalResourceMixin,
-    MultipleDataResourceMixin,
-    VariableDataResourceMixin):
+        BaseResourceConverter,
+        LocalResourceMixin,
+        MultipleDataResourceMixin,
+        VariableDataResourceMixin):
     '''
     This converter takes a DataResource instance (for >1 file) and
     returns the path to the local files as a list. Typically, this 
@@ -556,7 +565,8 @@ class LocalDockerMultipleVariableDataResourceConverter(
     def convert_input(self, user_input, op_dir, staging_dir):
         return self._convert_input(user_input, staging_dir)
 
-    def convert_output(self, executed_op, workspace, output_definition, output_val):
+    def convert_output(self, 
+        executed_op, workspace, output_definition, output_val):
         '''
         This converts multiple output resources (paths) to Resource instances
         and returns their pk/UUIDs for the newly created database resources.
@@ -566,23 +576,24 @@ class LocalDockerMultipleVariableDataResourceConverter(
 
 
 class LocalDockerDelimitedResourceConverter(
-    BaseResourceConverter,
-    LocalResourceMixin,
-    MultipleDataResourceMixin,
-    DataResourceMixin):
+        BaseResourceConverter,
+        LocalResourceMixin,
+        MultipleDataResourceMixin,
+        DataResourceMixin):
     '''
     This is a base class for a converter that takes multiple
     inputs and creates a delimited string. The derived child 
     classes define the delimiter.
     '''
+
     def convert_input(self, user_input, op_dir, staging_dir):
         path_list = self._convert_input(user_input, staging_dir)
         return self.to_string(path_list)
 
 
 class LocalDockerCsvResourceConverter(
-    LocalDockerDelimitedResourceConverter,
-    CsvMixin):
+        LocalDockerDelimitedResourceConverter,
+        CsvMixin):
     '''
     Takes multiple resource inputs and converts them to a comma-delimited
     string with the multiple paths
@@ -591,8 +602,8 @@ class LocalDockerCsvResourceConverter(
 
 
 class LocalDockerSpaceDelimResourceConverter(
-    LocalDockerDelimitedResourceConverter,
-    SpaceDelimMixin):
+        LocalDockerDelimitedResourceConverter,
+        SpaceDelimMixin):
     '''
     Takes multiple resource inputs and converts them to a space-delimited
     string with the multiple paths
@@ -602,27 +613,25 @@ class LocalDockerSpaceDelimResourceConverter(
 
 class CromwellSingleDataResourceConverter(
     BaseResourceConverter,
-    CromwellResourceMixin, 
+    CromwellResourceMixin,
     SingleDataResourceMixin,
     DataResourceMixin
-    ):
+):
     '''
     This converter takes a DataResource instance (for a single file,
     which is simply a UUID) and returns the path to 
     the file in cloud storage.
 
-    Note that if Cromwell is enabled, we do not allow local storage, so we do not 
-    need to handle cases where we might have to push a local file into cloud-based 
-    storage.
+    Note that if Cromwell is enabled, we do not allow local storage, 
+    so we do not need to handle cases where we might have to push a 
+    local file into cloud-based storage.
     '''
 
     def convert_input(self, user_input, op_dir, staging_dir):
-        resource_uuid = user_input
-        path = self._convert_resource_input(resource_uuid, staging_dir)
-        return path
+        return self._convert_resource_input(user_input, staging_dir)
 
     def convert_output(
-        self, executed_op, workspace, output_definition, output_val):
+            self, executed_op, workspace, output_definition, output_val):
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
@@ -632,14 +641,15 @@ class CromwellSingleDataResourceConverter(
 
 
 class CromwellMultipleDataResourceConverter(
-    BaseResourceConverter,
-    CromwellResourceMixin,
-    MultipleDataResourceMixin,
-    DataResourceMixin):
+        BaseResourceConverter,
+        CromwellResourceMixin,
+        MultipleDataResourceMixin,
+        DataResourceMixin):
     '''
-    This converter takes a DataResource instance (for >1 file) and returns the path to 
-    the remote files as a list. Typically, this is then used with a mixin class to format
-    the paths as a comma-delimited list, a space-delimited list, etc.
+    This converter takes a DataResource instance (for >1 file) and 
+    returns the path to the remote files as a list. Typically, this 
+    is then used with a mixin class to format the paths as a comma-delimited
+    list, a space-delimited list, etc.
 
     For example, given the following DataResource:
     {
@@ -655,3 +665,13 @@ class CromwellMultipleDataResourceConverter(
 
     def convert_input(self, user_input, op_dir, staging_dir):
         return self._convert_input(user_input, staging_dir)
+
+    def convert_output(
+            self, executed_op, workspace, output_definition, output_val):
+        '''
+        This converts a an output corresponding to multiple
+        resources (paths) to Resource instances
+        and returns those pk/UUID for the newly created database resources.
+        '''
+        return self._convert_output(
+            executed_op, workspace, output_definition, output_val)

@@ -58,10 +58,14 @@ class BaseElementSet(BaseAttributeType):
         # a list (even if empty) is required and addressed by the
         # `elements` key
         try:
-            self.elements = val['elements']
+            self.elements = val.pop('elements')
         except KeyError:
             raise DataStructureValidationException('An ElementSet type'
                 ' requires an "elements" key.')
+
+        if len(val.keys()) > 0:
+            raise DataStructureValidationException('Received extra key(s):'
+                f' {",".join(val.keys())}')
 
         self._value = {
             'elements': self._element_list
@@ -76,17 +80,18 @@ class BaseElementSet(BaseAttributeType):
         if not type(elements_val) is list:
             raise DataStructureValidationException(f'Within a {self.typename},'
                 ' the nested "elements" key should address a list.')
-        list_of_elements = set()
+        self._element_list = set()
         for item in elements_val:
             # each item in the list should be an Element subclass 
             # (e.g. Feature, Observation). The implementing class
             # e.g. ObservationSet defines a member that provides
             # the "type" of the nested Element. In the case of the
             # ObservationSet, that's obviously an Observation.
-            list_of_elements.add(
-                self.elements_type_class(item)
-            )
-        self._element_list = list_of_elements
+            self.add_element(item)
+        #     list_of_elements.add(
+        #         self.elements_type_class(item)
+        #     )
+        # self._element_list = list_of_elements
 
 
     def add_element(self, new_element_dict):

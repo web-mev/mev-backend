@@ -325,9 +325,24 @@ class StringAttribute(BaseAttributeType):
     '''
     typename = 'String'
 
+    # Maximum length for a string. This is mainly
+    # here as a guard against errors stemming from parsing
+    # issues. For instance, parsing a CSV-format file as TSV
+    # can result in entire lines being interpreted as a single,
+    # ultra long string. While not a perfect solution, we can
+    # at least catch issues like that (unless they are using a 
+    # small file in which case it's impossible to differentiate
+    # between a poorly parsed string and an intentionally long
+    # string identifier)
+    MAX_LENGTH = 100
+
     def _value_validator(self, val):
         try:
             val = normalize_identifier(val)
+            if len(val) > self.MAX_LENGTH:
+                raise AttributeValueError('The submitted attribute'
+                    f' {val} was longer than we permit'
+                    f' ({self.MAX_LENGTH} chars).')
             self._value = val
         except StringIdentifierException as ex:
             raise AttributeValueError(str(ex))
@@ -345,8 +360,24 @@ class UnrestrictedStringAttribute(BaseAttributeType):
     '''
     typename = 'UnrestrictedString'
 
+    # Maximum length for a string. This is mainly
+    # here as a guard against errors stemming from parsing
+    # issues. For instance, parsing a CSV-format file as TSV
+    # can result in entire lines being interpreted as a single,
+    # ultra long string. While not a perfect solution, we can
+    # at least catch issues like that (unless they are using a 
+    # small file in which case it's impossible to differentiate
+    # between a poorly parsed string and an intentionally long
+    # string identifier)
+    MAX_LENGTH = 100
+
     def _value_validator(self, val):
-        self._value = str(val)
+        val = str(val)
+        if len(val) > self.MAX_LENGTH:
+            raise AttributeValueError('The submitted attribute'
+                f' {val} was longer than we permit'
+                f' ({self.MAX_LENGTH} chars).')
+        self._value = val
 
 
 class OptionStringAttribute(BaseAttributeType):

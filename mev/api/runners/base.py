@@ -4,7 +4,7 @@ import logging
 from django.utils.module_loading import import_string
 
 from api.utilities.admin_utils import alert_admins
-from api.exceptions import OutputConversionException
+from exceptions import OutputConversionException
 
 logger = logging.getLogger(__name__)
 
@@ -79,14 +79,12 @@ class OperationRunner(object):
         try:
             converter_class = import_string(converter_class_str)
             return converter_class()
-        except Exception as ex:
-            logger.error('Failed when importing the converter class: {clz}'
-                ' Exception was: {ex}'.format(
-                    ex=ex,
-                    clz = converter_class_str
-                )
-            )
-            raise ex  
+        except (Exception, ModuleNotFoundError) as ex:
+            message = ('Failed when importing the converter'
+                f' class: {converter_class_str}.'
+                f'Error was: {ex}')
+            logger.error(message)
+            raise Exception(message) 
 
 
     def _convert_inputs(self, op, op_dir, validated_inputs, staging_dir):
@@ -151,7 +149,8 @@ class OperationRunner(object):
                         converter = self._get_converter(
                             current_output_spec.converter)
                         converted_outputs_dict[k] = converter.convert_output(
-                            executed_op, user_workspace, current_output_spec, v)
+                            executed_op, user_workspace,
+                            current_output_spec, v)
                     else:
                         logger.info('Executed operation output was null/None.')
                         converted_outputs_dict[k] = None
