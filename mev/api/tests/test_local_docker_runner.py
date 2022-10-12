@@ -188,8 +188,8 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         self.assertTrue(workspace_exec_op.error_messages == ['ACK'])
 
 
+    @override_settings(OPERATION_LIBRARY_DIR='/data/op_dir')
     @mock.patch('api.runners.local_docker.alert_admins')
-    @mock.patch('api.runners.local_docker.make_local_directory')
     @mock.patch('api.runners.local_docker.os.path.exists')
     @mock.patch('api.runners.local_docker.run_shell_command')
     @mock.patch('api.runners.local_docker.get_image_name_and_tag')
@@ -197,34 +197,44 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_get_image_name_and_tag, \
         mock_run_shell_command, \
         mock_os_exists, \
-        mock_make_local_directory, \
         mock_alert_admins):
         '''
         If the docker container never starts, then we need to handle 
         appropriately.
         '''
+        mock_executed_op = mock.MagicMock()
+        u = str(uuid.uuid4())
+        mock_executed_op.id = u
+
         runner = LocalDockerRunner()
-        mock_map_inputs = mock.MagicMock()
+        mock_convert_inputs = mock.MagicMock()
         mock_copy_data_resources = mock.MagicMock()
         mock_get_entrypoint_command = mock.MagicMock()
         mock_get_entrypoint_command.return_value = 'some_command'
-        mock_map_inputs.return_value = {'abc':123}
+        mock_convert_inputs.return_value = {'abc':123}
         mock_get_image_name_and_tag.return_value = ''
-        runner._convert_inputs = mock_map_inputs
+        mock_create_execution_dir = mock.MagicMock()
+        mock_ex_dir = f'/data/ex_dir/{u}'
+        mock_create_execution_dir.return_value = mock_ex_dir
+        runner._convert_inputs = mock_convert_inputs
         runner._copy_data_resources = mock_copy_data_resources
         runner._get_entrypoint_command = mock_get_entrypoint_command
+        runner._create_execution_dir = mock_create_execution_dir
 
         mock_os_exists.return_value = True
         mock_run_shell_command.side_effect = Exception('!!!')
 
-        mock_executed_op = mock.MagicMock()
-        u = str(uuid.uuid4())
-        mock_executed_op.job_id = u
         op = Operation(json.load(open(self.filepath)))
         mock_inputs = {'some': 'input'}
         runner.run(mock_executed_op, op, mock_inputs)
         mock_alert_admins.assert_called()
-        mock_make_local_directory.assert_called()
+        mock_create_execution_dir.assert_called_once_with(u)
+        mock_convert_inputs.assert_called_once_with(
+            op,
+            f'/data/op_dir/{op.id}',
+            mock_inputs,
+            mock_ex_dir
+        )
         mock_run_shell_command.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
         mock_executed_op.save.assert_called()
@@ -311,25 +321,28 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_image_name = 'docker.io/foo:bar'
         mock_get_image_name_and_tag.return_value = mock_image_name
 
+        mock_executed_op = mock.MagicMock()
+        u = uuid.uuid4()
+        mock_executed_op.id = u
+
         runner = LocalDockerRunner()
         mock_convert_inputs = mock.MagicMock()
         mock_convert_inputs.return_value = {}
         mock_entrypoint_cmd = mock.MagicMock()
         mock_cmd = 'Rscript something.R'
         mock_entrypoint_cmd.return_value = mock_cmd
+        mock_create_execution_dir = mock.MagicMock()
+        mock_ex_dir = f'/data/ex_dir/{u}'
+        mock_create_execution_dir.return_value = mock_ex_dir
         runner._convert_inputs = mock_convert_inputs
         runner._get_entrypoint_command = mock_entrypoint_cmd
+        runner._create_execution_dir = mock_create_execution_dir
 
         op = Operation(json.load(open(self.filepath)))
         validated_inputs = {'abc': 1}
-        mock_executed_op = mock.MagicMock()
-        u = uuid.uuid4()
-        mock_executed_op.id = u
 
         runner.run(mock_executed_op, op, validated_inputs)
         mock_op_dir = f'/data/op_dir/{op.id}'
-        mock_ex_dir = f'/data/ex_dir/{u}'
-        mock_make_local_directory.assert_called_once_with(mock_ex_dir)
         mock_convert_inputs.assert_called_once_with(
             op,
             mock_op_dir,

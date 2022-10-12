@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from celery import shared_task
 
+from exceptions import JobSubmissionException
+
 from api.models import Operation, \
     ExecutedOperation, \
     WorkspaceExecutedOperation, \
@@ -100,7 +102,12 @@ def submit_async_job(executed_op_pk,
             mode=op.mode,
             status=ExecutedOperation.SUBMITTED
         )
-    submit_job(executed_op, op, validated_inputs)
+
+    try:
+        submit_job(executed_op, op, validated_inputs)
+    except JobSubmissionException as ex:
+        logger.info('Caught a job submission exception.')
+        return
 
     # also start a task that will watch for job status changes
     check_executed_op.delay(executed_op_pk)

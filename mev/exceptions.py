@@ -176,3 +176,12 @@ class InvalidRunModeException(WebMeVException):
     mode that is not valid
     '''
     pass
+
+
+class JobSubmissionException(WebMeVException):
+    '''
+    Used for raising a specific exception related to unexpected
+    behavior when submitting jobs. Examples include a 4xx, 500
+    response from Cromwell, etc.
+    '''
+    pass

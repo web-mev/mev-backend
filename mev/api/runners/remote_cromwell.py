@@ -8,7 +8,8 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from exceptions import OutputConversionException
+from exceptions import OutputConversionException, \
+    JobSubmissionException
 
 from api.runners.base import OperationRunner
 from api.utilities.basic_utils import make_local_directory, \
@@ -263,49 +264,73 @@ class RemoteCromwellRunner(OperationRunner):
         try:
             response = post_with_retry(submission_url, data=payload, files=files)
         except Exception as ex:
-            logger.info('Submitting job ({id}) to Cromwell failed.'
-                ' Exception was: {ex}'.format(
-                    ex = ex,
-                    id = exec_op_id
-                )
-            )
-
+            logger.info(f'Submitting job ({executed_op.id}) to Cromwell failed.'
+                f' Exception was: {ex}')
+            response = None
         self.handle_submission_response(response, executed_op)
 
     def handle_submission_response(self, response, executed_op):
-        response_json = json.loads(response.text)
-        if response.status_code == 201:
-            try:
-                status = response_json['status']
-            except KeyError as ex:
-                status = 'Unknown'
-            if status == self.SUBMITTED_STATUS:
-                logger.info('Job was successfully submitted'
-                    ' to Cromwell.'
-                )
-                # Cromwell assigns its own UUID to the job
-                cromwell_job_id = response_json['id']
-                executed_op.job_id = cromwell_job_id
-                executed_op.execution_start_datetime = datetime.datetime.now()
-            else:
-                logger.info('Received an unexpected status'
-                    ' from Cromwell following a 201'
-                    ' response code: {status}'.format(
-                        status = response_json['status']
-                    )
-                )
-                executed_op.status = status
+        '''
+        After trying to POST to cromwell, we end up here regardless.
 
+        This method handles both expected and unexpected responses,
+        as well as complete failures from the POST
+        '''
+        if response is not None:
+            response_json = json.loads(response.text)
+            if response.status_code == 201:
+                try:
+                    status = response_json['status']
+                except KeyError as ex:
+                    status = 'Unknown'
+
+                if status == self.SUBMITTED_STATUS:
+                    logger.info('Job was successfully submitted'
+                        ' to Cromwell.'
+                    )
+                    # Cromwell assigns its own UUID to the job
+                    cromwell_job_id = response_json['id']
+                    executed_op.job_id = cromwell_job_id
+                    executed_op.execution_start_datetime = datetime.datetime.now()
+                else:
+                    message = ('Received an unexpected status'
+                        ' from Cromwell following a 201'
+                        f' response code: {status}')
+                    logger.info(message)
+                    self._handle_submission_issue(executed_op)
+            else:
+                message = ('Received an unexpected status code'
+                    f' of {response.status_code} from Cromwell.')
+                logger.info(message)
+                self._handle_submission_issue(executed_op)
         else:
-            error_msg = ('Received a response code of {rc} when submitting job'
-                ' to the remote Cromwell runner.'.format(
-                    rc = response.status_code
-                )
-            ) 
-            logger.info(error_msg)
-            alert_admins(error_msg)
-            executed_op.status = 'Not submitted. Try again later. Admins have been notified.'
+            # response was None, which is not expected. Could be due
+            # to Cromwell going offline, etc.
+            self._handle_submission_issue(executed_op)
+
         executed_op.save()
+
+    def _handle_submission_issue(self, executed_op, status_message=None):
+        '''
+        Used to handle situations where the job submission did not go
+        as expected (e.g. 201 response and expected payload).
+
+        Sets the proper fields so that we don't end up with a hanging
+        job
+        '''
+        if status_message is None:
+            status_message = ('Unexpected issue with job submission.'
+                    ' WebMeV admins have been notified.')
+        # set a bunch of fields so that we aren't left with an
+        # ambiguous state
+        executed_op.execution_start_datetime = datetime.datetime.now()
+        executed_op.execution_stop_datetime = datetime.datetime.now()
+        executed_op.status = status_message
+        executed_op.job_failed = True
+        executed_op.save()
+        alert_admins('There was an issue with job submission for executed'
+            f' operation with id: {executed_op.id}')
+        raise JobSubmissionException()
 
     def query_for_metadata(self, job_uuid):
         '''
@@ -350,6 +375,9 @@ class RemoteCromwellRunner(OperationRunner):
             logging.info('Received an unexpected status code when querying'
                 ' the status of a Cromwell job.'
             )
+        # if we have not returned, then we received a 400,404,500 or something
+        # else unexpected. return None
+
 
     def _parse_status_response(self, response_json):
         status = response_json['status']
@@ -366,7 +394,7 @@ class RemoteCromwellRunner(OperationRunner):
         other actions until admins can investigate.
         '''
         response_json = self.query_for_status(job_uuid)
-        if response_json:
+        if response_json is not None:
             status = self._parse_status_response(response_json)
             # the job is complete if it's marked as success of failure
             if (status == self.SUCCEEDED_STATUS) or (status == self.FAILED_STATUS):
@@ -397,13 +425,10 @@ class RemoteCromwellRunner(OperationRunner):
             outputs_dict = job_metadata['outputs']
         except KeyError as ex:
             outputs_dict = {}
-            error_msg = ('The job metadata payload received from executed op ({op_id})'
-                ' with Cromwell ID {cromwell_id} did not contain the "outputs"'
-                ' key in the payload'.format(
-                    cromwell_id = job_id,
-                    op_id = executed_op.id
-                )
-            )
+            error_msg = ('The job metadata payload received from'
+                f' executed op ({executed_op.job_id})'
+                f' with Cromwell ID {job_id} did not contain the'
+                ' "outputs" key in the payload')
             logger.info(error_msg)
             alert_admins(error_msg)
 
@@ -493,8 +518,7 @@ class RemoteCromwellRunner(OperationRunner):
         )
 
         # create a sandbox directory where we will store the files:
-        staging_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
-        make_local_directory(staging_dir)
+        staging_dir = self._create_execution_dir(execution_uuid)
 
         # create the Cromwell-compatible inputs.json from the user inputs
         self._create_inputs_json(op, op_dir, validated_inputs, staging_dir)

@@ -198,8 +198,7 @@ class LocalDockerRunner(OperationRunner):
 
         # To avoid conflicts or corruption of user data, we run each operation in its
         # own sandbox. We must first copy over their files to that sandbox dir.
-        execution_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
-        make_local_directory(execution_dir)
+        execution_dir = self._create_execution_dir(execution_uuid)
 
         # convert the user inputs into args compatible with commandline usage:
         # For instance, a differential gene expression requires one to specify

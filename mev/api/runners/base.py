@@ -1,10 +1,14 @@
 import os
 import logging
 
+from django.conf import settings
 from django.utils.module_loading import import_string
 
-from api.utilities.admin_utils import alert_admins
 from exceptions import OutputConversionException
+
+from api.utilities.admin_utils import alert_admins
+from api.utilities.basic_utils import make_local_directory
+
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +78,12 @@ class OperationRunner(object):
                 )
         logger.info('Done checking for required files.')
 
+    def _create_execution_dir(self, execution_uuid):
+        # To avoid conflicts or corruption of user data, we run each operation in its
+        # own sandbox directory.
+        execution_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
+        make_local_directory(execution_dir)
+        return execution_dir
 
     def _get_converter(self, converter_class_str):
         try:
@@ -113,13 +123,11 @@ class OperationRunner(object):
             f' following structure: {arg_dict}')
         return arg_dict
 
-
     def _convert_outputs(self, executed_op, op, outputs_dict):
         '''
         Handles the mapping from outputs (as provided by the runner)
         to MEV-compatible data structures or resources.
         '''
-
         # the workspace so we know which workspace to associate outputs with:
         user_workspace = getattr(executed_op, 'workspace', None)
 
