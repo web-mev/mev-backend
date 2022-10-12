@@ -10,6 +10,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 from rest_framework import status
 
+from data_structures.operation import Operation
+
 from api.models import Operation as OperationDbModel
 from api.models import Workspace, \
     Resource, \
@@ -65,14 +67,14 @@ def tear_down_db_elements(self):
     # this is the location where the ingestion will dump the data
     dest_dir = os.path.join(
         settings.OPERATION_LIBRARY_DIR,
-        str(self.op.id)
+        str(self.opDb.id)
     )
     shutil.rmtree(dest_dir)
 
     try:
         dest_dir = os.path.join(
             settings.OPERATION_LIBRARY_DIR,
-            str(self.non_workspace_op.id)
+            str(self.non_workspace_opDb.id)
         )
         shutil.rmtree(dest_dir)
     except Exception as ex:
@@ -83,8 +85,8 @@ class ExecutedOperationListTests(BaseAPITestCase):
     Tests where we list the ExecutedOperations within a Workspace
     '''
     def setUp(self):
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
-        self.non_workspace_op = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_opDb = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
         self.establish_clients()
 
         # need a user's workspace to create an ExecutedOperation
@@ -103,7 +105,7 @@ class ExecutedOperationListTests(BaseAPITestCase):
             id = self.workspace_exec_op_uuid,
             owner = self.regular_user_1,
             workspace= self.workspace,
-            operation = self.op,
+            operation = self.opDb,
             job_id = self.workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -111,7 +113,7 @@ class ExecutedOperationListTests(BaseAPITestCase):
         self.exec_op = ExecutedOperation.objects.create(
             id = self.exec_op_uuid,
             owner = self.regular_user_1,
-            operation = self.non_workspace_op,
+            operation = self.non_workspace_opDb,
             job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -241,7 +243,7 @@ class ExecutedOperationListTests(BaseAPITestCase):
         other_user_op = ExecutedOperation.objects.create(
             id = other_user_op_uuid,
             owner = self.regular_user_2,
-            operation = self.op,
+            operation = self.opDb,
             job_id = other_user_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -274,8 +276,8 @@ class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
     '''
 
     def setUp(self):
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
-        self.non_workspace_op = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_opDb = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
         self.establish_clients()
 
         # need a user's workspace to create an ExecutedOperation
@@ -294,7 +296,7 @@ class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
             id = self.workspace_exec_op_uuid,
             owner = self.regular_user_1,
             workspace= self.workspace,
-            operation = self.op,
+            operation = self.opDb,
             job_id = self.workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -304,7 +306,7 @@ class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
         self.exec_op = ExecutedOperation.objects.create(
             id = self.exec_op_uuid,
             owner = self.regular_user_1,
-            operation = self.non_workspace_op,
+            operation = self.non_workspace_opDb,
             job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -352,8 +354,8 @@ class NonWorkspaceExecutedOperationListTests(BaseAPITestCase):
 class ExecutedOperationTests(BaseAPITestCase):
 
     def setUp(self):
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
-        self.non_workspace_op = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_opDb = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
         self.establish_clients()
 
         # need a user's workspace to create an ExecutedOperation
@@ -372,7 +374,7 @@ class ExecutedOperationTests(BaseAPITestCase):
             id = self.workspace_exec_op_uuid,
             owner = self.regular_user_1,
             workspace= self.workspace,
-            operation = self.op,
+            operation = self.opDb,
             job_id = self.workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -380,7 +382,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         self.exec_op = ExecutedOperation.objects.create(
             id = self.exec_op_uuid,
             owner = self.regular_user_1,
-            operation = self.non_workspace_op,
+            operation = self.non_workspace_opDb,
             job_id = self.exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
@@ -460,7 +462,7 @@ class ExecutedOperationTests(BaseAPITestCase):
             id = exec_op_uuid,
             owner = self.regular_user_1,
             workspace= self.workspace,
-            operation = self.op,
+            operation = self.opDb,
             job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo',
             is_finalizing = True
@@ -476,7 +478,7 @@ class ExecutedOperationTests(BaseAPITestCase):
         exec_op = ExecutedOperation.objects.create(
             id = exec_op_uuid,
             owner = self.regular_user_1,
-            operation = self.op,
+            operation = self.opDb,
             job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo',
             is_finalizing = True
@@ -518,7 +520,7 @@ class OperationListTests(BaseAPITestCase):
 
     def setUp(self):
 
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.url = reverse('operation-list')
         self.establish_clients()
 
@@ -571,9 +573,9 @@ class OperationDetailTests(BaseAPITestCase):
 
     def setUp(self):
 
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.url = reverse('operation-detail', kwargs={
-            'operation_uuid': str(self.op.id)
+            'operation_uuid': str(self.opDb.id)
         })
         self.establish_clients()
 
@@ -706,7 +708,8 @@ class OperationAddTests(BaseAPITestCase):
 class OperationRunTests(BaseAPITestCase):
 
     def setUp(self):
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
+        self.opDb = setup_db_elements(self, 
+            'valid_workspace_operation.json', 'workspace_op')
         self.url = reverse('operation-run')
         self.establish_clients()
 
@@ -962,8 +965,8 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.assert_not_called()
 
     @mock.patch('api.views.executed_operation_views.submit_async_job')
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_valid_op_inputs_case2(self, mock_get_operation_instance_data, mock_submit_async_job):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_valid_op_inputs_case2(self, mock_get_operation_instance, mock_submit_async_job):
         '''
         The workspace and Operation IDs are fine and this test also checks that the 
         validation of the inputs works.
@@ -974,7 +977,8 @@ class OperationRunTests(BaseAPITestCase):
             'valid_workspace_operation_case2.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
@@ -985,7 +989,7 @@ class OperationRunTests(BaseAPITestCase):
             raise ImproperlyConfigured('Need at least one Workspace owned by'
                 ' a non-admin user.')
 
-        op = ops[0]
+        db_op = ops[0]
 
         acceptable_resource_type = d['inputs']['some_file']['spec']['resource_type']
         acceptable_resources = Resource.objects.filter(
@@ -1010,7 +1014,7 @@ class OperationRunTests(BaseAPITestCase):
         }
 
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: valid_inputs,
             OperationRun.WORKSPACE_UUID: str(workspace.id)
         }
@@ -1045,12 +1049,13 @@ class OperationRunTests(BaseAPITestCase):
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('inputs' in response.json())
         mock_submit_async_job.delay.assert_not_called()
         mock_validate_operation_inputs.assert_not_called()
 
     @mock.patch('api.views.executed_operation_views.submit_async_job')
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_observation_and_feature_set_payloads(self, mock_get_operation_instance_data, mock_submit_async_job):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_observation_and_feature_set_payloads(self, mock_get_operation_instance, mock_submit_async_job):
         '''
         Test payloads where the "inputs" key addresses an ObservationSet or FeatureSet
         input.
@@ -1060,7 +1065,8 @@ class OperationRunTests(BaseAPITestCase):
             'obs_set_test.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         valid_obs_1 = {
             'id': 'foo',
@@ -1076,7 +1082,6 @@ class OperationRunTests(BaseAPITestCase):
         }
 
         valid_obs_set = {
-            'multiple': True,
             'elements': [
                 valid_obs_1,
                 valid_obs_2
@@ -1093,10 +1098,10 @@ class OperationRunTests(BaseAPITestCase):
                 ' a non-admin user.')
 
         workspace = user_workspaces[0]
-        op = ops[0]
+        db_op = ops[0]
 
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: {
                 'obs_set_type': valid_obs_set,
                 'obs_type': valid_obs_1
@@ -1109,15 +1114,15 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.reset_mock()
 
         # test where the payload is bad:
+        # the 'elements' key is misspelled.
         invalid_obs_set = {
-            'multiple': False, # inconsistent with the >1 elements below
-            'elements': [
+            'elements_X': [
                 valid_obs_1,
                 valid_obs_2
             ]
         }
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: {
                 'obs_set_type': invalid_obs_set,
                 'obs_type': valid_obs_1
@@ -1129,10 +1134,8 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.assert_not_called()
         mock_submit_async_job.delay.reset_mock()
 
-
         # test where the payload is bad:
         invalid_obs_set = {
-            'multiple': False, # inconsistent with the >1 elements below
             'elements': [
                 {    # missing 'id' key
                     'attributes': {}
@@ -1140,7 +1143,7 @@ class OperationRunTests(BaseAPITestCase):
             ]
         }
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: {
                 'obs_set_type': invalid_obs_set,
                 'obs_type': valid_obs_1
@@ -1155,8 +1158,8 @@ class OperationRunTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.executed_operation_views.submit_async_job')
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_proper_call_with_nonworkspace_op(self, mock_get_operation_instance_data, mock_submit_async_job):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_proper_call_with_nonworkspace_op(self, mock_get_operation_instance, mock_submit_async_job):
         '''
         Test that the proper call is made when the Operation is not a workspace-assoc.
         Operation.
@@ -1167,21 +1170,22 @@ class OperationRunTests(BaseAPITestCase):
             'simple_op_test.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         ops = OperationDbModel.objects.filter(active=True)
         if len(ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
 
-        op = ops[0]
+        db_op = ops[0]
         # make it a non-workspace operation if it's not already
-        op.workspace_operation = False
-        op.save()
+        db_op.workspace_operation = False
+        db_op.save()
 
         # first try a payload where the job_name field is not given.
         # Check that the given name is the same as the execution job_id
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: {
                 'some_string': 'abc'
             }
@@ -1192,7 +1196,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             None, 
             executed_op_uuid,
@@ -1201,17 +1205,20 @@ class OperationRunTests(BaseAPITestCase):
 
 
     @mock.patch('api.views.executed_operation_views.submit_async_job')
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    def test_job_name_set(self, mock_get_operation_instance_data, mock_submit_async_job):
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_job_name_set(self, mock_get_operation_instance, mock_submit_async_job):
         '''
         Test payloads where the job_name is given
         '''
+
+        # read a very simple and valid operation spec file
         f = os.path.join(
             TESTDIR,
             'simple_workspace_op_test.json'
         )
         d = read_operation_json(f)
-        mock_get_operation_instance_data.return_value = d
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
 
         key = 'some_string'
         submitted_value = 'abc'
@@ -1219,8 +1226,8 @@ class OperationRunTests(BaseAPITestCase):
             key: submitted_value
         }
 
-        ops = OperationDbModel.objects.filter(active=True)
-        if len(ops) == 0:
+        db_ops = OperationDbModel.objects.filter(active=True)
+        if len(db_ops) == 0:
             raise ImproperlyConfigured('Need at least one Operation that is active')
 
         user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
@@ -1229,15 +1236,15 @@ class OperationRunTests(BaseAPITestCase):
                 ' a non-admin user.')
 
         workspace = user_workspaces[0]
-        op = ops[0]
+        db_op = db_ops[0]
         # make it a workspace operation if it's not already
-        op.workspace_operation = True
-        op.save()
+        db_op.workspace_operation = True
+        db_op.save()
 
         # first try a payload where the job_name field is not given.
         # Check that the given name is the same as the execution job_id
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id)
         }
@@ -1247,7 +1254,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             workspace.id, 
             executed_op_uuid,
@@ -1258,7 +1265,7 @@ class OperationRunTests(BaseAPITestCase):
         # now add a job name- see that it gets sent to the async method
         job_name = 'foo'
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
@@ -1269,7 +1276,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             workspace.id, 
             job_name,
@@ -1280,18 +1287,19 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.reset_mock()
         job_name = 'foo bar'
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
         }
         response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
         response_json = response.json()
+        print(response_json)
         executed_op_uuid = response_json['executed_operation_id']
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             workspace.id, 
             job_name,
@@ -1302,7 +1310,7 @@ class OperationRunTests(BaseAPITestCase):
         mock_submit_async_job.delay.reset_mock()
         job_name = '    '
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
@@ -1313,7 +1321,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             workspace.id, 
             executed_op_uuid,
@@ -1325,7 +1333,7 @@ class OperationRunTests(BaseAPITestCase):
         # non-english unicode characters. Not meant to be sensible. Hopefully not vulgar...
         job_name = 'ほ ゑ'
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
@@ -1336,7 +1344,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             workspace.id, 
             job_name,
@@ -1349,7 +1357,7 @@ class OperationRunTests(BaseAPITestCase):
         job_name = 2
         job_name_as_str = str(job_name)
         payload = {
-            OperationRun.OP_UUID: str(op.id),
+            OperationRun.OP_UUID: str(db_op.id),
             OperationRun.INPUTS: input_dict,
             OperationRun.WORKSPACE_UUID: str(workspace.id),
             OperationRun.JOB_NAME: job_name
@@ -1360,7 +1368,7 @@ class OperationRunTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_submit_async_job.delay.assert_called_once_with(
             uuid.UUID(executed_op_uuid), 
-            op.id, 
+            db_op.id, 
             self.regular_user_1.pk,
             workspace.id, 
             job_name_as_str,
@@ -1371,7 +1379,7 @@ class OperationRunTests(BaseAPITestCase):
 class OperationUpdateTests(BaseAPITestCase):
 
     def setUp(self):
-        self.op = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op')
         self.establish_clients()
 
     def test_admin_only(self):
@@ -1379,7 +1387,7 @@ class OperationUpdateTests(BaseAPITestCase):
         Tests that regular users can't use this endpoint
         '''
         url = reverse('operation-update', kwargs={
-            'pk': str(self.op.id)
+            'pk': str(self.opDb.id)
         })
         response = self.authenticated_regular_client.get(url)
         self.assertTrue(response.status_code == 403)
@@ -1388,16 +1396,16 @@ class OperationUpdateTests(BaseAPITestCase):
         '''
         Tests that we can modify the "active" status on an existing operation
         '''
-        self.op.active = True
-        self.op.save()
-        op = OperationDbModel.objects.get(pk=self.op.id)
+        self.opDb.active = True
+        self.opDb.save()
+        op = OperationDbModel.objects.get(pk=self.opDb.id)
         self.assertTrue(op.active)
         url = reverse('operation-update', kwargs={
-            'pk': str(self.op.id)
+            'pk': str(self.opDb.id)
         })
         response = self.authenticated_admin_client.patch(url, {'active': False})
         self.assertTrue(response.status_code == 200)
-        op = OperationDbModel.objects.get(pk=self.op.id)
+        op = OperationDbModel.objects.get(pk=self.opDb.id)
         self.assertFalse(op.active)
 
     def test_bad_update_field_triggers_400(self):
@@ -1405,17 +1413,17 @@ class OperationUpdateTests(BaseAPITestCase):
         Tests that a bad field (even if others are fine) triggers a
         400. This prevents awkward partial updates.
         '''
-        self.op.active = True
-        self.op.save()
-        op = OperationDbModel.objects.get(pk=self.op.id)
+        self.opDb.active = True
+        self.opDb.save()
+        op = OperationDbModel.objects.get(pk=self.opDb.id)
         self.assertTrue(op.active)
         url = reverse('operation-update', kwargs={
-            'pk': str(self.op.id)
+            'pk': str(self.opDb.id)
         })
         response = self.authenticated_admin_client.patch(url, 
             {'active': False, 'foo': 'xyz'})
         self.assertTrue(response.status_code == 400)
-        op = OperationDbModel.objects.get(pk=self.op.id)
+        op = OperationDbModel.objects.get(pk=self.opDb.id)
 
         # Check that the active field as NOT updated
         self.assertTrue(op.active)

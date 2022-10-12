@@ -204,7 +204,7 @@ def validate_operation_inputs(
                 resource_instance = check_resource_request_validity(
                     user, supplied_input)
 
-                if not workspace in resource_instance.workspaces:
+                if not workspace in resource_instance.workspaces.all():
                     raise ExecutedOperationInputOutputException('The resource'
                         f' ({supplied_input}) was not part of the workspace'
                         ' where the analysis operation was requested.')

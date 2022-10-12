@@ -2,7 +2,6 @@ import os
 import json
 import datetime
 import logging
-import uuid
 
 from jinja2 import Template
 
@@ -16,12 +15,8 @@ from api.utilities.docker import check_if_container_running, \
     get_logs, \
     pull_image, \
     get_image_name_and_tag
-from data_structures.data_resource_attributes import \
-    get_all_data_resource_typenames
-from api.utilities.basic_utils import make_local_directory, \
-    run_shell_command
+from api.utilities.basic_utils import run_shell_command
 from api.utilities.admin_utils import alert_admins
-from api.utilities.resource_utilities import delete_resource_by_pk
 from api.models import ExecutedOperation
 
 logger = logging.getLogger(__name__)
@@ -164,9 +159,7 @@ class LocalDockerRunner(OperationRunner):
         ENTRYPOINT command for the Docker container.
         '''
         # read the template command
-        print(entrypoint_file_path)
         entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
-        print(entrypoint_cmd_template)
         try:
             entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
             return entrypoint_cmd
@@ -258,44 +251,3 @@ class LocalDockerRunner(OperationRunner):
             executed_op.status = ExecutedOperation.ADMIN_NOTIFIED
             executed_op.save()
             alert_admins(str(ex))
-
-    def cleanup_on_error(self, op_spec_outputs, converted_outputs_dict):
-        '''
-        If there is an error during conversion of the outputs, we don't want
-        any Resource instances to be kept. For instance, if there are multiple
-        output files created and one fails validation, we don't want to expose the
-        others since it may cause a situation where the output state is ambiguous.
-
-        `op_spec_outputs` is the "operation spec" from the `Operation` instance. That
-        details what the expected output(s) should be.
-
-        `converted_outputs_dict` is a dict that has outputs that have already been
-        converted.
-        '''
-
-        # the types that we should clean up on error. 
-        data_resource_typenames = get_all_data_resource_typenames()
-        for k,v in converted_outputs_dict.items():
-            spec = op_spec_outputs[k].spec.to_dict()
-            output_attr_type = spec['attribute_type']
-            if output_attr_type in data_resource_typenames:
-                logger.info(f'Will cleanup the output "{k}" with'
-                    f' value of {v}')
-
-                # ok, so we are dealing with an output type
-                # that represents a file/Resource. This can either
-                # be singular (so the value v is a UUID) or multiple
-                # in which case the value is a list of UUIDs
-
-                # if a single UUID, put that in a list. This way
-                # we can handle single and multiple outputs 
-                # in the same way
-                if (type(v) is str) or (type(v) is uuid.UUID):
-                    v = [str(v),]
-                
-                for resource_uuid in v:
-                    delete_resource_by_pk(resource_uuid)
-
-                
-
-                

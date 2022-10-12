@@ -1,14 +1,5 @@
-from numpy import diff
 from exceptions import DataStructureValidationException
 from data_structures.attribute_types import BaseAttributeType
-
-
-def merge_element_set(x):
-    '''
-    A utility method to merge two ElementSet types
-    '''
-    #TODO: create implementation.
-    pass
 
 
 class BaseElementSet(BaseAttributeType):
@@ -42,6 +33,12 @@ class BaseElementSet(BaseAttributeType):
     }
     ```
     '''
+    def __init__(self, val, **kwargs):
+        try:
+            self._permit_null_attributes = kwargs.pop('permit_null_attributes')
+        except KeyError:
+            self._permit_null_attributes = False
+        super().__init__(val, **kwargs)
 
     def _value_validator(self, val):
         '''
@@ -82,8 +79,9 @@ class BaseElementSet(BaseAttributeType):
                 ' the nested "elements" key should address a list.')
         self._element_list = set()
         for item in elements_val:
-            # each item in the list should be an Element subclass 
-            # (e.g. Feature, Observation). The implementing class
+            # each item in the list should be a dict specifying an 
+            # Element subclass (e.g. Feature, Observation). 
+            # The implementing class
             # e.g. ObservationSet defines a member that provides
             # the "type" of the nested Element. In the case of the
             # ObservationSet, that's obviously an Observation.
@@ -99,7 +97,8 @@ class BaseElementSet(BaseAttributeType):
         Adds a new `Observation` to the `ObservationSet` 
         (or `Feature` to `FeatureSet`)
         '''
-        el = self.elements_type_class(new_element_dict)
+        el = self.elements_type_class(
+            new_element_dict, permit_null_attributes=self._permit_null_attributes)
         prev_length = len(self._element_list)
         self._element_list.add(el)
         if len(self._element_list) == prev_length:
@@ -153,11 +152,11 @@ class BaseElementSet(BaseAttributeType):
                     # here we are leveraging the overloaded __eq__ on the
                     # "simple" types (such as PositiveIntegerAttribute)
                     if d1[k] != d2[k]:
-                        raise DataStructureValidationException(f'When'
+                        raise DataStructureValidationException('When'
                             ' performing an intersection of two sets,'
                             ' encountered a conflict in the attributes.'
-                            ' The key "{k}" has differing values of'
-                            ' {d1[k]} and {d2[k]}')
+                            f' The key "{k}" has differing values of'
+                            f' {d1[k]} and {d2[k]}')
 
                 # we are eventually passing `return_list` back to the child
                 # class who will then return an ObservationSet or FeatureSet.

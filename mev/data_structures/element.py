@@ -44,6 +44,12 @@ class BaseElement(BaseAttributeType):
     }
     ```
     The nested dict `attributes` CAN be empty. 
+
+    In situations like annotation tables where
+    certain rows may not have values (but others do),
+    we want to be able to permit null attributes
+    if the constructor is explicitly passed the
+    `permit_null_attributes` kwarg
     '''        
 
     def __init__(self, val, **kwargs):
@@ -57,6 +63,12 @@ class BaseElement(BaseAttributeType):
         # creation, ff we attempt to set the 'id' field in the 
         # setter, we don't have a _value field yet.
         self._value = {}
+        
+        # 
+        try:
+            self._permit_null_attributes = kwargs.pop('permit_null_attributes')
+        except KeyError:
+            self._permit_null_attributes = False
         super().__init__(val, **kwargs)
 
     def _value_validator(self, val):
@@ -146,7 +158,8 @@ class BaseElement(BaseAttributeType):
             # Calling the Attribute constructor allows
             # us to check that it's formatted properly.
             try:
-                validated_attributes[key] = SimpleAttributeFactory(attr_dict)
+                validated_attributes[key] = SimpleAttributeFactory(
+                    attr_dict, allow_null=self._permit_null_attributes)
             except (DataStructureValidationException, AttributeValueError) as ex:
                 s = (f'When attempting to create a {self.typename} instance,'
                     f' the nested attributes contained a key ("{key}") which'

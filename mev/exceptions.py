@@ -185,3 +185,11 @@ class JobSubmissionException(WebMeVException):
     response from Cromwell, etc.
     '''
     pass
+
+
+class MissingRequiredFileException(WebMeVException):
+    '''
+    Used if one of the files is missing in the Operation
+    repository (e.g. a operation_spec.json, etc.)
+    '''
+    pass

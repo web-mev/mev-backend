@@ -7,7 +7,6 @@ import unittest.mock as mock
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from django.conf import settings
 from django.core.files import File
 
@@ -19,7 +18,9 @@ from constants import DATABASE_RESOURCE_TYPES, \
     MATRIX_KEY, \
     TSV_FORMAT, \
     CSV_FORMAT, \
-    JSON_FORMAT
+    JSON_FORMAT, \
+    NEGATIVE_INF_MARKER, \
+    POSITIVE_INF_MARKER
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
@@ -205,10 +206,10 @@ class ResourceContentTests(BaseAPITestCase):
         j = response.json()
 
         # the second row (index=1) has a negative infinity.
-        self.assertTrue(j[1]['values']['log2FoldChange'] == settings.NEGATIVE_INF_MARKER)
+        self.assertTrue(j[1]['values']['log2FoldChange'] == NEGATIVE_INF_MARKER)
 
         # the third row (index=2) has a positive infinity.
-        self.assertTrue(j[2]['values']['log2FoldChange'] == settings.POSITIVE_INF_MARKER)
+        self.assertTrue(j[2]['values']['log2FoldChange'] == POSITIVE_INF_MARKER)
         
         # the third row has a padj of NaN, which gets converted to None 
         self.assertIsNone(j[2]['values']['padj'])

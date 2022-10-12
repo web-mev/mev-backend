@@ -357,3 +357,18 @@ class BaseRunnerTester(BaseAPITestCase):
 
         with self.assertRaisesRegex(Exception, 'Failed when importing'):
             c = runner._get_converter('some.garbage')
+
+    @mock.patch('api.runners.base.delete_resource_by_pk')
+    def test_cleanup_on_error(self, mock_delete):
+        runner = OperationRunner()
+        u1 = str(uuid.uuid4())
+        u2 = str(uuid.uuid4())
+        mock_outputs = {
+            'norm_counts': u1,
+            'dge_table': u2
+        }
+        runner.cleanup_on_error(self.op.outputs, mock_outputs)
+        mock_delete.assert_has_calls([
+            mock.call(u1),
+            mock.call(u2)
+        ])    

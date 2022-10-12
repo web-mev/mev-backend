@@ -1,4 +1,5 @@
 {
+    "id": "22be4fb9-c062-4ce9-8f71-7d009cdcb4fb",
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
@@ -48,6 +49,7 @@
     }, 
     "mode": "local_docker", 
     "repository_url": "https://github.com/some-repo/", 
+    "repository_name": "github",
     "git_hash": "abcd1234",
     "workspace_operation": true
 }

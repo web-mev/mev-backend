@@ -1096,11 +1096,16 @@ class ElementTable(TableResource):
                 attr_dict[key] = attr.to_dict()
 
             # Now create the data_structures.element.Element instance
+
+            # adding the 'permit_null_attributes' kwarg
+            # allows us to ignore rows that might be missing
+            # an entry.
             element = element_class(
                 {
                     'id': id,
                     'attributes': attr_dict
-                }
+                },
+                permit_null_attributes=True
             )
             # the dict representation of the Element has
             # an `attribute_type` and `value` key. We only
@@ -1190,7 +1195,8 @@ class AnnotationTable(ElementTable):
         logger.info('Extract metadata for an AnnotationTable instance.')
         super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         observation_list = super().prep_metadata(Observation)
-        o_set = ObservationSet({'elements': observation_list})
+        o_set = ObservationSet({'elements': observation_list}, 
+            permit_null_attributes=True)
         self.metadata[OBSERVATION_SET_KEY] = o_set.to_simple_dict()
         return self.metadata
 

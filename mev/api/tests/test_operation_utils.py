@@ -17,7 +17,7 @@ from api.utilities.operations import read_operation_json, \
     resource_operations_file_is_valid
 from api.tests.base import BaseAPITestCase
 from api.models import Operation as OperationDbModel
-from api.models import Workspace
+from api.models import Workspace, Resource
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -233,37 +233,36 @@ class OperationUtilsTester(BaseAPITestCase):
         mock_get_operation_instance.return_value = op
 
         # test a case that works:
-        mock_resource = mock.MagicMock()
-        mock_resource.resource_type = 'I_MTX'
-        mock_resource.workspaces = [
-            self.workspace,
-            mock.MagicMock() # just something so the workspaces is > 1
-        ]
-        mock_check_resource_request_validity.return_value = mock_resource
-        resource_uuid = str(uuid.uuid4())
+        all_r = Resource.objects.filter(owner=self.regular_user_1)
+        r = all_r[0]
+        r.resource_type = 'I_MTX'
+        r.file_format = 'TSV'
+        r.workspaces.add(self.workspace)
+        r.save()
+
+        mock_check_resource_request_validity.return_value = r
         sample_inputs = {
             'p_val': 0.05,
-            'count_matrix': resource_uuid
+            'count_matrix': str(r.pk)
         }
         final_inputs = validate_operation_inputs(self.regular_user_1, 
             sample_inputs, self.db_op, self.workspace)
         self.assertDictEqual(final_inputs, sample_inputs)
      
         # test a case where the resource_type is invalid:
-        mock_resource.resource_type = 'ACK'
-        mock_resource.workspaces = [
-            self.workspace,
-            mock.MagicMock() # just something so the workspaces is > 1
-        ]
-        mock_check_resource_request_validity.return_value = mock_resource
+        r.resource_type = 'ACK'
+        r.workspaces.add(self.workspace)
+        r.save()
+        mock_check_resource_request_validity.return_value = r
         with self.assertRaisesRegex(InvalidResourceTypeException, 'ACK'):
             final_inputs = validate_operation_inputs(self.regular_user_1, 
                 sample_inputs, self.db_op, self.workspace)
 
         # test a case where the resource was not in the workspace
-        mock_resource.resource_type = 'I_MTX'
-        mock_resource.workspaces = []
-        mock_check_resource_request_validity.return_value = mock_resource
+        r.resource_type = 'I_MTX'
+        r.workspaces.set([])
+        r.save()
+        mock_check_resource_request_validity.return_value = r
         with self.assertRaisesRegex(
             ExecutedOperationInputOutputException, 
             'not part of the workspace'):

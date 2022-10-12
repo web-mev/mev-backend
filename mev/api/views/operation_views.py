@@ -26,7 +26,11 @@ class OperationList(APIView):
         all_ops = OperationDbModel.objects.filter(active=True)
         op_list = []
         for op_model in all_ops:
-            op_list.append(get_operation_instance_data(op_model))
+            try:
+                op_list.append(get_operation_instance_data(op_model))
+            except Exception:
+                return Response({}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(op_list)
 
 
@@ -42,7 +46,12 @@ class OperationDetail(APIView):
         try:
             o = OperationDbModel.objects.get(id=op_uuid)
             if o.active:
-                return get_operation_instance_data(o)
+                try:
+                    data = get_operation_instance_data(o)
+                    return Response(data)
+                except Exception:
+                    return Response({}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             else:
                 return Response({}, status=status.HTTP_404_NOT_FOUND)
         except OperationDbModel.DoesNotExist:

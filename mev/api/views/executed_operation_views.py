@@ -9,6 +9,8 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework import permissions as framework_permissions
 
+from exceptions import WebMeVException
+
 from api.serializers.executed_operation import ExecutedOperationSerializer
 from api.serializers.workspace_executed_operation import WorkspaceExecutedOperationSerializer
 from api.models import Operation as OperationDbModel
@@ -298,6 +300,9 @@ class OperationRun(APIView):
                 inputs, matching_op, workspace)
         except ValidationError as ex:
             raise ValidationError({self.INPUTS: ex.detail})
+        # catches data structure format exceptions, etc.
+        except WebMeVException as ex:
+            raise ValidationError({self.INPUTS: str(ex)})
         except Exception as ex:
             logger.error('Encountered some other exception when validating the user inputs.'
                 ' The exception was: {ex}'.format(ex=ex)
@@ -306,12 +311,12 @@ class OperationRun(APIView):
 
         # now that the inputs are validated against the spec, create an
         # ExecutedOperation instance and return it
-        logger.info('Validated inputs: {v}'.format(v=validated_inputs))
+        logger.info(f'Validated inputs: {validated_inputs}')
         if validated_inputs is not None:
             dict_representation = {}
             for k,v in validated_inputs.items():
                 if v:
-                    dict_representation[k] = v.get_value()
+                    dict_representation[k] = v
 
             logger.info('dict representation of inputs: {d}'.format(d=dict_representation))
 

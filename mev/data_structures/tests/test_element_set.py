@@ -859,3 +859,60 @@ class TestElementSet(unittest.TestCase):
     def test_rejects_extra_keys(self):
         self._reject_extra_keys_test(ObservationSet)        
         self._reject_extra_keys_test(FeatureSet)
+
+    def _permit_null_attributes_in_elements_test(self, SetClass):
+        '''
+        Runs the test for both Obs/FeatureSet
+
+        This allows us to create Obs/FeatureSets that
+        have nested elements (Observation/Feature) which
+        can have null values if passed the
+        permit_null_attributes keyword arg 
+
+        This is important for ingesting metadata from
+        annotation files where we may encounter some missing
+        data
+        '''
+        el1 = {
+            "id": 'ID1',
+            "attributes": {
+                "stage": {
+                    "attribute_type": "String",
+                    "value": "IV"
+                },
+                "age": {
+                    "attribute_type": "PositiveInteger",
+                    "value": 5
+                }        
+            }
+        }
+
+        el2 = {
+            "id": 'ID2',
+            "attributes": {
+                "stage": {
+                    "attribute_type": "String",
+                    # without permit_null_attributes=True,
+                    # this would cause the validation to fail
+                    "value": None
+                },
+                "age": {
+                    "attribute_type": "PositiveInteger",
+                    "value": 3
+                }        
+            }
+        }
+
+        el_set = {
+            'elements':[
+                el1,
+                el2
+            ]
+        }
+        x = SetClass(el_set, permit_null_attributes=True)
+        with self.assertRaises(NullAttributeError):
+            x = SetClass(el_set)
+
+    def test_permit_null_attributes_in_elements(self):
+        self._permit_null_attributes_in_elements_test(ObservationSet)
+        self._permit_null_attributes_in_elements_test(FeatureSet)

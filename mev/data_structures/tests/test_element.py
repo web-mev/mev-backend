@@ -483,3 +483,34 @@ class TestElement(unittest.TestCase):
 
         with self.assertRaises(NullAttributeError):
             x = Observation(None)
+
+    def _permits_null_attribute_values_test(self, ElementClass):
+        '''
+        In situations like annotation tables where
+        certain rows may not have values (but others do),
+        we want to be able to permit null attributes
+        if the constructor is explicitly passed the
+        `permit_null_attributes` kwarg
+        '''
+        el = {
+            "id": 'ID',
+            "attributes": {
+                "stage": {
+                    "attribute_type": "String",
+                    "value": None #<-- perhaps they did not stage this subject
+                },
+                "age": {
+                    "attribute_type": "PositiveInteger",
+                    "value": 5
+                }        
+            }
+        }
+        # this works:
+        x = ElementClass(el, permit_null_attributes=True)
+
+        with self.assertRaises(NullAttributeError):
+            x = ElementClass(el)
+
+    def test_permits_null_attribute_values(self):
+        self._permits_null_attribute_values_test(Observation)
+        self._permits_null_attribute_values_test(Feature)

@@ -1,10 +1,7 @@
-import unittest
 import unittest.mock as mock
 import os
 import json
-import copy
 import uuid
-import shutil
 import datetime 
 from tempfile import NamedTemporaryFile
 
@@ -17,8 +14,7 @@ from data_structures.operation import Operation
 
 from api.tests.base import BaseAPITestCase
 from api.runners.local_docker import LocalDockerRunner
-from api.models import Resource, \
-    Workspace, \
+from api.models import Workspace, \
     WorkspaceExecutedOperation, \
     Operation as OperationDb
 
@@ -309,11 +305,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @override_settings(OPERATION_EXECUTION_DIR='/data/ex_dir')
     @mock.patch('api.runners.local_docker.run_shell_command')
     @mock.patch('api.runners.local_docker.get_image_name_and_tag')
-    @mock.patch('api.runners.local_docker.make_local_directory')
     @mock.patch('api.runners.local_docker.os.path.exists')
     def test_run_initiation(self, \
         mock_exists, \
-        mock_make_local_directory, \
         mock_get_image_name_and_tag, \
         mock_run_shell_command):
 
@@ -358,20 +352,4 @@ class LocalDockerRunnerTester(BaseAPITestCase):
             cmd = mock_cmd
         )
         mock_run_shell_command.assert_called_once_with(expected_docker_cmd)
-    
-    @mock.patch('api.runners.local_docker.delete_resource_by_pk')
-    def test_cleanup_on_error(self, mock_delete):
-        op = Operation(json.load(open(self.filepath)))
-        runner = LocalDockerRunner()
-        u1 = str(uuid.uuid4())
-        u2 = str(uuid.uuid4())
-        mock_outputs = {
-            'norm_counts': u1,
-            'dge_table': u2
-        }
-        runner.cleanup_on_error(op.outputs, mock_outputs)
-        mock_delete.assert_has_calls([
-            mock.call(u1),
-            mock.call(u2)
-        ])    
 

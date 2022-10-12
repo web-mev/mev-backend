@@ -6,6 +6,7 @@ from constants import OBSERVATION_SET_KEY, \
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework import status
 
 from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
@@ -89,18 +90,26 @@ class MetadataIntersectView(APIView, MetadataMixin):
 
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
-        r = reduce(lambda x, y: x.set_intersection(y), element_set_list)
-        serializer = self._get_element_set_class(request.data[self.SET_TYPE])
-        return Response(serializer(r).data)
+        try:
+            r = reduce(lambda x, y: x.set_intersection(y), element_set_list)
+        except Exception as ex:
+            return Response({
+                'error': str(ex)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(r.to_simple_dict())
 
 
 class MetadataUnionView(APIView, MetadataMixin):
 
     def post(self, request, *args, **kwargs):
         element_set_list = self.prep(request)
-        r = reduce(lambda x, y: x.set_union(y), element_set_list)
-        serializer = self._get_element_set_class(request.data[self.SET_TYPE])
-        return Response(serializer(r).data)
+        try:
+            r = reduce(lambda x, y: x.set_union(y), element_set_list)
+        except Exception as ex:
+            return Response({
+                'error': str(ex)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(r.to_simple_dict())
 
 
 class MetadataSetDifferenceView(APIView, MetadataMixin):
@@ -112,6 +121,10 @@ class MetadataSetDifferenceView(APIView, MetadataMixin):
                 ' more than two sets.'
             )
         x, y = element_set_list
-        r = x.set_difference(y)
-        serializer = self._get_element_set_class(request.data[self.SET_TYPE])
-        return Response(serializer(r).data)
+        try:
+            r = x.set_difference(y)
+        except Exception as ex:
+            return Response({
+                'error': str(ex)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(r.to_simple_dict())

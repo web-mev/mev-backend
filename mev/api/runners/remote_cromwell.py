@@ -71,10 +71,7 @@ class RemoteCromwellRunner(OperationRunner):
         # corresponding to this repo
         docker_image_names = get_docker_images_in_repo(operation_dir)
         logger.info('Found the following image names among the'
-            ' WDL files: {imgs}'.format(
-                imgs = ', '.join(docker_image_names)
-            )
-        )
+            f' WDL files: {", ".join(docker_image_names)}')
 
         # We need to ensure the images are available from Cromwell's use.
         # There are a couple situations:
@@ -114,11 +111,9 @@ class RemoteCromwellRunner(OperationRunner):
                 image_is_tagged = False
             else:
                 logger.error('Could not properly handle the following docker'
-                    ' image spec: {x}'.format(x = full_image_name)
-                )
+                    f' image spec: {full_image_name}')
                 raise Exception('Could not make sense of the docker'
-                    ' image handle: {x}'.format(x=full_image_name)
-                )
+                    f' image handle: {full_image_name}')
             
             # Look at the image string (the non-tag portion)
             image_split = image_prefix.split('/')
@@ -126,10 +121,8 @@ class RemoteCromwellRunner(OperationRunner):
                 docker_repo, username, image_name = image_split
             else:
                 err_msg = ('Could not properly handle the following docker'
-                    ' image spec: {x}.\nBe sure to include the registry prefix'
-                    ' and user/org account'.format(
-                        x = full_image_name)
-                )
+                    f' image spec: {full_image_name}.\nBe sure to include'
+                    ' the registry prefix and user/org account')
                 logger.error(err_msg )
                 raise Exception(err_msg)
 
@@ -139,24 +132,23 @@ class RemoteCromwellRunner(OperationRunner):
             if image_name == repo_name:
                 if not image_is_tagged:
                     tag_format = get_tag_format(docker_repo)
-                    tag = tag_format.format(hash = git_hash)
+                    tag = tag_format.format(hash=git_hash)
                     final_image_name = full_image_name + ':' + tag
                 else:  # image WAS tagged and associated with this repo
                     final_image_name = full_image_name
             else:
                 # the image is "external" to our repo, in which case it NEEDS a tag
                 if not image_is_tagged:
-                    raise Exception('Since the Docker image {img} had a name indicating it'
-                        ' is external to the github repository, we require a tag. None'
-                        ' was found.'.format(img = full_image_name)
-                    )
+                    raise Exception(f'Since the Docker image {full_image_name}'
+                        ' had a name indicating it is external to the github'
+                        ' repository, we require a tag. None was found')
                 else: # was tagged AND "external"
                     final_image_name = full_image_name
 
             image_found = check_image_exists(final_image_name)
             if not image_found:
                 raise Exception('Could not locate the following'
-                    ' image: {img}. Aborting'.format(img = final_image_name))
+                    f' image: {final_image_name}. Aborting')
 
             # keep track of any "edited" image names so we can modify
             # the WDL files
@@ -178,16 +170,13 @@ class RemoteCromwellRunner(OperationRunner):
         try:
             response = get_with_retry(url)
         except Exception as ex:
-            logger.info('An exception was raised when checking if the remote Cromwell runner was ready.'
-                ' The exception reads: {ex}'.format(ex=ex)
-            )
-            raise ImproperlyConfigured('Failed to check the remote Cromwell runner. See logs.')
+            logger.info('An exception was raised when checking if the remote'
+                f' Cromwell runner was ready. The exception reads: {ex}')
+            raise ImproperlyConfigured('Failed to check the remote'
+                ' Cromwell runner. See logs.')
         if response.status_code != 200:
-            logger.info('The Cromwell server located at: {url}'
-                ' was not ready.'.format(
-                    url = url
-                )
-            )
+            logger.info(f'The Cromwell server located at: {url}'
+                ' was not ready.')
             raise ImproperlyConfigured('Failed to reach Cromwell server.')
 
     def _create_inputs_json(self, op, op_dir, validated_inputs, staging_dir):
@@ -344,8 +333,7 @@ class RemoteCromwellRunner(OperationRunner):
         bad_codes = [404, 400, 500]
         if response.status_code in bad_codes:
             logger.info('Request for Cromwell job metadata returned'
-                ' a {code} status.'.format(code=response.status_code)
-            )
+                f' a {response.status_code} status.')
         elif response.status_code == 200:
             response_json = json.loads(response.text)
             return response_json
@@ -366,8 +354,7 @@ class RemoteCromwellRunner(OperationRunner):
         bad_codes = [404, 400, 500]
         if response.status_code in bad_codes:
             logger.info('Request for Cromwell job status returned'
-                ' a {code} status.'.format(code=response.status_code)
-            )
+                f' a {response.status_code} status.')
         elif response.status_code == 200:
             response_json = json.loads(response.text)
             return response_json
@@ -476,8 +463,7 @@ class RemoteCromwellRunner(OperationRunner):
         )
         alert_admins(
             'Experienced an unexpected response when querying for '
-            'the job status of op: {op_id}.'.format(op_id=executed_op.job_id)
-        )
+            f'the job status of op: {executed_op.job_id}.')
 
     def finalize(self, executed_op, op):
         '''

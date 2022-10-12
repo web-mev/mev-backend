@@ -1,6 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 
+from constants import OBSERVATION_SET_KEY
+
 from api.tests.base import BaseAPITestCase
 
 class TestMetadataSetOperations(BaseAPITestCase):
@@ -9,7 +11,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         self.establish_clients()
 
         self.set1 = {
-            'multiple': True,
             'elements': [
                 {
                     'id':'foo',
@@ -35,7 +36,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         # none of the elements match set 1, so an intersection should be null set
         # and union should have length 3
         self.set2 = {
-            'multiple': False,
             'elements': [
                 {
                     'id':'baz',
@@ -52,7 +52,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         # intersection with set1 should basically produce an identical copy of set1
         # (all the nested attributes of 'foo' are the same)
         self.set3 = {
-            'multiple': True,
             'elements': [
                 {
                     'id':'foo',
@@ -79,7 +78,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         # EXCEPT that 'foo' has a different attribute (keyB) here. We should merge that
         # with the keyA on 'foo' in set1
         self.set4 = {
-            'multiple': False,
             'elements': [
                 {
                     'id':'foo',
@@ -96,7 +94,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         # a final set that is distinct from the others so that we can test union/intersection
         # on >2 sets.
         self.set5 = {
-            'multiple': False,
             'elements': [
                 {
                     'id':'xyz',
@@ -114,7 +111,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         # since the keyA attribute has a different value. There is no way to 
         # guess at the proper resolution of that conflict, so we raise an exception.
         self.set6 = {
-            'multiple': False,
             'elements': [
                 {
                     'id':'foo',
@@ -129,7 +125,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         }
 
         self.empty_set = {
-            'multiple': False,
             'elements': []
         }
 
@@ -146,7 +141,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set2
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -162,7 +157,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set2,
                 self.set5
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -176,7 +171,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set3
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -200,7 +195,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set4
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -226,9 +221,10 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set6
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
-        response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
+        response = self.authenticated_regular_client.post(
+            self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # test a typo on the payload (setS instead of sets)
@@ -237,7 +233,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set2
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -270,7 +266,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.empty_set
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -283,7 +279,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
             'sets': [
                 self.empty_set
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -291,7 +287,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
         # test an empty set input
         payload = {
             'sets': [],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.intersect_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -304,7 +300,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set2
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -323,7 +319,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set2,
                 self.set5
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -342,7 +338,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set4
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -369,7 +365,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set6
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -380,7 +376,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set2
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -413,7 +409,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.empty_set
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -429,7 +425,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
             'sets': [
                 self.empty_set
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.union_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -442,7 +438,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set2
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -459,7 +455,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set1,
                 self.set3
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -477,7 +473,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set3,
                 self.set1
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -495,7 +491,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set4,
                 self.set6
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -511,7 +507,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 self.set4,
                 self.set6
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -520,14 +516,14 @@ class TestMetadataSetOperations(BaseAPITestCase):
             'sets': [
                 self.set1
             ],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         payload = {
             'sets': [],
-            'set_type': 'observation'
+            'set_type': OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -536,7 +532,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
         payload = {
         "sets": [
             {
-                "multiple": True,
                 "elements": [
                     {
                     "id": "D20_175135"
@@ -547,7 +542,6 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 ]
             },
             {
-                "multiple": True,
                 "elements": [
                     {
                         "id": "D20_1989",
@@ -559,7 +553,7 @@ class TestMetadataSetOperations(BaseAPITestCase):
                 ]
             }
         ],
-        "set_type": "observation"
+        "set_type": OBSERVATION_SET_KEY
         }
         response = self.authenticated_regular_client.post(self.difference_url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

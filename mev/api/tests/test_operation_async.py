@@ -1,10 +1,7 @@
-import unittest
 import unittest.mock as mock
 import uuid
 
-
 from django.core.exceptions import ImproperlyConfigured
-from rest_framework.exceptions import ValidationError
 
 from api.tests.base import BaseAPITestCase
 from api.models import ExecutedOperation, \
@@ -13,16 +10,17 @@ from api.models import ExecutedOperation, \
     Workspace
 from api.async_tasks.operation_tasks import finalize_executed_op
 
+
 class OperationAsyncTester(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()
 
     @mock.patch('api.async_tasks.operation_tasks.finalize_job')
-    @mock.patch('api.async_tasks.operation_tasks.get_operation_instance_data')
-    def test_gets_correct_op_type(self, 
-        mock_get_operation_instance_data, 
-        mock_finalize_job):
+    @mock.patch('api.async_tasks.operation_tasks.get_operation_instance')
+    def test_gets_correct_op_type(self,
+                                  mock_get_operation_instance,
+                                  mock_finalize_job):
         '''
         Tests that the proper type of ExecutedOperation is 
         passed to the finalization methods.
@@ -49,20 +47,21 @@ class OperationAsyncTester(BaseAPITestCase):
         # create a mock ExecutedOperation
         workspace_exec_op_uuid = uuid.uuid4()
         workspace_exec_op = WorkspaceExecutedOperation.objects.create(
-            id = workspace_exec_op_uuid,
-            owner = self.regular_user_1,
-            workspace= workspace,
-            operation = op,
-            job_id = workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
-            mode = 'foo'
+            id=workspace_exec_op_uuid,
+            owner=self.regular_user_1,
+            workspace=workspace,
+            operation=op,
+            # does not have to be the same as the pk, but is here
+            job_id=workspace_exec_op_uuid,
+            mode='foo'
         )
         exec_op_uuid = uuid.uuid4()
         exec_op = ExecutedOperation.objects.create(
-            id = exec_op_uuid,
-            owner = self.regular_user_1,
-            operation = op,
-            job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
-            mode = 'foo'
+            id=exec_op_uuid,
+            owner=self.regular_user_1,
+            operation=op,
+            job_id=exec_op_uuid,  # does not have to be the same as the pk, but is here
+            mode='foo'
         )
 
         ex_ops = ExecutedOperation.objects.all()
@@ -70,13 +69,11 @@ class OperationAsyncTester(BaseAPITestCase):
         self.assertTrue(len(ex_ops) > 0)
         self.assertTrue(len(workspace_ex_ops) > 0)
 
-        mock_obj = {
-            'abc':123
-        }
-        mock_get_operation_instance_data.return_value = mock_obj
+        mock_op = mock.MagicMock()
+        mock_get_operation_instance.return_value = mock_op
 
         finalize_executed_op(exec_op_uuid)
-        mock_finalize_job.assert_called_with(exec_op, mock_obj)
+        mock_finalize_job.assert_called_with(exec_op, mock_op)
 
         finalize_executed_op(workspace_exec_op_uuid)
-        mock_finalize_job.assert_called_with(workspace_exec_op,  mock_obj)
+        mock_finalize_job.assert_called_with(workspace_exec_op, mock_op)

@@ -4,17 +4,17 @@ import logging
 from django.conf import settings
 from django.utils.module_loading import import_string
 
-from exceptions import OutputConversionException
+from exceptions import OutputConversionException, \
+    MissingRequiredFileException
+
+from data_structures.data_resource_attributes import \
+    get_all_data_resource_typenames
 
 from api.utilities.admin_utils import alert_admins
 from api.utilities.basic_utils import make_local_directory
-
+from api.utilities.resource_utilities import delete_resource_by_pk
 
 logger = logging.getLogger(__name__)
-
-
-class MissingRequiredFileException(Exception):
-    pass
 
 
 class OperationRunner(object):
@@ -67,15 +67,13 @@ class OperationRunner(object):
         logger.info('Checking required files are present in the respository')
         for f in self.REQUIRED_FILES:
             expected_path = os.path.join(operation_dir, f)
-            logging.info('Look for: {p}'.format(p=expected_path))
+            logging.info(f'Look for: {expected_path}')
             if not os.path.exists(expected_path):
-                logging.info('Could not find the required file: {p}'.format(p=expected_path))
+                logging.info('Could not find the required file:'
+                    f' {expected_path}')
                 raise MissingRequiredFileException('Could not locate the'
-                    ' required file ({f}) in the repository at {d}'.format(
-                        f=f,
-                        d=operation_dir
-                    )
-                )
+                    f' required file ({f}) in the repository at'
+                    f' {operation_dir}')
         logger.info('Done checking for required files.')
 
     def _create_execution_dir(self, execution_uuid):
@@ -182,3 +180,40 @@ class OperationRunner(object):
             )
             self.cleanup_on_error(op_spec_outputs, converted_outputs_dict)
             raise ex
+
+    def cleanup_on_error(self, op_spec_outputs, converted_outputs_dict):
+        '''
+        If there is an error during conversion of the outputs, we don't want
+        any Resource instances to be kept. For instance, if there are multiple
+        output files created and one fails validation, we don't want to expose the
+        others since it may cause a situation where the output state is ambiguous.
+
+        `op_spec_outputs` is the "operation spec" from the `Operation` instance. That
+        details what the expected output(s) should be.
+
+        `converted_outputs_dict` is a dict that has outputs that have already been
+        converted.
+        '''
+
+        # the types that we should clean up on error. 
+        data_resource_typenames = get_all_data_resource_typenames()
+        for k,v in converted_outputs_dict.items():
+            spec = op_spec_outputs[k].spec.to_dict()
+            output_attr_type = spec['attribute_type']
+            if output_attr_type in data_resource_typenames:
+                logger.info(f'Will cleanup the output "{k}" with'
+                    f' value of {v}')
+
+                # ok, so we are dealing with an output type
+                # that represents a file/Resource. This can either
+                # be singular (so the value v is a UUID) or multiple
+                # in which case the value is a list of UUIDs
+
+                # if a single UUID, put that in a list. This way
+                # we can handle single and multiple outputs 
+                # in the same way
+                if (type(v) is str) or (type(v) is uuid.UUID):
+                    v = [str(v),]
+                
+                for resource_uuid in v:
+                    delete_resource_by_pk(resource_uuid)
