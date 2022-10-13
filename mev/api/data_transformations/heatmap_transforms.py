@@ -8,11 +8,14 @@ from constants import MATRIX_KEY, \
     INTEGER_MATRIX_KEY, \
     EXPRESSION_MATRIX_KEY, \
     RNASEQ_COUNT_MATRIX_KEY
+from data_structures.attribute_types import PositiveIntegerAttribute
+
 from api.utilities.resource_utilities import localize_resource
-from api.data_structures import PositiveIntegerAttribute
+
 from resource_types import get_resource_type_instance
 
 logger = logging.getLogger(__name__)
+
 
 def heatmap_reduce(resource, query_params):
     '''
