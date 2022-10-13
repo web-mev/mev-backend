@@ -14,6 +14,7 @@ from api.serializers.jwt_tokens import AuthTokenSerializer, \
 
 logger = logging.getLogger(__name__)
 
+
 class TokenObtainView(TokenObtainPairView):
     '''
     This endpoint allows a client to submit an email/password
@@ -53,10 +54,7 @@ class RefreshTokenView(TokenRefreshView):
             )
         except Exception as ex:
             logger.error('Caught some unexpected error when refreshing'
-                ' the authentication token.  Ex={ex}'.format(
-                    ex=ex
-                )
-            )
+                f' the authentication token.  Ex={ex}')
             return Response(
                 {drf_api_settings.NON_FIELD_ERRORS_KEY: ex},
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR

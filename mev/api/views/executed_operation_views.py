@@ -91,13 +91,16 @@ class WorkspaceExecutedOperationList(APIView):
         try:
             workspace = Workspace.objects.get(pk=workspace_uuid)
         except Workspace.DoesNotExist as ex:
-            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=workspace_uuid)}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'message': self.NOT_FOUND_MESSAGE.format(id=workspace_uuid)}, 
+                status=status.HTTP_404_NOT_FOUND)
 
         # check ownership via workspace. Users should only be able to query their own
         # analyses:
         if user == workspace.owner:
             executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace)
-            response_payload = WorkspaceExecutedOperationSerializer(executed_ops, many=True).data
+            response_payload = WorkspaceExecutedOperationSerializer(
+                executed_ops, many=True).data
             return Response(response_payload, 
                 status=status.HTTP_200_OK
             )
@@ -137,18 +140,19 @@ class ExecutedOperationCheck(APIView):
         try:
             matching_op = ExecutedOperation.objects.get(id=exec_op_uuid)
         except ExecutedOperation.DoesNotExist as ex:
-            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, 
+                status=status.HTTP_404_NOT_FOUND)
 
         # check ownership. Users should only be able to query their own
         # analyses:
         owner = matching_op.owner
         if user == owner:
             if matching_op.execution_stop_datetime is None:
-                logger.info('The stop time has not been set and job ({id})'
-                    ' is still running or is finalizing.'.format(
-                        id = exec_op_uuid
-                    )
-                )
+                logger.info('The stop time has not been set'
+                    f' and job ({exec_op_uuid}) is still'
+                    ' running or is finalizing.')
+
                 # if the stop time has not been set, the job is either still running
                 # or it has completed, but not been "finalized"
 
@@ -156,10 +160,7 @@ class ExecutedOperationCheck(APIView):
                 # The finalization can sometimes take some time, so there is a short
                 # period of time between the analysis completion and the data being ready.
                 if matching_op.is_finalizing:
-                        logger.info('Currently finalizing job ({id})'.format(
-                                id=exec_op_uuid
-                            )
-                        )
+                        logger.info(f'Currently finalizing job ({exec_op_uuid})')
                         return Response(status=status.HTTP_208_ALREADY_REPORTED)
                 else:
                     logger.info('No finalization process reported. Job still running.')
@@ -169,7 +170,7 @@ class ExecutedOperationCheck(APIView):
                 response_payload = ExecutedOperationSerializer(matching_op).data
                 
                 if matching_op.job_failed:
-                    logger.info('The requested job ({id}) failed.'.format(id=exec_op_uuid))
+                    logger.info(f'The requested job ({exec_op_uuid}) failed.')
                 else:
                     logger.info('The executed job was registered as completed. Return outputs.')
                     # analysis has completed and been finalized. return the outputs also
@@ -201,13 +202,11 @@ class OperationRun(APIView):
         ' was not found.')
 
     def post(self, request, *args, **kwargs):
-        logger.info('POSTing to run an Operation with data={data}'.format(
-            data=request.data
-        ))
+        logger.info(f'POSTing to run an Operation with data={request.data}')
 
         user = request.user
         payload = request.data
-        logger.info('Received payload of: {p}'.format(p=payload))
+        logger.info(f'Received payload of: {payload}')
 
         # first check that all the proper keys are present
         # in the payload
@@ -231,11 +230,8 @@ class OperationRun(APIView):
         try:
             matching_ops = OperationDbModel.objects.filter(id=op_uuid)
             if len(matching_ops) != 1:
-                message = ('Operation ID: {op_uuid} did not'
-                    ' match any known operations'.format(
-                        op_uuid=op_uuid
-                    )
-                )
+                message = (f'Operation ID: {op_uuid} did not'
+                    ' match any known operations')
                 return Response({self.OP_UUID: message}, 
                     status=status.HTTP_404_NOT_FOUND)
         except DjangoValidationError:
@@ -304,9 +300,8 @@ class OperationRun(APIView):
         except WebMeVException as ex:
             raise ValidationError({self.INPUTS: str(ex)})
         except Exception as ex:
-            logger.error('Encountered some other exception when validating the user inputs.'
-                ' The exception was: {ex}'.format(ex=ex)
-            )
+            logger.error('Encountered some other exception when validating'
+                f' the user inputs. The exception was: {ex}')
             raise ex
 
         # now that the inputs are validated against the spec, create an
@@ -318,7 +313,7 @@ class OperationRun(APIView):
                 if v:
                     dict_representation[k] = v
 
-            logger.info('dict representation of inputs: {d}'.format(d=dict_representation))
+            logger.info(f'dict repr of inputs: {dict_representation}')
 
             # create the UUID which will identify the executed op.
             # We do this to avoid a race condition with the celery task queue.

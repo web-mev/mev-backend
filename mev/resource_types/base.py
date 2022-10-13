@@ -4,39 +4,6 @@ from constants import RESOURCE_KEY, \
     PARENT_OP_KEY, \
     UNSPECIFIED_FORMAT
 
-class UnexpectedFileParseException(Exception):
-    '''
-    For raising exceptions when the parser
-    fails for some reason. Reserved for unexpected/general
-    exceptions
-    '''
-    pass
-
-class FileParseException(Exception):
-    '''
-    For raising exceptions when the file parser
-    fails for a reason where we can be a bit more specific
-    by reading the pandas exception
-    '''
-    pass
-
-class ParseException(Exception):
-    '''
-    Used for exceptions where we have some expectation of what went wrong
-    and can report a more specific error message
-    '''
-    pass
-
-class UnexpectedTypeValidationException(Exception):
-    '''
-    Raised when a Resource fails to validate but *should have*
-    been fine. 
-
-    This would be raised, for instance, when an Operation completes and
-    produces some output file, for which we know the type.  In that case,
-    a failure to validate would indicate some unexpected error 
-    '''
-    pass
 
 class DataResource(object):
 

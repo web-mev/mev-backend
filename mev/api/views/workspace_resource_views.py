@@ -1,6 +1,5 @@
 import logging 
 
-from rest_framework import permissions as framework_permissions
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework import status
@@ -49,40 +48,27 @@ def get_workspace_and_resource(workspace_uuid, resource_uuid):
     try:
         workspace = Workspace.objects.get(pk=workspace_uuid)
     except Workspace.DoesNotExist:
-        logger.info('Could not locate Workspace ({workspace_uuid}).'.format(
-            workspace_uuid = str(workspace_uuid)
-            )
-        )
+        logger.info(f'Could not locate Workspace ({workspace_uuid}).')
         raise ParseError({
-            'workspace_uuid': 'Workspace referenced by {uuid}'
-            ' was not found.'.format(uuid=workspace_uuid)
-        })
+            'workspace_uuid': \
+                f'Workspace referenced by {workspace_uuid} was not found.'})
 
     try:
         resource = Resource.objects.get(pk=resource_uuid)
     except Resource.DoesNotExist:
-        logger.info('Could not locate Resource ({resource_uuid})'
+        logger.info(f'Could not locate Resource ({resource_uuid})'
         ' when attempting to add/remove Resource to/from'
-        ' Workspace ({workspace_uuid}).'.format(
-                resource_uuid = resource_uuid,
-                workspace_uuid = str(workspace_uuid)
-            )
-        )
+        f' Workspace ({workspace_uuid}).')
         raise ParseError({
-            'resource_uuid': 'Resource referenced by {uuid}'
-            ' was not found.'.format(uuid=resource_uuid)
-        })
+            'resource_uuid': 
+                f'Resource referenced by {resource_uuid} was not found'})
 
     # the workspace and resource must have
     # the same owner.  Requester must be admin or the owner.
     if not (workspace.owner == resource.owner):
-        logger.info('Resource ({resource_uuid}) and'
-            ' workspace ({workspace_uuid}) did not have'
-            ' the same owner.  Rejecting request.'.format(
-                workspace_uuid = str(workspace_uuid),
-                resource_uuid = str(resource_uuid)
-            )
-        )
+        logger.info(f'Resource ({resource_uuid}) and'
+            f' workspace ({workspace_uuid}) did not have'
+            ' the same owner.  Rejecting request.')
         raise Exception('Workspace and resource did not have the same owner.')
     else:
         return workspace, resource               
@@ -91,15 +77,16 @@ def get_workspace_and_resource(workspace_uuid, resource_uuid):
 class WorkspaceResourceRemove(APIView):
     '''
     This endpoint removes a Resource from a specific Workspace. Note that
-    Resources used in one or more Operations cannot be removed from the Workspace
-    so that the integrity of analysis workflows is maintained.
+    Resources used in one or more Operations cannot be removed from the
+    Workspace so that the integrity of analysis workflows is maintained.
     '''
 
     def get(self, request, *args, **kwargs):
         workspace_uuid = kwargs['workspace_pk']
         resource_uuid = kwargs['resource_pk']
         try:
-            workspace, resource = get_workspace_and_resource(workspace_uuid, resource_uuid)
+            workspace, resource = get_workspace_and_resource(
+                                    workspace_uuid, resource_uuid)
         except ParseError as ex:
             raise ex
         except Exception as ex:
@@ -155,12 +142,8 @@ class WorkspaceResourceAdd(APIView):
         if serializer.is_valid():
             workspace_uuid = kwargs['workspace_pk']
             resource_uuid = str(serializer.validated_data['resource_uuid'])
-            logger.info('Adding resource ({resource_uuid}) to'
-                ' workspace ({workspace_uuid})'.format(
-                    workspace_uuid = str(workspace_uuid),
-                    resource_uuid = resource_uuid
-                )
-            )
+            logger.info(f'Adding resource ({resource_uuid}) to'
+                f' workspace ({workspace_uuid})')
 
             try:
                 workspace, resource = get_workspace_and_resource(workspace_uuid, resource_uuid)
@@ -174,16 +157,16 @@ class WorkspaceResourceAdd(APIView):
                 )
 
             if not resource.is_active:
-                logger.info('Attempted to add an inactive Resource {resource} to'
-                ' a workspace.'.format(resource=resource))
+                logger.info(f'Attempted to add an inactive Resource {resource}'
+                    ' to a workspace.')
                 raise ParseError('The requested Resource'
                 ' is not currently activated, possibly due to pending'
                 ' validation.')
 
             if (resource.resource_type is None) \
                 or (resource.file_format is None or resource.file_format == ''):
-                logger.info('Attempted to add a Resource {resource} without'
-                ' a validated type and format to a workspace.'.format(resource=resource))
+                logger.info(f'Attempted to add a Resource {resource} without'
+                    ' a validated type and format to a workspace.')
                 raise ParseError('The requested Resource'
                 ' has not been successfully validated.')
 
@@ -203,12 +186,8 @@ class WorkspaceResourceAdd(APIView):
                         return Response(rs.data, status=status.HTTP_201_CREATED)
                 except Exception as ex:
                     logger.error('An exception was raised when adding a resource'
-                    ' {resource_uuid} to workspace {workspace_uuid}.  Exception was:' 
-                    ' {ex}. \nSee related logs.'.format(
-                        workspace_uuid = str(workspace_uuid),
-                        resource_uuid = str(resource_uuid),
-                        ex=ex
-                    ))
+                        f' a {resource_uuid} to workspace {workspace_uuid}.'
+                        f'  Exception was: {ex}. \nSee related logs.')
                     return Response({}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             else:
                 return Response({

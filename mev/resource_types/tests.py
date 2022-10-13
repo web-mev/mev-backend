@@ -2,10 +2,7 @@ import unittest
 import unittest.mock as mock
 import numpy as np
 import pandas as pd
-import uuid
-import os
 
-from django.conf import settings
 
 from constants import TSV_FORMAT, \
     PARENT_OP_KEY, \

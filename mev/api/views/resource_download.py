@@ -62,8 +62,7 @@ class ResourceDownloadUrl(APIView):
             url = r.datafile.url
             if not url:
                 logger.error('Encountered a problem when preparing download for resource'
-                    ' with pk={u}'.format(u=resource_pk)
-                )
+                    f' with pk={resource_pk}')
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             download_url = url

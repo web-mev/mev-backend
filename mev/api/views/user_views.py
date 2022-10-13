@@ -72,8 +72,7 @@ class UserRegisterView(APIView, SchemaMixin):
     EXISTING_USER_MESSAGE = 'This user already exists.'
 
     def post(self, request, *args, **kwargs):
-        logger.info('Received registration request with data: {data}'.format(
-            data=request.data))
+        logger.info(f'Received registration request with data: {request.data}')
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             validated_data = serializer.validated_data
@@ -87,7 +86,8 @@ class UserRegisterView(APIView, SchemaMixin):
                 user = serializer.save()
                 email_utils.send_activation_email(request, user)
                 serialized_user = UserSerializer(user, context={'request': request})
-                return Response({'user': serialized_user.data}, status=status.HTTP_201_CREATED)
+                return Response(
+                    {'user': serialized_user.data}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)     
 
@@ -103,9 +103,7 @@ class ResendActivationView(APIView, SchemaMixin):
 
     def post(self, request, *args, **kwargs):
         logger.info('Received request to re-send activation'
-            ' email with data: {data}'.format(
-                data=request.data)
-            )
+            f' email with data: {request.data}')
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.user
@@ -127,8 +125,7 @@ class UserActivateView(APIView, SchemaMixin):
     serializer_class = UserActivateSerializer
 
     def post(self, request, *args, **kwargs):
-        logger.info('Received activation request with data: {data}'.format(
-            data=request.data))
+        logger.info(f'Received activation request with data: {request.data}')
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.user
@@ -186,7 +183,8 @@ class PasswordChangeView(APIView, SchemaMixin):
     serializer_class = PasswordChangeSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer = self.serializer_class(
+            data=request.data, context={'request': request})
         if serializer.is_valid():
             validated_data = serializer.validated_data
             user = request.user

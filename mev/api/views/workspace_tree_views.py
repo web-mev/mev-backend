@@ -113,14 +113,10 @@ class WorkspaceTreeBase(object):
         try:
             workspace = Workspace.objects.get(pk=workspace_uuid)
         except Workspace.DoesNotExist:
-            logger.info('Could not locate Workspace ({workspace_uuid}).'.format(
-                workspace_uuid = str(workspace_uuid)
-                )
-            )
+            logger.info(f'Could not locate Workspace ({workspace_uuid}).')
             raise ParseError({
-                'workspace_uuid': 'Workspace referenced by {uuid}'
-                ' was not found.'.format(uuid=workspace_uuid)
-            })
+                'workspace_uuid': 
+                    f'Workspace referenced by {workspace_uuid} was not found.'})
 
         if (request.user.is_staff) or (request.user == workspace.owner):
             executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace)
@@ -140,10 +136,7 @@ class WorkspaceTreeSave(APIView, WorkspaceTreeBase):
 
     def get(self, request, *args, **kwargs):
         timestamp_str = datetime.datetime.now().strftime('%m-%d-%Y-%H-%M-%S')
-        output_filename = 'workspace_export.{workspace_id}.{timestamp}.json'.format(
-            workspace_id = str(kwargs['workspace_pk']),
-            timestamp = timestamp_str
-        )
+        output_filename = f'workspace_export.{kwargs["workspace_pk"]}.{timestamp_str}.json'
         dag = self.get_tree(request, *args, **kwargs)
         fh =File(StringIO(json.dumps(dag)), output_filename)
         try:

@@ -1,6 +1,5 @@
 import logging
 
-from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -13,8 +12,7 @@ from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
 
 from api.models import Workspace, ResourceMetadata
-from api.serializers.resource_metadata import ResourceMetadataObservationsSerializer, \
-    ResourceMetadataFeaturesSerializer
+
 
 
 logger = logging.getLogger(__name__)
@@ -68,14 +66,10 @@ class WorkspaceMetadataBase(object):
         try:
             workspace = Workspace.objects.get(pk=workspace_uuid)
         except Workspace.DoesNotExist:
-            logger.info('Could not locate Workspace ({workspace_uuid}).'.format(
-                workspace_uuid=str(workspace_uuid)
-            )
-            )
+            logger.info(f'Could not locate Workspace ({workspace_uuid}).')
             raise ParseError({
-                'workspace_uuid': 'Workspace referenced by {uuid}'
-                ' was not found.'.format(uuid=workspace_uuid)
-            })
+                'workspace_uuid': \
+                    f'Workspace referenced by {workspace_uuid} was not found.'})
 
         if requesting_user == workspace.owner:
             return workspace

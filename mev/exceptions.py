@@ -193,3 +193,52 @@ class MissingRequiredFileException(WebMeVException):
     repository (e.g. a operation_spec.json, etc.)
     '''
     pass
+
+
+class UnexpectedTypeValidationException(WebMeVException):
+    '''
+    Raised when a Resource fails to validate but *should have*
+    been fine. 
+
+    This would be raised, for instance, when an Operation completes and
+    produces some output file, for which we know the type.  In that case,
+    a failure to validate would indicate some unexpected error 
+    '''
+    pass
+
+
+class UnexpectedFileParseException(WebMeVException):
+    '''
+    For raising exceptions when the parser
+    fails for some reason. Reserved for unexpected/general
+    exceptions
+    '''
+    pass
+
+
+class FileParseException(WebMeVException):
+    '''
+    For raising exceptions when the file parser
+    (i.e. when opening/validating resources)
+    fails for a reason where we can be a bit more specific
+    by reading the pandas exception
+    '''
+    pass
+
+
+class ParseException(WebMeVException):
+    '''
+    Used for exceptions where we have some expectation 
+    of what went wrong during parsing a resource
+    (e.g. could not parse as a float)
+    '''
+    pass
+
+
+class ParserNotFoundException(WebMeVException):
+    '''
+    For raising exceptions when a proper 
+    pandas-based parser cannot be found when
+    opening/validating resources
+    '''
+    pass

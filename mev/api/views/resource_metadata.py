@@ -12,6 +12,7 @@ from api.serializers.resource_metadata import ResourceMetadataSerializer, \
 
 logger = logging.getLogger(__name__)
 
+
 class ResourceMetadataView(RetrieveAPIView):
 
     serializer_class = ResourceMetadataSerializer
@@ -26,7 +27,7 @@ class ResourceMetadataView(RetrieveAPIView):
             return ResourceMetadata.objects.filter(resource=resource)
         else:
             logger.info('Resource associated with the requested metadata'
-            ' is inactive.')
+                ' is inactive.')
             return []
 
     def get_object(self):
@@ -38,16 +39,17 @@ class ResourceMetadataView(RetrieveAPIView):
         else:
             logger.error('Database constraint violated.'
                 ' There were >1 metadata instances associated with'
-                ' a Resource ({resource_uuid})'.format(
-                    resource_uuid=self.kwargs['pk'])
-            )
+                f' a Resource ({self.kwargs["pk"]})')
             raise APIException()
+
 
 class ResourceMetadataObservationsView(ResourceMetadataView):
     serializer_class = ResourceMetadataObservationsSerializer
 
+
 class ResourceMetadataFeaturesView(ResourceMetadataView):
     serializer_class = ResourceMetadataFeaturesSerializer
+
 
 class ResourceMetadataParentOperationView(ResourceMetadataView):
     serializer_class = ResourceMetadataParentOperationSerializer

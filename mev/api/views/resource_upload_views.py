@@ -7,7 +7,6 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework import status
 from rest_framework.response import Response
 
-from api.models import Resource
 from api.serializers.upload_serializer import DropboxUploadSerializer
 from api.serializers.resource import ResourceSerializer
 from api.uploaders import get_async_uploader, DROPBOX
@@ -45,13 +44,10 @@ class AsyncUpload(APIView):
 
         if serializer.is_valid():
             data = serializer.data
-            logger.info('Requested an async upload with data={d}'.format(d=data))
+            logger.info(f'Requested an async upload with data={data}')
             uploader = get_async_uploader(self.uploader_id)
             logger.info('Based on the storage backend, use'
-                ' the following uploader: {u}'.format(
-                    u = uploader
-                )
-            )
+                f' the following uploader: {uploader}')
             # Below, note that the uploader's `rename_inputs`
             # method is used to convert the data payload (which is 
             # generic for all Dropbox-based uploads) and reformats 
@@ -71,8 +67,7 @@ class AsyncUpload(APIView):
             # the uploader we will be using.
             data = uploader.rename_inputs(request.user, data)
             logger.info('After reformatting the data for this'
-                ' uploader, we have: {d}'.format(d=data)
-            )
+                f' uploader, we have: {data}')
 
             # since we are creating async upload(s), we need to be able
             # to track them-- we will immediately return the UUID(s) which will
@@ -87,7 +82,7 @@ class AsyncUpload(APIView):
                     None,
                     str(job_id),
                     item)
-                logger.info('Submitted an async upload with ID={u}'.format(u=str(job_id)))
+                logger.info(f'Submitted an async upload with ID={job_id}')
                 job_ids.append(job_id)
             
             return Response(

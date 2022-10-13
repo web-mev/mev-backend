@@ -34,9 +34,8 @@ class SequenceResource(DataResource):
 
         Fill out an basic metadata object
         '''
-        logger.info('Extracting metadata from resource ({pk}).'.format(
-            pk = resource_instance.pk
-        )) 
+        logger.info('Extracting metadata from resource'
+            f' {resource_instance.pk}')
 
         # call the super method to initialize the self.metadata
         # dictionary

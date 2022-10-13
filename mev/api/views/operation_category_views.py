@@ -78,10 +78,9 @@ class OperationCategoryAdd(APIView):
 
     def post(self, request, *args, **kwargs):
         
-        logger.info('POSTing to associate an Operation ({op_id}) with category "{cat}"'.format(
-            op_id = request.data['operation_id'],
-            cat = request.data['category']
-        ))
+        logger.info('POSTing to associate an Operation'
+            f' ({request.data["operation_id"]}) with category'
+            f' {request.data["category"]}')
         op_c_s = OperationCategorySerializer(data=request.data)
         if op_c_s.is_valid(raise_exception=True):
             data = op_c_s.validated_data
