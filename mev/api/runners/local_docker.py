@@ -21,6 +21,7 @@ from api.models import ExecutedOperation
 
 logger = logging.getLogger(__name__)
 
+
 class LocalDockerRunner(OperationRunner):
     '''
     Class that handles execution of `Operation`s using Docker on the local
@@ -43,9 +44,9 @@ class LocalDockerRunner(OperationRunner):
 
     # the template docker command to be run:
     DOCKER_RUN_CMD = ('docker run -d --name {container_name}'
-        ' -v {execution_mount}:{work_dir}'
-        ' --env WORKDIR={job_dir}'
-        ' --entrypoint="" {docker_image} {cmd}')
+                      ' -v {execution_mount}:{work_dir}'
+                      ' --env WORKDIR={job_dir}'
+                      ' --entrypoint="" {docker_image} {cmd}')
 
     def check_status(self, job_uuid):
         container_is_running = check_if_container_running(job_uuid)
@@ -69,13 +70,13 @@ class LocalDockerRunner(OperationRunner):
                 os.path.join(execution_dir, self.OUTPUTS_JSON)
             ))
             logger.info('After parsing the outputs file,'
-                f' we have: {json.dumps(outputs_dict)}')
+                        f' we have: {json.dumps(outputs_dict)}')
             return outputs_dict
         except FileNotFoundError as ex:
             logger.info(f'The outputs file for job {job_id} was not'
-                ' found.')
+                        ' found.')
             raise Exception('The outputs file was not found. An administrator'
-                ' should check the analysis operation.')
+                            ' should check the analysis operation.')
 
     def finalize(self, executed_op, op):
         '''
@@ -92,26 +93,26 @@ class LocalDockerRunner(OperationRunner):
 
         if exit_code != 0:
             logger.info('Received a non-zero exit code'
-                f' ({exit_code}) from container'
-                f' executing job: {executed_op.job_id}')
+                        f' ({exit_code}) from container'
+                        f' executing job: {executed_op.job_id}')
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
 
             # collect the errors that are  reported in the logs
             log_msg = get_logs(job_id)
-            message_list = [log_msg,]
+            message_list = [log_msg, ]
 
             # handle the out of memory error-- we can't do it all!
             if exit_code == 137:
                 logger.info(f'Executed job {executed_op.job_id}'
-                    ' exhausted the available memory.')
+                            ' exhausted the available memory.')
                 message_list.append('The process ran out of memory and exited.'
-                ' Sometimes the job parameters can result in analyses exceeding'
-                ' the processing capabilities of WebMeV.')
-                
+                                    ' Sometimes the job parameters can result in analyses'
+                                    ' exceeding the processing capabilities of WebMeV.')
+
             executed_op.error_messages = message_list
             alert_admins(','.join(message_list))
-            
+
         else:
             logger.info('Container exit code was zero. Fetch outputs.')
             # read the outputs json file and convert to mev-compatible outputs:
@@ -145,9 +146,10 @@ class LocalDockerRunner(OperationRunner):
         Prepares the Operation, including pulling the Docker container
 
         `operation_dir` is the directory where the staged repository is held
-        `repo_name` is the name of the repository. Used for the Docker image name
-        `git_hash` is the commit hash and it allows us to version the docker container
-            the same as the git repository
+        `repo_name` is the name of the repository. Used for the 
+            Docker image name
+        `git_hash` is the commit hash and it allows us to version 
+            the docker container the same as the git repository
         '''
         image_url = get_image_name_and_tag(repo_name, git_hash)
         pull_image(image_url)
@@ -159,19 +161,18 @@ class LocalDockerRunner(OperationRunner):
         ENTRYPOINT command for the Docker container.
         '''
         # read the template command
-        entrypoint_cmd_template = Template(open(entrypoint_file_path, 'r').read())
+        entrypoint_cmd_template = Template(
+            open(entrypoint_file_path, 'r').read())
         try:
             entrypoint_cmd = entrypoint_cmd_template.render(arg_dict)
             return entrypoint_cmd
         except Exception as ex:
-            logger.error('An exception was raised when constructing the entrypoint'
-                ' command from the templated string. Exception was: {ex}'.format(
-                    ex = ex
-                )
-            )
+            logger.error('An exception was raised when constructing the'
+                         ' entrypoint command from the templated string.'
+                         f' Exception was: {ex}')
             raise Exception('Failed to construct command to execute'
-                ' local Docker container. See logs.'
-            )
+                            ' local Docker container. See logs.'
+                            )
 
     def run(self, executed_op, op, validated_inputs):
         logger.info('Running in local Docker mode.')
@@ -185,7 +186,7 @@ class LocalDockerRunner(OperationRunner):
 
         # get the operation dir so we can look at which converters and command to use:
         op_dir = os.path.join(
-            settings.OPERATION_LIBRARY_DIR, 
+            settings.OPERATION_LIBRARY_DIR,
             str(op.id)
         )
 
@@ -201,26 +202,23 @@ class LocalDockerRunner(OperationRunner):
         # that the call with use- e.g. making a CSV list to submit as one of the args
         # like:
         # docker run <image> run_something.R -a sampleA,sampleB -b sampleC,sampleD
-        arg_dict = self._convert_inputs(op, op_dir, validated_inputs, execution_dir)
+        arg_dict = self._convert_inputs(
+            op, op_dir, validated_inputs, execution_dir)
 
         logger.info('After mapping the user inputs, we have the'
-            f' following structure: {arg_dict}')
+                    f' following structure: {arg_dict}')
 
         # Construct the command that will be run in the container:
         entrypoint_file_path = os.path.join(op_dir, self.ENTRYPOINT_FILE)
         if not os.path.exists(entrypoint_file_path):
-            logger.error('Could not find the required entrypoint file at {p}.'
-                ' Something must have corrupted the operation directory.'.format(
-                    p = entrypoint_file_path
-                )
-            )
+            logger.error('Could not find the required entrypoint'
+                f' file at {entrypoint_file_path}.'
+                ' Something must have corrupted the operation directory.')
             raise Exception('The repository must have been corrupted.'
-                ' Failed to find the entrypoint file.'
-                ' Check dir at: {d}'.format(
-                    d = op_dir
-                )
-            )
-        entrypoint_cmd = self._get_entrypoint_command(entrypoint_file_path, arg_dict)
+                            ' Failed to find the entrypoint file.'
+                            f' Check dir at: {op_dir}')
+        entrypoint_cmd = self._get_entrypoint_command(
+            entrypoint_file_path, arg_dict)
 
         image_str = get_image_name_and_tag(
             op.repository_name,
@@ -228,12 +226,12 @@ class LocalDockerRunner(OperationRunner):
         )
 
         cmd = self.DOCKER_RUN_CMD.format(
-            container_name = execution_uuid,
-            execution_mount = settings.OPERATION_EXECUTION_DIR,
-            work_dir = settings.OPERATION_EXECUTION_DIR,
-            job_dir = execution_dir,
-            docker_image = image_str,
-            cmd = entrypoint_cmd
+            container_name=execution_uuid,
+            execution_mount=settings.OPERATION_EXECUTION_DIR,
+            work_dir=settings.OPERATION_EXECUTION_DIR,
+            job_dir=execution_dir,
+            docker_image=image_str,
+            cmd=entrypoint_cmd
         )
         try:
             run_shell_command(cmd)

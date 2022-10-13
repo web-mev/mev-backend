@@ -154,6 +154,8 @@ class OperationRunner(object):
                     if v is not None:
                         converter = self._get_converter(
                             current_output_spec.converter)
+                        logger.info('Attempt to convert using'
+                            f' {converter}')
                         converted_outputs_dict[k] = converter.convert_output(
                             executed_op, user_workspace,
                             current_output_spec, v)

@@ -440,6 +440,22 @@ class TestDataResourceConverter(BaseAPITestCase):
         self.assertTrue(mock_resource.is_active)
         mock_resource.save.assert_called()
 
+        # try with an invalid resource type
+        mock_create_resource.reset_mock()
+        mock_retrieve_resource_class_standard_format.reset_mock()
+        mock_initiate_resource_validation.reset_mock()
+        mock_resource.reset_mock()
+        operation_output_payload = {
+            'path': mock_path,
+            'resource_type': "FT"
+        }
+        with self.assertRaisesRegex(OutputConversionException, 'not consistent'):
+            u = c.convert_output(mock_executed_op, mock_workspace, o, operation_output_payload)
+
+        c._create_resource.assert_not_called()
+        mock_retrieve_resource_class_standard_format.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
+
     @mock.patch('api.converters.data_resource.ResourceMetadata')
     @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
     @mock.patch('api.converters.data_resource.initiate_resource_validation')

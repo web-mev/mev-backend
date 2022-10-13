@@ -126,8 +126,7 @@ class OperationUtilsTester(BaseAPITestCase):
         op = Operation(d)
         mock_get_operation_instance.return_value = op
 
-        # one input was optional, one required. An empty payload
-        # qualifies as a problem since it's missing the required key
+        # one input was optional, one required.
         sample_inputs = {'required_int_type': 22}
 
         final_inputs = validate_operation_inputs(self.regular_user_1, 

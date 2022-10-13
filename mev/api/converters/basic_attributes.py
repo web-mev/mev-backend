@@ -133,6 +133,10 @@ class BooleanAsIntegerConverter(BaseAttributeConverter):
         b = BooleanAttribute(user_input)
         return int(b.value)
 
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        b = BooleanAttribute(output_val)
+        return int(b.value)
 
 class NormalizingListToCsvConverter(BaseAttributeConverter, CsvMixin):
     '''

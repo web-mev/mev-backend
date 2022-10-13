@@ -22,10 +22,8 @@ class BaseRunnerTester(BaseAPITestCase):
 
     def setUp(self):
         filepath = os.path.join(TESTDIR, 'multiresource_output.json')
-        fp = open(filepath)
-        op_data = json.load(fp)
-        self.op = Operation(op_data)
-        fp.close()
+        with open(filepath) as fp:
+            self.op = Operation(json.load(fp))
 
     @mock.patch('api.runners.base.import_string')
     def test_input_mapping(self, mock_import_string):
@@ -118,6 +116,43 @@ class BaseRunnerTester(BaseAPITestCase):
             }
         )
         mock_alert_admins.assert_called()
+
+    def test_output_conversion_for_non_resource_types(self):
+        '''
+        This tests that proper/valid output conversions go as planned
+        for the "primitive" types
+        '''
+
+        filepath = os.path.join(TESTDIR, 'non_resource_outputs.json')
+        op = Operation(json.load(open(filepath)))
+
+        runner = OperationRunner()
+        mock_cleanup = mock.MagicMock()
+        runner.cleanup_on_error = mock_cleanup
+
+        # these outputs correspond to the multiresource_output.json
+        outputs = {
+            "pval": 0.01,
+            "some_integer": 5,
+            "some_bool": True
+        }
+
+        # don't bother mocking out the get_converter
+        # since the op spec has valid converters
+
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.operation.id = 'abc'
+
+        d = runner._convert_outputs(
+            mock_executed_op,
+            op,
+            outputs
+        )
+        self.assertDictEqual(
+            d,
+            {'pval': 0.01, 'some_bool': 1, 'some_integer': 5}
+        )
+        mock_cleanup.assert_not_called()
 
     def test_output_conversion(self):
         '''
