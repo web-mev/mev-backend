@@ -87,7 +87,7 @@ def submit_async_job(executed_op_pk,
             workspace=workspace,
             job_name=job_name,
             inputs=validated_inputs,
-            operation=op,
+            operation=db_op,
             mode=op.mode,
             status=ExecutedOperation.SUBMITTED
         )
@@ -98,7 +98,7 @@ def submit_async_job(executed_op_pk,
             owner=user,
             job_name=job_name,
             inputs=validated_inputs,
-            operation=op,
+            operation=db_op,
             mode=op.mode,
             status=ExecutedOperation.SUBMITTED
         )
