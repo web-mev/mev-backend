@@ -8,7 +8,7 @@ resource "random_password" "django_superuser" {
 # permissions to access the S3 buckets. Note that this block alone
 # does not give that permission.
 resource "aws_iam_role" "api_server_role" {
-  name               = local.common_tags.Name
+  name               = "${local.common_tags.Name}-api"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
@@ -53,7 +53,7 @@ resource "aws_iam_role_policy" "server_s3_access" {
 }
 
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
-  name = local.common_tags.Name
+  name = "${local.common_tags.Name}-api"
   role = aws_iam_role.api_server_role.name
 }
 
@@ -67,7 +67,10 @@ resource "aws_instance" "api" {
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.api_server_instance_profile.name
   key_name               = var.ssh_key_pair_name
-  volume_tags            = local.common_tags
+  tags                   = {
+    Name = "${local.common_tags.Name}-api"
+  }
+  volume_tags = merge(local.common_tags, { Name = "${local.common_tags.Name}-api" })
   root_block_device {
     volume_type = "gp3"
   }
@@ -108,12 +111,16 @@ resource "aws_instance" "api" {
 
   # configure and run Puppet
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
+  export FACTER_AWS_REGION='${data.aws_region.current.name}'
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
   export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
+  export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
+  export FACTER_CROMWELL_SERVER_URL='${aws_instance.cromwell.private_ip}'
   export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
   export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
+  export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
   export FACTER_DJANGO_SETTINGS_MODULE='${var.django_settings_module}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
   export FACTER_ENABLE_REMOTE_JOB_RUNNERS='${var.enable_remote_job_runners}'
@@ -124,12 +131,6 @@ resource "aws_instance" "api" {
   export FACTER_SENTRY_URL='${var.sentry_url}'
   export FACTER_STORAGE_LOCATION='${var.storage_location}'
   export FACTER_STORAGE_BUCKET_NAME='${aws_s3_bucket.api_storage_bucket.id}'
-  export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
-  # TODO: add the ip address of the Cromwell server once we merge with
-  #       the branch containing cromwell setup.
-  export FACTER_CROMWELL_SERVER_URL=''
-  export FACTER_AWS_REGION='${data.aws_region.current.name}'
-  export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
 
   /opt/puppetlabs/bin/puppet apply $PUPPET_ROOT/manifests/site.pp
   EOT

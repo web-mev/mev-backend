@@ -3,8 +3,9 @@ data "aws_route53_zone" "main" {
 }
 
 locals {
-  backend_cname  = "${local.stack}-mev-api.${data.aws_route53_zone.main.name}"
-  frontend_cname = "${local.stack}-mev.${data.aws_route53_zone.main.name}"
+  backend_cname  = "${local.common_tags.Name}-api.${data.aws_route53_zone.main.name}"
+  cromwell_cname = "${local.common_tags.Name}-cromwell.${data.aws_route53_zone.main.name}"
+  frontend_cname = "${local.common_tags.Name}.${data.aws_route53_zone.main.name}"
 }
 
 resource "aws_route53_record" "web" {

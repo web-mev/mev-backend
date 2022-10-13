@@ -1,0 +1,71 @@
+include required(classpath("application"))
+
+aws {
+
+  application-name = "cromwell"
+
+  auths = [
+    {
+      name = "default"
+      scheme = "default"
+    }
+  ]
+
+  region = <%= "$cromwell::aws_region" %>
+}
+
+engine {
+  filesystems {
+    s3 {
+      auth = "default"
+    }
+  }
+}
+
+backend {
+  default = "AWSBATCH"
+
+  providers {
+    AWSBATCH {
+      actor-factory = "cromwell.backend.impl.aws.AwsBatchBackendLifecycleActorFactory"
+      config {
+        numSubmitAttempts = 6
+        numCreateDefinitionAttempts = 6
+
+        // Base bucket for workflow executions including s3://
+        root = "s3://<%= $cromwell::storage_bucket %>"
+
+        // A reference to an auth defined in the `aws` stanza at the top.  This auth is used to create
+        // Jobs and manipulate auth JSONs.
+        auth = "default"
+
+        default-runtime-attributes {
+          queueArn: "<%= $cromwell::job_queue %>",
+          scriptBucketName: "<%= $cromwell::storage_bucket %>"
+        }
+
+        filesystems {
+          s3 {
+            // A reference to a potentially different auth for manipulating files via engine functions.
+            auth = "default"
+          }
+        }
+        // Emit a warning if jobs last longer than this amount of time.
+        // This might indicate that something got stuck in the cloud.
+        slow-job-warning-time: 24 hours
+      }
+    }
+  }
+}
+
+database {
+  profile = "slick.jdbc.PostgresProfile$"
+  db {
+    driver = "org.postgresql.Driver"
+    url = "jdbc:postgresql://localhost:5432/cromwell"
+    user = "<%= $cromwell::user %>"
+    password = "<%= $cromwell::db_password %>"
+    port = 5432
+    connectionTimeout = 5000
+  }
+}

@@ -7,13 +7,17 @@
 #   }
 class mevapi (
   String                  $admin_email_csv,
+  String                  $aws_region,
   Optional[String]        $app_user,
   String                  $backend_domain,
   Optional[String]        $container_registry = 'github',
+  String                  $cromwell_bucket_name,
+  String                  $cromwell_server_url,
   String                  $database_host,
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,
   String                  $database_user_password,
+  String                  $django_cors_origins,
   Optional[String]        $django_settings_module,
   String                  $django_superuser_password,
   Optional[String]        $email_host = '',
@@ -26,11 +30,6 @@ class mevapi (
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,
   String                  $storage_bucket_name,
-  String                  $cromwell_bucket_name,
-  String                  $cromwell_server_url,
-  String                  $aws_region,
-  String                  $django_cors_origins,
-
 ) {
   if $facts['virtual'] == 'kvm' {
     $platform = 'aws'

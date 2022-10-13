@@ -4,3 +4,4 @@
 forge "https://forgeapi.puppetlabs.com"
 
 mod 'qbrc-mevapi', '0.1.0', :path => './mevapi'
+mod 'qbrc-cromwell', '0.1.0', :path => './cromwell'
