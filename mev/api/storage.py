@@ -152,7 +152,8 @@ class S3ResourceStorage(S3Boto3Storage):
         `src_path` is the FULL bucket path, e.g. s3://<BUCKET>/<object>
         '''
         src_bucket, src_object = self.get_bucket_and_object_from_full_path(src_path)
-
+        logger.info(f'src_bucket: {src_bucket}')
+        logger.info(f'src_object: {src_object}')
         # To avoid needing to duplicate the logic of locating files
         # within our storage, we basically create a dummy placeholder
         # "file" with empty content and create an instance
@@ -169,15 +170,19 @@ class S3ResourceStorage(S3Boto3Storage):
                 is_active=False
             )
         dest_obj = r.datafile.name
+        logger.info(f'For interbucket copy, empty placeholder is'
+            ' located at: {dest_obj}')
         try:
             self.copy_to_storage(
                 src_bucket,
                 src_object,
                 dest_obj
             )        
+            logger.info('Copy operation completed.')
             # now that the file is copied to the correct location, update the 
             # api.models.Resource instance in the database.
             r.is_active = True
+            r.size = r.datafile.size
             r.save()
             return r
         except Exception as ex:
