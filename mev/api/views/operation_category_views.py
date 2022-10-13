@@ -1,24 +1,17 @@
-import os
 import logging
-import uuid
-from collections import defaultdict
 
-from django.conf import settings
 from django.db.models import Count
 
 from rest_framework import permissions as framework_permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 
 from api.models import OperationCategory, \
     Operation
 from api.serializers.operation_category import OperationCategorySerializer, \
     OperationCategoryListSerializer
-from api.serializers.operation import OperationSerializer
-from api.utilities.operations import get_operation_instance_data, \
-    validate_operation
+from api.utilities.operations import get_operation_instance_data
 from api.views.mixins import SchemaMixin
 
 
@@ -57,8 +50,6 @@ class OperationCategoryDetail(APIView, SchemaMixin):
         framework_permissions.IsAuthenticated
     ]
 
-    serializer_class = OperationSerializer
-
     def get(self, request, *args, **kwargs):
         category = self.kwargs['category']
         category_records = OperationCategory.objects.filter(category = category)
@@ -66,12 +57,10 @@ class OperationCategoryDetail(APIView, SchemaMixin):
         for record in category_records:
             op_data = get_operation_instance_data(record.operation)
             if op_data is not None:
-                op_serializer = validate_operation(op_data)
-                ret.append(op_serializer.get_instance())
+                ret.append(op_data)
             else:
                 return Response({}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
-        s = self.serializer_class(ret, many=True)
-        return Response(s.data)
+        return Response(ret)
 
 
 class OperationCategoryAdd(APIView):
@@ -89,10 +78,9 @@ class OperationCategoryAdd(APIView):
 
     def post(self, request, *args, **kwargs):
         
-        logger.info('POSTing to associate an Operation ({op_id}) with category "{cat}"'.format(
-            op_id = request.data['operation_id'],
-            cat = request.data['category']
-        ))
+        logger.info('POSTing to associate an Operation'
+            f' ({request.data["operation_id"]}) with category'
+            f' {request.data["category"]}')
         op_c_s = OperationCategorySerializer(data=request.data)
         if op_c_s.is_valid(raise_exception=True):
             data = op_c_s.validated_data

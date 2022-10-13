@@ -45,6 +45,8 @@ DB_RESOURCE_KEY_TO_HUMAN_READABLE = {
     x[0]:x[1] for x in DATABASE_RESOURCE_TYPES
 }
 
+RESOURCE_TYPE_SET = set(DB_RESOURCE_KEY_TO_HUMAN_READABLE.keys())
+
 # These constants are related to metadata (api.models.ResourceMetadata)
 # which can be associated with api.models.Resource instances
 OBSERVATION_SET_KEY = 'observation_set'
@@ -110,3 +112,9 @@ FORMATS_MAPPING = {
     BAM_FORMAT: BAM_DESCRIPTION,
     UNSPECIFIED_FORMAT: GENERAL_DESCRIPTION
 }
+
+# Use these values as 'markers' for dataframes/tables that have infinite values.
+# Since the data needs to be returned as valid JSON and Inf (and other variants)
+# are not permitted
+POSITIVE_INF_MARKER = '++inf++'
+NEGATIVE_INF_MARKER = '--inf--'

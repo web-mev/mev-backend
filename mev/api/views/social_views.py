@@ -37,8 +37,7 @@ def do_auth(request, token):
         # function is tried again.
         logger.info('Caught another type of exception when attempting'
             ' to authenticate with social auth provider.  Will retry.'
-            ' Exception was: {ex}.'.format(ex=ex)
-        )
+            f' Exception was: {ex}.')
         return None
 
 # This function can be used by multiple oauth2 providers if necessary.
@@ -57,17 +56,13 @@ def register_by_access_token(request, backend, token):
     user = do_auth(request, token)
 
     if user:
-        logger.info('User={user}'.format(user=user))
+        logger.info(f'User={user}')
         login(request, user)
         return user
     else:
         logger.error('Did not retrieve a user following attempt to'
-            ' social authenticate.\nrequest={request}\nbackend={backend}'
-            '\ntoken={token}'.format(
-                request=request,
-                backend=backend,
-                token=token
-            ))
+            f' social authenticate.\nrequest={request}\nbackend={backend}'
+            f'\ntoken={token}')
         return None
 
 class GoogleOauth2View(APIView, SchemaMixin):
@@ -78,21 +73,25 @@ class GoogleOauth2View(APIView, SchemaMixin):
 
     permission_classes = [permissions.AllowAny,]
     serializer_class = SocialAuthTokenSerializer
-    provider_name = 'google-oauth2' # this specific string required by social_django to recruit proper backend
+
+    # this specific string required by social_django to recruit proper backend
+    provider_name = 'google-oauth2'
 
     def post(self, request, *args, **kwargs):
         logger.info('Registering or signing-in via Google social auth.')
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            logger.info('Received data: {data}'.format(data=serializer.validated_data))
+            logger.info(f'Received data: {serializer.validated_data}')
             google_token = serializer.validated_data['provider_token']
-            user = register_by_access_token(request, self.provider_name, google_token)
+            user = register_by_access_token(
+                request, self.provider_name, google_token)
             if user:
                 refresh = RefreshToken.for_user(user)
 
-                # they keys in this response are consistent with those returned by the simplejwt
-                # package so that username/password and social auth-based accounts return the same
-                # JWT response object
+                # they keys in this response are consistent with those 
+                # returned by the simplejwt package so that username/password
+                # and social auth-based accounts return the same JWT
+                # response object
                 return_serializer = self.serializer_class({
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),

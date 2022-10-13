@@ -1,12 +1,18 @@
-import unittest
+import resource
 import unittest.mock as mock
-import os
 import uuid
-from django.core.exceptions import ImproperlyConfigured
+
+from exceptions import AttributeValueError, \
+    DataStructureValidationException, \
+    StringIdentifierException, \
+    StorageException, \
+    OutputConversionException
+
+from data_structures.observation_set import ObservationSet
+from data_structures.feature_set import FeatureSet
+from data_structures.operation_output import OperationOutput
 
 from api.models import Resource
-from api.exceptions import AttributeValueError, InputMappingException
-from api.data_structures import Observation, ObservationSet, Feature, FeatureSet
 from api.converters.basic_attributes import StringConverter, \
     IntegerConverter, \
     StringListConverter, \
@@ -17,141 +23,215 @@ from api.converters.basic_attributes import StringConverter, \
     BooleanAsIntegerConverter, \
     NormalizingListToCsvConverter, \
     NormalizingStringConverter
-from api.converters.data_resource import LocalDataResourceConverter, \
-    LocalDockerCsvResourceConverter, \
-    LocalDockerSpaceDelimResourceConverter, \
+
+from api.converters.data_resource import \
     LocalDockerSingleDataResourceConverter, \
+    LocalDockerSingleVariableDataResourceConverter, \
     LocalDockerSingleDataResourceWithTypeConverter, \
     LocalDockerMultipleDataResourceConverter, \
+    LocalDockerMultipleVariableDataResourceConverter, \
+    LocalDockerCsvResourceConverter, \
+    LocalDockerSpaceDelimResourceConverter, \
     CromwellSingleDataResourceConverter, \
-    CromwellMultipleDataResourceConverter, \
-    CromwellCsvResourceConverter, \
-    CromwellSpaceDelimResourceConverter
-from api.converters.mappers import SimpleFileBasedMapConverter
+    CromwellMultipleDataResourceConverter
+
 from api.converters.element_set import ObservationSetCsvConverter, \
     FeatureSetCsvConverter, \
     ObservationSetListConverter, \
     FeatureSetListConverter
 from api.tests.base import BaseAPITestCase
 
+
 class TestBasicAttributeConverter(BaseAPITestCase):
 
     def test_basic_attributes(self):
         s = StringConverter()
-        v = s.convert('foo','abc', '', '')
-        self.assertDictEqual(v, {'foo':'abc'})
+        v = s.convert_input('abc', '', '')
+        self.assertEqual(v, 'abc')
+        v = s.convert_output('','','', 'abc')
+        self.assertEqual(v, 'abc')
 
-        v = s.convert('foo','ab c', '', '')
-        self.assertDictEqual(v, {'foo':'ab_c'})
+        v = s.convert_input('ab c', '', '')
+        self.assertEqual(v, 'ab_c')
+        v = s.convert_output('','','', 'ab c')
+        self.assertEqual(v, 'ab_c')
 
         with self.assertRaises(AttributeValueError):
-            v = s.convert('foo','ab?c', '', '')
+            v = s.convert_input('ab?c', '', '')
+
+        with self.assertRaises(AttributeValueError):
+            v = s.convert_output('','','', 'ab?c')
 
         s = UnrestrictedStringConverter()
-        v = s.convert('foo','abc', '', '')
-        self.assertDictEqual(v, {'foo':'abc'})
-        v = s.convert('foo','ab c', '', '')
-        self.assertDictEqual(v, {'foo':'ab c'})
-        v = s.convert('foo','ab?c', '', '')
-        self.assertDictEqual(v, {'foo':'ab?c'})
+        v = s.convert_input('abc', '', '')
+        self.assertEqual(v, 'abc')
+        v = s.convert_output('','','', 'abc')
+        self.assertEqual(v, 'abc')
+
+        v = s.convert_input('ab c', '', '')
+        self.assertEqual(v, 'ab c')
+        v = s.convert_output('','','', 'ab c')
+        self.assertEqual(v, 'ab c')
+
+        v = s.convert_input('ab?c', '', '')
+        self.assertEqual(v, 'ab?c')
+        v = s.convert_output('','','', 'ab?c')
+        self.assertEqual(v, 'ab?c')
 
         ic = IntegerConverter()
-        i = ic.convert('foo', 2, '', '')
-        self.assertDictEqual(i,{'foo':2})
+        i = ic.convert_input( 2, '', '')
+        self.assertEqual(i,2)
+        i = ic.convert_output('','','', 2)
+        self.assertEqual(i,2)
 
         with self.assertRaises(AttributeValueError):
-            ic.convert('foo','1', '', '')
+            ic.convert_input('1', '', '')
         with self.assertRaises(AttributeValueError):
-            ic.convert('foo','1.2', '', '')
+            ic.convert_input(1.2, '', '')
+        with self.assertRaises(AttributeValueError):
+            ic.convert_output('','','','1')
+        with self.assertRaises(AttributeValueError):
+            ic.convert_output('','','',1.2)
 
         with self.assertRaises(AttributeValueError):
-            ic.convert('foo','a', '', '')
+            ic.convert_input('a', '', '')
+
+        with self.assertRaises(AttributeValueError):
+            ic.convert_output('', '', '', 'a')
 
         s = StringListConverter()
-        v = s.convert('foo', ['ab','c d'], '', '')
-        self.assertCountEqual(v.keys(), ['foo',])
-        self.assertCountEqual(['ab','c_d'], v['foo'])
+        v = s.convert_input( ['ab','c d'], '', '')
+        self.assertCountEqual(['ab','c_d'], v)
+        v = s.convert_output('','','', ['ab','c d'])
+        self.assertCountEqual(['ab','c_d'], v)
+
+        with self.assertRaises(DataStructureValidationException):
+            v = s.convert_input( 2, '', '')
+
+        with self.assertRaises(DataStructureValidationException):
+            s.convert_output('', '', '', 2)
 
         with self.assertRaises(AttributeValueError):
-            v = s.convert('foo', 2, '', '')
+            v = s.convert_input( ['1','2'], '', '')
 
         with self.assertRaises(AttributeValueError):
-            v = s.convert('foo', ['1','2'], '', '')
+            s.convert_output('', '', '', ['1','2'])
 
         s = UnrestrictedStringListConverter()
-        v = s.convert('foo', ['ab','c d'], '', '')
-        self.assertCountEqual(v.keys(), ['foo',])
-        self.assertCountEqual(['ab','c d'], v['foo'])
+        v = s.convert_input( ['ab','c d'], '', '')
+        self.assertCountEqual(['ab','c d'], v)
+        v = s.convert_output('','','', ['ab','c d'])
+        self.assertCountEqual(['ab','c d'], v)
 
         c = StringListToCsvConverter()
-        v = c.convert('foo', ['aaa','bbb','ccc'], '', '')
-        self.assertDictEqual(v, {'foo':'aaa,bbb,ccc'})
+        v = c.convert_input( ['aaa','bbb','ccc'], '', '')
+        self.assertEqual(v, 'aaa,bbb,ccc')
 
         c = StringListToCsvConverter()
-        v = c.convert('foo', ['a b','c d'], '', '')
-        self.assertDictEqual(v, {'foo':'a_b,c_d'})
+        v = c.convert_input( ['a b','c d'], '', '')
+        self.assertEqual(v, 'a_b,c_d')
 
         c = StringListToCsvConverter()
         with self.assertRaises(AttributeValueError):
-            v = c.convert('foo', ['a?b','c d'], '', '')
+            v = c.convert_input( ['a?b','c d'], '', '')
 
         c = UnrestrictedStringListToCsvConverter()
-        v = c.convert('foo',['aaa','bbb','ccc'], '', '')
-        self.assertDictEqual(v, {'foo':'aaa,bbb,ccc'})
+        v = c.convert_input(['aaa','bbb','ccc'], '', '')
+        self.assertEqual(v, 'aaa,bbb,ccc')
 
         c = UnrestrictedStringListToCsvConverter()
-        v = c.convert('foo', ['a b','c d'], '', '')
-        self.assertDictEqual(v, {'foo':'a b,c d'})
+        v = c.convert_input( ['a b','c d'], '', '')
+        self.assertEqual(v, 'a b,c d')
 
         c = UnrestrictedStringListToCsvConverter()
-        v = c.convert('foo', ['a?b','c d'], '', '')
-        self.assertDictEqual(v, {'foo':'a?b,c d'})
+        v = c.convert_input( ['a?b','c d'], '', '')
+        self.assertEqual(v, 'a?b,c d')
         
         c = NormalizingListToCsvConverter()
-        v = c.convert('foo', ['a b', 'c  d'], '', '')
-        self.assertDictEqual(v, {'foo':'a_b,c__d'})
+        v = c.convert_input( ['a b', 'c  d'], '', '')
+        self.assertEqual(v, 'a_b,c__d')
 
         c = NormalizingListToCsvConverter()
-        with self.assertRaises(AttributeValueError):
-            v = c.convert('foo', ['a b', 'c ? d'], '', '')
+        with self.assertRaises(StringIdentifierException):
+            v = c.convert_input( ['a b', 'c ? d'], '', '')
 
         c = NormalizingStringConverter()
-        v = c.convert('foo', 'a b.tsv', '', '')
-        self.assertDictEqual(v, {'foo':'a_b.tsv'})
+        v = c.convert_input( 'a b.tsv', '', '')
+        self.assertEqual(v, 'a_b.tsv')
 
         c = NormalizingStringConverter()
+        with self.assertRaises(StringIdentifierException):
+            v = c.convert_input( 'c ? d', '', '')
+
+        c = BooleanAsIntegerConverter()
+        x = c.convert_input( 1, '/tmp', '')
+        self.assertEqual(x, 1)
+
+        x = c.convert_input( True, '/tmp', '')
+        self.assertEqual(x, 1)
+
+        x = c.convert_input( 'true', '/tmp', '')
+        self.assertEqual(x, 1)
+
         with self.assertRaises(AttributeValueError):
-            v = c.convert('foo', 'c ? d', '', '')
+            x = c.convert_input( '1', '/tmp', '')
+
+        # check the false'y vals:
+        x = c.convert_input( 0, '/tmp', '')
+        self.assertEqual(x, 0)
+
+        x = c.convert_input( False, '/tmp', '')
+        self.assertEqual(x, 0)
+
+        x = c.convert_input( 'false', '/tmp', '')
+        self.assertEqual(x, 0)
+
+        with self.assertRaises(AttributeValueError):
+            x = c.convert_input( '0', '/tmp', '')
 
 
 class TestElementSetConverter(BaseAPITestCase):
 
     def test_observation_set_csv_converter(self):
-        obs1 = Observation('foo')
-        obs2 = Observation('bar')
-        obs_set = ObservationSet([obs1, obs2])
-        d = obs_set.to_dict()
+        obs_set = ObservationSet(
+            {'elements': [
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'bar'
+                }
+            ]}
+        )
+        d = obs_set.to_simple_dict()
         c = ObservationSetCsvConverter()  
         # order doesn't matter, so need to check both orders: 
-        converted_input = c.convert('xyz', d, '', '') 
+        converted_input = c.convert_input(d, '', '') 
         self.assertTrue(
-            ({'xyz': 'foo,bar'} == converted_input)
+            ('foo,bar' == converted_input)
             |
-            ({'xyz':'bar,foo'} == converted_input)
+            ('bar,foo' == converted_input)
         )
 
     def test_feature_set_csv_converter(self):
-        f1 = Feature('foo')
-        f2 = Feature('bar')
-        f_set = FeatureSet([f1, f2])
-        d = f_set.to_dict()
+        f_set = FeatureSet(
+            {'elements': [
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'bar'
+                }
+            ]}
+        )
+        d = f_set.to_simple_dict()
         c = FeatureSetCsvConverter()  
         # order doesn't matter, so need to check both orders:      
-        converted_input = c.convert('xyz', d, '', '') 
+        converted_input = c.convert_input(d, '', '') 
         self.assertTrue(
-            ({'xyz': 'foo,bar'} == converted_input)
+            ('foo,bar' == converted_input)
             |
-            ({'xyz':'bar,foo'} == converted_input)
+            ('bar,foo' == converted_input)
         )
 
     def test_observation_set_list_converter(self):
@@ -161,18 +241,21 @@ class TestElementSetConverter(BaseAPITestCase):
         supply a WDL job with a list of relevant samples as an
         array of strings, for instance.
         '''
-        obs1 = Observation('foo')
-        obs2 = Observation('bar')
-        obs_set = ObservationSet([obs1, obs2])
-        d = obs_set.to_dict()
+        obs_set = ObservationSet(
+            {'elements': [
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'bar'
+                }
+            ]}
+        )
+        d = obs_set.to_simple_dict()
         c = ObservationSetListConverter()  
         # order doesn't matter, so need to check both orders: 
-        converted_input = c.convert('xyz', d, '', '') 
-        self.assertTrue(
-            ({'xyz': ['foo','bar']} == converted_input)
-            |
-            ({'xyz':['bar','foo']} == converted_input)
-        )
+        converted_input = c.convert_input(d, '', '') 
+        self.assertCountEqual(['foo','bar'], converted_input)
 
     def test_feature_set_list_converter(self):
         '''
@@ -181,22 +264,26 @@ class TestElementSetConverter(BaseAPITestCase):
         supply a WDL job with a list of relevant samples as an
         array of strings, for instance.
         '''
-        obs1 = Feature('foo')
-        obs2 = Feature('bar')
-        obs_set = FeatureSet([obs1, obs2])
-        d = obs_set.to_dict()
+        f_set = FeatureSet(
+            {'elements': [
+                {
+                    'id': 'foo'
+                },
+                {
+                    'id': 'bar'
+                }
+            ]}
+        )
+        d = f_set.to_simple_dict()
         c = FeatureSetListConverter()  
         # order doesn't matter, so need to check both orders: 
-        converted_input = c.convert('xyz', d, '', '') 
-        self.assertTrue(
-            ({'xyz': ['foo','bar']} == converted_input)
-            |
-            ({'xyz':['bar','foo']} == converted_input)
-        )
+        converted_input = c.convert_input(d, '', '') 
+        self.assertCountEqual(['foo','bar'], converted_input)
+
 
 class TestDataResourceConverter(BaseAPITestCase):
 
-    def test_single_local_converter(self):
+    def test_single_local_input_converter(self):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path
@@ -205,15 +292,304 @@ class TestDataResourceConverter(BaseAPITestCase):
 
         mock_path = '/some/mock/path.txt'
         mock_staging_dir = '/some/staging_dir'
-        c = LocalDockerSingleDataResourceConverter()
-        mock_copy = mock.MagicMock()
-        mock_copy.return_value = mock_path
-        c._copy_resource_to_staging = mock_copy
-        x = c.convert('foo', user_input, '', mock_staging_dir)
-        mock_copy.assert_called_with(user_input, mock_staging_dir)
-        self.assertDictEqual(x, {'foo':  mock_path})
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.return_value = mock_path
 
-    def test_single_local_with_rt_converter(self):
+        c = LocalDockerSingleDataResourceConverter()
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input(user_input, '', mock_staging_dir)
+        self.assertEqual(x, mock_path)
+        mock_convert_resource_input.assert_called_once_with(
+            user_input, mock_staging_dir)
+
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    def test_single_local_output_converter(self, 
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Tests the conversion of a single output for a local 
+        runner. Mocks out the actual resource creation and 
+        some methods, but asserts that they are called with the
+        expected args.
+
+        This test is for a DataResource which has a fixed
+        resource_type defined by the output spec.
+        '''
+
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+        c = LocalDockerSingleDataResourceConverter()
+
+        # mock out the actual creation of the Resource
+        resource_pk = uuid.uuid4()
+        mock_create_resource = mock.MagicMock()
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = resource_pk
+        mock_create_resource.return_value = mock_resource
+        mock_create_output_filename = mock.MagicMock()
+        mock_name = 'foo'
+        mock_create_output_filename.return_value = mock_name
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.job_name = 'myjob'
+        mock_workspace = mock.MagicMock()
+        c._create_resource = mock_create_resource
+        c._create_output_filename = mock_create_output_filename
+
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': True,
+            'converter': '',
+            'spec': {
+                "attribute_type": "DataResource",
+                "many": False,
+                "resource_type": "MTX"
+            }
+        }
+        o = OperationOutput(d)
+
+        # now call the converter
+        mock_path = '/some/path'
+        u = c.convert_output(mock_executed_op, mock_workspace, o, mock_path)
+        self.assertEqual(u, str(resource_pk))
+        c._create_resource.assert_called_once_with(
+            mock_executed_op,
+            mock_workspace,
+            mock_path,
+            mock_name
+        )
+        mock_retrieve_resource_class_standard_format.assert_called_once_with('MTX')
+        mock_initiate_resource_validation.assert_called_once_with(
+            mock_resource,
+            'MTX',
+            'TSV'
+        )
+        self.assertTrue(mock_resource.is_active)
+        mock_resource.save.assert_called()
+
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    def test_single_local_output_variable_data_resource_converter(self, 
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Tests the conversion of a single output for a local 
+        runner. Mocks out the actual resource creation and 
+        some methods, but asserts that they are called with the
+        expected args.
+
+        This tests for VariableDataResource types which can have
+        multiple potential output resource_types
+        '''
+
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+        c = LocalDockerSingleVariableDataResourceConverter()
+
+        # mock out the actual creation of the Resource
+        resource_pk = uuid.uuid4()
+        mock_create_resource = mock.MagicMock()
+        mock_resource = mock.MagicMock()
+        mock_resource.pk = resource_pk
+        mock_create_resource.return_value = mock_resource
+        mock_create_output_filename = mock.MagicMock()
+        mock_name = 'foo'
+        mock_create_output_filename.return_value = mock_name
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.job_name = 'myjob'
+        mock_workspace = mock.MagicMock()
+        c._create_resource = mock_create_resource
+        c._create_output_filename = mock_create_output_filename
+
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': True,
+            'converter': '',
+            'spec': {
+                "attribute_type": "VariableDataResource",
+                "many": False,
+                "resource_types": ["I_MTX","MTX"]
+            }
+        }
+        o = OperationOutput(d)
+
+        # now call the converter
+        mock_path = '/some/path'
+        operation_output_payload = {
+            'path': mock_path,
+            'resource_type': "I_MTX"
+        }
+        u = c.convert_output(mock_executed_op, mock_workspace, o, operation_output_payload)
+        self.assertEqual(u, str(resource_pk))
+        c._create_resource.assert_called_once_with(
+            mock_executed_op,
+            mock_workspace,
+            mock_path,
+            mock_name
+        )
+        mock_retrieve_resource_class_standard_format.assert_called_once_with('I_MTX')
+        mock_initiate_resource_validation.assert_called_once_with(
+            mock_resource,
+            'I_MTX',
+            'TSV'
+        )
+        self.assertTrue(mock_resource.is_active)
+        mock_resource.save.assert_called()
+
+        # try with an invalid resource type
+        mock_create_resource.reset_mock()
+        mock_retrieve_resource_class_standard_format.reset_mock()
+        mock_initiate_resource_validation.reset_mock()
+        mock_resource.reset_mock()
+        operation_output_payload = {
+            'path': mock_path,
+            'resource_type': "FT"
+        }
+        with self.assertRaisesRegex(OutputConversionException, 'not consistent'):
+            u = c.convert_output(mock_executed_op, mock_workspace, o, operation_output_payload)
+
+        c._create_resource.assert_not_called()
+        mock_retrieve_resource_class_standard_format.assert_not_called()
+        mock_initiate_resource_validation.assert_not_called()
+
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    def test_single_local_output_converter_failure(self, 
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Tests the conversion of a single output for a local 
+        runner. Here, we mock there being an issue
+        '''
+
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': True,
+            'converter': '',
+            'spec': {
+                "attribute_type": "DataResource",
+                "many": False,
+                "resource_type": "MTX"
+            }
+        }
+        o = OperationOutput(d)
+
+        c1 = LocalDockerSingleDataResourceConverter()
+        c2 = CromwellSingleDataResourceConverter()
+        for c in [c1, c2]:
+
+            # mock out the actual creation of the Resource
+            mock_create_resource = mock.MagicMock()
+            mock_create_resource.side_effect = StorageException('!!')
+
+            mock_create_output_filename = mock.MagicMock()
+            mock_name = 'foo'
+            mock_create_output_filename.return_value = mock_name
+
+            mock_executed_op = mock.MagicMock()
+            mock_executed_op.job_name = 'myjob'
+            mock_workspace = mock.MagicMock()
+            mock_handle_storage_failure = mock.MagicMock()
+
+            c._create_resource = mock_create_resource
+            c._create_output_filename = mock_create_output_filename
+            c._handle_storage_failure = mock_handle_storage_failure
+
+            mock_retrieve_resource_class_standard_format.reset_mock()
+            mock_initiate_resource_validation.reset_mock()
+
+            # now call the converter
+            mock_path = '/some/path'
+            u = c.convert_output(mock_executed_op, mock_workspace, o, mock_path)
+            self.assertIsNone(u)
+            c._create_resource.assert_called_once_with(
+                mock_executed_op,
+                mock_workspace,
+                mock_path,
+                mock_name
+            )
+            mock_retrieve_resource_class_standard_format.assert_not_called()
+            mock_initiate_resource_validation.assert_not_called()
+
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    def test_single_local_output_converter_validation_failure(self, 
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Tests the case where a validation failure occurs.
+        '''
+
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': True,
+            'converter': '',
+            'spec': {
+                "attribute_type": "DataResource",
+                "many": False,
+                "resource_type": "MTX"
+            }
+        }
+        o = OperationOutput(d)
+
+        c1 = LocalDockerSingleDataResourceConverter()
+        c2 = CromwellSingleDataResourceConverter()
+        for c in [c1, c2]:
+
+            # mock out the actual creation of the Resource
+            resource_pk = uuid.uuid4()
+            mock_create_resource = mock.MagicMock()
+            mock_resource = mock.MagicMock()
+            mock_resource.pk = resource_pk
+            mock_create_resource.return_value = mock_resource
+            mock_create_output_filename = mock.MagicMock()
+            mock_name = 'foo'
+            mock_create_output_filename.return_value = mock_name
+            mock_executed_op = mock.MagicMock()
+            mock_executed_op.job_name = 'myjob'
+            mock_workspace = mock.MagicMock()
+            mock_handle_invalid_resource_type = mock.MagicMock()
+            c._create_resource = mock_create_resource
+            c._create_output_filename = mock_create_output_filename
+            c._handle_invalid_resource_type = mock_handle_invalid_resource_type
+
+            mock_retrieve_resource_class_standard_format.reset_mock()
+            mock_initiate_resource_validation.reset_mock()
+
+            mock_initiate_resource_validation.side_effect = Exception('!!!')
+
+            # now call the converter
+            mock_path = '/some/path'
+            with self.assertRaisesRegex(OutputConversionException, 'Failed to validate'):
+                u = c.convert_output(mock_executed_op, mock_workspace, o, mock_path)
+
+            c._create_resource.assert_called_once_with(
+                mock_executed_op,
+                mock_workspace,
+                mock_path,
+                mock_name
+            )
+            mock_retrieve_resource_class_standard_format.assert_called_once_with('MTX')
+            mock_initiate_resource_validation.assert_called_once_with(
+                mock_resource,
+                'MTX',
+                'TSV'
+            )
+
+    def test_single_local_with_rt_input_input_converter(self):
         '''
         Tests that the converter can take a single Resource instance
         and return the local path AND resource type as a special delimited string
@@ -227,24 +603,20 @@ class TestDataResourceConverter(BaseAPITestCase):
         user_input = str(r.pk)
         mock_path = '/path/to/file.txt'
         mock_staging_dir = '/path/to/dir'
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.return_value = mock_path
+
         c = LocalDockerSingleDataResourceWithTypeConverter()
-        mock_get_resource = mock.MagicMock()
-        mock_get_resource.return_value = r
-        mock_copy = mock.MagicMock()
-        mock_copy.return_value = mock_path
-        c.get_resource = mock_get_resource
-        c._copy_resource_to_staging = mock_copy
+        c._convert_resource_input = mock_convert_resource_input
 
-        x = c.convert('foo', user_input, '', mock_staging_dir)
-        mock_copy.assert_called_with(str(r.pk), mock_staging_dir)
-        expected_str = '{p}{d}{rt}'.format(
-            p = mock_path,
-            d = LocalDockerSingleDataResourceWithTypeConverter.DELIMITER,
-            rt = rt
-        )
-        self.assertDictEqual(x, {'foo': expected_str})
+        x = c.convert_input( user_input, '', mock_staging_dir)
+        delim = LocalDockerSingleDataResourceWithTypeConverter.DELIMITER
+        expected_str = f'{mock_path}{delim}{rt}'
+        self.assertEqual(x, expected_str)
+        mock_convert_resource_input.assert_called_once_with(
+            user_input, mock_staging_dir)
 
-    def test_single_cromwell_converter(self):
+    def test_single_cromwell_input_converter(self):
         '''
         Tests that the converter can take a single Resource instance
         and return the path to a bucket-based file
@@ -254,13 +626,13 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_staging_dir = '/some/staging_dir/'
 
         c = CromwellSingleDataResourceConverter()
-        mock_convert_single_resource = mock.MagicMock()
-        mock_convert_single_resource.return_value = mock_path
-        c._convert_single_resource = mock_convert_single_resource
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.return_value = mock_path
+        c._convert_resource_input = mock_convert_resource_input
 
-        x = c.convert('foo', mock_input, '', mock_staging_dir)
-        self.assertDictEqual(x, {'foo': mock_path})
-        mock_convert_single_resource.assert_called_with(mock_input, mock_staging_dir)
+        x = c.convert_input( mock_input, '', mock_staging_dir)
+        self.assertEqual(x,  mock_path)
+        mock_convert_resource_input.assert_called_with(mock_input, mock_staging_dir)
 
     def test_cromwell_converters_case1(self):
         '''
@@ -279,28 +651,14 @@ class TestDataResourceConverter(BaseAPITestCase):
             '/path/to/b.txt',
             '/path/to/c.txt',
         ]
-        # patch a method on that class:
-        c._convert_single_resource = mock.MagicMock()
-        c._convert_single_resource.side_effect = mock_path_list
+        # patch a method on that class. This method is the
+        # one which gets the Resource and gets the fully
+        # resolved path in our storage system.
+        c._convert_resource_input = mock.MagicMock()
+        c._convert_resource_input.side_effect = mock_path_list
         
-        expected_result = mock_path_list
-        x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected_result})
-
-        # instantiate and patch a method on the CSV class:
-        c = CromwellCsvResourceConverter()
-        c._convert_single_resource = mock.MagicMock()
-        c._convert_single_resource.side_effect = mock_path_list
-        expected_result = ','.join(mock_path_list)
-        x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected_result})
-
-        c = CromwellSpaceDelimResourceConverter()
-        c._convert_single_resource = mock.MagicMock()
-        c._convert_single_resource.side_effect = mock_path_list
-        expected_result = ' '.join(mock_path_list)
-        x = c.convert('foo', uuid_list, '', '/some/staging_dir/')
-        self.assertDictEqual(x, {'foo':expected_result})
+        x = c.convert_input( uuid_list, '', '/some/staging_dir/')
+        self.assertEqual(x, mock_path_list)
 
     def test_multiple_resource_local_converter_case1(self):
         '''
@@ -314,26 +672,38 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_staging_dir = '/some/staging_dir'
         mock_inputs = [str(uuid.uuid4()) for _ in range(len(mock_paths))]
 
-        mock_get_path_list = mock.MagicMock()
-        mock_get_path_list.return_value = mock_paths
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.side_effect = mock_paths
+
         c = LocalDockerMultipleDataResourceConverter()
-        c._get_path_list = mock_get_path_list
-        x = c.convert('foo', mock_inputs, '', mock_staging_dir)
-        self.assertDictEqual(x, {'foo': mock_paths})
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_inputs, '', mock_staging_dir)
+        self.assertEqual(x,  mock_paths)
+        mock_convert_resource_input.assert_has_calls([
+            mock.call(u, mock_staging_dir) for u in mock_inputs
+        ])
 
         c = LocalDockerCsvResourceConverter()
-        c._get_path_list = mock_get_path_list
-        x = c.convert('foo', mock_inputs, '', mock_staging_dir)
+        mock_convert_resource_input.reset_mock()
+        mock_convert_resource_input.side_effect = mock_paths
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_inputs, '', mock_staging_dir)
         expected = ','.join(mock_paths)
-        self.assertDictEqual(x, {'foo': expected})
+        self.assertEqual(x,  expected)
+        mock_convert_resource_input.assert_has_calls([
+            mock.call(u, mock_staging_dir) for u in mock_inputs
+        ])
 
         c = LocalDockerSpaceDelimResourceConverter()
-        c._get_path_list = mock_get_path_list
-        x = c.convert('foo', mock_inputs, '', mock_staging_dir)
+        mock_convert_resource_input.reset_mock()
+        mock_convert_resource_input.side_effect = mock_paths
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_inputs, '', mock_staging_dir)
         expected = ' '.join(mock_paths)
-        self.assertDictEqual(x, {'foo': expected})
-        
-        mock_get_path_list.assert_called_with(mock_inputs, mock_staging_dir)
+        self.assertEqual(x,  expected)
+        mock_convert_resource_input.assert_has_calls([
+            mock.call(u, mock_staging_dir) for u in mock_inputs
+        ])
 
     def test_multiple_resource_local_converter_case2(self):
         '''
@@ -348,27 +718,317 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_staging_dir = '/some/staging_dir'
         mock_input = str(uuid.uuid4())
 
-        mock_get_path_list = mock.MagicMock()
-        mock_get_path_list.return_value = [mock_path]
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.return_value = mock_path
+
         c = LocalDockerMultipleDataResourceConverter()
-        c._get_path_list = mock_get_path_list
-        x = c.convert('foo', mock_input, '', mock_staging_dir)
-        self.assertDictEqual(x, {'foo': [mock_path]})
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_input, '', mock_staging_dir)
+        self.assertEqual(x,  [mock_path])
+        mock_convert_resource_input.assert_called_once_with(
+            mock_input, mock_staging_dir)
 
         c = LocalDockerCsvResourceConverter()
-        c._get_path_list = mock_get_path_list
-        x = c.convert('foo', mock_input, '', mock_staging_dir)
-        self.assertDictEqual(x, {'foo': mock_path})
+        mock_convert_resource_input.reset_mock()
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_input, '', mock_staging_dir)
+        self.assertEqual(x,  mock_path)
+        mock_convert_resource_input.assert_called_once_with(
+            mock_input, mock_staging_dir)
 
         c = LocalDockerSpaceDelimResourceConverter()
-        c._get_path_list = mock_get_path_list
-        x = c.convert('foo', mock_input, '', mock_staging_dir)
-        self.assertDictEqual(x, {'foo': mock_path})
+        mock_convert_resource_input.reset_mock()
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_input, '', mock_staging_dir)
+        self.assertEqual(x,  mock_path)
+        mock_convert_resource_input.assert_called_once_with(
+            mock_input, mock_staging_dir)
 
-        mock_get_path_list.assert_called_with(mock_input, mock_staging_dir)
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    def test_multiple_local_output_converter(self, 
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Tests the proper steps are performed for converting 
+        multiple local outputs.
+        '''
 
-    @mock.patch('api.converters.data_resource.get_resource_by_pk')
-    def test_cromwell_converters_case2(self, mock_get_resource_by_pk):
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': True,
+            'converter': '',
+            'spec': {
+                "attribute_type": "DataResource",
+                "many": True,
+                "resource_type": "MTX"
+            }
+        }
+        o = OperationOutput(d)
+
+        c1 = LocalDockerMultipleDataResourceConverter()
+        c2 = CromwellMultipleDataResourceConverter()
+        for c in [c1, c2]:
+
+            # mock there being two resources to create
+            all_resource_pk = [
+                uuid.uuid4(),
+                uuid.uuid4()
+            ]
+            mock_create_resource = mock.MagicMock()
+            mock_resource1 = mock.MagicMock()
+            mock_resource1.pk = all_resource_pk[0]
+            mock_resource2 = mock.MagicMock()
+            mock_resource2.pk = all_resource_pk[1]
+            mock_create_resource.side_effect = [mock_resource1, mock_resource2]
+            mock_create_output_filename = mock.MagicMock()
+            mock_name1 = 'foo'
+            mock_name2 = 'bar'
+            mock_create_output_filename.side_effect = [mock_name1, mock_name2]
+            mock_executed_op = mock.MagicMock()
+            mock_executed_op.job_name = 'myjob'
+            mock_workspace = mock.MagicMock()
+            c._create_resource = mock_create_resource
+            c._create_output_filename = mock_create_output_filename
+
+            # call reset on the mocked functions that are used 
+            # on each loop:
+            mock_retrieve_resource_class_standard_format.reset_mock()
+            mock_initiate_resource_validation.reset_mock()
+
+            # now call the converter
+            mock_paths = ['/some/path1', 'some/path2']
+            u = c.convert_output(mock_executed_op, mock_workspace, o, mock_paths)
+            self.assertCountEqual(u, [str(x) for x in all_resource_pk])
+            c._create_resource.assert_has_calls([
+                mock.call(
+                    mock_executed_op,
+                    mock_workspace,
+                    mock_paths[0],
+                    mock_name1
+                ),
+                mock.call(
+                    mock_executed_op,
+                    mock_workspace,
+                    mock_paths[1],
+                    mock_name2
+                ),
+            ])
+
+            mock_retrieve_resource_class_standard_format.assert_has_calls([
+                mock.call('MTX'), mock.call('MTX')])
+
+            mock_initiate_resource_validation.assert_has_calls([
+                mock.call(
+                    mock_resource1,
+                    'MTX',
+                    'TSV'),
+                mock.call(
+                    mock_resource2,
+                    'MTX',
+                    'TSV'),
+            ])
+            self.assertTrue(mock_resource1.is_active)
+            mock_resource1.save.assert_called()
+            self.assertTrue(mock_resource2.is_active)
+            mock_resource2.save.assert_called()
+
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    @mock.patch('api.converters.data_resource.delete_resource_by_pk')
+    def test_multiple_local_output_converter_failure(self, 
+        mock_delete_resource_by_pk,
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Tests that we handle cleanup of other outputs if one of 
+        them fails. Here, we mock there being a storage problem on
+        one of multiple files corresponding to a single input.
+        Since the output was marked as required, we check that
+        an exception is raised and we delete the other resource
+        so as not to create an incomplete output state.
+        '''
+
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': True,
+            'converter': '',
+            'spec': {
+                "attribute_type": "DataResource",
+                "many": True,
+                "resource_type": "MTX"
+            }
+        }
+        o = OperationOutput(d)
+        c1 = LocalDockerMultipleDataResourceConverter()
+        c2 = CromwellMultipleDataResourceConverter()
+        for c in [c1, c2]:
+
+            # mock there being two resources to create
+            all_resource_pk = [
+                uuid.uuid4(),
+                uuid.uuid4()
+            ]
+            mock_create_resource = mock.MagicMock()
+            mock_resource1 = mock.MagicMock()
+            mock_resource1.pk = all_resource_pk[0]
+            mock_create_resource.side_effect = [
+                mock_resource1, StorageException('!!')]
+            mock_create_output_filename = mock.MagicMock()
+            mock_name1 = 'foo'
+            mock_name2 = 'bar'
+            mock_create_output_filename.side_effect = [mock_name1, mock_name2]
+            mock_executed_op = mock.MagicMock()
+            mock_executed_op.job_name = 'myjob'
+            mock_workspace = mock.MagicMock()
+            c._create_resource = mock_create_resource
+            c._create_output_filename = mock_create_output_filename
+
+            # call reset on the mocked functions that are used 
+            # on each loop:
+            mock_retrieve_resource_class_standard_format.reset_mock()
+            mock_initiate_resource_validation.reset_mock()
+
+            # now call the converter
+            # even though this test is checking for proper behavior with
+            # both local and Cromwell converters, these paths don't 
+            # actually matter in their content:
+            mock_paths = ['/some/path1', 'some/path2']
+            with self.assertRaisesRegex(OutputConversionException, 'Failed to convert'):
+                c.convert_output(mock_executed_op, mock_workspace, o, mock_paths)
+            c._create_resource.assert_has_calls([
+                mock.call(
+                    mock_executed_op,
+                    mock_workspace,
+                    mock_paths[0],
+                    mock_name1
+                ),
+                mock.call(
+                    mock_executed_op,
+                    mock_workspace,
+                    mock_paths[1],
+                    mock_name2
+                ),
+            ])
+            mock_retrieve_resource_class_standard_format.assert_has_calls([
+                mock.call('MTX')])
+            mock_initiate_resource_validation.assert_has_calls([
+                mock.call(
+                    mock_resource1,
+                    'MTX',
+                    'TSV'),
+            ])
+            self.assertTrue(mock_resource1.is_active)
+            mock_resource1.save.assert_called()
+            mock_delete_resource_by_pk.assert_has_calls([
+                mock.call(str(all_resource_pk[0]))
+            ])
+
+    @mock.patch('api.converters.data_resource.ResourceMetadata')
+    @mock.patch('api.converters.data_resource.retrieve_resource_class_standard_format')
+    @mock.patch('api.converters.data_resource.initiate_resource_validation')
+    @mock.patch('api.converters.data_resource.delete_resource_by_pk')
+    def test_multiple_output_converter_failure_for_optional(self, 
+        mock_delete_resource_by_pk,
+        mock_initiate_resource_validation,
+        mock_retrieve_resource_class_standard_format,
+        mock_resource_metadata_class):
+        '''
+        Here, we mock there being a storage problem on
+        one of multiple files corresponding to a single input.
+        Since the output was NOT marked as required, we don't
+        raise any exceptions
+        '''
+
+        mock_retrieve_resource_class_standard_format.return_value = 'TSV'
+
+        # need a valid data_resources.operation_output.OperationOutput
+        # instance:
+        d = {
+            'required': False, #<--- important!
+            'converter': '',
+            'spec': {
+                "attribute_type": "DataResource",
+                "many": True,
+                "resource_type": "MTX"
+            }
+        }
+        o = OperationOutput(d)
+        c1 = LocalDockerMultipleDataResourceConverter()
+        c2 = CromwellMultipleDataResourceConverter()
+        for c in [c1, c2]:
+
+            # mock there being two resources to create
+            all_resource_pk = [
+                uuid.uuid4(),
+                uuid.uuid4()
+            ]
+            mock_create_resource = mock.MagicMock()
+            mock_resource1 = mock.MagicMock()
+            mock_resource1.pk = all_resource_pk[0]
+            mock_create_resource.side_effect = [
+                mock_resource1, StorageException('!!')]
+            mock_create_output_filename = mock.MagicMock()
+            mock_name1 = 'foo'
+            mock_name2 = 'bar'
+            mock_create_output_filename.side_effect = [mock_name1, mock_name2]
+            mock_executed_op = mock.MagicMock()
+            mock_executed_op.job_name = 'myjob'
+            mock_workspace = mock.MagicMock()
+            mock_clean = mock.MagicMock()
+            c._create_resource = mock_create_resource
+            c._create_output_filename = mock_create_output_filename
+            c._cleanup_other_outputs = mock_clean
+
+            # call reset on the mocked functions that are used 
+            # on each loop:
+            mock_retrieve_resource_class_standard_format.reset_mock()
+            mock_initiate_resource_validation.reset_mock()
+
+            # now call the converter
+            # even though this test is checking for proper behavior with
+            # both local and Cromwell converters, these paths don't 
+            # actually matter in their content:
+            mock_paths = ['/some/path1', 'some/path2']
+            u = c.convert_output(mock_executed_op, mock_workspace, o, mock_paths)
+            self.assertCountEqual(u, [str(all_resource_pk[0]), None])
+            c._create_resource.assert_has_calls([
+                mock.call(
+                    mock_executed_op,
+                    mock_workspace,
+                    mock_paths[0],
+                    mock_name1
+                ),
+                mock.call(
+                    mock_executed_op,
+                    mock_workspace,
+                    mock_paths[1],
+                    mock_name2
+                ),
+            ])
+            mock_retrieve_resource_class_standard_format.assert_has_calls([
+                mock.call('MTX')])
+            mock_initiate_resource_validation.assert_has_calls([
+                mock.call(
+                    mock_resource1,
+                    'MTX',
+                    'TSV'),
+            ])
+            self.assertTrue(mock_resource1.is_active)
+            mock_resource1.save.assert_called()
+            mock_clean.assert_not_called()
+
+
+    def test_cromwell_converters_case2(self):
         '''
         Tests that the multiple DataResource converters 
         can take a list of Resource instances
@@ -387,91 +1047,14 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_path = '/path/to/a.txt'
         # instantiate and patch a method on that class:
         c = CromwellMultipleDataResourceConverter()
-        c._convert_single_resource = mock.MagicMock()
-        c._convert_single_resource.return_value = mock_path
-
-        x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.return_value = mock_path
+        c._convert_resource_input = mock_convert_resource_input
+        mock_staging_dir = '/some/staging_dir/'
+        x = c.convert_input(str(r.pk), '', mock_staging_dir)
         # response should be a LIST of paths.
-        self.assertDictEqual(x, {'foo':[mock_path]})
-
-        c = CromwellCsvResourceConverter()
-        c._convert_single_resource = mock.MagicMock()
-        c._convert_single_resource.return_value = mock_path
-
-        x = c.convert('foo', str(r.pk), '', '/some/staging_dir/')
-        # response should be a csv-string of paths, which is simply
-        # the path in this case.
-        self.assertDictEqual(x, {'foo':mock_path})
-
-
-class TestMapConverters(BaseAPITestCase):
-
-    def test_missing_map_file(self):
-        c = SimpleFileBasedMapConverter()
-        with self.assertRaises(InputMappingException):
-            c.convert('foo', 'abc', '', '/some/staging_dir/')
-
-    def test_bad_json_data(self):
-        # missing quotes on "abc"
-        bad_json_str = '{"foo": abc}'
-        tmp_path = os.path.join('/tmp', SimpleFileBasedMapConverter.MAPPING_FILE)
-        with open(tmp_path, 'w') as fout:
-            fout.write(bad_json_str)
-        
-        c = SimpleFileBasedMapConverter()
-        with self.assertRaises(InputMappingException):
-            c.convert('mykey', 'foo', '/tmp', '/some/staging_dir/')
-        os.remove(tmp_path)
-
-
-    def test_bad_key(self):
-        # map has key of foo. below we request a key of 'bar'
-        json_str = '{"foo": {"keyA":"A", "keyB":"B"}}'
-        tmp_path = os.path.join('/tmp', SimpleFileBasedMapConverter.MAPPING_FILE)
-        with open(tmp_path, 'w') as fout:
-            fout.write(json_str)
-        
-        c = SimpleFileBasedMapConverter()
-        with self.assertRaises(InputMappingException):
-            c.convert('mykey', 'bar', '/tmp', '/some/staging_dir/')
-        os.remove(tmp_path)
-
-    def test_gets_expected_map(self):
-        json_str = '{"foo": {"keyA":"A", "keyB":"B"}}'
-        tmp_path = os.path.join('/tmp', SimpleFileBasedMapConverter.MAPPING_FILE)
-        with open(tmp_path, 'w') as fout:
-            fout.write(json_str)
-        
-        c = SimpleFileBasedMapConverter()
-        r = c.convert('mykey', 'foo', '/tmp', '/some/staging_dir/')
-        self.assertDictEqual(r, {"keyA":"A", "keyB":"B"})
-        os.remove(tmp_path)
-
-class TestBooleanConverters(BaseAPITestCase):
-
-    def test_basic_conversion(self):
-        c = BooleanAsIntegerConverter()
-        x = c.convert('foo', 1, '/tmp', '')
-        self.assertDictEqual(x, {"foo": 1})
-
-        x = c.convert('foo', True, '/tmp', '')
-        self.assertDictEqual(x, {"foo": 1})
-
-        x = c.convert('foo', 'true', '/tmp', '')
-        self.assertDictEqual(x, {"foo": 1})
-
-        with self.assertRaises(AttributeValueError):
-            x = c.convert('foo', '1', '/tmp', '')
-
-        # check the false'y vals:
-        x = c.convert('foo', 0, '/tmp', '')
-        self.assertDictEqual(x, {"foo": 0})
-
-        x = c.convert('foo', False, '/tmp', '')
-        self.assertDictEqual(x, {"foo": 0})
-
-        x = c.convert('foo', 'false', '/tmp', '')
-        self.assertDictEqual(x, {"foo": 0})
-
-        with self.assertRaises(AttributeValueError):
-            x = c.convert('foo', '0', '/tmp', '')
+        self.assertEqual(x, [mock_path])
+        mock_convert_resource_input.assert_called_once_with(
+            str(r.pk),
+            mock_staging_dir
+        )

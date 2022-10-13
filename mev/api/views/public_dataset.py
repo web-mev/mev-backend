@@ -66,10 +66,7 @@ class PublicDatasetQuery(APIView):
             query_str = query_params.urlencode()
         except KeyError as ex:
             message = ('The request to query a public dataset must'
-                ' contain the {k} key in the request payload'.format(
-                    k = ex
-                )
-            )
+                f' contain the {ex} key in the request payload')
             return Response({'message': message}, status=status.HTTP_400_BAD_REQUEST) 
 
         # The payload had the proper keyword args. Make the query
@@ -104,11 +101,9 @@ class PublicDatasetCreate(APIView):
             dataset_id = self.kwargs['dataset_id']
         except KeyError as ex:
             message = ('The request to create a public dataset must'
-                ' contain the {k} key in the request payload'.format(
-                    k = ex
-                )
-            )
-            return Response({'message': message}, status=status.HTTP_400_BAD_REQUEST) 
+                f' contain the {ex} key in the request payload')
+            return Response({'message': message}, 
+                status=status.HTTP_400_BAD_REQUEST) 
 
         # get the filter payload. The structure of this depends on the dataset
         # being queried, so we leave that to the implementing class which will
@@ -120,7 +115,8 @@ class PublicDatasetCreate(APIView):
             return Response('The "filters" part of the payload'
             ' should be formatted as an object.', status=status.HTTP_400_BAD_REQUEST)
 
-        # users can optionally name the output. If nothing is passed, we have an auto-naming scheme
+        # users can optionally name the output. 
+        # If nothing is passed, we have an auto-naming scheme
         output_name = request.data.get('output_name')
         if not output_name:
             output_name = ''
@@ -131,12 +127,12 @@ class PublicDatasetCreate(APIView):
                 request_filters,
                 output_name
             )
-            rs = ResourceSerializer(resource_instance_list, many=True, context={'request': request})
+            rs = ResourceSerializer(
+                resource_instance_list, many=True, context={'request': request})
             return Response(rs.data, status=status.HTTP_201_CREATED)
 
         except Exception as ex:
             message = ('The dataset could not be created.'
-                ' The reported error message was: {ex}'.format(ex=str(ex))
-            )
+                f' The reported error message was: {ex}')
             return Response({'message': message}, status=status.HTTP_400_BAD_REQUEST)
 

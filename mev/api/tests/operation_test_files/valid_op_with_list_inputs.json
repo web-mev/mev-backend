@@ -1,4 +1,5 @@
 {
+    "id": "ce5e35ce-abc7-4755-a5ba-34764ab1504f",
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
@@ -6,6 +7,7 @@
             "description": "A list of some URLs", 
             "name": "URLs:", 
             "required": true, 
+            "converter": "",
             "spec": {
                 "attribute_type": "UnrestrictedStringList"
             }
@@ -14,6 +16,7 @@
             "description": "Some strings", 
             "name": "Strings:", 
             "required": true, 
+            "converter": "",
             "spec": {
                 "attribute_type": "StringList"
             }
@@ -22,6 +25,7 @@
             "description": "Some optional input", 
             "name": "Optional:", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "StringList"
             }  
@@ -30,6 +34,7 @@
     "outputs": {
         "something": {
             "required": true,
+            "converter": "",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 
@@ -39,6 +44,7 @@
     }, 
     "mode": "local_docker", 
     "repository_url": "https://github.com/some-repo/", 
+    "repository_name": "some-repo", 
     "git_hash": "abcd1234",
     "workspace_operation": false
 }

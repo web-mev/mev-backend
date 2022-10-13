@@ -1,15 +1,12 @@
-import unittest
 import unittest.mock as mock
 import uuid
 import datetime
-import json
 
 from django.core.exceptions import ImproperlyConfigured
 
 from api.models import WorkspaceExecutedOperation, Operation, Workspace
-from api.data_structures import DagNode, SimpleDag
-from api.utilities.operations import create_workspace_dag
 from api.tests.base import BaseAPITestCase
+from api.views.workspace_tree_views import WorkspaceTreeBase
 
 class DagBuildTester(BaseAPITestCase):
 
@@ -204,13 +201,14 @@ class DagBuildTester(BaseAPITestCase):
             'F': [str(self.ex2.pk)]
         }
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    @mock.patch('api.utilities.operations.get_resource_by_pk')
+    @mock.patch('api.views.workspace_tree_views.get_operation_instance_data')
+    @mock.patch('api.views.workspace_tree_views.get_resource_by_pk')
     def test_graph_builder(self, mock_get_resource_by_pk, mock_get_operation_instance_data):
         '''
         Here we mock that we have two operations completed and check that the 
         graph structure is as expected
         '''        
+        base_tree = WorkspaceTreeBase()
         mock_get_operation_instance_data.side_effect = [self.op1_data, self.op2_data]
         mock_resource = mock.MagicMock()
         mock_resource.name = 'abc'
@@ -218,7 +216,7 @@ class DagBuildTester(BaseAPITestCase):
         # add stop datetimes to both ops so we see the full tree
         self.ex1.execution_stop_datetime = datetime.datetime.now()
         self.ex2.execution_stop_datetime = datetime.datetime.now()
-        dag = create_workspace_dag([self.ex1, self.ex2])
+        dag = base_tree.create_workspace_dag([self.ex1, self.ex2])
         nodes_present = []
         for node in dag:
             node_id = node['id']
@@ -227,21 +225,22 @@ class DagBuildTester(BaseAPITestCase):
             self.assertCountEqual(parents, self.expected_parents[node_id])
         self.assertCountEqual(nodes_present, ['A','B', 'C', 'D', 'E', 'F', str(self.ex1.pk),str(self.ex2.pk)])
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    @mock.patch('api.utilities.operations.get_resource_by_pk')
+    @mock.patch('api.views.workspace_tree_views.get_operation_instance_data')
+    @mock.patch('api.views.workspace_tree_views.get_resource_by_pk')
     def test_graph_builder_with_unfinished_op(self, mock_get_resource_by_pk, mock_get_operation_instance_data):
         '''
         Here we mock that we have only op1 completed and check that the 
         graph structure is as expected. Namely, want to ensure that the output
         of the second op is NOT there (node F)
-        '''        
+        ''' 
+        base_tree = WorkspaceTreeBase()       
         mock_get_operation_instance_data.side_effect = [self.op1_data, self.op2_data]
         mock_resource = mock.MagicMock()
         mock_resource.name = 'abc'
         mock_get_resource_by_pk.return_value = mock_resource
         # add stop datetimes to both ops so we see the full tree
         self.ex1.execution_stop_datetime = datetime.datetime.now()
-        dag = create_workspace_dag([self.ex1, self.ex2])
+        dag = base_tree.create_workspace_dag([self.ex1, self.ex2])
         nodes_present = []
         for node in dag:
             node_id = node['id']
@@ -251,14 +250,15 @@ class DagBuildTester(BaseAPITestCase):
         self.assertCountEqual(nodes_present, ['A','B', 'C', 'D', 'E', str(self.ex1.pk),str(self.ex2.pk)])
         self.assertFalse('F' in nodes_present) # explicitly double-check that 'F' is NOT there
 
-    @mock.patch('api.utilities.operations.get_operation_instance_data')
-    @mock.patch('api.utilities.operations.get_resource_by_pk')
+    @mock.patch('api.views.workspace_tree_views.get_operation_instance_data')
+    @mock.patch('api.views.workspace_tree_views.get_resource_by_pk')
     def test_graph_builder_with_failed_op(self, mock_get_resource_by_pk, mock_get_operation_instance_data):
         '''
         Here we mock that we have only op1 completed and check that the 
         graph structure is as expected. We pretend the second operation failed,
         so we should NOT see that 
-        '''        
+        '''       
+        base_tree = WorkspaceTreeBase() 
         mock_get_operation_instance_data.side_effect = [self.op1_data, self.op2_data]
         mock_resource = mock.MagicMock()
         mock_resource.name = 'abc'
@@ -267,7 +267,7 @@ class DagBuildTester(BaseAPITestCase):
         self.ex1.execution_stop_datetime = datetime.datetime.now()
         self.ex2.execution_stop_datetime = datetime.datetime.now()
         self.ex2.job_failed = True
-        dag = create_workspace_dag([self.ex1, self.ex2])
+        dag = base_tree.create_workspace_dag([self.ex1, self.ex2])
         nodes_present = []
         for node in dag:
             node_id = node['id']

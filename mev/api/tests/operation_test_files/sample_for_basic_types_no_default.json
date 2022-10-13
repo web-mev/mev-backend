@@ -1,4 +1,5 @@
 {
+    "id": "ce5e35ce-abc7-4755-a5ba-34764ab1504f",
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
@@ -6,6 +7,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "Integer"
             }
@@ -14,6 +16,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "PositiveInteger"
             }
@@ -22,6 +25,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "NonNegativeInteger"
             }
@@ -30,6 +34,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "BoundedInteger",
                 "min": 0,
@@ -40,6 +45,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "Float"
             }
@@ -48,6 +54,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "BoundedFloat",
                 "min": 0,
@@ -58,6 +65,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "PositiveFloat"
             }
@@ -66,6 +74,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "NonNegativeFloat"
             }
@@ -74,6 +83,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "String"
             }
@@ -82,6 +92,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "UnrestrictedString"
             }
@@ -90,6 +101,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "OptionString",
                 "options": ["abc", "xyz"]
@@ -99,6 +111,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "Boolean"
             }
@@ -107,6 +120,7 @@
     "outputs": {}, 
     "mode": "local_docker", 
     "repository_url": "https://github.com/some-repo/", 
+    "repository_name": "some-repo", 
     "git_hash": "abcd1234",
     "workspace_operation": true
 }

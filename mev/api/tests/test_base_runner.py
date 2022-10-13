@@ -2,88 +2,63 @@ import unittest
 import unittest.mock as mock
 import os
 import json
-import copy
 import uuid
-import shutil
 
-from django.core.exceptions import ImproperlyConfigured
+from data_structures.operation import Operation
+
+from exceptions import OutputConversionException
 
 from api.tests.base import BaseAPITestCase
-from api.utilities.operations import read_operation_json
 from api.runners.base import OperationRunner
 from api.models import Resource
-from api.exceptions import OutputConversionException
+from api.converters.basic_attributes import BooleanAsIntegerConverter
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'operation_test_files')
 
+
 class BaseRunnerTester(BaseAPITestCase):
 
     def setUp(self):
         filepath = os.path.join(TESTDIR, 'multiresource_output.json')
-        fp = open(filepath)
-        self.op_data= json.load(fp)
-        fp.close()
+        with open(filepath) as fp:
+            self.op = Operation(json.load(fp))
 
-        filepath = os.path.join(TESTDIR, 'valid_workspace_operation.json')
-        fp = open(filepath)
-        self.op_data2= json.load(fp)
-        fp.close()
-
-    @mock.patch('api.runners.base.OperationRunner._get_converter_dict')
     @mock.patch('api.runners.base.import_string')
-    def test_input_mapping(self, mock_import_string, mock_get_converter_dict):
+    def test_input_mapping(self, mock_import_string):
 
+        runner = OperationRunner()
         final_path = '/some/file/path.txt'
-        mock_converter1_class = mock.MagicMock()
-        mock_converter2_class = mock.MagicMock()
         mock_converter1 = mock.MagicMock()
         mock_converter2 = mock.MagicMock()
-        mock_converter1.convert.return_value = {'count_matrix': final_path}
-        mock_converter2.convert.return_value = {'p_val': 0.01}
-        mock_converter1_class.return_value = mock_converter1
-        mock_converter2_class.return_value = mock_converter2
-        mock_import_string.side_effect = [mock_converter1_class, mock_converter2_class]
+        mock_converter1.convert_input.return_value = final_path
+        mock_converter2.convert_input.return_value = 0.01
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.side_effect = [mock_converter1, mock_converter2]
+        runner._get_converter = mock_get_converter
 
-        mock_get_converter_dict.return_value = {
-            'count_matrix': 'api.converters.data_resource.LocalDockerSingleDataResourceConverter',
-            'p_val': 'api.converters.basic_attributes.BoundedFloatAttributeConverter'
-        }
         r = Resource.objects.all()[0]
         validated_inputs = {
             'count_matrix': str(r.pk),
             'p_val': 0.01 
         }
-        runner = OperationRunner()
         mock_op_dir = '/some/op/dir'
-        converted_inputs = runner._map_inputs(mock_op_dir, validated_inputs, '')
+        converted_inputs = runner._convert_inputs(self.op, mock_op_dir, validated_inputs, '')
         expected_outputs = {
             'count_matrix': final_path,
             'p_val': 0.01 
         }
         self.assertDictEqual(converted_inputs, expected_outputs)
 
-    @mock.patch('api.runners.base.OperationRunner._get_converter_dict')
-    @mock.patch('api.runners.base.os.path.exists')
-    def test_bad_converter_class(self, mock_os_exists, mock_get_converter_dict):
-        '''
-        Test that a bad converter class will raise an exception
-        '''
-        runner = OperationRunner()
-        mock_get_converter_dict.return_value = {'a': 'some junk'}
-        with self.assertRaises(Exception):
-            runner.check_required_files('')
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
     @mock.patch('api.runners.base.alert_admins')
-    def test_bad_keys(self, mock_alert_admins, mock_get_operation_instance_data):
+    def test_bad_keys(self, mock_alert_admins):
         '''
         This tests that differing keys between the operation spec 
         and the actual outputs are handled appropriately.
         '''
 
-        mock_get_operation_instance_data.return_value = self.op_data
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
@@ -96,15 +71,15 @@ class BaseRunnerTester(BaseAPITestCase):
         mock_executed_op.operation.id = 'abc'
         mock_converter =  mock.MagicMock()
         with self.assertRaisesRegex(OutputConversionException, 
-        'Could not locate the output') as ex:
-            runner.convert_outputs(
+            'Could not locate the output'):
+            runner._convert_outputs(
                 mock_executed_op,
-                mock_converter,
+                self.op,
                 bad_outputs
             )
 
         mock_cleanup.assert_called_with(
-            self.op_data['outputs'],
+            self.op.outputs,
             {}
         )
         mock_alert_admins.assert_called()
@@ -121,32 +96,68 @@ class BaseRunnerTester(BaseAPITestCase):
         }
         mock_executed_op = mock.MagicMock()
         mock_executed_op.operation.id = 'abc'
-        mock_converter =  mock.MagicMock()
+        mock_converter = mock.MagicMock()
         u = str(uuid.uuid4())
         mock_converter.convert_output.return_value = u
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.return_value = mock_converter
+        runner._get_converter = mock_get_converter
         with self.assertRaisesRegex(OutputConversionException, 
         'Could not locate the output') as ex:
-            runner.convert_outputs(
+            runner._convert_outputs(
                 mock_executed_op,
-                mock_converter,
+                self.op,
                 bad_outputs
             )
         mock_cleanup.assert_called_with(
-            self.op_data['outputs'],
+            self.op.outputs,
             {
                 'dge_table': u
             }
         )
         mock_alert_admins.assert_called()
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_output_conversion(self, mock_get_operation_instance_data):
+    def test_output_conversion_for_non_resource_types(self):
+        '''
+        This tests that proper/valid output conversions go as planned
+        for the "primitive" types
+        '''
+
+        filepath = os.path.join(TESTDIR, 'non_resource_outputs.json')
+        op = Operation(json.load(open(filepath)))
+
+        runner = OperationRunner()
+        mock_cleanup = mock.MagicMock()
+        runner.cleanup_on_error = mock_cleanup
+
+        # these outputs correspond to the multiresource_output.json
+        outputs = {
+            "pval": 0.01,
+            "some_integer": 5,
+            "some_bool": True
+        }
+
+        # don't bother mocking out the get_converter
+        # since the op spec has valid converters
+
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.operation.id = 'abc'
+
+        d = runner._convert_outputs(
+            mock_executed_op,
+            op,
+            outputs
+        )
+        self.assertDictEqual(
+            d,
+            {'pval': 0.01, 'some_bool': 1, 'some_integer': 5}
+        )
+        mock_cleanup.assert_not_called()
+
+    def test_output_conversion(self):
         '''
         This tests that proper/valid output conversions go as planned
         '''
-
-        mock_get_operation_instance_data.return_value = self.op_data
-
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
@@ -161,33 +172,46 @@ class BaseRunnerTester(BaseAPITestCase):
         }
         u1 = str(uuid.uuid4())
         u2 = str(uuid.uuid4())
-        mock_converter =  mock.MagicMock()
-        # The ordering below is set b/c the convert_outputs
-        # performs a sort on the keys of the operation's output spec
-        mock_converter.convert_output.side_effect = [
-            u1, # this will be the UUID for dge_Table
-            u2 # the UUID for norm_counts
-        ]
+
+        mock_converter1 = mock.MagicMock()
+        mock_converter1.convert_output.return_value = u1
+        mock_converter2 = mock.MagicMock()
+        mock_converter2.convert_output.return_value = u2
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.side_effect = [mock_converter1, mock_converter2]
+        runner._get_converter = mock_get_converter
+
+        # mock_converter =  mock.MagicMock()
+        # # The ordering below is set b/c the convert_outputs
+        # # performs a sort on the keys of the operation's output spec
+        # mock_converter.convert_output.side_effect = [
+        #     u1, # this will be the UUID for dge_Table
+        #     u2 # the UUID for norm_counts
+        # ]
 
         mock_executed_op = mock.MagicMock()
         mock_executed_op.operation.id = 'abc'
 
-        d = runner.convert_outputs(
+        d = runner._convert_outputs(
             mock_executed_op,
-            mock_converter,
+            self.op,
             outputs
         )
         self.assertDictEqual(
             d,
             {
+                # note the ordering is due to a sorting
+                # we perform on the keys of the output dict.
+                # Since dge_table comes first when sorted, it gets
+                # u1 for this test.
                 'norm_counts': u2,
                 'dge_table': u1
             }
         )
         mock_cleanup.assert_not_called()
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_output_conversion_error(self, mock_get_operation_instance_data):
+
+    def test_output_conversion_error(self):
         '''
         If any of the outputs do not pass validation (either b/c the tool developer
         did not create outputs.json correctly OR the file is corrupted and doesn't
@@ -201,41 +225,41 @@ class BaseRunnerTester(BaseAPITestCase):
         successfully)
         '''
 
-        mock_get_operation_instance_data.return_value = self.op_data2
-
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
 
         # these outputs correspond to the multiresource_output.json
         outputs = {
-            "norm_counts": "/path/to/norm_counts.tsv" ,
+            "norm_counts": "/path/to/norm_counts.tsv",
             "dge_table": "/path/to/dge.tsv"
         }
-        u = str(uuid.uuid4())
-        mock_converter =  mock.MagicMock()
-        mock_converter.convert_output.side_effect = [
-            OutputConversionException('ack'),
-            OutputConversionException('ack')
-        ]
+
+        mock_converter1 = mock.MagicMock()
+        mock_converter1.convert_output.side_effect = OutputConversionException('ack')
+        mock_converter2 = mock.MagicMock()
+        mock_converter2.convert_output.side_effect = OutputConversionException('ack')
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.side_effect = [mock_converter1, mock_converter2]
+        runner._get_converter = mock_get_converter
 
         mock_executed_op = mock.MagicMock()
         mock_executed_op.operation.id = 'abc'
 
         with self.assertRaises(OutputConversionException) as ex:
-            runner.convert_outputs(
+            runner._convert_outputs(
                 mock_executed_op,
-                mock_converter,
+                self.op,
                 outputs
             )
+            print(ex)
 
         mock_cleanup.assert_called_with(
-            self.op_data2['outputs'],
+            self.op.outputs,
             {}
         )
 
-    @mock.patch('api.runners.base.get_operation_instance_data')
-    def test_output_conversion_error_case2(self, mock_get_operation_instance_data):
+    def test_output_conversion_error_case2(self):
         '''
         If any of the outputs do not pass validation (either b/c the tool developer
         did not create outputs.json correctly OR the file is corrupted and doesn't
@@ -245,9 +269,6 @@ class BaseRunnerTester(BaseAPITestCase):
 
         This test checks that the cleanup method is called when an error occurs
         '''
-
-        mock_get_operation_instance_data.return_value = self.op_data
-
         runner = OperationRunner()
         mock_cleanup = mock.MagicMock()
         runner.cleanup_on_error = mock_cleanup
@@ -261,28 +282,128 @@ class BaseRunnerTester(BaseAPITestCase):
             }
         }
         u = str(uuid.uuid4())
-        mock_converter =  mock.MagicMock()
-        mock_converter.convert_output.side_effect = [
-            u,
-            OutputConversionException('ack')
-        ]
+
+        mock_converter1 = mock.MagicMock()
+        mock_converter1.convert_output.return_value = u
+        mock_converter2 = mock.MagicMock()
+        mock_converter2.convert_output.side_effect = OutputConversionException('ack')
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.side_effect = [mock_converter1, mock_converter2]
+        runner._get_converter = mock_get_converter
 
         mock_executed_op = mock.MagicMock()
         mock_executed_op.operation.id = 'abc'
 
         with self.assertRaises(OutputConversionException) as ex:
-            runner.convert_outputs(
+            runner._convert_outputs(
                 mock_executed_op,
-                mock_converter,
+                self.op,
                 outputs
             )
 
         mock_cleanup.assert_called_with(
-            self.op_data['outputs'],
+            self.op.outputs,
             {
                 'dge_table': u
             }
         )
 
+    @mock.patch('api.runners.base.alert_admins')
+    def test_output_conversion_error_case3(self, mock_alert_admins):
+        '''
+        If the outputs of a tool contain extra keys (but is otherwise OK)
+        we warn the admins and move on silently. No cleanup is called.
+        '''
+        runner = OperationRunner()
+        mock_cleanup = mock.MagicMock()
+        runner.cleanup_on_error = mock_cleanup
 
-   
+        # these outputs correspond to the multiresource_output.json
+        outputs = {
+            "norm_counts": "/path/to/norm_counts.tsv" ,
+            "dge_table": {
+                "path": "/path/to/dge_table.tsv",
+                "resource_type": "MTX"
+            },
+            "extra_key": 123 # <--- extra, not in spec
+        }
+        
+        u1 = str(uuid.uuid4())
+        u2 = str(uuid.uuid4())
+        mock_converter1 = mock.MagicMock()
+        mock_converter1.convert_output.return_value = u1
+        mock_converter2 = mock.MagicMock()
+        mock_converter2.convert_output.return_value = u2
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.side_effect = [mock_converter1, mock_converter2]
+        runner._get_converter = mock_get_converter
+
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.operation.id = 'abc'
+
+        result = runner._convert_outputs(
+            mock_executed_op,
+            self.op,
+            outputs
+        )
+
+        self.assertDictEqual(
+            result,
+            {
+                'dge_table': u1,
+                'norm_counts': u2
+            }
+        )
+        mock_alert_admins.assert_called()
+        # we don't call cleanup since the extra output
+        # did not affect the known/valid outputs
+        mock_cleanup.assert_not_called()
+
+    def test_handles_bad_converter_gracefully(self):
+        '''
+        In the case that a converter class is not found for the input 
+        (mocked by raising an exception from the _get_converter method)
+        see that we get an exception raised.
+        '''
+        # need a resource to populate the field
+        all_r = Resource.objects.all()
+        r = all_r[0]
+        inputs = {
+            'count_matrix': str(r.id),
+            'p_val': 0.05
+        }
+
+        runner = OperationRunner()
+        mock_get_converter = mock.MagicMock()
+        mock_get_converter.side_effect = Exception('!!!')
+        runner._get_converter = mock_get_converter
+        with self.assertRaises(Exception):
+            runner._convert_inputs(self.op, '', inputs, '')
+
+    def test_converter_class_import(self):
+        '''
+        Tests that the converter import works as expected
+        '''
+        runner = OperationRunner()
+        c = runner._get_converter(
+            'api.converters.basic_attributes.BooleanAsIntegerConverter')
+        b = BooleanAsIntegerConverter()
+        self.assertTrue(type(c) == type(b))
+
+        with self.assertRaisesRegex(Exception, 'Failed when importing'):
+            c = runner._get_converter('some.garbage')
+
+    @mock.patch('api.runners.base.delete_resource_by_pk')
+    def test_cleanup_on_error(self, mock_delete):
+        runner = OperationRunner()
+        u1 = str(uuid.uuid4())
+        u2 = str(uuid.uuid4())
+        mock_outputs = {
+            'norm_counts': u1,
+            'dge_table': u2
+        }
+        runner.cleanup_on_error(self.op.outputs, mock_outputs)
+        mock_delete.assert_has_calls([
+            mock.call(u1),
+            mock.call(u2)
+        ])    

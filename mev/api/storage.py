@@ -10,9 +10,10 @@ from django.conf import settings
 from django.core.files import File
 from django.core.files.storage import FileSystemStorage
 
+from exceptions import StorageException
+
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.resource_utilities import create_resource
-from api.exceptions import StorageException
 
 logger = logging.getLogger(__name__)
 

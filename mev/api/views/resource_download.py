@@ -11,9 +11,10 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
-from api.exceptions import NoResourceFoundException, \
+from exceptions import NoResourceFoundException, \
     InactiveResourceException, \
     OwnershipException
+    
 from api.utilities.resource_utilities import check_resource_request_validity
 
 
@@ -61,8 +62,7 @@ class ResourceDownloadUrl(APIView):
             url = r.datafile.url
             if not url:
                 logger.error('Encountered a problem when preparing download for resource'
-                    ' with pk={u}'.format(u=resource_pk)
-                )
+                    f' with pk={resource_pk}')
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             download_url = url

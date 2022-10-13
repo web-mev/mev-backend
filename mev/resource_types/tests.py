@@ -2,10 +2,7 @@ import unittest
 import unittest.mock as mock
 import numpy as np
 import pandas as pd
-import uuid
-import os
 
-from django.conf import settings
 
 from constants import TSV_FORMAT, \
     PARENT_OP_KEY, \
@@ -13,8 +10,7 @@ from constants import TSV_FORMAT, \
     OBSERVATION_SET_KEY, \
     RESOURCE_KEY
 
-from api.data_structures import Observation
-from api.models import Resource
+from data_structures.observation import Observation
 
 from resource_types import RESOURCE_MAPPING, \
     format_is_acceptable_for_type

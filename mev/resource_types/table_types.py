@@ -2,8 +2,6 @@
 # based file types and methods for validating them
 import logging
 import re
-import os
-import resource
 import uuid
 from functools import reduce
 from io import BytesIO
@@ -19,34 +17,27 @@ from constants import CSV_FORMAT, \
     TSV_FORMAT, \
     XLS_FORMAT, \
     XLSX_FORMAT, \
-    JSON_FORMAT, \
     OBSERVATION_SET_KEY, \
-    PARENT_OP_KEY
+    PARENT_OP_KEY, \
+    POSITIVE_INF_MARKER, \
+    NEGATIVE_INF_MARKER
 
-from .base import DataResource, \
-    ParseException, \
+from exceptions import ParseException, \
     FileParseException, \
     UnexpectedFileParseException, \
-    UnexpectedTypeValidationException
-from api.data_structures import Feature, \
-    FeatureSet, \
-    Observation, \
-    ObservationSet, \
-    create_attribute, \
-    convert_dtype, \
-    numeric_attribute_typenames
+    UnexpectedTypeValidationException, \
+    ParserNotFoundException
+
+from .base import DataResource
+
+from data_structures.helpers import convert_dtype
+from data_structures.observation import Observation
+from data_structures.observation_set import ObservationSet
+from data_structures.simple_attribute_factory import SimpleAttributeFactory
+
 from api.utilities.admin_utils import alert_admins
-from api.serializers.feature_set import FeatureSetSerializer
-from api.serializers.observation_set import ObservationSetSerializer
 
 logger = logging.getLogger(__name__)
-
-class ParserNotFoundException(Exception):
-    '''
-    For raising exceptions when a proper 
-    parser cannot be found.
-    '''
-    pass
 
 
 # Some error messages:
@@ -204,9 +195,7 @@ class TableResource(DataResource):
         elif file_format in [XLS_FORMAT, XLSX_FORMAT]:
             return pd.read_excel
         else:
-            logger.error('Unrecognized file format: {f}'.format(
-                f = file_format
-            ))
+            logger.error(f'Unrecognized file format: {file_format}')
             return None
 
     @staticmethod
@@ -239,7 +228,8 @@ class TableResource(DataResource):
         else:
             try:
                 # read the table using the appropriate parser:
-                self.table = reader(resource_instance.datafile.open(), index_col=0, comment='#')
+                self.table = reader(
+                    resource_instance.datafile.open(), index_col=0, comment='#')
 
                 # drop extra/empty cols and rows
                 self.table.dropna(axis=0, how='all', inplace=True)
@@ -250,12 +240,10 @@ class TableResource(DataResource):
                 raise FileParseException(str(ex))
 
             except Exception as ex:
-                logger.info('Could not use {reader} to parse the resource'
-                ' with pk={pk}'.format(
-                    reader = reader,
-                    pk = resource_instance.pk
-                ))     
-                raise UnexpectedFileParseException('Failed when parsing the table-based resource.')
+                logger.info(f'Could not use {reader} to parse the resource'
+                f' with pk={resource_instance.pk}')     
+                raise UnexpectedFileParseException('Failed when parsing'
+                    ' the table-based resource.')
 
     def performs_validation(self):
         '''
@@ -319,15 +307,15 @@ class TableResource(DataResource):
         except UnexpectedFileParseException as ex:
             return (False, PARSE_ERROR)
      
-    def do_type_cast(self, v, typename):
+    def do_type_cast(self, v, dtype):
         '''
         Used for casting the type when query params are provided.
         '''
-        if typename in numeric_attribute_typenames:
+        if re.fullmatch('(int|float)\d{0,2}', dtype):
             try:
                 val = float(v)
             except ValueError as ex:
-                raise ParseException('Could not parse "{v}" as a number.'.format(v=v))
+                raise ParseException(f'Could not parse "{v}" as a number.')
         else:
             val = v 
         return val
@@ -354,18 +342,16 @@ class TableResource(DataResource):
                 if sort_order in settings.SORTING_OPTIONS:
                     sort_order_list.append(sort_order)
                 else:
-                    raise ParseException('The sort order "{s}" is not an available option. Choose from: {opts}'.format(
-                        s = sort_order,
-                        opts = ','.join(settings.SORTING_OPTIONS)
-                    ))
+                    raise ParseException(f'The sort order "{sort_order}" is'
+                        ' not an available option. Choose from:'
+                        f' {",".join(settings.SORTING_OPTIONS)}')
 
                 if col in self.table.columns:
                     column_list.append(col)
                 else:
-                    raise ParseException('The column identifier "{s}" does not exist in this resource. Options are: {opts}'.format(
-                        s = col,
-                        opts = ','.join(self.table.columns)
-                    ))
+                    raise ParseException(f'The column identifier "{col}" does'
+                        ' not exist in this resource. Options are:'
+                        f' {",".join(self.table.columns)}')
             # at this point, all the sort orders and cols were OK. Now perform the sorting:
             # Need to convert our strings (e.g. "[asc]") to bools for the pandas sort_values method.
             order_bool = [True if x==settings.ASCENDING else False for x in sort_order_list]                
@@ -382,14 +368,12 @@ class TableResource(DataResource):
         # and ignore that conflict by not using that filter
 
         if any([x in self.IGNORED_QUERY_PARAMS for x in table_cols]):
-            logger.warning('One of the column names conflicted with the pagination query params.')
-            alert_admins('Edge-case error: when filtering on a column, one of the column names'
-                ' conflicted with the pagination query params. Query params was: {p} and column'
-                ' names were: {c}'.format(
-                    p = query_params,
-                    c = ','.join(table_cols)
-                )
-            )
+            logger.warning('One of the column names conflicted with the'
+                ' pagination query params.')
+            alert_admins('Edge-case error: when filtering on a column,'
+                ' one of the column names conflicted with the pagination query'
+                f' params. Query params was: {query_params} and column'
+                f' names were: {",".join(table_cols)}')
         filters = []
 
         # used to map the pandas native type to a MEV-type so we can do type casting consistently
@@ -401,7 +385,10 @@ class TableResource(DataResource):
                 # or a delimited string which will dictate the comparison.
                 # For example, to filter on the 'pval' column for values less than or equal to 0.01, 
                 # v would be "[lte]:0.01". The "[lte]" string is set in our general settings file.
-                column_type = type_dict[k] # gets a type name (as a string, e.g. "Float")
+
+                # self.table.dtypes gives a pd.Series which maps the column names to numpy types like
+                # int64, float64, object
+                column_type = str(self.table.dtypes[k]) # a string like int64, object
                 if len(split_v) == 1:
                     # strict equality
                     val = self.do_type_cast(v, column_type)
@@ -414,22 +401,17 @@ class TableResource(DataResource):
                     try:
                         op = settings.OPERATOR_MAPPING[split_v[0]]
                     except KeyError as ex:
-                        raise ParseException('The operator string ("{s}") was not understood. Choose'
-                            ' from among: {vals}'.format(
-                                s = split_v[0],
-                                vals = ','.join(settings.OPERATOR_MAPPING.keys())
-                            )
-                        )
+                        raise ParseException(f'The operator string'
+                            f' ("{split_v[0]}") was not understood. Choose'
+                            ' from among:'
+                            f' {",".join(settings.OPERATOR_MAPPING.keys())}')
                     filters.append(
                         self.table[k].apply(lambda x: op(x, val))
                     )
                 else:
-                    raise ParseException('The query param string ({v}) for filtering on'
-                        ' the {col} column was not formatted properly.'.format(
-                            v = v,
-                            col = k
-                        )
-                    )
+                    raise ParseException(f'The query param string ({v}) for'
+                        f' filtering on the {k} column was not'
+                        ' formatted properly.')
             elif k in self.IGNORED_QUERY_PARAMS:
                  pass
             elif k == settings.ROWNAME_FILTER:
@@ -442,22 +424,22 @@ class TableResource(DataResource):
                 try:
                     op = settings.OPERATOR_MAPPING[split_v[0]]
                 except KeyError as ex:
-                    raise ParseException('The operator string ("{s}") was not understood. Choose'
-                        ' from among: {vals}'.format(
-                            s = split_v[0],
-                            vals = ','.join(settings.OPERATOR_MAPPING.keys())
-                        )
-                    )
+                    raise ParseException('The operator string'
+                        f' ("{split_v[0]}") was not understood. Choose'
+                        ' from among:'
+                        f' {",".join(settings.OPERATOR_MAPPING.keys())}')
                 try:
                     rowname_filter = self.table.index.to_series().apply(lambda x: op(x, val))
                     filters.append(rowname_filter)
                 except Exception as ex:
+                    alert_admins('Error when attempting to perform a row'
+                        f' filter. Exception was: {ex}')
                     raise ParseException('Error encountered with filter on rows.'
                         ' Admin has been notified.'
                     )
-                    alert_admins('Error when attempting to perform a row filter. Exception was: {x}'.format(x=ex))
             else:
-                raise ParseException('The column "{c}" is not available for filtering.'.format(c=k))
+                raise ParseException(f'The column "{k}" is'
+                    ' not available for filtering.')
         if len(filters) > 1:
             combined_filter = reduce(lambda x,y: x & y, filters)
             self.table = self.table.loc[combined_filter]
@@ -487,8 +469,8 @@ class TableResource(DataResource):
         strings and the filter won't work properly.
         '''
         self.table = self.table.replace({
-            -np.infty: settings.NEGATIVE_INF_MARKER, 
-            np.infty: settings.POSITIVE_INF_MARKER,
+            -np.infty: NEGATIVE_INF_MARKER, 
+            np.infty: POSITIVE_INF_MARKER,
             np.nan: None
         })
 
@@ -534,7 +516,7 @@ class TableResource(DataResource):
         the rows of the table
         '''
         try:
-            logger.info('Read resource ({pk})'.format(pk=resource_instance.pk))
+            logger.info(f'Read resource ({resource_instance.pk})')
             self.read_resource(resource_instance)
             self.additional_exported_cols = []
 
@@ -562,11 +544,8 @@ class TableResource(DataResource):
         # catch any other types of exceptions that we did not anticipate.
         except Exception as ex:
             logger.error('An unexpected error occurred when preparing'
-                ' a resource preview for resource ({pk}). Exception'
-                ' was: {ex}'.format(
-                    pk=resource_instance.pk,
-                    ex=ex
-                ))
+                f' a resource preview for resource ({resource_instance.pk}).'
+                f' Exception was: {ex}')
             raise ex
 
     def extract_metadata(self, resource_instance, parent_op_pk=None):
@@ -580,29 +559,22 @@ class TableResource(DataResource):
         the primary-key for that ExecutedOperation will be passed.
 
         '''
-        logger.info('Extracting metadata from resource ({pk})'.format(
-            pk = resource_instance.pk
-        ))
+        logger.info('Extracting metadata from resource'
+            f' ({resource_instance.pk})')
 
         # If the self.table field was not already filled, we need to 
         # read the data
         if self.table is None:
-            logger.info('Resource ({pk}) was not '
-                'previously parsed.  Do that now.'.format(
-                    pk=resource_instance.pk
-                )
-            )
+            logger.info(f'Resource ({resource_instance.pk}) was not '
+                'previously parsed.  Do that now.')
             # if we are extracting metadata, then the file should have been deemed "valid"
             # and hence saved into the standardized format.
             is_valid, message = self.validate_type(resource_instance, self.STANDARD_FORMAT)
             if not is_valid:
                 raise UnexpectedTypeValidationException(message)
         else:
-            logger.info('Resource ({pk}) was '
-                'previously parsed.'.format(
-                    pk=resource_instance.pk
-                )
-            )        
+            logger.info(f'Resource ({resource_instance.pk}) was '
+                'previously parsed.')        
             
         # now we have a table loaded at self.table.  
 
@@ -624,11 +596,9 @@ class TableResource(DataResource):
         Note that `current_file_format` is the format BEFORE we have standardized.
         This can obviously match our standard format
         '''
-        logger.info('Saving resource ({pk}) to the standard format'
-            ' for a table-based resource. The original name was: {n}'.format(
-            pk=resource_instance.pk,
-            n=resource_instance.datafile.name 
-        ))
+        logger.info(f'Saving resource ({resource_instance.pk}) to the standard'
+            ' format for a table-based resource. The original name'
+            f' was: {resource_instance.datafile.name}')
 
         # the 'current' file extension (e.g. 'csv')
         # was used to successfully validate the file.
@@ -643,22 +613,17 @@ class TableResource(DataResource):
         # If the self.table field was not already filled, we need to 
         # read the data
         if self.table is None:
-            logger.info('Resource ({pk}) was not '
-                'previously parsed.  Do that now.'.format(
-                    pk=resource_instance.pk
-                )
-            )
+            logger.info(f'Resource ({resource_instance.pk}) was not '
+                'previously parsed.  Do that now.')
             try:
                 # this call will set the self.table member
                 self.read_resource(resource_instance, 
                     requested_file_format=current_file_format)
             except Exception as ex:
-                logger.error('Failed when trying to save resource ({pk})'
-                    ' in standard format. Specifically, failed when reading'
-                    '  the resource, as self.table was None.'.format(
-                        pk=resource_instance.pk
-                    )
-                )
+                logger.error('Failed when trying to save resource'
+                    f' ({resource_instance.pk}) in standard format.'
+                    ' Specifically, failed when reading'
+                    '  the resource, as self.table was None.')
                 raise ex
 
         # ok, self.table is set-- save it.
@@ -773,8 +738,10 @@ class Matrix(TableResource):
         # self.metadata[DataResource.FEATURE_SET] = FeatureSetSerializer(f_set).data
 
         # the ObservationSet comes from the cols:
-        o_set = ObservationSet([Observation(x) for x in self.table.columns])
-        self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
+        o_set = ObservationSet({
+            'elements': [{'id': x} for x in self.table.columns]
+        })
+        self.metadata[OBSERVATION_SET_KEY] = o_set.to_simple_dict()
         return self.metadata
 
     def _resource_specific_modifications(self):
@@ -810,19 +777,16 @@ class Matrix(TableResource):
                 try:
                     op = settings.OPERATOR_MAPPING[split_str[0]]
                 except KeyError as ex:
-                    raise ParseException('The operator string ("{s}") was not understood. Choose'
-                        ' from among: {vals}'.format(
-                            s = split_str[0],
-                            vals = ','.join(settings.OPERATOR_MAPPING.keys())
-                        )
-                    )
-                filters.append(self.table[self.ROWMEAN_KEYWORD].apply(lambda x: op(x, val)))
+                    raise ParseException('The operator string'
+                        f' ("{split_str[0]}") was not understood. Choose'
+                        ' from among:'
+                        f' {",".join(settings.OPERATOR_MAPPING.keys())}')
+                filters.append(self.table[self.ROWMEAN_KEYWORD].apply(
+                    lambda x: op(x, val)))
             else:
-                raise ParseException('The query param string ({v}) for filtering on'
-                    ' the mean values was not formatted properly.'.format(
-                        v = filter_string
-                    )
-                )
+                raise ParseException(f'The query param string ({filter_string})'
+                    ' for filtering on the mean values was not'
+                    ' formatted properly.')
 
         if self.INCLUDE_ROWMEANS in self.extra_query_params:
             # if the rowmean filter was also applied, we can skip-- 
@@ -1040,17 +1004,15 @@ class ElementTable(TableResource):
         The `element_class` arg is a class which implements the specific
         type we want (i.e. Observation or Feature)
         '''
-        logger.info('For element type {s},'
-            ' extract out metadata'.format(s=type(element_class)))
+        logger.info(f'For element type {type(element_class)},'
+            ' extract out metadata')
 
         if (self.table.shape[0] > ElementTable.MAX_OBSERVATIONS) \
             or \
             (self.table.shape[1] > ElementTable.MAX_FEATURES):
-            logger.info('The annotation matrix of size ({nrows}, {ncols}) was too'
-            ' large. Returning empty metadata'.format(
-                nrows = self.table.shape[0],
-                ncols = self.table.shape[1]
-            ))
+            logger.info('The annotation matrix of size'
+                f' ({self.table.shape[0]}, {self.table.shape[1]}) was too'
+                ' large. Returning empty metadata')
             return []
 
         # Go through the columns and find out the primitive types
@@ -1077,18 +1039,37 @@ class ElementTable(TableResource):
             d = row_series.to_dict()
             attr_dict = {}
             for key, val in d.items():
-                # Note the 'allow_null=True', so that attributes can be properly serialized
-                # if they are missing a value. This happens, for instance, in FeatureTable
+                # Note the 'allow_null=True', so that attributes can 
+                # be properly serialized if they are missing a value. 
+                # This happens, for instance, in FeatureTable
                 # instances where p-values were not assigned.
-                attr = create_attribute(key,
+                attr = SimpleAttributeFactory(
                     {
                         'attribute_type': type_dict[key],
                         'value': val
                     },
                     allow_null=True
                 )
-                attr_dict[key] = attr
-            element_list.append(element_class(id, attr_dict))
+                # We create `attr` above as a means to verify
+                # the attribute is correctly formatted
+                attr_dict[key] = attr.to_dict()
+
+            # Now create the data_structures.element.Element instance
+
+            # adding the 'permit_null_attributes' kwarg
+            # allows us to ignore rows that might be missing
+            # an entry.
+            element = element_class(
+                {
+                    'id': id,
+                    'attributes': attr_dict
+                },
+                permit_null_attributes=True
+            )
+            # the dict representation of the Element has
+            # an `attribute_type` and `value` key. We only
+            # want the value:
+            element_list.append(element.to_dict()['value'])
         return element_list
 
 
@@ -1173,8 +1154,9 @@ class AnnotationTable(ElementTable):
         logger.info('Extract metadata for an AnnotationTable instance.')
         super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         observation_list = super().prep_metadata(Observation)
-        o_set = ObservationSet(observation_list)
-        self.metadata[OBSERVATION_SET_KEY] = ObservationSetSerializer(o_set).data
+        o_set = ObservationSet({'elements': observation_list}, 
+            permit_null_attributes=True)
+        self.metadata[OBSERVATION_SET_KEY] = o_set.to_simple_dict()
         return self.metadata
 
 

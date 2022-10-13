@@ -1,5 +1,4 @@
 import logging
-import os
 
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -9,25 +8,27 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
+from exceptions import NonIterableContentsException, \
+    OwnershipException, \
+    InactiveResourceException, \
+    NoResourceFoundException, \
+    ParseException
+
 from api.models import Resource
 from api.serializers.resource import ResourceSerializer
 import api.permissions as api_permissions
 from api.utilities.resource_utilities import get_resource_view, \
     get_resource_paginator, \
     resource_supports_pagination, \
-    check_resource_request_validity, \
-    create_resource
+    check_resource_request_validity
 from api.data_transformations import get_transformation_function
-from api.async_tasks.async_resource_tasks import delete_file as async_delete_file
-from api.async_tasks.async_resource_tasks import validate_resource as async_validate_resource
-from api.exceptions import NonIterableContentsException, \
-    OwnershipException, \
-    InactiveResourceException, \
-    NoResourceFoundException
-from resource_types import ParseException
-
+from api.async_tasks.async_resource_tasks import \
+    delete_file as async_delete_file
+from api.async_tasks.async_resource_tasks import \
+    validate_resource as async_validate_resource
 
 logger = logging.getLogger(__name__)
+
 
 def check_resource_request(user, resource_pk):
     '''
@@ -117,14 +118,11 @@ class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
         '''
 
         instance = self.get_object()
-        logger.info('Requesting deletion of Resource: {resource}'.format(
-            resource=instance))
+        logger.info(f'Requesting deletion of Resource: {instance}')
 
         if not instance.is_active:
-            logger.info('Resource {resource_uuid} was not active.'
-                ' Rejecting request for deletion.'.format(
-                    resource_uuid = str(instance.pk)
-                ))
+            logger.info(f'Resource {instance.pk} was not active.'
+                ' Rejecting request for deletion.')
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if len(instance.workspaces.all()) > 0:
@@ -175,12 +173,14 @@ class ResourceContents(APIView):
             logger.info('Done getting contents.')
         except ParseException as ex:
             return Response(
-                {'error': 'There was a problem when parsing the request: {ex}'.format(ex=ex)},
+                {'error': 'There was a problem when parsing'
+                         f' the request: {ex}'},
                 status=status.HTTP_400_BAD_REQUEST
             )  
         except Exception as ex:
             return Response(
-                {'error': 'Experienced an issue when preparing the resource view: {ex}'.format(ex=ex)},
+                {'error': 'Experienced an issue when preparing'
+                         f' the resource view: {ex}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )   
         if contents is None:
@@ -189,7 +189,8 @@ class ResourceContents(APIView):
                 status=status.HTTP_200_OK
             )
         else:
-            if (settings.PAGE_PARAM in request.query_params) and (resource_supports_pagination(r.resource_type)):
+            if (settings.PAGE_PARAM in request.query_params) and \
+                (resource_supports_pagination(r.resource_type)):
                 paginator = get_resource_paginator(r.resource_type)
                 try:
                     results = paginator.paginate_queryset(contents, request)
@@ -198,8 +199,8 @@ class ResourceContents(APIView):
                     # certain contexts, such as is the JSON is essentially an 
                     # array. If the paginator raises this error, just return the
                     # entire contents we parsed before.
-                    logging.info('Contents of resource ({pk}) were not iterable.'
-                        ' Returning all contents.'
+                    logging.info(f'Contents of resource ({resource_pk}) were'
+                        ' not iterable. Returning all contents.'
                     )
                     return Response(contents)
                 return paginator.get_paginated_response(results)
@@ -290,7 +291,7 @@ class ResourceContentTransform(ResourceContents):
                 return Response(result)
             except KeyError as ex:
                 return Response(
-                    {'error': 'The request must contain the {x} parameter.'.format(x=str(ex))}, 
+                    {'error': f'The request must contain the {ex} parameter.'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )   
             except Exception as ex:

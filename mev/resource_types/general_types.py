@@ -1,9 +1,11 @@
 import logging
 
-from constants import UNSPECIFIED_FORMAT, GENERAL_DESCRIPTION
+from constants import UNSPECIFIED_FORMAT, \
+    GENERAL_DESCRIPTION
 from .base import DataResource
 
 logger = logging.getLogger(__name__)
+
 
 class GeneralResource(DataResource):
 

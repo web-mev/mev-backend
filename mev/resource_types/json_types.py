@@ -9,11 +9,12 @@ from django.conf import settings
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from constants import JSON_FILE_KEY, \
-    JSON_FORMAT
+from constants import JSON_FORMAT
 
-from .base import DataResource, ParseException
-from api.exceptions import NonIterableContentsException
+from exceptions import NonIterableContentsException, \
+    ParseException
+
+from .base import DataResource
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +33,13 @@ class JsonArrayPage(Page):
             )
         return self.object_list[index]        
 
+
 class JsonObjectPage(Page):
     def __getitem__(self, index):
         keys = list(self.object_list.keys())
         #self.object_list = list(self.object_list)
         return self.object_list[keys[index]]
+
 
 class JsonResourcePaginator(Paginator):
     '''
@@ -67,6 +70,7 @@ class JsonResourcePaginator(Paginator):
             return JsonArrayPage(self.object_list[bottom:top], number, self)
         else:
             raise NonIterableContentsException()
+
 
 class JsonResourcePageNumberPagination(PageNumberPagination):
     django_paginator_class = JsonResourcePaginator
@@ -108,26 +112,20 @@ class JsonResource(DataResource):
     def validate_type(self, resource_path, file_format):
 
         try:
-            logger.info('Using python-native JSON loader to read resource: {p}'.format(
-                p = resource_path
-            ))
+            logger.info('Using python-native JSON loader to read'
+                f' resource: {resource_path}')
             j = json.load(open(resource_path))
-            logger.info('Successfully parsed {p} as JSON.'.format(
-                p = resource_path
-            ))
+            logger.info(f'Successfully parsed {resource_path} as JSON.')
             return (True, None)
         except json.decoder.JSONDecodeError as ex:
             logger.info('Failed to parse JSON-based resource.')
             return (False, 'There was an issue with the JSON formatting.'
-                ' The reported error was: {ex}'.format(ex=ex)
-            )
+                f' The reported error was: {ex}')
         except Exception as ex:
-            logger.info('Parsing a JSON resource raised an unexpected exception.'
-                ' Exception was: {ex}'.format(ex=ex)
-            )
+            logger.info('Parsing a JSON resource raised an unexpected'
+                f' exception. Exception was: {ex}')
             return (False, 'There was an unexpected encountered when attempting'
-                ' to parse the file was JSON. The reported error was: {ex}'.format(ex=ex)
-            )
+                f' to parse the file was JSON. The reported error was: {ex}')
 
     def extract_metadata(self, resource_instance, parent_op_pk=None):
         # call the super method to initialize the self.metadata
@@ -151,11 +149,10 @@ class JsonResource(DataResource):
                 filtering_query_params[k] = v
 
         logger.info('Get contents of JSON resource and filter'
-            ' against query params: {q}'.format(q=filtering_query_params))
+            f' against query params: {filtering_query_params}')
         try:
-            logger.info('Using python-native JSON loader to read resource: {pk}'.format(
-                pk = resource_instance.pk
-            ))
+            logger.info('Using python-native JSON loader to'
+                f' read resource: {resource_instance.pk}')
             j = json.load(resource_instance.datafile.open())
             if filtering_query_params:
                 j = self.filter_based_on_query_params(j, filtering_query_params)
@@ -165,7 +162,7 @@ class JsonResource(DataResource):
         except ParseException as ex:
             raise ex
         except Exception as ex:
-            logger.info('Failed to load JSON resource. Error was {ex}'.format(ex=ex))
+            logger.info(f'Failed to load JSON resource. Error was {ex}')
             raise ex
 
     def sort_json(self, j, sort_string):
@@ -175,11 +172,10 @@ class JsonResource(DataResource):
         fields
         '''
         if len(sort_string.split(',')) > 1:
-            raise ParseException('Based on the query string ({v})'
+            raise ParseException(f'Based on the query string ({sort_string})'
                 ' it appeared that a sort on multiple fields was requested.'
                 ' For JSON-based arrays, only sorts on single fields are'
-                ' permitted.'.format(v=sort_string)
-            )
+                ' permitted.')
 
         try:
             sort_order, field = sort_string.split(settings.QUERY_PARAM_DELIMITER)
@@ -188,10 +184,9 @@ class JsonResource(DataResource):
                 'Please use "<ordering keyword>:<column name>"')
                         
         if not sort_order in settings.SORTING_OPTIONS:
-            raise ParseException('The sort order "{s}" is not an available option. Choose from: {opts}'.format(
-                s = sort_order,
-                opts = ','.join(settings.SORTING_OPTIONS)
-            ))
+            raise ParseException(f'The sort order "{sort_order}" is'
+                ' not an available option. Choose'
+                f' from: {",".join(settings.SORTING_OPTIONS)}')
 
         # extract the values for the field of interest. If that field doesn't exist
         # on the item, then assign it to np.nan
@@ -256,27 +251,21 @@ class JsonResource(DataResource):
                         val = float(val)
                     except ValueError as ex:
                         raise ParseException('Could not interpret the query'
-                            ' parameter value {v} as a number.'.format(v=val))
+                            f' parameter value {val} as a number.')
 
                 # the supplied value was ok. Check the operator supplied
                 try:
                     op = settings.OPERATOR_MAPPING[op_id]
                 except KeyError as ex:
-                    raise ParseException('The operator string ("{s}") was not understood. Choose'
-                        ' from among: {vals}'.format(
-                            s = op_id,
-                            vals = ','.join(settings.OPERATOR_MAPPING.keys())
-                        )
-                    )
+                    raise ParseException(f'The operator string ("{op_id}")'
+                        ' was not understood. Choose from among:'
+                        f' {",".join(settings.OPERATOR_MAPPING.keys())}')
                 filter_ops[k] = create_closure(op, val)
 
             else:
-                raise ParseException('The query param string ({v}) for filtering on'
-                    ' the "{p}" field was not formatted properly.'.format(
-                        v = v,
-                        p = k
-                    )
-                )
+                raise ParseException(f'The query param string ({v}) for'
+                    f' filtering on the "{k}" field was not'
+                    ' formatted properly.')
         # now go through the list and keep those that pass the filter
         filtered_list = []
         for item in j:

@@ -6,6 +6,7 @@
             "description": "The count matrix of expressions", 
             "name": "Count matrix:", 
             "required": true, 
+            "converter": "api.converters.data_resource.LocalDockerSingleDataResourceConverter",
             "spec": {
                 "attribute_type": "VariableDataResource", 
                 "resource_types": ["I_MTX", "EXP_MTX"], 
@@ -16,6 +17,7 @@
             "description": "The filtering threshold for the p-value", 
             "name": "P-value threshold:", 
             "required": false, 
+            "converter": "api.converters.basic_attributes.BoundedFloatAttributeConverter",         
             "spec": {
                 "attribute_type": "BoundedFloat", 
                 "min": 0, 
@@ -27,6 +29,7 @@
     "outputs": {
         "norm_counts": {
             "required": true,
+            "converter": "tmp",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 
@@ -35,6 +38,7 @@
         }, 
         "dge_table": {
             "required": true,
+            "converter": "tmp",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "EXP_MTX", 
@@ -43,7 +47,5 @@
         }
     }, 
     "mode": "local_docker", 
-    "repository_url": "https://github.com/some-repo/", 
-    "git_hash": "abcd1234",
     "workspace_operation": true
 }

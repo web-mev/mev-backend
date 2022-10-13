@@ -4,7 +4,8 @@ from celery import shared_task
 
 from django.core.files.storage import default_storage
 
-from api.exceptions import ResourceValidationException
+from exceptions import ResourceValidationException
+
 import api.utilities.resource_utilities as resource_utilities
 from api.models import Resource
 from api.utilities.admin_utils import alert_admins

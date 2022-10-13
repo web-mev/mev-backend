@@ -19,7 +19,7 @@ from constants import FASTQ_KEY, \
     PARENT_OP_KEY, \
     RESOURCE_KEY
 
-from .base import DataResource, ParseException
+from .base import DataResource
 
 from .sequence_types import FastAResource, \
     FastQResource, \

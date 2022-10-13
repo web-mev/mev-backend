@@ -1,8 +1,6 @@
 from django.urls import path
 from django.conf import settings
 
-from rest_framework_simplejwt import views as jwt_views
-from rest_framework.schemas import get_schema_view
 
 import api.views
 

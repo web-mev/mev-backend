@@ -4,14 +4,14 @@ import json
 import datetime
 import zipfile
 import logging
-import io
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from api.exceptions import OutputConversionException
+from exceptions import OutputConversionException, \
+    JobSubmissionException
+
 from api.runners.base import OperationRunner
-from api.utilities.operations import get_operation_instance_data
 from api.utilities.basic_utils import make_local_directory, \
     copy_local_resource
 from api.utilities.admin_utils import alert_admins
@@ -21,7 +21,6 @@ from api.utilities.wdl_utils import WDL_SUFFIX, \
     get_docker_images_in_repo, \
     edit_runtime_containers
 from api.utilities.docker import check_image_exists, get_tag_format
-from api.converters.output_converters import RemoteCromwellOutputConverter
 from api.models.executed_operation import ExecutedOperation
 
 logger = logging.getLogger(__name__)
@@ -72,10 +71,7 @@ class RemoteCromwellRunner(OperationRunner):
         # corresponding to this repo
         docker_image_names = get_docker_images_in_repo(operation_dir)
         logger.info('Found the following image names among the'
-            ' WDL files: {imgs}'.format(
-                imgs = ', '.join(docker_image_names)
-            )
-        )
+            f' WDL files: {", ".join(docker_image_names)}')
 
         # We need to ensure the images are available from Cromwell's use.
         # There are a couple situations:
@@ -115,11 +111,9 @@ class RemoteCromwellRunner(OperationRunner):
                 image_is_tagged = False
             else:
                 logger.error('Could not properly handle the following docker'
-                    ' image spec: {x}'.format(x = full_image_name)
-                )
+                    f' image spec: {full_image_name}')
                 raise Exception('Could not make sense of the docker'
-                    ' image handle: {x}'.format(x=full_image_name)
-                )
+                    f' image handle: {full_image_name}')
             
             # Look at the image string (the non-tag portion)
             image_split = image_prefix.split('/')
@@ -127,10 +121,8 @@ class RemoteCromwellRunner(OperationRunner):
                 docker_repo, username, image_name = image_split
             else:
                 err_msg = ('Could not properly handle the following docker'
-                    ' image spec: {x}.\nBe sure to include the registry prefix'
-                    ' and user/org account'.format(
-                        x = full_image_name)
-                )
+                    f' image spec: {full_image_name}.\nBe sure to include'
+                    ' the registry prefix and user/org account')
                 logger.error(err_msg )
                 raise Exception(err_msg)
 
@@ -140,24 +132,23 @@ class RemoteCromwellRunner(OperationRunner):
             if image_name == repo_name:
                 if not image_is_tagged:
                     tag_format = get_tag_format(docker_repo)
-                    tag = tag_format.format(hash = git_hash)
+                    tag = tag_format.format(hash=git_hash)
                     final_image_name = full_image_name + ':' + tag
                 else:  # image WAS tagged and associated with this repo
                     final_image_name = full_image_name
             else:
                 # the image is "external" to our repo, in which case it NEEDS a tag
                 if not image_is_tagged:
-                    raise Exception('Since the Docker image {img} had a name indicating it'
-                        ' is external to the github repository, we require a tag. None'
-                        ' was found.'.format(img = full_image_name)
-                    )
+                    raise Exception(f'Since the Docker image {full_image_name}'
+                        ' had a name indicating it is external to the github'
+                        ' repository, we require a tag. None was found')
                 else: # was tagged AND "external"
                     final_image_name = full_image_name
 
             image_found = check_image_exists(final_image_name)
             if not image_found:
                 raise Exception('Could not locate the following'
-                    ' image: {img}. Aborting'.format(img = final_image_name))
+                    f' image: {final_image_name}. Aborting')
 
             # keep track of any "edited" image names so we can modify
             # the WDL files
@@ -179,19 +170,16 @@ class RemoteCromwellRunner(OperationRunner):
         try:
             response = get_with_retry(url)
         except Exception as ex:
-            logger.info('An exception was raised when checking if the remote Cromwell runner was ready.'
-                ' The exception reads: {ex}'.format(ex=ex)
-            )
-            raise ImproperlyConfigured('Failed to check the remote Cromwell runner. See logs.')
+            logger.info('An exception was raised when checking if the remote'
+                f' Cromwell runner was ready. The exception reads: {ex}')
+            raise ImproperlyConfigured('Failed to check the remote'
+                ' Cromwell runner. See logs.')
         if response.status_code != 200:
-            logger.info('The Cromwell server located at: {url}'
-                ' was not ready.'.format(
-                    url = url
-                )
-            )
+            logger.info(f'The Cromwell server located at: {url}'
+                ' was not ready.')
             raise ImproperlyConfigured('Failed to reach Cromwell server.')
 
-    def _create_inputs_json(self, op_dir, validated_inputs, staging_dir):
+    def _create_inputs_json(self, op, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
         and make them into something that we can inject into Cromwell's
@@ -199,9 +187,11 @@ class RemoteCromwellRunner(OperationRunner):
 
         For instance, this takes a DataResource (which is a UUID identifying
         the file), and turns it into a cloud-based path that Cromwell can access.
+
+        Note that `op` is an instance of data_structures.operation.Operation
         '''
         # create/write the input JSON to a file in the staging location
-        arg_dict = self._map_inputs(op_dir, validated_inputs, staging_dir)
+        arg_dict = self._convert_inputs(op, op_dir, validated_inputs, staging_dir)
         wdl_input_path = os.path.join(staging_dir, self.WDL_INPUTS)
         with open(wdl_input_path, 'w') as fout:
             json.dump(arg_dict, fout)
@@ -263,49 +253,73 @@ class RemoteCromwellRunner(OperationRunner):
         try:
             response = post_with_retry(submission_url, data=payload, files=files)
         except Exception as ex:
-            logger.info('Submitting job ({id}) to Cromwell failed.'
-                ' Exception was: {ex}'.format(
-                    ex = ex,
-                    id = exec_op_id
-                )
-            )
-
+            logger.info(f'Submitting job ({executed_op.id}) to Cromwell failed.'
+                f' Exception was: {ex}')
+            response = None
         self.handle_submission_response(response, executed_op)
 
     def handle_submission_response(self, response, executed_op):
-        response_json = json.loads(response.text)
-        if response.status_code == 201:
-            try:
-                status = response_json['status']
-            except KeyError as ex:
-                status = 'Unknown'
-            if status == self.SUBMITTED_STATUS:
-                logger.info('Job was successfully submitted'
-                    ' to Cromwell.'
-                )
-                # Cromwell assigns its own UUID to the job
-                cromwell_job_id = response_json['id']
-                executed_op.job_id = cromwell_job_id
-                executed_op.execution_start_datetime = datetime.datetime.now()
-            else:
-                logger.info('Received an unexpected status'
-                    ' from Cromwell following a 201'
-                    ' response code: {status}'.format(
-                        status = response_json['status']
-                    )
-                )
-                executed_op.status = status
+        '''
+        After trying to POST to cromwell, we end up here regardless.
 
+        This method handles both expected and unexpected responses,
+        as well as complete failures from the POST
+        '''
+        if response is not None:
+            response_json = json.loads(response.text)
+            if response.status_code == 201:
+                try:
+                    status = response_json['status']
+                except KeyError as ex:
+                    status = 'Unknown'
+
+                if status == self.SUBMITTED_STATUS:
+                    logger.info('Job was successfully submitted'
+                        ' to Cromwell.'
+                    )
+                    # Cromwell assigns its own UUID to the job
+                    cromwell_job_id = response_json['id']
+                    executed_op.job_id = cromwell_job_id
+                    executed_op.execution_start_datetime = datetime.datetime.now()
+                else:
+                    message = ('Received an unexpected status'
+                        ' from Cromwell following a 201'
+                        f' response code: {status}')
+                    logger.info(message)
+                    self._handle_submission_issue(executed_op)
+            else:
+                message = ('Received an unexpected status code'
+                    f' of {response.status_code} from Cromwell.')
+                logger.info(message)
+                self._handle_submission_issue(executed_op)
         else:
-            error_msg = ('Received a response code of {rc} when submitting job'
-                ' to the remote Cromwell runner.'.format(
-                    rc = response.status_code
-                )
-            ) 
-            logger.info(error_msg)
-            alert_admins(error_msg)
-            executed_op.status = 'Not submitted. Try again later. Admins have been notified.'
+            # response was None, which is not expected. Could be due
+            # to Cromwell going offline, etc.
+            self._handle_submission_issue(executed_op)
+
         executed_op.save()
+
+    def _handle_submission_issue(self, executed_op, status_message=None):
+        '''
+        Used to handle situations where the job submission did not go
+        as expected (e.g. 201 response and expected payload).
+
+        Sets the proper fields so that we don't end up with a hanging
+        job
+        '''
+        if status_message is None:
+            status_message = ('Unexpected issue with job submission.'
+                    ' WebMeV admins have been notified.')
+        # set a bunch of fields so that we aren't left with an
+        # ambiguous state
+        executed_op.execution_start_datetime = datetime.datetime.now()
+        executed_op.execution_stop_datetime = datetime.datetime.now()
+        executed_op.status = status_message
+        executed_op.job_failed = True
+        executed_op.save()
+        alert_admins('There was an issue with job submission for executed'
+            f' operation with id: {executed_op.id}')
+        raise JobSubmissionException()
 
     def query_for_metadata(self, job_uuid):
         '''
@@ -319,8 +333,7 @@ class RemoteCromwellRunner(OperationRunner):
         bad_codes = [404, 400, 500]
         if response.status_code in bad_codes:
             logger.info('Request for Cromwell job metadata returned'
-                ' a {code} status.'.format(code=response.status_code)
-            )
+                f' a {response.status_code} status.')
         elif response.status_code == 200:
             response_json = json.loads(response.text)
             return response_json
@@ -341,8 +354,7 @@ class RemoteCromwellRunner(OperationRunner):
         bad_codes = [404, 400, 500]
         if response.status_code in bad_codes:
             logger.info('Request for Cromwell job status returned'
-                ' a {code} status.'.format(code=response.status_code)
-            )
+                f' a {response.status_code} status.')
         elif response.status_code == 200:
             response_json = json.loads(response.text)
             return response_json
@@ -350,6 +362,9 @@ class RemoteCromwellRunner(OperationRunner):
             logging.info('Received an unexpected status code when querying'
                 ' the status of a Cromwell job.'
             )
+        # if we have not returned, then we received a 400,404,500 or something
+        # else unexpected. return None
+
 
     def _parse_status_response(self, response_json):
         status = response_json['status']
@@ -366,14 +381,17 @@ class RemoteCromwellRunner(OperationRunner):
         other actions until admins can investigate.
         '''
         response_json = self.query_for_status(job_uuid)
-        if response_json:
+        if response_json is not None:
             status = self._parse_status_response(response_json)
             # the job is complete if it's marked as success of failure
             if (status == self.SUCCEEDED_STATUS) or (status == self.FAILED_STATUS):
                 return True
         return False
 
-    def handle_job_success(self, executed_op):
+    def handle_job_success(self, executed_op, op):
+        '''
+        `op` is an instance of data_structures.operation.Operation
+        '''
 
         job_id = executed_op.job_id
         job_metadata = self.query_for_metadata(job_id)
@@ -394,21 +412,15 @@ class RemoteCromwellRunner(OperationRunner):
             outputs_dict = job_metadata['outputs']
         except KeyError as ex:
             outputs_dict = {}
-            error_msg = ('The job metadata payload received from executed op ({op_id})'
-                ' with Cromwell ID {cromwell_id} did not contain the "outputs"'
-                ' key in the payload'.format(
-                    cromwell_id = job_id,
-                    op_id = executed_op.id
-                )
-            )
+            error_msg = ('The job metadata payload received from'
+                f' executed op ({executed_op.job_id})'
+                f' with Cromwell ID {job_id} did not contain the'
+                ' "outputs" key in the payload')
             logger.info(error_msg)
             alert_admins(error_msg)
 
-        # instantiate the output converter class which will take the job outputs
-        # and create MEV-compatible data structures or resources:
-        converter = RemoteCromwellOutputConverter()
         try:
-            converted_outputs = self.convert_outputs(executed_op, converter, outputs_dict)
+            converted_outputs = self._convert_outputs(executed_op, op, outputs_dict)
             executed_op.outputs = converted_outputs
             executed_op.execution_stop_datetime = end_time
             executed_op.job_failed = False
@@ -418,8 +430,6 @@ class RemoteCromwellRunner(OperationRunner):
             executed_op.job_failed = True
             executed_op.status = ExecutedOperation.FINALIZING_ERROR
             alert_admins(str(ex)) 
-
-
 
 
     def handle_job_failure(self, executed_op):
@@ -453,10 +463,9 @@ class RemoteCromwellRunner(OperationRunner):
         )
         alert_admins(
             'Experienced an unexpected response when querying for '
-            'the job status of op: {op_id}.'.format(op_id=executed_op.job_id)
-        )
+            f'the job status of op: {executed_op.job_id}.')
 
-    def finalize(self, executed_op):
+    def finalize(self, executed_op, op):
         '''
         Finishes up an ExecutedOperation. Does things like registering files 
         with a user, cleanup, etc.
@@ -468,7 +477,7 @@ class RemoteCromwellRunner(OperationRunner):
         else:
             status = None
         if status == self.SUCCEEDED_STATUS:
-            self.handle_job_success(executed_op)
+            self.handle_job_success(executed_op, op)
         elif status == self.FAILED_STATUS:
             self.handle_job_failure(executed_op)
         else:
@@ -478,12 +487,12 @@ class RemoteCromwellRunner(OperationRunner):
         executed_op.save()
 
 
-    def run(self, executed_op, op_data, validated_inputs):
+    def run(self, executed_op, op, validated_inputs):
         logger.info('Running in remote Cromwell mode.')
-        logger.info('Executed op type: %s' % type(executed_op))
-        logger.info('Executed op ID: %s' % str(executed_op.id))
-        logger.info('Op data: %s' % op_data)
-        logger.info(validated_inputs)
+        logger.info(f'Executed op type: {type(executed_op)}')
+        logger.info(f'Executed op ID: {executed_op.id}')
+        logger.info(f'Op data: {op.to_dict()}')
+        logger.info(f'Validated inputs: {validated_inputs}')
 
         # the UUID identifying the execution of this operation:
         execution_uuid = str(executed_op.id)
@@ -491,15 +500,14 @@ class RemoteCromwellRunner(OperationRunner):
         # get the operation dir so we can look at which converters to use:
         op_dir = os.path.join(
             settings.OPERATION_LIBRARY_DIR, 
-            str(op_data['id'])
+            str(op.id)
         )
 
         # create a sandbox directory where we will store the files:
-        staging_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
-        make_local_directory(staging_dir)
+        staging_dir = self._create_execution_dir(execution_uuid)
 
         # create the Cromwell-compatible inputs.json from the user inputs
-        self._create_inputs_json(op_dir, validated_inputs, staging_dir)
+        self._create_inputs_json(op, op_dir, validated_inputs, staging_dir)
 
         # copy over the workflow contents:
         self._copy_workflow_contents(op_dir, staging_dir)

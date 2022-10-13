@@ -1,35 +1,25 @@
 import unittest
 import unittest.mock as mock
 import uuid
-import random
 import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth import get_user_model
 
-from api.exceptions import ResourceValidationException
-from api.async_tasks.async_resource_tasks import validate_resource
-from api.models import Resource, ResourceMetadata
-from resource_types.base import DataResource
-from resource_types import RESOURCE_MAPPING, IntegerMatrix
-
-from constants import DB_RESOURCE_KEY_TO_HUMAN_READABLE, \
-    OBSERVATION_SET_KEY, \
-    FEATURE_SET_KEY, \
-    PARENT_OP_KEY, \
-    RESOURCE_KEY, \
-    TSV_FORMAT, \
+from exceptions import ResourceValidationException, \
+    NoResourceFoundException
+from constants import TSV_FORMAT, \
     INTEGER_MATRIX_KEY
-        
-from api.utilities.resource_utilities import handle_valid_resource
-from api.tests.base import BaseAPITestCase
-from resource_types import get_resource_type_instance
 
-from api.exceptions import NoResourceFoundException
+from api.async_tasks.async_resource_tasks import validate_resource
+from api.models import Resource
+        
+from api.tests.base import BaseAPITestCase
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
 TESTDIR = os.path.join(TESTDIR, 'resource_validation_test_files')
+
 
 class TestValidateResource(BaseAPITestCase):
     '''

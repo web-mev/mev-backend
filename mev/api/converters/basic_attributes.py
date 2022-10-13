@@ -1,91 +1,150 @@
 from django.conf import settings
 
-from api.data_structures import StringAttribute, \
+from helpers import normalize_identifier
+
+from data_structures.attribute_types import StringAttribute, \
     UnrestrictedStringAttribute, \
     IntegerAttribute, \
-    StringListAttribute, \
-    UnrestrictedStringListAttribute, \
     BooleanAttribute, \
-    BoundedFloatAttribute
+    FloatAttribute
+from data_structures.list_attributes import StringListAttribute, \
+    UnrestrictedStringListAttribute
+
 from api.converters.mixins import CsvMixin
-from api.utilities import normalize_identifier
-from api.utilities.operations import read_operation_json
-from api.exceptions import StringIdentifierException, AttributeValueError
+
 
 class BaseAttributeConverter(object):
-    pass
+    '''
+    A base class with common attribute conversion behavior
+    '''
+    def convert_input(self, user_input, op_dir, staging_dir):
+        raise NotImplementedError('Need to implement the convert_input method'
+            ' for this class')
 
-class StringConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        s = StringAttribute(user_input)
-        return {input_key: s.value}
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        raise NotImplementedError('Need to implement the convert_output method'
+            ' for this class')
 
-class UnrestrictedStringConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        s = UnrestrictedStringAttribute(user_input)
-        return {input_key: s.value}
-        
-class NormalizingStringConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        s = UnrestrictedStringAttribute(user_input)
-        try:
-            s = normalize_identifier(s.value)
-        except StringIdentifierException as ex:
-            raise AttributeValueError(str(ex))
-        return {input_key: s}
 
-class IntegerConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        i = IntegerAttribute(user_input)
-        return {input_key: i.value}
+class SimpleConverterMixin(object):
+    '''
+    A mixin for basic types that have the same behavior
+    for converting inputs and outputs
+    '''
+    def convert(self, attribute_class, user_input):
+        x = attribute_class(user_input)
+        return x.value
+
+
+class StringConverter(BaseAttributeConverter, SimpleConverterMixin):
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self.convert(StringAttribute, user_input)
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        return self.convert(StringAttribute, output_val)
+
+
+class UnrestrictedStringConverter(BaseAttributeConverter, SimpleConverterMixin):
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self.convert(UnrestrictedStringAttribute, user_input)
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        return self.convert(UnrestrictedStringAttribute, output_val)
+
+
+class NormalizingStringConverter(BaseAttributeConverter, SimpleConverterMixin):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
+        s = normalize_identifier(user_input)
+        return self.convert(StringAttribute, s)
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        s = normalize_identifier(output_val)
+        return self.convert(StringAttribute, s)
+
+
+class IntegerConverter(BaseAttributeConverter, SimpleConverterMixin):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self.convert(IntegerAttribute, user_input)
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        return self.convert(IntegerAttribute, output_val)
+
+
+class FloatConverter(BaseAttributeConverter, SimpleConverterMixin):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self.convert(FloatAttribute, user_input)
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        return self.convert(FloatAttribute, output_val)
+
 
 class StringListConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
         s = StringListAttribute(user_input)
-        return {input_key: s.value}
+        return [x.value for x in s.value]
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        s = StringListAttribute(output_val)
+        return [x.value for x in s.value]
+
 
 class StringListToCsvConverter(BaseAttributeConverter, CsvMixin):
     '''
     Converts a StringList to a csv string
     '''
-    def convert(self, input_key, user_input, op_dir, staging_dir):
+    def convert_input(self, user_input, op_dir, staging_dir):
         s = StringListAttribute(user_input)
-        return {input_key: self.to_string(s.value)}
+        return self.to_string([x.value for x in s.value])
+
 
 class UnrestrictedStringListConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
         s = UnrestrictedStringListAttribute(user_input)
-        return {input_key: s.value}
+        return [x.value for x in s.value]
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        s = UnrestrictedStringListAttribute(output_val)
+        return [x.value for x in s.value]
+
 
 class UnrestrictedStringListToCsvConverter(BaseAttributeConverter, CsvMixin):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
         s = UnrestrictedStringListAttribute(user_input)
-        return {input_key: self.to_string(s.value)}
+        return self.to_string([x.value for x in s.value])
+
 
 class BooleanAsIntegerConverter(BaseAttributeConverter):
-    def convert(self, input_key, user_input, op_dir, staging_dir):
+
+    def convert_input(self, user_input, op_dir, staging_dir):
         b = BooleanAttribute(user_input)
-        return {input_key: int(b.value)}
+        return int(b.value)
+
+    def convert_output(self, 
+        executed_op, user_workspace, output_definition, output_val):
+        b = BooleanAttribute(output_val)
+        return int(b.value)
 
 class NormalizingListToCsvConverter(BaseAttributeConverter, CsvMixin):
     '''
-    Takes a list of unrestricted strings and converts them to normalized strings
+    Takes a list of unrestricted strings and converts 
+    them to normalized strings
     '''
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        s = UnrestrictedStringListAttribute(user_input)
-        try:
-            s = [normalize_identifier(x) for x in s.value]
-        except StringIdentifierException as ex:
-            raise AttributeValueError(str(ex))
-        return {input_key: self.to_string(s)}
 
-class BoundedFloatAttributeConverter(BaseAttributeConverter):
-        
-    def convert(self, input_key, user_input, op_dir, staging_dir):
-        operation_json_filepath = os.path.join(op_dir, settings.OPERATION_SPEC_FILENAME)
-        op_spec = read_operation_json(operation_json_filepath)
-        spec = op_spec['inputs'][input_key]['spec']
-        min_val = spec['min']
-        max_val = spec['max']
-        f = BoundedFloatAttribute(user_input, min=min_val, max=max_val)
-        return {input_key: f.value}
+    def convert_input(self, user_input, op_dir, staging_dir):
+        s = StringListAttribute(
+            [normalize_identifier(x) for x in user_input])
+        return self.to_string([x.value for x in s.value])

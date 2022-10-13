@@ -512,13 +512,6 @@ if not os.path.exists(PUBLIC_DATA_DIR):
 # END Settings for public datasets
 ###############################################################################
 
-# Use these values as 'markers' for dataframes/tables that have infinite values.
-# Since the data needs to be returned as valid JSON and Inf (and other variants)
-# are not permitted
-POSITIVE_INF_MARKER = '++inf++'
-NEGATIVE_INF_MARKER = '--inf--'
-
-
 ###############################################################################
 # START settings/imports for filtering
 ###############################################################################

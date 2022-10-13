@@ -7,18 +7,23 @@ import shutil
 import requests
 
 from django.conf import settings
-from rest_framework.exceptions import ValidationError
+
+from exceptions import DataStructureValidationException, \
+    InvalidRunModeException
+from constants import RESOURCE_TYPE_SET
+
+from data_structures.data_resource_attributes import get_all_data_resource_typenames, \
+    OperationDataResourceAttribute
+from data_structures.operation import Operation
 
 from api.models import Operation as OperationDbModel
-from api.models import OperationResource
-from api.data_structures import OperationDataResourceAttribute
 from api.utilities.basic_utils import recursive_copy
-from api.utilities.operations import read_operation_json, \
-    validate_operation
-from api.runners import get_runner
-from api.exceptions import OperationResourceFileException
+from api.utilities.operations import read_operation_json
+from api.runners import get_runner, AVAILABLE_RUNNERS
+
 
 logger = logging.getLogger(__name__)
+
 
 def add_required_keys_to_operation(op_dict, **kwargs):
     '''
@@ -29,6 +34,7 @@ def add_required_keys_to_operation(op_dict, **kwargs):
     This function checks for those keys and adds them.
     '''
     op_dict.update(kwargs)
+
 
 def retrieve_commit_hash(git_dir):
     '''
@@ -45,13 +51,13 @@ def retrieve_commit_hash(git_dir):
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with querying the'
-            ' commit hash from the git repo at {git_dir}.\n'
-            'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
-                git_dir=git_dir,
-                stderr=stderr,
-                stdout=stdout
-            )
-        )
+                     ' commit hash from the git repo at {git_dir}.\n'
+                     'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                         git_dir=git_dir,
+                         stderr=stderr,
+                         stdout=stdout
+                     )
+                     )
         raise Exception('Failed when querying the git commit ID. See logs.')
     else:
         commit_hash = stdout.strip().decode('utf-8')
@@ -62,10 +68,11 @@ def checkout_branch(git_dir, commit_id):
     '''
     Changes given a given git directory to the desired commit
     '''
-    logger.info('Attempt to checkout commit {commit_id}'.format(commit_id=commit_id))
+    logger.info('Attempt to checkout commit {commit_id}'.format(
+        commit_id=commit_id))
     cmd = 'git checkout {commit_id}'.format(
         git_dir=git_dir,
-        commit_id = commit_id
+        commit_id=commit_id
     )
     logger.info('Checkout commit with: {cmd}'.format(
         cmd=cmd
@@ -76,18 +83,20 @@ def checkout_branch(git_dir, commit_id):
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with checking out'
-            ' commit {commit_id} from the git repo at {git_dir}.\n'
-            'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
-                commit_id=commit_id,
-                git_dir=git_dir,
-                stderr=stderr,
-                stdout=stdout
-            )
-        )
-        raise Exception('Failed when attemping to checkout a particular commit. See logs.')
+                     ' commit {commit_id} from the git repo at {git_dir}.\n'
+                     'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                         commit_id=commit_id,
+                         git_dir=git_dir,
+                         stderr=stderr,
+                         stdout=stdout
+                     )
+                     )
+        raise Exception(
+            'Failed when attemping to checkout a particular commit. See logs.')
     else:
         commit_hash = stdout.strip().decode('utf-8')
         return commit_hash
+
 
 def retrieve_repo_name(git_dir):
     '''
@@ -106,13 +115,13 @@ def retrieve_repo_name(git_dir):
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         logger.error('Problem with querying the'
-            ' repo name from the git repo at {git_dir}.\n'
-            'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
-                git_dir=git_dir,
-                stderr=stderr,
-                stdout=stdout
-            )
-        )
+                     ' repo name from the git repo at {git_dir}.\n'
+                     'STDERR was: {stderr}\nSTDOUT was: {stdout}'.format(
+                         git_dir=git_dir,
+                         stderr=stderr,
+                         stdout=stdout
+                     )
+                     )
         raise Exception('Failed when querying the git commit ID. See logs.')
     else:
         git_str = stdout.strip().decode('utf-8')
@@ -123,6 +132,7 @@ def retrieve_repo_name(git_dir):
         else:
             return final_piece
 
+
 def clone_repository(url):
     '''
     This clones the repository and returns the destination dir
@@ -132,23 +142,24 @@ def clone_repository(url):
     clone_cmd = 'git clone %s %s' % (url, dest)
     clone_cmd = clone_cmd.split(' ')
     logger.info('About to clone repository with command: {cmd}'.format(
-        cmd = clone_cmd
+        cmd=clone_cmd
     ))
     p = sp.Popen(clone_cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
     stdout, stderr = p.communicate()
 
     if p.returncode != 0:
         logger.error('Problem when cloning the repository.\n'
-            ' STDERR was: {stderr}\n'
-            ' STDOUT was: {stdout}'.format(
-                stderr=stderr,
-                stdout=stdout
-            )
-        )
+                     ' STDERR was: {stderr}\n'
+                     ' STDOUT was: {stdout}'.format(
+                         stderr=stderr,
+                         stdout=stdout
+                     )
+                     )
         raise Exception('Failed when cloning the repository. See logs.')
     logger.info('Completed clone.')
     return dest
-    
+
+
 def check_required_files(op_data, staging_dir):
     '''
     Depending on how an Operation is run (local, cromwell), we have different
@@ -160,23 +171,7 @@ def check_required_files(op_data, staging_dir):
     runner.check_required_files(staging_dir)
 
 
-def check_for_operation_resources(op_data):
-    '''
-    This function looks through the operation spec to check if there are any inputs
-    that correspond to "static" operation resources (i.e. user-independent/operation-specific files)
-    
-    If yes, returns a dict which is a subset of the `inputs` object from the operation spec file.
-    Only the inputs that correspond to operation resources are included. If none of the inputs
-    are operation resources, then return an empty dict
-    '''
-    d = {}
-    for input_key, op_input in op_data['inputs'].items():
-        spec = op_input['spec']
-        if spec['attribute_type'] == OperationDataResourceAttribute.typename:
-            d[input_key] = op_input
-    return d
-
-def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
+def handle_operation_specific_resources(op, staging_dir, op_uuid):
     '''
     This function looks through the operation's inputs and handles any 
     operation-specific resources. These are user-independent resources (such as 
@@ -184,15 +179,17 @@ def handle_operation_specific_resources(op_data, staging_dir, op_uuid):
     distinct from a user's files.
     '''
 
-    # look through the inputs and see if any correspond to OperationDataResource.
+    # look through the inputs to see if any are OperationDataResource type.
     # If not, immediately return
-    relevant_inputs = check_for_operation_resources(op_data)
-    if not relevant_inputs:
-        return
-    else:
-        raise NotImplementedError('To use/incorporate operation resources,'
-            ' you must first create the logic.'
-        )
+    op_inputs = op.inputs
+    for key in op_inputs.keys():
+        op_input = op_inputs[key]
+        if op_input.is_data_resource_input() \
+            and (not op_input.is_user_data_resource_input()):
+            # TODO: implement when ready.
+            raise NotImplementedError('To use/incorporate operation resources,'
+                                  ' you must first create the logic.')
+
 
 def prepare_operation(op_data, staging_dir, repo_name, git_hash):
     '''
@@ -223,7 +220,8 @@ def check_for_repo(repository_url):
         return
     else:
         raise Exception('Could not find the repository'
-            ' at {r} or it was not public'.format(r=repository_url))
+                        ' at {r} or it was not public'.format(r=repository_url))
+
 
 def perform_operation_ingestion(repository_url, op_uuid, commit_id):
     '''
@@ -242,68 +240,113 @@ def perform_operation_ingestion(repository_url, op_uuid, commit_id):
         git_hash = commit_id
     else:
         git_hash = retrieve_commit_hash(staging_dir)
-        
+
     repo_name = retrieve_repo_name(staging_dir)
     try:
         ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)
     except Exception as ex:
         logger.info('Failed to ingest directory. See logs.'
-            ' Exception was: {ex}'.format(ex=ex)
-        )
+                    ' Exception was: {ex}'.format(ex=ex)
+                    )
         raise ex
     finally:
         # remove the staging dir:
         shutil.rmtree(staging_dir)
 
+def check_single_input_or_output(
+    current_input_output, data_resource_typenames):
+    '''
+    Given a data_structures.operation_input.OperationInput (or the equivalent
+    output version), check that it conforms to the expectations of WebMeV.
+    For an example of what that all means, see the docstring for
+    `validate_operation_spec`
+    '''
+    spec = current_input_output.spec.value
+    if spec.typename in data_resource_typenames:
+        spec.check_resource_type_keys(RESOURCE_TYPE_SET)
+
+
+def validate_operation_spec(op):
+    '''
+    This function verifies that the operation specification is valid
+    beyond its basic structure.
+
+    The `op` argument is an instance of data_structures.operation.Operation.
+
+    To avoid placing Operation logic in multiple places, the 
+    data_structures.operation.Operation class only checks the structure
+    of the operation specification. It does not perform any logic 
+    specific to the API. We check/validate that here.
+
+    As an example, consider an Operation that takes a DataResource
+    attribute. The data_structures.operation.Operation class checks 
+    that it contains a "resource_type" key, but does not check that the
+    value is appropriate/valid (e.g. "MTX" for a numeric matrix type).
+    '''
+    # this gets a list of the inputs/outputs that concern files 
+    # ("data resources") and hence those that need to be checked
+    # for validity (e.g. that the `resource_type` field has a valid
+    # string value for a DataResourceAttribute)
+    data_resource_typenames = get_all_data_resource_typenames()
+
+    # check the inputs/outputs for data resources (files) and
+    # verify that the resource_types given are actually valid.
+    for k in op.inputs.keys():
+        current_input = op.inputs[k]
+        check_single_input_or_output(current_input, data_resource_typenames)
+    for k in op.outputs.keys():
+        current_output = op.outputs[k]
+        check_single_input_or_output(current_output, data_resource_typenames)
+        
+    # Check that the run mode is valid for our available job runnres.
+    if not op.mode in AVAILABLE_RUNNERS:
+        raise InvalidRunModeException('The operation specification'
+            f' provided a run mode "{op.mode}" which was not known. Options '
+            f' are: {",".join(AVAILABLE_RUNNERS)}')
+
+
 def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwrite=False):
 
     # Parse the JSON file defining this new Operation:
-    operation_json_filepath = os.path.join(staging_dir, settings.OPERATION_SPEC_FILENAME)
+    operation_json_filepath = os.path.join(
+        staging_dir, settings.OPERATION_SPEC_FILENAME)
     j = read_operation_json(operation_json_filepath)
 
     # extra parameters for an Operation that are not required
     # to be specified by the developer who wrote the `Operation`
     add_required_keys_to_operation(j, id=op_uuid,
-        git_hash = git_hash,
-        repository_url = repository_url,
-        repo_name = repo_name
-    )
+                                   git_hash=git_hash,
+                                   repository_url=repository_url,
+                                   repository_name=repo_name
+                                   )
 
-    # attempt to validate the data for the operation:
+    # attempt to validate the data for the operation. Note that the
+    # constructor for data_structures.operation.Operation will validate
+    # the structure, but not the content. We check that below.
     try:
-        op_serializer = validate_operation(j)
-    except ValidationError as ex:
-        logger.info('A validation error was raised when validating'
-            ' the information parsed from {path}. Exception was: {ex}.\n '
-            'Full info was: {j}'.format(
-                path = operation_json_filepath,
-                j = json.dumps(j, indent=2),
-                ex = ex
-            )
-        )
+        op = Operation(j)
+    except DataStructureValidationException as ex:
+        logger.info('A formatting error was raised when validating'
+                    ' the information parsed from the operation spec file'
+                    f' located at {operation_json_filepath}. Exception was: {ex}.')
         raise ex
     except Exception as ex:
         logger.info('An unexpected error was raised when validating'
-            ' the information parsed from {path}. Exception was: {ex}.\n '
-            'Full info was: {j}'.format(
-                path = operation_json_filepath,
-                j = json.dumps(j, indent=2),
-                ex = ex
-            )
-        )
+                    ' the information parsed from the operation spec file'
+                    f' located at {operation_json_filepath}. Exception was: {ex}.')
         raise ex
 
-    # get an instance of the Operation (the data structure, NOT the database model)
-    op = op_serializer.get_instance()
+    validate_operation_spec(op)
+
+    # Get the dict representation of the Operation (data structure, not database model)
     op_data = op.to_dict()
-    #op_data = OperationSerializer(op).data
-    logging.info('After parsing operation spec, we have: {spec}'.format(spec=op_data))
+    logging.info(f'After parsing operation spec, we have: {op_data}')
 
     # check that the required files, etc. are there for the particular run mode:
     check_required_files(op_data, staging_dir)
 
     # handle any operation-specific resources/files:
-    handle_operation_specific_resources(op_data, staging_dir, op_uuid)
+    handle_operation_specific_resources(op, staging_dir, op_uuid)
 
     # prepare any elements required for running the operation:
     prepare_operation(op_data, staging_dir, repo_name, git_hash)
@@ -321,11 +364,11 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
         o.save()
     except OperationDbModel.DoesNotExist:
         logger.error('Could not find the Operation corresponding to'
-            ' id={u}'.format(u=op_uuid)
-        )
+                     f' id={op_uuid}')
         raise Exception('Encountered issue when trying update an Operation'
-            ' database instance after ingesting from repository.'
-        )
+                        ' database instance after ingesting from repository.'
+                        )
+
 
 def save_operation(op_data, staging_dir, overwrite):
     logger.info('Save the operation')
@@ -335,13 +378,14 @@ def save_operation(op_data, staging_dir, overwrite):
         op_uuid
     )
     logger.info('Destination directory for'
-        ' this operation at {p}'.format(p=dest_dir))
+                f' this operation at {dest_dir}')
 
     # copy the cloned directory and include the .git folder
     # and any other hidden files/dirs:
-    recursive_copy(staging_dir, dest_dir, include_hidden=True, overwrite=overwrite)
+    recursive_copy(staging_dir, dest_dir,
+                   include_hidden=True, overwrite=overwrite)
 
-    # overwrite the spec file just to ensure it's valid with our 
+    # overwrite the spec file just to ensure it's valid with our
     # current serializer implementation. Technically it wouldn't validate
     # if that weren't true, but we do it here either way.
     op_fileout = os.path.join(dest_dir, settings.OPERATION_SPEC_FILENAME)

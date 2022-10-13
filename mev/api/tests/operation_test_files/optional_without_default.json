@@ -1,4 +1,5 @@
-{
+{    
+    "id": "ce5e35ce-abc7-4755-a5ba-34764ab1504f",
     "name": "Some name", 
     "description": "Here is some description of the process", 
     "inputs": {
@@ -6,6 +7,7 @@
             "description": "", 
             "name": "", 
             "required": false, 
+            "converter": "",
             "spec": {
                 "attribute_type": "Integer"
             }
@@ -14,6 +16,7 @@
     "outputs": {}, 
     "mode": "local_docker", 
     "repository_url": "https://github.com/some-repo/", 
+    "repository_name": "some-repo", 
     "git_hash": "abcd1234",
     "workspace_operation": true
 }

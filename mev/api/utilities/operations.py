@@ -1,29 +1,23 @@
 import os
 import json
 import logging
+import resource
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
+from exceptions import WebMeVException, \
+    ExecutedOperationInputOutputException
+
 from api.utilities.basic_utils import read_local_file
-from api.data_structures import create_attribute, \
-    DataResourceAttribute, \
-    VariableDataResourceAttribute, \
-    SimpleDag, \
-    DagNode
-from api.utilities.resource_utilities import get_resource_by_pk
-from api.data_structures.submitted_input_or_output import submitted_operation_input_or_output_mapping
-from api.models import Resource, WorkspaceExecutedOperation
+from api.utilities.resource_utilities import get_resource_by_pk, \
+    check_resource_request_validity, \
+    get_operation_resources_for_field
+
+from data_structures.operation import Operation
 
 logger = logging.getLogger(__name__)
 
-# List the typenames for "data resources".
-# These can either be "fixed"  (i.e. `DataResource`)
-# or variable (i.e. `VariableDataResource`)
-DATARESOURCE_TYPENAMES = [
-    DataResourceAttribute.typename,
-    VariableDataResourceAttribute.typename
-]
 
 def read_operation_json(filepath):
     '''
@@ -42,11 +36,12 @@ def read_operation_json(filepath):
         return j
     except Exception as ex:
         logger.error('Could not read the operation JSON-format file at {path}.'
-            ' Exception was {ex}'.format(
-                path = filepath,
-                ex = ex
-            )
-        )
+                     ' Exception was {ex}'.format(
+                         path=filepath,
+                         ex=ex
+                     )
+                     )
+
 
 def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
     '''
@@ -64,7 +59,7 @@ def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
         l = operation_resource_dict[k]
         if not type(l) is list:
             return False
-        namelist, pathlist = [],[]
+        namelist, pathlist = [], []
         for item in l:
             if not type(item) is dict:
                 return False
@@ -78,22 +73,32 @@ def resource_operations_file_is_valid(operation_resource_dict, necessary_keys):
         if len(set(namelist)) < len(namelist):
             return False
         if len(set(pathlist)) < len(pathlist):
-            return False 
+            return False
     return True
 
 
 def validate_operation(operation_dict):
     '''
     Takes a dictionary and validates it against the definition
-    of an `Operation`. Returns an instance of an `OperationSerializer`.
+    of an `Operation`. Returns an instance of 
+    data_structures.operation.Operation
     '''
     logger.info('Validate the dictionary against the definition'
-    ' of an Operation...: {d}'.format(d=operation_dict))
-    from api.serializers.operation import OperationSerializer
-    op_serializer = OperationSerializer(data=operation_dict)
-    op_serializer.is_valid(raise_exception=True)
-    logger.info('Operation specification was valid.')
-    return op_serializer
+                f' of an Operation...: {operation_dict}')
+
+    try:
+        return Operation(operation_dict)
+    except WebMeVException as ex:
+        logger.info('Failed to validate the operation dict.'
+                    f' The exception was: {ex}\n'
+                    f' The data was: {operation_dict}')
+        raise ex
+    except Exception as ex:
+        logger.info('Unexpected exception when validating the operation dict.'
+                    f' The exception was: {ex}\n'
+                    f' The data was: {operation_dict}')
+        raise ex
+
 
 def get_operation_data_list(uuid_list):
     '''
@@ -103,275 +108,146 @@ def get_operation_data_list(uuid_list):
     '''
     pass
 
-def get_operation_instance_data(operation_db_model):
+def get_operation_instance(operation_db_model):
     '''
-    Using an Operation (database model) instance, return the
-    Operation instance (the data structure)
+    Using an Operation (database model) instance, return an
+    instance of data_structures.operation.Operation
     '''
-
     f = os.path.join(
-        settings.OPERATION_LIBRARY_DIR, 
-        str(operation_db_model.id), 
+        settings.OPERATION_LIBRARY_DIR,
+        str(operation_db_model.id),
         settings.OPERATION_SPEC_FILENAME
     )
     if os.path.exists(f):
         j = read_operation_json(f)
-        op_serializer = validate_operation(j)
-
-        # get an instance of the data structure corresponding to an Operation
-        op_data_structure = op_serializer.get_instance()
-        return op_data_structure.to_dict()
+        return validate_operation(j)
     else:
         logger.error('Integrity error: the queried Operation with'
-            ' id={uuid} did not have a corresponding folder.'.format(
-                uuid=str(operation_db_model.id)
-            )
-        )
-        return None
+                     f' id={operation_db_model.id} did not have a'
+                     ' corresponding folder.')
+        raise Exception('Missing operation files.')
 
-def validate_operation_inputs(user, inputs, operation, workspace):
+
+def get_operation_instance_data(operation_db_model):
+    '''
+    Using an Operation (database model) instance, return the
+    dict representation of data_structures.operation.Operation
+    '''
+    op = get_operation_instance(operation_db_model)
+    return op.to_dict()
+
+
+def validate_operation_inputs(
+        user, user_inputs, operation_db_instance, workspace):
     '''
     This function validates the inputs to check that they are compatible
     with the Operation that a user wishes to run.
 
     `user` is the user (database object) requesting the executed Operation
-    `inputs` is a dictionary of input parameters for the Operation
-    `operation` is an instance of Operation (the database model)
+    `user_inputs` is a dictionary of input parameters for the Operation
+        as submitted by a user
+    `operation_db_instance` is an instance of Operation (the database model)
     `workspace` is an instance of Workspace (database model)
 
     Note that `workspace` is not required, as some operations can be run
     outside the context of a workspace. In that instance, `workspace`
     should be explicitly set to None
     '''
-
     # get the Operation data structure given the operation database instance:
-    operation_spec_dict = get_operation_instance_data(operation)
+    operation = get_operation_instance(operation_db_instance)
 
     final_inputs = {}
-    for key, op_input in operation_spec_dict['inputs'].items():
-        required = op_input['required']
-        spec = op_input['spec']
-        key_is_present = key in inputs.keys()
+    op_inputs = operation.inputs
+    for key in op_inputs.keys():
+        op_input = op_inputs[key]
+        required = op_input.required
+        spec = op_input.spec
+        key_is_present = key in user_inputs.keys()
 
         if key_is_present:
-            supplied_input = inputs[key]
-        elif required: # key not there, but it is required
+            supplied_input = user_inputs[key]
+        elif required:  # key not there, but it is required
             logger.info('The key ({key}) was not among the inputs, but it'
-                ' is required.'.format(key=key)
-            )
+                        ' is required.'.format(key=key)
+                        )
             raise ValidationError({key: 'This is a required input field.'})
-        else: # key not there, but NOT required
+        else:  # key not there, but NOT required
             logger.info('key was not there, but also NOT required.')
-            if 'default' in spec: # is there a default to use?
-                logger.info('There was a default value in the operation spec. Since no value was given, use that.')
-                supplied_input = spec['default']
+            if spec.default is not None:  # is there a default to use?
+                logger.info(
+                    'There was a default value in the operation spec.' 
+                    ' Since no value was given, use that.')
+                supplied_input = spec.default
             else:
                 supplied_input = None
 
-        # now validate that supplied input against the spec
-        attribute_typename = spec['attribute_type']
-        try:
-            submitted_input_class = submitted_operation_input_or_output_mapping[attribute_typename]
-            logger.info(submitted_input_class)
-        except KeyError as ex:
-            logger.error('Could not find an appropriate class for handling the user input'
-                ' for the typename of {t}'.format(
-                    t=attribute_typename
-                )
-            )
-            raise Exception('Could not find an appropriate class for typename {t} for'
-                ' the input named {x}.'.format(
-                    x = key,
-                    t = attribute_typename
-                )
-            )
-        if supplied_input is not None:
-            logger.info('Check supplied input: {d}'.format(d=supplied_input))
-            final_inputs[key] = submitted_input_class(user, operation, workspace, key, supplied_input, spec)
-        else:
-            final_inputs[key] = None
+        # validate the input. Note that for simple inputs
+        # this is all we need. However, for inputs like 
+        # data resources, we need to perform additional checks (below)
+        op_input.check_value(supplied_input)
+
+        if op_input.is_data_resource_input():
+
+            # if the input resource is user-associated:
+            if op_input.is_user_data_resource_input():
+
+                logger.info('Input corresponds to a data resource. Perform'
+                    ' additional checks.')
+                # if we are dealing with a file-type, we need
+                # to ensure that:
+                # - the file is owned by the requesting user
+                # - the file is in the workspace
+                # - the file has the proper resource type
+
+                # if this doens't raise an exception, then the user does own
+                # the file:
+                resource_instance = check_resource_request_validity(
+                    user, supplied_input)
+
+                if not workspace in resource_instance.workspaces.all():
+                    raise ExecutedOperationInputOutputException('The resource'
+                        f' ({supplied_input}) was not part of the workspace'
+                        ' where the analysis operation was requested.')
+
+            else:
+                # if we are here, then we have a resource that is NOT
+                # user-associated. Need to check that the supplied input
+                # UUID corresponds to an OperationResource (database model)
+                # AND that it's meant for this input field. Recall that
+                # the OperationResource model has a field called `input_field`
+                # such that files are associated with specific inputs.
+                # Otherwise, tools with multiple fields using OperationResource
+                # inputs could have a confusing mess of files.
+
+                resources_for_field = get_operation_resources_for_field(
+                    operation_db_instance, op_input.name)
+                matching_resource_found = False
+                idx = 0
+                while (not matching_resource_found) \
+                    and (idx < len(resources_for_field)):
+                    r = resources_for_field[idx]
+                    if str(r.pk) == supplied_input:
+                        resource_instance = r
+                        matching_resource_found = True
+                    idx += 1
+                if not matching_resource_found:
+                    raise ExecutedOperationInputOutputException('The'
+                        f' provided input ({supplied_input}) was not'
+                        ' associated with the input field for this'
+                        ' operation.')
+
+            # now need to check the resource type:
+            # this gets the instance, e.g. an instance of
+            # data_structures.data_resource_attributes.DataResourceAttribute
+            # (or one of the sibling classes)
+            data_resource_attr = op_input.spec.value
+
+            # this method will raise an exception if the resource_type
+            # of the requested resource does not match the requirements
+            # of the specification
+            data_resource_attr.verify_resource_type(
+                resource_instance.resource_type)
+
+        final_inputs[key] = supplied_input
+
     return final_inputs
-
-def check_for_resource_operations(resource_instance, workspace_instance):
-    '''
-    To prevent deleting critical resources, we check to see if a
-    `Resource` instance has been used for any operations within a
-    `Workspace`.  If it has, return True.  Otherwise return False.
-    '''
-    # need to look through all the executed operations to see if the 
-    # resource was used in any of those, either as an input or output
-    logger.info('Search within workspace ({w}) to see if resource ({r}) was used.'.format(
-        w = str(workspace_instance.pk),
-        r = str(resource_instance.pk)
-    ))
-    workspace_executed_ops = WorkspaceExecutedOperation.objects.filter(workspace=workspace_instance)
-    used_resource_uuids = set()
-    for exec_op in workspace_executed_ops:
-        if exec_op.job_failed:
-            logger.info('Skipping inspection of job ({u}) since it failed.'.format(u = str(exec_op.pk)))
-            continue
-        logger.info('Look in executedOp: {u}'.format(u = str(exec_op.pk)))
-        # get the corresponding operation spec:
-        op = exec_op.operation
-        op_data = get_operation_instance_data(op)
-
-        # the operation spec will tell us what the "types" of each input/output are
-        op_inputs = op_data['inputs']
-        op_outputs = op_data['outputs']
-
-        # the executed ops will have the actual args used. So, for a DataResource
-        # "type", it will be a UUID
-        exec_op_inputs = exec_op.inputs
-        exec_op_outputs = exec_op.outputs
-
-        if exec_op_inputs is not None:
-            # list of dataResources used in the inputs of this executed op:
-            logger.info('Compare inputs:\n{x}\nto\n{y}'.format(
-                x = op_inputs,
-                y = exec_op_inputs
-            ))
-            s1 = collect_resource_uuids(op_inputs, exec_op_inputs)
-            logger.info('Found the following DataResources among'
-                ' the inputs: {u}'.format(
-                    u = ', '.join(s1)
-                ))
-            if str(resource_instance.pk) in s1:
-                return True
-            logger.info('Was not in the inputs. Check the outputs.')
-        else:
-            logger.info('Inputs to the ExecutedOp were None. Moving on.')
-        if exec_op_outputs is not None:
-            s2 = collect_resource_uuids(op_outputs, exec_op_outputs)
-            logger.info('Found the following DataResources among'
-            ' the outputs: {u}'.format(
-                u = ', '.join(s2)
-            ))
-            if str(resource_instance.pk) in s2:
-                return True
-            logger.info('Was not in the outputs. Done checking ExecutedOp ({u}).'.format(
-                u = str(exec_op.pk)
-            ))
-        else:
-            logger.info('Outputs of the ExecutedOp were None. Moving on.')
-    
-    # if we made it this far and have not returned, then the Resource was
-    # not used in any of the ExecutedOps in the Workspace
-    return False
-
-def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):
-    '''
-    This function goes through the inputs or outputs of an ExecutedOperation
-    to return a set of resource UUIDs that were "used" either as an input
-    or an output.
-
-    op_input_or_output: the dict of inputs/outputs for an Operation. This comes
-      from parsing the operation specification file.
-    exec_op_input_or_output: the dict of actual inputs or outputs created or used
-      in the course of executing an operation.
-    '''
-    resource_uuids = []
-    for k,v in exec_op_input_or_output.items():
-        # k is the 'key' of the output, v is the actual value assigned
-
-        # Sometimes an operation can declare an output type of DataResource
-        # that is given None as a value. For instance, in a clustering operation,
-        # we may only cluster on one of the dimensions. This results in one of the
-        # output JSON files being unused and hence set to None. If the value is None,
-        # we just move onto the next item.
-        if v is None:
-            continue
-
-        if not k in op_input_or_output:
-            logger.error('The key "{k}" was NOT in the operation inputs/outputs.'
-                ' Expected keys: {keys}'.format(
-                    k=k,
-                    keys = ', '.join(op_input_or_output.keys())
-                )
-            )
-            raise Exception('Discrepancy between the ExecutedOperation and the Operation'
-                ' it was based on. Should NOT happen!'
-            )
-        else:
-            # the key existed in the Operation (as it should). Get the spec dictating
-            spec = op_input_or_output[k]['spec']
-            if spec['attribute_type'] in DATARESOURCE_TYPENAMES:
-                if spec['many']:
-                    assert(type(v) is list)
-                    resource_uuids.extend(v)
-                else:
-                    assert(type(v) is str)
-                    resource_uuids.append(v)
-    return resource_uuids
-
-def create_workspace_dag(workspace_executed_ops):
-    '''
-    Returns a DAG representing the resources and operations contained in a workspace
-
-    `workspace_executed_ops` is a set of ExecutedOperation (database model) objects
-    '''
-    graph = SimpleDag()
-    for exec_op in workspace_executed_ops:
-
-        # don't want to show failed jobs
-        if exec_op.job_failed:
-            continue
-
-        # we need the operation definition to know if any of the inputs
-        # were DataResources
-        op = exec_op.operation
-        op_data = get_operation_instance_data(op)
-
-        # the operation spec will tell us what the "types" of each input/output are
-        op_inputs = op_data['inputs']
-        op_outputs = op_data['outputs']
-
-        # the executed ops will have the actual args used. So, for a DataResource
-        # "type", it will be a UUID
-        exec_op_inputs = exec_op.inputs
-        exec_op_outputs = exec_op.outputs
-
-        # create a spec for the executed op that includes the operation spec
-        # and the actual inputs/outputs
-        full_op_data = {
-            'op_spec': op_data,
-            'inputs': exec_op_inputs,
-            'outputs': exec_op_outputs
-        }
-
-        # create a node for the operation
-        op_node = DagNode(str(exec_op.pk), 
-            DagNode.OP_NODE, 
-            node_name = op_data['name'],
-            op_data = full_op_data)
-        graph.add_node(op_node)
-
-        for k,v in exec_op_inputs.items():
-            # compare with the expected type:
-            op_input_definition = op_inputs[k]
-            op_spec = op_input_definition['spec']
-            input_type = op_spec['attribute_type']
-            if input_type in DATARESOURCE_TYPENAMES:
-                r = get_resource_by_pk(v)
-                resource_node = graph.get_or_create_node(
-                    str(v), 
-                    DagNode.DATARESOURCE_NODE, 
-                    node_name = r.name)
-                op_node.add_parent(resource_node)
-
-        # show the outputs if the operation has completed
-        if exec_op.execution_stop_datetime:
-            for k,v in exec_op_outputs.items():
-                # compare with the expected type:
-                op_output_definition = op_outputs[k]
-                op_spec = op_output_definition['spec']
-                output_type = op_spec['attribute_type']
-                if output_type in DATARESOURCE_TYPENAMES:
-                    if v is not None:
-                        r = get_resource_by_pk(v)
-                        resource_node = graph.get_or_create_node(
-                            str(v), 
-                            DagNode.DATARESOURCE_NODE, 
-                            node_name = r.name)
-                        resource_node.add_parent(op_node)
-    return graph.serialize()
-
