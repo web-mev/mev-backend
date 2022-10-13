@@ -7,7 +7,8 @@ from exceptions import AttributeTypeError, \
 logger = logging.getLogger(__name__)
 
 
-def BaseAttributeFactory(val, type_mapping, allow_null=False):
+def BaseAttributeFactory(val, 
+    type_mapping, allow_null=False, ignore_extra_keys=False):
     '''
     This function is a factory which creates/returns
     a child class of `data_structures.attribute_types.BaseAttributeType`
@@ -106,6 +107,10 @@ def BaseAttributeFactory(val, type_mapping, allow_null=False):
     # add on the `allow_null` so the actual implementing class
     # knows whether to accept a `None` value
     attr_dict['allow_null'] = allow_null
+
+    # In the case where we want to allow extra keys to be
+    # passed to the constructor (which are ignored:
+    attr_dict['ignore_extra_keys'] = ignore_extra_keys
 
     # pop off the attribute type. The `attribute_type`
     # lets us know which subclass of BaseAttributeType we 

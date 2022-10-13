@@ -184,7 +184,11 @@ def validate_operation_inputs(
         # validate the input. Note that for simple inputs
         # this is all we need. However, for inputs like 
         # data resources, we need to perform additional checks (below)
-        op_input.check_value(supplied_input)
+        # We pass the `ignore_extra_keys` so that any requests containing
+        # extra info are ignored. Otherwise, it's too strict. The strictness
+        # is good for validating operation specs, but is less desirable
+        # when another application (e.g. the frontend) interacts with it.
+        op_input.check_value(supplied_input, ignore_extra_keys=True)
 
         if op_input.is_data_resource_input():
 

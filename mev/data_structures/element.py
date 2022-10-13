@@ -100,9 +100,10 @@ class BaseElement(BaseAttributeType):
             self.attributes = {}
 
         if len(val.keys()) > 0:
-            raise DataStructureValidationException('Received extra keys'
-                f' when creating a {self.typename} instance:'
-                f' {",".join(val.keys())}')
+            if not self._ignore_extra_keys:
+                raise DataStructureValidationException('Received extra keys'
+                    f' when creating a {self.typename} instance:'
+                    f' {",".join(val.keys())}')
 
         # now set the _value field:
         #self._set_value_field()

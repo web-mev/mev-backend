@@ -121,9 +121,13 @@ class TestElement(unittest.TestCase):
             o = Observation({})
 
         # we are strict-- do NOT accept unexpected keys
-        with self.assertRaisesRegex(DataStructureValidationException, 'extra keys'):
+        # unless we pass the `ignore_extra_keys` kwarg
+        with self.assertRaisesRegex(
+            DataStructureValidationException, 'extra keys'):
             o = Observation({'id':'foo', 'other':3})
 
+        # this is fine since we tell it to ignore extra keys
+        o = Observation({'id':'foo', 'other':3}, ignore_extra_keys=True)
     def test_fails_with_bad_id(self):
 
         d =  {

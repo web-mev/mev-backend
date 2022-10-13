@@ -19,6 +19,14 @@ class BaseAttributeType(object):
         except KeyError:
             self._allow_null = False
 
+        # do we allow extra keys (which are ultimately ignored)? 
+        # If not explicitly given, weassume we do NOT allow extras. 
+        # This makes checking very strict.
+        try:
+            self._ignore_extra_keys = bool(kwargs.pop('ignore_extra_keys'))
+        except KeyError:
+            self._ignore_extra_keys = False
+
         # since we will often pop items out of `val`, we 
         # copy it so we don't generate side effects.
         val_copy = deepcopy(val)

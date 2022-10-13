@@ -90,6 +90,58 @@ class TestOperationInputOutput(unittest.TestCase):
             'invalid extra keys: extra'):
             o = OperationOutput(d)
 
+    def test_extra_keys_are_permitted_with_kwarg(self):
+        '''
+        We DO permit extra keyword args (which are ignored)
+        if we pass the correct keyword to the `check_value`
+        method.
+
+        This is particularly relevant for 'complex' types
+        like Observation/FeatureSets. For ex, our frontend
+        application may carry additional data (like color,
+        name, etc.) that are useful for the frontend, but
+        not used on the backend. This makes it a little 
+        easier on the frontend.
+        '''
+        spec = {
+            "attribute_type": "ObservationSet"
+        }
+        input = {
+            "description": "",
+            "name": "",
+            "required": True,
+            "converter": "",
+            "spec": spec
+        }
+        o = OperationInput(input)
+        good_value = {
+            'elements': [
+                {
+                    'id': 'sampleA'
+                }
+            ]
+        }
+        o.check_value(good_value)
+
+        good_value_with_extra = {
+            'color': 'red',
+            'elements': [
+                {
+                    'id': 'sampleA'
+                }
+            ]
+        }
+        # if we don't pass the explicit kwarg, then we raise an ex:
+        with self.assertRaisesRegex(DataStructureValidationException, 'color'):
+            o.check_value(good_value_with_extra)
+        with self.assertRaisesRegex(DataStructureValidationException, 'color'):
+            o.check_value(good_value_with_extra, ignore_extra_keys=False)
+        # if the ignore_extra_keys kwarg is passed, we allow 
+        # extra keys (and ignore them). Also check that it doesn't
+        # modify the actual data structure:
+        o.check_value(good_value_with_extra, ignore_extra_keys=True)
+        self.assertDictEqual(o.to_dict(), input)
+
     def test_required_key_options(self):
         '''
         Test that variations on True/False work

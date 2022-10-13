@@ -61,8 +61,9 @@ class BaseElementSet(BaseAttributeType):
                 ' requires an "elements" key.')
 
         if len(val.keys()) > 0:
-            raise DataStructureValidationException('Received extra key(s):'
-                f' {",".join(val.keys())}')
+            if not self._ignore_extra_keys:
+                raise DataStructureValidationException('Received extra key(s):'
+                    f' {",".join(val.keys())}')
 
         self._value = {
             'elements': self._element_list

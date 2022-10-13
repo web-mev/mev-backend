@@ -114,7 +114,7 @@ class OperationInputOutput(object):
         '''
         return type(self.spec.value) in get_owned_data_resource_types()
 
-    def check_value(self, v):
+    def check_value(self, v, ignore_extra_keys=False):
         '''
         This is the entry method for allowing us to validate
         user-submitted values. 
@@ -141,7 +141,9 @@ class OperationInputOutput(object):
             
         # if this has an issue, it will raise an exception
         # which is caught by the caller
-        AttributeFactory(spec_dict, allow_null=allow_null)
+        AttributeFactory(spec_dict, 
+            allow_null=allow_null, 
+            ignore_extra_keys=ignore_extra_keys)
 
     @property
     def required(self):

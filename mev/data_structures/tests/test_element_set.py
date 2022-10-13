@@ -849,16 +849,27 @@ class TestElementSet(unittest.TestCase):
         self._sub_and_superset_methods_test(ObservationSet)        
         self._sub_and_superset_methods_test(FeatureSet)
 
-    def _reject_extra_keys_test(self, SetClass):
+    def _extra_keys_test(self, SetClass):
         with self.assertRaisesRegex(DataStructureValidationException, 'extra'):
             SetClass({
                 'elements': [],
                 'multiple': True
             })
+        # it's ok to have extra keys if the proper 
+        # kwarg is passed.
+        SetClass({
+            'elements': [],
+            'multiple': True
+        }, ignore_extra_keys=True)
 
-    def test_rejects_extra_keys(self):
-        self._reject_extra_keys_test(ObservationSet)        
-        self._reject_extra_keys_test(FeatureSet)
+    def test_extra_keys(self):
+        '''
+        Tests that extra keys cause an exception
+        to be raised, UNLESS the `ignore_extra_keys` 
+        kwarg is passed
+        '''
+        self._extra_keys_test(ObservationSet)        
+        self._extra_keys_test(FeatureSet)
 
     def _permit_null_attributes_in_elements_test(self, SetClass):
         '''

@@ -26,6 +26,8 @@ attribute_type_mapping.update(
     {x.typename: x for x in attribute_types}
 )
 
-def AttributeFactory(val, allow_null=False):
+def AttributeFactory(val, allow_null=False, ignore_extra_keys=False):
     return BaseAttributeFactory(
-        val, attribute_type_mapping, allow_null=allow_null)
+        val, attribute_type_mapping, 
+        allow_null=allow_null, 
+        ignore_extra_keys=ignore_extra_keys)
