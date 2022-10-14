@@ -640,6 +640,31 @@ class CromwellSingleDataResourceConverter(
             executed_op, workspace, output_definition, output_val)
 
 
+class CromwellSingleVariableDataResourceConverter(
+    BaseResourceConverter,
+    CromwellResourceMixin,
+    SingleDataResourceMixin,
+    VariableDataResourceMixin
+):
+    '''
+    This converter takes a VariableDataResource instance 
+    (for a single file,which is simply a UUID) and returns 
+    the path to the file in cloud storage.
+    '''
+
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self._convert_resource_input(user_input, staging_dir)
+
+    def convert_output(
+            self, executed_op, workspace, output_definition, output_val):
+        '''
+        This converts a single output resource (a path) to a Resource instance
+        and returns the pk/UUID for that newly created database resource.
+        '''
+        return self._convert_output(
+            executed_op, workspace, output_definition, output_val)
+
+
 class CromwellMultipleDataResourceConverter(
         BaseResourceConverter,
         CromwellResourceMixin,
