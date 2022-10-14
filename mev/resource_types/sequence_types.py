@@ -23,7 +23,7 @@ class SequenceResource(DataResource):
     remotely
     '''
     @classmethod
-    def validate_type(cls, resource_path, file_format):
+    def validate_type(cls, resource_instance, file_format):
         pass
 
     def extract_metadata(self, resource_instance, parent_op_pk=None):
@@ -57,7 +57,7 @@ class FastAResource(SequenceResource):
     ]
     STANDARD_FORMAT = FASTA_FORMAT
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         pass
 
 class FastQResource(SequenceResource):
@@ -73,7 +73,7 @@ class FastQResource(SequenceResource):
     ]
     STANDARD_FORMAT = FASTQ_FORMAT
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         pass
 
 
@@ -90,5 +90,5 @@ class AlignedSequenceResource(SequenceResource):
     ]
     STANDARD_FORMAT = BAM_FORMAT
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         pass

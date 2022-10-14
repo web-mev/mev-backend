@@ -119,6 +119,10 @@ class RemoteCromwellRunner(OperationRunner):
             image_split = image_prefix.split('/')
             if len(image_split) == 3:
                 docker_repo, username, image_name = image_split
+            elif len(image_split) == 2:
+                # handles situations like choosing docker.io/ubuntu:bionic
+                # where there is effectively no 'username'
+                docker_repo, image_name = image_split
             else:
                 err_msg = ('Could not properly handle the following docker'
                     f' image spec: {full_image_name}.\nBe sure to include'

@@ -170,8 +170,8 @@ class S3ResourceStorage(S3Boto3Storage):
                 is_active=False
             )
         dest_obj = r.datafile.name
-        logger.info(f'For interbucket copy, empty placeholder is'
-            ' located at: {dest_obj}')
+        logger.info('For interbucket copy, empty placeholder is'
+            f' located at: {dest_obj}')
         try:
             self.copy_to_storage(
                 src_bucket,

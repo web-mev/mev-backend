@@ -14,7 +14,7 @@ class GeneralResource(DataResource):
     ]
     DESCRIPTION = GENERAL_DESCRIPTION
     
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         '''
         Since we cannot validate an unknown type, simply return the trivial tuple
         indicating that it "passed" validation

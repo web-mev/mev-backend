@@ -109,13 +109,13 @@ class JsonResource(DataResource):
         '''
         return True
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
 
         try:
             logger.info('Using python-native JSON loader to read'
-                f' resource: {resource_path}')
-            j = json.load(open(resource_path))
-            logger.info(f'Successfully parsed {resource_path} as JSON.')
+                f' resource: {resource_instance.pk}')
+            j = json.load(resource_instance.datafile.open())
+            logger.info(f'Successfully parsed {resource_instance.pk} as JSON.')
             return (True, None)
         except json.decoder.JSONDecodeError as ex:
             logger.info('Failed to parse JSON-based resource.')

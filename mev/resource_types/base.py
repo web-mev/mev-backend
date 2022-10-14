@@ -9,7 +9,7 @@ class DataResource(object):
 
     STANDARD_FORMAT = UNSPECIFIED_FORMAT
 
-    def validate_type(self, resource_path, file_format):
+    def validate_type(self, resource_instance, file_format):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 
