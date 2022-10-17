@@ -80,6 +80,13 @@ class mevapi (
 
   if $platform == 'aws' {
 
+    # https://forge.puppetlabs.com/puppetlabs/lvm
+    filesystem { $data_volume_device_name:
+      ensure  => present,
+      fs_type => 'ext4',
+      before  => File[$data_root],
+    }
+
     mount { $data_root:
       ensure  => mounted,
       device  => $data_volume_device_name,
