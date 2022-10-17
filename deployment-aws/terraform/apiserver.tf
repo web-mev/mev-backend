@@ -69,7 +69,7 @@ resource "aws_ebs_volume" "data_volume" {
 }
 
 resource "aws_volume_attachment" "data_ebs_attachment" {
-  device_name           = "${data_volume_device_name}"
+  device_name           = var.data_volume_device_name
   volume_id             = aws_ebs_volume.data_volume.id
   instance_id           = aws_instance.api.id
 }
@@ -137,6 +137,7 @@ resource "aws_instance" "api" {
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
   export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
+  export FACTER_DATA_VOLUME_DEVICE_NAME='${var.data_volume_device_name}'
   export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
   export FACTER_DJANGO_SETTINGS_MODULE='${var.django_settings_module}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
