@@ -57,6 +57,23 @@ resource "aws_iam_instance_profile" "api_server_instance_profile" {
   role = aws_iam_role.api_server_role.name
 }
 
+resource "aws_ebs_volume" "data_volume" {
+  availability_zone = "${data.aws_region.current.name}a"
+  size              = 100
+  type              = "gp3"
+  final_snapshot    = true
+  snapshot_id       = var.data_volume_snapshot_id
+  tags = {
+    Name = "${local.common_tags.Name}-ebs"
+  }
+}
+
+resource "aws_volume_attachment" "data_ebs_attachment" {
+  device_name           = "${data_volume_device_name}"
+  volume_id             = aws_ebs_volume.data_volume.id
+  instance_id           = aws_instance.api.id
+}
+
 resource "aws_instance" "api" {
   # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
   ami                    = "ami-07f84a50d2dec2fa4"
