@@ -33,9 +33,6 @@ FORGE
       puppetlabs-stdlib (>= 4.24.0, < 9.0.0)
     puppetlabs-inifile (5.4.0)
       puppetlabs-stdlib (>= 4.13.0, < 9.0.0)
-    puppetlabs-lvm (1.4.0)
-      puppetlabs-mount_core (>= 1.0.0, < 2.0.0)
-      puppetlabs-stdlib (>= 4.13.1, < 7.0.0)
     puppetlabs-mount_core (1.1.0)
     puppetlabs-postgresql (8.1.0)
       puppetlabs-apt (>= 2.0.0, < 9.0.0)
@@ -63,7 +60,7 @@ PATH
       puppet-python (= 6.2.1)
       puppet-rabbitmq (= 12.0.0)
       puppetlabs-docker (= 4.4.0)
-      puppetlabs-lvm (= 1.4.0)
+      puppetlabs-mount_core (= 1.1.0)
       puppetlabs-postgresql (= 8.1.0)
       puppetlabs-stdlib (= 6.6.0)
 

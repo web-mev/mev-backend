@@ -89,6 +89,7 @@ class mevapi (
     mount { $data_root:
       ensure  => mounted,
       device  => $data_volume_device_name,
+      fstype  => 'ext4',
       options => 'defaults',
       require => File[$data_root],
     }
