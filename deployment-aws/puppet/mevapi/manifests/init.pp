@@ -86,7 +86,7 @@ class mevapi (
       before  => File[$data_root],
     }
 
-    mount { $data_dir:
+    mount { $data_root:
       ensure  => mounted,
       device  => $data_volume_device_name,
       options => 'defaults',
@@ -96,7 +96,7 @@ class mevapi (
       ensure => directory,
       owner  => $app_user,
       group  => $app_group,
-      require => Mount[$data_dir]
+      require => Mount[$data_root]
     }
   }
 
