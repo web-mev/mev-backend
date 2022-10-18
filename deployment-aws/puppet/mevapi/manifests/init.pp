@@ -17,6 +17,8 @@ class mevapi (
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,
   String                  $database_user_password,
+  String                  $data_root = '/data',
+  String                  $data_volume_device_name,
   String                  $django_cors_origins,
   Optional[String]        $django_settings_module,
   String                  $django_superuser_password,
@@ -49,7 +51,14 @@ class mevapi (
     group  => $app_group,
   }
 
-  $data_root = '/data'
+  # create the directory where ephemeral data will live
+  file { $data_root:
+    ensure => directory,
+    owner  => $app_user,
+    group  => $app_group,
+  }
+
+  # other directories that live under that data dir
   $data_dirs = [
     "${data_root}/pending_user_uploads",
     "${data_root}/resource_validation_tmp",
@@ -58,11 +67,40 @@ class mevapi (
     "${data_root}/operations",
     "${data_root}/operation_executions",
     "${data_root}/public_data",
+    "${data_root}/docker",
   ]
-  file { concat([$data_root], $data_dirs):
-    ensure => directory,
-    owner  => $app_user,
-    group  => $app_group,
+
+  if $platform == 'virtualbox' {
+    file { $data_dirs:
+      ensure => directory,
+      owner  => $app_user,
+      group  => $app_group,
+      require => File[$data_root]
+    }
+  }
+
+  if $platform == 'aws' {
+
+    # https://forge.puppetlabs.com/puppetlabs/lvm
+    filesystem { $data_volume_device_name:
+      ensure  => present,
+      fs_type => 'ext4',
+      before  => File[$data_root],
+    }
+
+    mount { $data_root:
+      ensure  => mounted,
+      device  => $data_volume_device_name,
+      fstype  => 'ext4',
+      options => 'defaults',
+      require => File[$data_root],
+    }
+    file { $data_dirs:
+      ensure => directory,
+      owner  => $app_user,
+      group  => $app_group,
+      require => Mount[$data_root]
+    }
   }
 
   if $platform == 'virtualbox' {
@@ -105,6 +143,7 @@ class mevapi (
 
   class { 'docker':
     docker_users => [$app_user],
+    root_dir     => "${data_root}/docker"
   }
 
   contain mevapi::django

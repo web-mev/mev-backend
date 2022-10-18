@@ -57,6 +57,23 @@ resource "aws_iam_instance_profile" "api_server_instance_profile" {
   role = aws_iam_role.api_server_role.name
 }
 
+resource "aws_ebs_volume" "data_volume" {
+  availability_zone = "${data.aws_region.current.name}a"
+  size              = 100
+  type              = "gp3"
+  final_snapshot    = true
+  snapshot_id       = var.data_volume_snapshot_id
+  tags = {
+    Name = "${local.common_tags.Name}-ebs"
+  }
+}
+
+resource "aws_volume_attachment" "data_ebs_attachment" {
+  device_name           = var.data_volume_device_name
+  volume_id             = aws_ebs_volume.data_volume.id
+  instance_id           = aws_instance.api.id
+}
+
 resource "aws_instance" "api" {
   # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
   ami                    = "ami-07f84a50d2dec2fa4"
@@ -73,6 +90,7 @@ resource "aws_instance" "api" {
   volume_tags = merge(local.common_tags, { Name = "${local.common_tags.Name}-api" })
   root_block_device {
     volume_type = "gp3"
+    volume_size = 12
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT
@@ -89,7 +107,7 @@ resource "aws_instance" "api" {
   /usr/bin/curl -sO "https://apt.puppetlabs.com/puppet7-release-$CODENAME.deb"
   /usr/bin/dpkg -i "puppet7-release-$CODENAME.deb"
   /usr/bin/apt-get -qq update
-  /usr/bin/apt-get -qq -y install puppet-agent
+  /usr/bin/apt-get -qq -y install puppet-agent nvme-cli
 
   # configure WebMEV
   export PROJECT_ROOT=/srv/mev-backend
@@ -109,6 +127,10 @@ resource "aws_instance" "api" {
   PATH=$PATH:/opt/puppetlabs/bin
   /opt/puppetlabs/puppet/bin/librarian-puppet install
 
+  # get the volume ID for the attached EBS volume (non-root)
+  EBS_VOLUME_ID='${aws_ebs_volume.data_volume.id}'
+  DEVICE_ID=$(python3 $PROJECT_ROOT/etc/get_device_id.py -i $EBS_VOLUME_ID)
+
   # configure and run Puppet
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
@@ -120,6 +142,7 @@ resource "aws_instance" "api" {
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
   export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
+  export FACTER_DATA_VOLUME_DEVICE_NAME=$DEVICE_ID
   export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
   export FACTER_DJANGO_SETTINGS_MODULE='${var.django_settings_module}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'

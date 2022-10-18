@@ -19,11 +19,6 @@ resource "aws_iam_role_policy_attachment" "batch_instance_container_service" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
-resource "aws_iam_role_policy_attachment" "batch_instance_s3" {
-  role       = aws_iam_role.batch_instance.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-}
-
 resource "aws_iam_role_policy_attachment" "batch_instance_ssm" {
   role       = aws_iam_role.batch_instance.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
@@ -48,6 +43,17 @@ resource "aws_iam_role_policy" "batch_instance_s3_access" {
             "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}/*"
           ],
           Action = "s3:*"
+        },
+        {
+          Effect   = "Allow",
+          Resource = [
+            "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}",
+            "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*"
+          ],
+          Action = [
+            "s3:Get*",
+            "s3:List*"
+          ]
         },
         {
           Effect   = "Deny",
