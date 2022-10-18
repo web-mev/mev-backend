@@ -142,7 +142,8 @@ class mevapi (
   }
 
   class { 'docker':
-    docker_users => [$app_user]
+    docker_users => [$app_user],
+    root_dir     => "${data_root}/docker"
   }
 
   contain mevapi::django

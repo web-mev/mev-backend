@@ -90,6 +90,7 @@ resource "aws_instance" "api" {
   volume_tags = merge(local.common_tags, { Name = "${local.common_tags.Name}-api" })
   root_block_device {
     volume_type = "gp3"
+    volume_size = 12
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT
