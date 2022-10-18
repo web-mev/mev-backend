@@ -5,7 +5,7 @@ node /api/ {
     backend_domain              => $facts['backend_domain'],
     container_registry          => $facts['container_registry'],
     cromwell_bucket_name        => $facts['cromwell_bucket_name'],
-    cromwell_server_url         => $facts['cromwell_server_url'],
+    cromwell_server_ip         => $facts['cromwell_server_ip'],
     database_host               => $facts['database_host'],
     database_superuser          => $facts['database_superuser'],
     database_superuser_password => $facts['database_superuser_password'],

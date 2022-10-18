@@ -115,7 +115,7 @@ resource "aws_instance" "api" {
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
   export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
   export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
-  export FACTER_CROMWELL_SERVER_URL='${aws_instance.cromwell.private_ip}'
+  export FACTER_CROMWELL_SERVER_IP='${aws_instance.cromwell.private_ip}'
   export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'

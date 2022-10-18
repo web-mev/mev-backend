@@ -12,7 +12,7 @@ class mevapi (
   String                  $backend_domain,
   Optional[String]        $container_registry = 'github',
   String                  $cromwell_bucket_name,
-  String                  $cromwell_server_url,
+  String                  $cromwell_server_ip,
   String                  $database_host,
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,

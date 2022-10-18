@@ -285,7 +285,8 @@ if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
 
     # ensure we have the proper variables to work with Cromwell
     CROMWELL_BUCKET_NAME = get_env('CROMWELL_BUCKET_NAME')
-    CROMWELL_SERVER_URL = get_env('CROMWELL_SERVER_URL')
+    CROMWELL_SERVER_IP = get_env('CROMWELL_SERVER_IP')
+    CROMWELL_SERVER_URL = f'http://{CROMWELL_SERVER_IP}:8000'
 else:
     ENABLE_REMOTE_JOBS = False
 
