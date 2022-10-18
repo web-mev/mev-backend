@@ -106,7 +106,7 @@ resource "aws_instance" "api" {
   /usr/bin/curl -sO "https://apt.puppetlabs.com/puppet7-release-$CODENAME.deb"
   /usr/bin/dpkg -i "puppet7-release-$CODENAME.deb"
   /usr/bin/apt-get -qq update
-  /usr/bin/apt-get -qq -y install puppet-agent
+  /usr/bin/apt-get -qq -y install puppet-agent nvme-cli
 
   # configure WebMEV
   export PROJECT_ROOT=/srv/mev-backend
@@ -126,6 +126,10 @@ resource "aws_instance" "api" {
   PATH=$PATH:/opt/puppetlabs/bin
   /opt/puppetlabs/puppet/bin/librarian-puppet install
 
+  # get the volume ID for the attached EBS volume (non-root)
+  EBS_VOLUME_ID='${aws_ebs_volume.data_volume.id}'
+  DEVICE_ID=$(python3 $PROJECT_ROOT/etc/get_device_id.py -i $EBS_VOLUME_ID)
+
   # configure and run Puppet
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
@@ -137,7 +141,7 @@ resource "aws_instance" "api" {
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
   export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
-  export FACTER_DATA_VOLUME_DEVICE_NAME='${var.data_volume_device_name}'
+  export FACTER_DATA_VOLUME_DEVICE_NAME=$DEVICE_ID
   export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
   export FACTER_DJANGO_SETTINGS_MODULE='${var.django_settings_module}'
   export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
