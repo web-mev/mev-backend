@@ -20,11 +20,6 @@ variable "container_registry" {
   default     = "github"
 }
 
-variable "data_volume_device_name" {
-  description = "Device name for the EBS data volume"
-  default     = "/dev/sdh"
-}
-
 variable "data_volume_snapshot_id" {
   description = "Snapshot ID for the data volume. Used to persist data between deployments."
   default     = null

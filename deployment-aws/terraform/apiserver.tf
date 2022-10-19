@@ -69,7 +69,12 @@ resource "aws_ebs_volume" "data_volume" {
 }
 
 resource "aws_volume_attachment" "data_ebs_attachment" {
-  device_name           = var.data_volume_device_name
+  # a valid device name-- note that this is NOT the device name
+  # that you will see on aws_instance.api. That is typically
+  # something like /dev/nvme1n1. We still need to supply a device
+  # name here, however.
+  # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
+  device_name           = "/dev/sdh"
   volume_id             = aws_ebs_volume.data_volume.id
   instance_id           = aws_instance.api.id
 }
