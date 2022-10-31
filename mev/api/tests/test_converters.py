@@ -1,4 +1,4 @@
-import resource
+import json
 import unittest.mock as mock
 import uuid
 
@@ -39,6 +39,9 @@ from api.converters.element_set import ObservationSetCsvConverter, \
     FeatureSetCsvConverter, \
     ObservationSetListConverter, \
     FeatureSetListConverter
+
+from api.converters.json_converters import JsonConverter
+
 from api.tests.base import BaseAPITestCase
 
 
@@ -1058,3 +1061,28 @@ class TestDataResourceConverter(BaseAPITestCase):
             str(r.pk),
             mock_staging_dir
         )
+
+class TestJsonConverter(BaseAPITestCase):
+
+    def test_json_output(self):
+        '''
+        Tools can output a nested json data structure. That is,
+        for local outputs, we have `outputs.json` which contains
+        information like paths to output files, etc.
+
+        Inside that, a key can address a json structure.
+
+        Note that failures to properly nest the JSON will raise 
+        exceptions when the file is read by the built-in json lib.
+
+        This catches the situation where the addressed item is not,
+        in fact, valid json
+        '''
+        
+        c = JsonConverter()
+        mock_executed_op = mock.MagicMock()
+        mock_workspace = mock.MagicMock()
+        o = None
+        j = 'abc'
+        with self.assertRaises(json.decoder.JSONDecodeError):
+            c.convert_output(mock_executed_op, mock_workspace, o, j)
