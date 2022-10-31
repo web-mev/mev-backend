@@ -53,8 +53,9 @@ class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     op_dir = os.path.join(THIS_DIR, 'local_dropbox_upload')
 
     def __init__(self):
-        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for local storage')\
+        op = OperationDbModel.objects.filter(name='Dropbox upload app for local storage')\
             .latest('addition_datetime')
+        self.op_id = str(op.pk)
         super().__init__()
 
 
@@ -123,8 +124,9 @@ class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
     op_dir = os.path.join(THIS_DIR, 'gcp_bucket_dropbox_upload')
 
     def __init__(self):
-        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for GCP')\
+        op = OperationDbModel.objects.filter(name='Dropbox upload app for GCP')\
             .latest('addition_datetime')
+        self.op_id = str(op.pk)
         super().__init__()
 
     def rename_inputs(self, user, data):
@@ -194,8 +196,9 @@ class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):
     op_dir = os.path.join(THIS_DIR, 'aws_bucket_dropbox_upload')
 
     def __init__(self):
-        self.op_id = OperationDbModel.objects.filter(name='Dropbox upload app for AWS')\
+        op = OperationDbModel.objects.filter(name='Dropbox upload app for AWS')\
             .latest('addition_datetime')
+        self.op_id = str(op.pk)
         super().__init__()
 
     def rename_inputs(self, user, data):
