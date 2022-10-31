@@ -6,6 +6,7 @@
             "description": "The Dropbox download link.", 
             "name": "Link", 
             "required": true, 
+            "converter": "api.converters.basic_attributes.UnrestrictedStringConverter",
             "spec": {
                 "attribute_type": "UnrestrictedString" 
             }
@@ -14,6 +15,7 @@
             "description": "The filename of the file.", 
             "name": "File name", 
             "required": true, 
+            "converter": "api.converters.basic_attributes.UnrestrictedStringConverter",
             "spec": {
                 "attribute_type": "UnrestrictedString" 
             }
@@ -22,6 +24,7 @@
     "outputs": {
         "AWSDropboxUpload.uploaded_file": {
             "required": true,
+            "converter": "api.converters.data_resource.CromwellSingleDataResourceConverter",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "*",
