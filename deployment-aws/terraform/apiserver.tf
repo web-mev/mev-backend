@@ -1,5 +1,5 @@
 resource "random_password" "django_superuser" {
-  length  = 8
+  length  = 12
   special = false
 }
 
