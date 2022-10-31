@@ -123,7 +123,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         # call the tested function:
         rcr = RemoteCromwellRunner()
         mock_op_dir = '/abc/'
-        with self.assertRaisesRegex(Exception, 'registry prefix'):
+        with self.assertRaisesRegex(Exception, 'did not correspond to any docker registry we are aware of'):
             rcr.prepare_operation(mock_op_dir, 'my-repo', '')
 
     @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
@@ -148,25 +148,30 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
 
 
     @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
-    def test_preparation_case4(self, mock_get_docker_images_in_repo):
+    @mock.patch('api.runners.remote_cromwell.check_image_exists')
+    def test_preparation_case4(self, \
+        mock_check_image_exists, \
+        mock_get_docker_images_in_repo):
         '''
         Tests that the proper calls are made when ingesting a workflow 
         intended to run via a remote Cromwell call.
 
-        Here, we test that a failure to specify the docker repo raises
-        an exception. We can't guess that they'll come from Dockerhub, GCR, etc.
+        Here, we test the situation where we are using a docker image that
+        does not contain a "username". Examples like this include basic/canned
+        Docker images like docker.io/ubuntu:bionic
         '''
         # here, mock that the image string is malformatted (e.g. is missing
         # the account/user ID)
+        image_name = 'docker.io/ubuntu:bionic'
         mock_get_docker_images_in_repo.return_value = [
-            'ghcr.io/my-repo:a',
+            image_name,
         ]
 
         # call the tested function:
         rcr = RemoteCromwellRunner()
         mock_op_dir = '/abc/'
-        with self.assertRaisesRegex(Exception, 'org account'):
-            rcr.prepare_operation(mock_op_dir, 'my-repo', '')
+        rcr.prepare_operation(mock_op_dir, 'my-repo', '')
+        mock_check_image_exists.assert_called_with(image_name)
 
     @mock.patch('api.runners.remote_cromwell.get_docker_images_in_repo')
     @mock.patch('api.runners.remote_cromwell.check_image_exists')

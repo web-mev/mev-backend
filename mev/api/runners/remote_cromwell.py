@@ -106,9 +106,13 @@ class RemoteCromwellRunner(OperationRunner):
             if len(split_full_name) == 2: #if a tag is specified
                 image_prefix, tag = split_full_name
                 image_is_tagged = True
+                logger.info('Docker image was tagged.'
+                    f'Image name was {image_prefix} with tag {tag}')
             elif len(split_full_name) == 1: # if no tag
                 image_prefix = split_full_name[0]
                 image_is_tagged = False
+                logger.info('Docker image was NOT tagged.'
+                    f'Image name was {image_prefix}.')
             else:
                 logger.error('Could not properly handle the following docker'
                     f' image spec: {full_image_name}')

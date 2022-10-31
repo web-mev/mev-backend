@@ -34,6 +34,6 @@ def infer_container_registry_based_on_prefix(prefix):
         # return an instance of the class. The prefix map has the class object, NOT an instance
         return REGISTRY_PREFIX_MAP[prefix]()
     except KeyError as ex:
-        raise Exception('The prefix {p} did not correspond to any'
+        raise Exception(f'The prefix "{prefix}" did not correspond to any'
             ' docker registry we are aware of.'
         )

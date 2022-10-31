@@ -77,6 +77,9 @@ class LocalDockerRunner(OperationRunner):
                         ' found.')
             raise Exception('The outputs file was not found. An administrator'
                             ' should check the analysis operation.')
+        except json.decoder.JSONDecodeError:
+            raise Exception('There was an issue preparing the outputs. An administrator'
+                ' has been notified to resolve this.')
 
     def finalize(self, executed_op, op):
         '''
