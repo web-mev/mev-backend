@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 # a key used to locate the proper uploader
 DROPBOX = '__dbx__'
 
+
 class DropboxUploadMixin(object):
 
     def validate(self, user, inputs):
@@ -23,12 +24,7 @@ class DropboxUploadMixin(object):
         try:
             validated_inputs = validate_operation_inputs(user, inputs, op, None)
             logger.info('Validated inputs: {v}'.format(v=validated_inputs))
-            dict_representation = {}
-            for k,v in validated_inputs.items():
-                if v:
-                    dict_representation[k] = v.get_value()
-            logger.info('dict representation of inputs: {d}'.format(d=dict_representation))
-            return dict_representation
+            return validated_inputs
             
         except ValidationError as ex:
             # This is double-guarding as we *should be* properly mapping above.

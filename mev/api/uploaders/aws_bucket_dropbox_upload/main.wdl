@@ -39,7 +39,7 @@ task upload {
     }
 
     output {
-        String fout = ${fname}
+        File fout = "${fname}"
     }
 
     runtime {
@@ -47,6 +47,5 @@ task upload {
         cpu: 1
         memory: "4 G"
         disks: "local-disk " + disk_size + " HDD"
-        preemptible: 0
     }
 }
