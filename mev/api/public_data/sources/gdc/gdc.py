@@ -500,6 +500,16 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
             diagnoses_df = diagnoses_df.drop('project_id', axis=1)
             demographic_df = demographic_df.drop('project_id', axis=1)
 
+            # there can be multiple files associated with a single aliquot. Hence, these lines
+            # perform a 'aliquot-aware' de-duplication of the table. If we don't include the aliquot ID
+            # as a real column (which we do via the reset_index method), it will drop more rows than
+            # we want since they are often quite sparse and rows will 'match' despite corresponding
+            # to different aliquots.
+            exposure_df = exposure_df.reset_index().drop_duplicates().set_index('index', drop=True)
+            diagnoses_df = diagnoses_df.reset_index().drop_duplicates().set_index('index', drop=True)
+            demographic_df = demographic_df.reset_index().drop_duplicates().set_index('index', drop=True)
+            project_df = project_df.reset_index().drop_duplicates().set_index('index', drop=True)
+
             # Now merge all the dataframes (concatenate horizontally)
             # to get the full metadata/annotations
             ann_df = pd.concat([
