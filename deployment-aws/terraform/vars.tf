@@ -74,3 +74,21 @@ variable "storage_location" {
   type        = string
   default     = "remote"
 }
+
+variable database_superuser_password {
+  description = "Root password for database"
+  type        = string
+  sensitive   = true
+}
+
+variable database_password {
+  description = "Password for mev database user"
+  type        = string
+  sensitive   = true
+}
+
+variable django_superuser_password {
+  description = "Django superuser password"
+  type        = string
+  sensitive   = true
+}

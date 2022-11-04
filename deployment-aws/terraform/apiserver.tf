@@ -1,8 +1,3 @@
-resource "random_password" "django_superuser" {
-  length  = 12
-  special = false
-}
-
 # This allows the EC2 instance to assume a particular role.
 # This enables us, for instance, to give the EC2 server 
 # permissions to access the S3 buckets. Note that this block alone
@@ -145,12 +140,13 @@ resource "aws_instance" "api" {
   export FACTER_CROMWELL_SERVER_IP='${aws_instance.cromwell.private_ip}'
   export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
-  export FACTER_DATABASE_SUPERUSER_PASSWORD='${random_password.database_superuser.result}'
-  export FACTER_DATABASE_USER_PASSWORD='${random_password.database_user.result}'
+  export FACTER_DATABASE_SUPERUSER_PASSWORD='${var.database_superuser_password}'
+  export FACTER_DATABASE_USER_PASSWORD='${var.database_password}'
   export FACTER_DATA_VOLUME_DEVICE_NAME=$DEVICE_ID
   export FACTER_DJANGO_CORS_ORIGINS='https://${var.frontend_domain},${var.additional_cors_origins}'
   export FACTER_DJANGO_SETTINGS_MODULE='${var.django_settings_module}'
-  export FACTER_DJANGO_SUPERUSER_PASSWORD='${random_password.django_superuser.result}'
+  export FACTER_DJANGO_SUPERUSER_EMAIL='${var.django_superuser_email}'
+  export FACTER_DJANGO_SUPERUSER_PASSWORD='${var.django_superuser_password}'
   export FACTER_ENABLE_REMOTE_JOB_RUNNERS='${var.enable_remote_job_runners}'
   export FACTER_EMAIL_HOST_USER="${aws_iam_access_key.ses_user.id}"
   export FACTER_EMAIL_HOST_PASSWORD="${aws_iam_access_key.ses_user.ses_smtp_password_v4}"

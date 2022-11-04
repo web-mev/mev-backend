@@ -13,6 +13,7 @@ node /api/ {
     data_volume_device_name     => $facts['data_volume_device_name'],
     django_cors_origins         => $facts['django_cors_origins'],
     django_settings_module      => $facts['django_settings_module'],
+    django_superuser_email      => $facts['django_superuser_email'],
     django_superuser_password   => $facts['django_superuser_password'],
     email_host_user             => $facts['email_host_user'],
     email_host_password         => $facts['email_host_password'],

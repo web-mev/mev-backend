@@ -21,6 +21,7 @@ class mevapi (
   String                  $data_volume_device_name,
   String                  $django_cors_origins,
   Optional[String]        $django_settings_module,
+  String                  $django_superuser_email,
   String                  $django_superuser_password,
   Optional[String]        $email_host = '',
   Optional[String]        $email_host_user = '',

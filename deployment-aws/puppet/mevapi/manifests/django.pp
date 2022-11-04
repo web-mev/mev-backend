@@ -47,7 +47,7 @@ class mevapi::django () {
   }
   ->
   exec { 'superuser':
-    command     => "${manage} superuser --noinput --email ${mevapi::admin_email_csv}",
+    command     => "${manage} superuser --noinput --email ${mevapi::django_superuser_email}",
     environment => ["DJANGO_SUPERUSER_PASSWORD=${mevapi::django_superuser_password}"],
     user        => $mevapi::app_user,
     group       => $mevapi::app_group,
