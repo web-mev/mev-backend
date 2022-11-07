@@ -17,3 +17,27 @@ resource "aws_s3_bucket_cors_configuration" "storage_bucket_cors" {
     max_age_seconds = 3000
   }
 }
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "main_storage_encryption_config" {
+  bucket = aws_s3_bucket.api_storage_bucket.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.main_storage_kms_key.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "cromwell_storage_encryption_config" {
+  bucket = aws_s3_bucket.cromwell_storage_bucket.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.cromwell_storage_kms_key.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
+}
