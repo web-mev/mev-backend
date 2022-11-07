@@ -176,6 +176,9 @@ resource "aws_instance" "cromwell" {
   volume_tags = merge(local.common_tags, { Name = "${local.common_tags.Name}-cromwell" })
   root_block_device {
     volume_type = "gp3"
+    volume_size = 20
+    encrypted   = true
+    kms_key_id  = aws_kms_key.cromwellroot_ebs_kms_key.arn
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT

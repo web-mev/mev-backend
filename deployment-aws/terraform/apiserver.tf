@@ -81,6 +81,8 @@ resource "aws_ebs_volume" "data_volume" {
   type              = "gp3"
   final_snapshot    = true
   snapshot_id       = var.data_volume_snapshot_id
+  encrypted         = true
+  kms_key_id        = aws_kms_key.ebs_kms_key.arn
   tags = {
     Name = "${local.common_tags.Name}-ebs"
   }
@@ -114,6 +116,8 @@ resource "aws_instance" "api" {
   root_block_device {
     volume_type = "gp3"
     volume_size = 12
+    encrypted   = true
+    kms_key_id  = aws_kms_key.apiroot_ebs_kms_key.arn
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT
