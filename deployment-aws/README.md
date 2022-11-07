@@ -60,10 +60,10 @@ Create a private S3 bucket named `webmev-terraform` to store Terraform state and
 aws s3 mb s3://webmev-terraform --region us-east-2
 aws s3api put-bucket-tagging --bucket webmev-terraform --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
 ```
-Create a private S3 bucket named `webmev-logs` to store access logs:
+Create a private S3 bucket for storing access logs. Below (and in the terraform files), we use `webmev-backend-logs`, but change as necessary. Note that the default value of `log_bucket_name` (in `vars.tf`) is set to this value, so ensure that this matches.
 ```shell
-aws s3 mb s3://webmev-logs --region us-east-2
-aws s3api put-bucket-tagging --bucket webmev-logs --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
+aws s3 mb s3://webmev-backend-logs --region us-east-2
+aws s3api put-bucket-tagging --bucket webmev-backend-logs --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
 ```
 Apply policy to the log bucket to [allow storing load balancer logs](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-logging-bucket-permissions):
 ```json
@@ -76,7 +76,7 @@ Apply policy to the log bucket to [allow storing load balancer logs](https://doc
         "AWS": "arn:aws:iam::033677994240:root"
       },
       "Action": "s3:PutObject",
-      "Resource": "arn:aws:s3:::webmev-logs/*/AWSLogs/<aws-account-id>/*"
+      "Resource": "arn:aws:s3:::webmev-backend-logs/*/AWSLogs/<aws-account-id>/*"
     }
   ]
 }
@@ -90,3 +90,13 @@ Apply policy to the log bucket to [allow storing load balancer logs](https://doc
 [Create an EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html) for each stack (e.g., `dev-webmev.pem`, `prod-webmev.pem`, etc) using AWS Console
 
 [Create a service-linked role for AWS Batch](https://docs.aws.amazon.com/batch/latest/userguide/using-service-linked-roles.html#create-slr)
+
+
+## Notes on redeployment
+
+Note the following assumptions, based on the terraform plan:
+- Terraform will *not* destroy the main storage and Cromwell buckets if they have any objects. Hence, `terraform destroy` will preserve the bucket-based files. This is the default behavior unless `force_destroy=true` in `terraform/storage.tf`.
+- As part of destroy, terraform creates a snapshot of the EBS volume holding the data (typically mounted at `/data`).
+- As part of destroy, terraform creates a snapshot the database.
+
+If you wish to redeploy, we have the option of restoring state via `data_volume_snapshot_id` (for using a snapshot as our EBS "data volume") and `database_snapshot`. If those are not specified in your `tfvars`, they default to `null`, which means Terraform will create a new data volume and/or RDS instance.
