@@ -92,3 +92,8 @@ variable django_superuser_password {
   type        = string
   sensitive   = true
 }
+
+variable database_snapshot {
+  description = "RDS snapshot ID"
+  default = null
+}

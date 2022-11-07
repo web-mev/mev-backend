@@ -15,4 +15,5 @@ resource "aws_db_instance" "default" {
   final_snapshot_identifier  = "${local.common_tags.Name}-final-${random_id.database_snapshot.hex}"
   db_subnet_group_name       = aws_db_subnet_group.default.name
   vpc_security_group_ids     = [aws_security_group.database.id]
+  snapshot_identifier        = var.database_snapshot
 }
