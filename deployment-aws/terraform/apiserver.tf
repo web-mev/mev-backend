@@ -47,6 +47,29 @@ resource "aws_iam_role_policy" "server_s3_access" {
   )
 }
 
+resource "aws_iam_role_policy" "server_kms_access" {
+  name =  "AllowKMSEncryptDecryptByAPIServer"
+  role = aws_iam_role.api_server_role.id
+  policy = jsonencode(
+    {
+      Version   =  "2012-10-17",
+      Statement = [
+        {
+          Effect = "Allow",
+          Action = [
+            "kms:GenerateDataKey",
+            "kms:Decrypt"            
+          ],
+          Resource  = [
+            aws_kms_key.main_storage_kms_key.arn,
+            aws_kms_key.cromwell_storage_kms_key.arn
+          ]
+        }
+      ]
+    }
+  )
+}
+
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
   name = "${local.common_tags.Name}-api"
   role = aws_iam_role.api_server_role.name
