@@ -41,3 +41,76 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cromwell_storage_
     bucket_key_enabled = true
   }
 }
+
+resource "aws_s3_bucket_policy" "allow_cloudtrail_logging"  {
+  bucket = data.aws_s3_bucket.s3_logging_bucket.id
+  policy = data.aws_iam_policy_document.allow_cloud_trail_logging_policy.json
+}
+
+data "aws_s3_bucket" "s3_logging_bucket" {
+  bucket = var.log_bucket_name
+}
+
+
+data "aws_iam_policy_document" "allow_cloud_trail_logging_policy" {
+  
+  statement {
+
+    sid = "AWSCloudTrailAclCheck"
+
+    principals {
+      type = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    effect = "Allow"
+
+    actions = [
+      "s3:GetBucketAcl"
+    ]
+
+    resources = [
+      "arn:aws:s3:::${var.log_bucket_name}"
+    ]
+
+    condition {
+      test = "StringEquals"
+      variable = "aws:SourceArn"
+      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${aws_cloudtrail.webmev-cloudtrail.id}"]
+    }
+
+  }
+
+  statement {
+
+    sid = "AWSCloudTrailWrite"
+
+    principals {
+      type = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject"
+    ]
+
+    resources = [
+      "arn:aws:s3:::${var.log_bucket_name}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+    ]
+
+    condition  {
+      test = "StringEquals"
+      variable = "aws:SourceArn"
+      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${aws_cloudtrail.webmev-cloudtrail.id}"]
+    }
+
+    condition  {
+      test = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values = ["bucket-owner-full-control"]
+    }
+
+  }
+}
