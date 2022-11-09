@@ -60,28 +60,6 @@ Create a private S3 bucket named `webmev-terraform` to store Terraform state and
 aws s3 mb s3://webmev-terraform --region us-east-2
 aws s3api put-bucket-tagging --bucket webmev-terraform --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
 ```
-Create a private S3 bucket for storing access logs. Below (and in the terraform files), we use `webmev-backend-logs`, but change as necessary. Note that the default value of `log_bucket_name` (in `vars.tf`) is set to this value, so ensure that this matches.
-```shell
-aws s3 mb s3://webmev-backend-logs --region us-east-2
-aws s3api put-bucket-tagging --bucket webmev-backend-logs --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
-```
-Apply policy to the log bucket to [allow storing load balancer logs](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-logging-bucket-permissions):
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::033677994240:root"
-      },
-      "Action": "s3:PutObject",
-      "Resource": "arn:aws:s3:::webmev-backend-logs/*/AWSLogs/<aws-account-id>/*"
-    }
-  ]
-}
-```
-(Note that `033677994240` above corresponds to the ELB account ID for `us-east-2`. Modify as required for different regions.)
 
 [Create an HTTPS certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) for `*.tm4.org` in Certificate Manager
 

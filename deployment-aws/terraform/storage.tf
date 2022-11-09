@@ -6,6 +6,10 @@ resource "aws_s3_bucket" "cromwell_storage_bucket" {
     bucket = "${local.stack}-cromwell-storage"
 }
 
+resource "aws_s3_bucket" "log_bucket" {
+    bucket = "${local.stack}-webmev-backend-logs"
+}
+
 resource "aws_s3_bucket_cors_configuration" "storage_bucket_cors" {
   bucket = aws_s3_bucket.api_storage_bucket.id
 
@@ -42,18 +46,36 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cromwell_storage_
   }
 }
 
-resource "aws_s3_bucket_policy" "allow_cloudtrail_logging"  {
-  bucket = data.aws_s3_bucket.s3_logging_bucket.id
-  policy = data.aws_iam_policy_document.allow_cloud_trail_logging_policy.json
+resource "aws_s3_bucket_policy" "logging_bucket_policy"  {
+  bucket = aws_s3_bucket.log_bucket.id
+  policy = data.aws_iam_policy_document.logging_bucket_policy_doc.json
 }
 
-data "aws_s3_bucket" "s3_logging_bucket" {
-  bucket = var.log_bucket_name
-}
-
-
-data "aws_iam_policy_document" "allow_cloud_trail_logging_policy" {
+# For specifying the policies of the log bucket, we use an `aws_iam_policy_document`
+# resource rather than using HEREDOC syntax or otherwise. See:
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy
+data "aws_iam_policy_document" "logging_bucket_policy_doc" {
   
+  statement {
+    sid = "AllowLBLogging"
+
+    # Note the "033677994240" corresponds to the LB account
+    # ID for us-east-2. Change this if you change the region.
+    principals {
+      type = "AWS"
+      identifiers = ["arn:aws:iam::033677994240:root"]
+    }
+
+    effect = "Allow"
+
+    actions = ["s3:PutObject"]
+
+    resources = [
+      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+    ]
+    
+  }
+
   statement {
 
     sid = "AWSCloudTrailAclCheck"
@@ -70,19 +92,19 @@ data "aws_iam_policy_document" "allow_cloud_trail_logging_policy" {
     ]
 
     resources = [
-      "arn:aws:s3:::${var.log_bucket_name}"
+      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}"
     ]
 
     condition {
       test = "StringEquals"
       variable = "aws:SourceArn"
-      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${aws_cloudtrail.webmev-cloudtrail.id}"]
+      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${local.common_tags.Name}-cloudtrail"]
     }
 
   }
 
   statement {
-
+    
     sid = "AWSCloudTrailWrite"
 
     principals {
@@ -97,13 +119,13 @@ data "aws_iam_policy_document" "allow_cloud_trail_logging_policy" {
     ]
 
     resources = [
-      "arn:aws:s3:::${var.log_bucket_name}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}/${local.stack}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
 
     condition  {
       test = "StringEquals"
       variable = "aws:SourceArn"
-      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${aws_cloudtrail.webmev-cloudtrail.id}"]
+      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${local.common_tags.Name}-cloudtrail"]
     }
 
     condition  {

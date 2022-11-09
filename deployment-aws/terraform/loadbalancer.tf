@@ -5,7 +5,7 @@ resource "aws_lb" "api" {
   subnets         = [aws_subnet.public.id, aws_subnet.extra.id]
   security_groups = [aws_security_group.load_balancer.id]
   access_logs {
-    bucket  = var.log_bucket_name
+    bucket  = aws_s3_bucket.log_bucket.id
     prefix  = "${local.stack}-lb"
     enabled = true
   }
