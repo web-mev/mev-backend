@@ -1,5 +1,5 @@
 resource "aws_cloudtrail" "webmev-cloudtrail" {
-  name                    = "${local.common_tags.Name}-cloudtrail"
+  name                    = "${local.common_tags.Name}"
   s3_bucket_name          = aws_s3_bucket.log_bucket.id
   s3_key_prefix           = "${local.stack}"
   include_global_service_events = false
