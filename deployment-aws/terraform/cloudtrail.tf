@@ -2,10 +2,10 @@ resource "aws_cloudtrail" "webmev_cloudtrail" {
   name                           = local.common_tags.Name
   s3_bucket_name                 = aws_s3_bucket.logging.id
   s3_key_prefix                  = local.stack
-  include_global_service_events  = false
+  include_global_service_events  = true
   event_selector {
     read_write_type              = "All"
-    include_management_events    = false
+    include_management_events    = true
 
     data_resource {
       type = "AWS::S3::Object"
