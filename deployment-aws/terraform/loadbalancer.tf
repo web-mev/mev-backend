@@ -6,7 +6,7 @@ resource "aws_lb" "api" {
   security_groups = [aws_security_group.load_balancer.id]
   access_logs {
     bucket  = "webmev-logs"
-    prefix  = "${local.stack}-lb"
+    prefix  = "${local.stack}/loadbalancer"
     enabled = true
   }
 }
