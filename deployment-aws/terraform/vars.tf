@@ -97,8 +97,3 @@ variable database_snapshot {
   description = "RDS snapshot ID"
   default = null
 }
-
-variable log_bucket_name {
-  description   = "The bucket where we store logs. Should already be created."
-  default       = "webmev-backend-logs"
-}
