@@ -5,8 +5,8 @@ resource "aws_lb" "api" {
   subnets         = [aws_subnet.public.id, aws_subnet.extra.id]
   security_groups = [aws_security_group.load_balancer.id]
   access_logs {
-    bucket  = aws_s3_bucket.log_bucket.id
-    prefix  = "${local.stack}-lb"
+    bucket  = "webmev-logs"
+    prefix  = "${local.stack}/loadbalancer"
     enabled = true
   }
 }
@@ -16,6 +16,9 @@ resource "aws_lb_target_group" "api" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+  health_check {
+    healthy_threshold = 2
+  }
 }
 
 resource "aws_lb_target_group_attachment" "api" {
