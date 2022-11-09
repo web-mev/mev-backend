@@ -6,7 +6,7 @@ resource "aws_s3_bucket" "cromwell_storage_bucket" {
     bucket = "${local.stack}-cromwell-storage"
 }
 
-resource "aws_s3_bucket" "log_bucket" {
+resource "aws_s3_bucket" "logging" {
     bucket = "${local.stack}-webmev-backend-logs"
 }
 
@@ -46,8 +46,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cromwell_storage_
   }
 }
 
-resource "aws_s3_bucket_policy" "logging_bucket_policy"  {
-  bucket = aws_s3_bucket.log_bucket.id
+resource "aws_s3_bucket_policy" "logging_bucket"  {
+  bucket = aws_s3_bucket.logging.id
   policy = data.aws_iam_policy_document.logging_bucket_policy_doc.json
 }
 
@@ -71,7 +71,7 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     actions = ["s3:PutObject"]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
     
   }
@@ -92,13 +92,13 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}"
     ]
 
     condition {
       test = "StringEquals"
       variable = "aws:SourceArn"
-      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${local.common_tags.Name}-cloudtrail"]
+      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${local.common_tags.Name}"]
     }
 
   }
@@ -119,13 +119,13 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}/${local.stack}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}/${local.stack}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
 
     condition  {
       test = "StringEquals"
       variable = "aws:SourceArn"
-      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${local.common_tags.Name}-cloudtrail"]
+      values = ["arn:aws:cloudtrail:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:trail/${local.common_tags.Name}"]
     }
 
     condition  {
