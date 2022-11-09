@@ -70,6 +70,12 @@ resource "aws_iam_role_policy" "server_kms_access" {
   )
 }
 
+# For adding SSM to the instance:
+resource "aws_iam_role_policy_attachment" "api-server-ssm-policy-attach" {
+  role       = aws_iam_role.api_server_role.id
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
   name = "${local.common_tags.Name}-api"
   role = aws_iam_role.api_server_role.name
@@ -108,7 +114,6 @@ resource "aws_instance" "api" {
   vpc_security_group_ids = [aws_security_group.api_server.id]
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.api_server_instance_profile.name
-  key_name               = var.ssh_key_pair_name
   tags                   = {
     Name = "${local.common_tags.Name}-api"
   }

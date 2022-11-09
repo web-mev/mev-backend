@@ -105,6 +105,9 @@ resource "aws_iam_role_policy" "cromwell_kms_access" {
   )
 }
 
+
+
+
 resource "aws_iam_role_policy" "cromwell_cloudwatch" {
   name   = "CromwellCloudWatchAccess"
   role   = aws_iam_role.cromwell.id
@@ -125,6 +128,11 @@ resource "aws_iam_role_policy" "cromwell_cloudwatch" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "cromwell-ssm-policy-attach" {
+  role       = aws_iam_role.cromwell.id
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_instance_profile" "cromwell" {
   name = "${local.common_tags.Name}-cromwell"
   role = aws_iam_role.cromwell.name
@@ -140,14 +148,6 @@ resource "aws_security_group" "cromwell" {
     to_port         = 8000
     protocol        = "tcp"
     security_groups = [aws_security_group.api_server.id]
-  }
-  ingress {
-    description      = "SSH from the Internet"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
   }
   # implicit with AWS but Terraform requires this to be explicit
   egress {
@@ -169,7 +169,6 @@ resource "aws_instance" "cromwell" {
   vpc_security_group_ids = [aws_security_group.cromwell.id]
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.cromwell.name
-  key_name               = var.ssh_key_pair_name
   tags                   = {
     Name = "${local.common_tags.Name}-cromwell"
   }

@@ -65,10 +65,26 @@ aws s3api put-bucket-tagging --bucket webmev-terraform --tagging 'TagSet=[{Key=P
 
 [Create a public Route53 hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingHostedZone.html) `aws.tm4.org`
 
-[Create an EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html) for each stack (e.g., `dev-webmev.pem`, `prod-webmev.pem`, etc) using AWS Console
-
 [Create a service-linked role for AWS Batch](https://docs.aws.amazon.com/batch/latest/userguide/using-service-linked-roles.html#create-slr)
 
+## Connecting to the EC2 instances
+
+For debugging or other reasons, you may need to connect to the API server or Cromwell EC2 instances. To track/audit connections to these servers and avoid managing SSH keys, we use AWS Systems Manager (SSM).
+
+There are multiple ways to connect to the instance, but below we describe initiating a session using your local machine using the AWS cli (which we assume is installed).
+
+To initiate a session/connection from your local machine, you need to [install the SSM plugin.](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
+
+Once that is installed, you can start a session using the following:
+
+```shell
+aws ssm start-session --target <INSTANCE_ID>
+```
+which will return a session ID in addition to connecting to your instance.
+
+Note that issuing `exit` in your session will terminate the connection, but you can also close it using `aws ssm terminate-session --session-id <SESSION_ID>`.
+
+Also note that by default, SSM will connect using Bourne shell (sh). [You can modify this preference usign the AWS cli or via console](https://aws.amazon.com/premiumsupport/knowledge-center/ssm-session-manager-change-shell/).
 
 ## Notes on redeployment
 
