@@ -194,13 +194,13 @@ class TestSimpleAttributes(unittest.TestCase):
 
     def test_string_attribute(self):
         # this is sort of double test-coverage, but that can't hurt
-        s = StringAttribute('abc')
-        self.assertEqual(s.value, 'abc')
+        s = StringAttribute('-abc')
+        self.assertEqual(s.value, '-abc')
         self.assertDictEqual(
             s.to_dict(),
             {
                 'attribute_type': StringAttribute.typename,
-                'value': 'abc'
+                'value': '-abc'
             }
         )
 
@@ -213,8 +213,6 @@ class TestSimpleAttributes(unittest.TestCase):
                 'value': 'a_string_with_space'
             }
         )
-        with self.assertRaises(AttributeValueError):
-            StringAttribute('-9abc')
 
         with self.assertRaises(AttributeValueError):
             StringAttribute(3.4)

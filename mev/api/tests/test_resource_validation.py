@@ -124,6 +124,33 @@ class TestBasicTable(BaseAPITestCase):
         self.assertTrue(is_valid)
         self.assertIsNone(err)
 
+    def test_fails_to_validate_tables_with_unicode_ids(self):
+        '''
+        Since we can't control how downstream tools will handle
+        tables with rows or columns that contain non-ascii,
+        we block that and inform users.
+        '''
+        t1 = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_table_with_unicode_cols.tsv'))
+        is_valid, err = t1.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        
+        t2 = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_table_with_unicode_rows.tsv'))
+        is_valid, err = t2.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+
+    def test_fails_to_validate_tables_with_invalid_ids(self):
+        # if the columns or rows contain an invalid identifier,
+        # we fail the validation
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_table_with_invalid_id.tsv'))
+        is_valid, err = t.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+
 
 class TestMatrix(BaseAPITestCase):
     '''

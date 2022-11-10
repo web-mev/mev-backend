@@ -26,7 +26,10 @@ from exceptions import ParseException, \
     FileParseException, \
     UnexpectedFileParseException, \
     UnexpectedTypeValidationException, \
-    ParserNotFoundException
+    ParserNotFoundException, \
+    StringIdentifierException
+
+from helpers import normalize_identifier
 
 from .base import DataResource
 
@@ -91,6 +94,11 @@ EMPTY_TABLE_ERROR = ('The parsed table was empty. This can happen if you are'
     ' importing a table with only a single column. Alternatively, if you are'
     ' trying to import an Excel spreadsheet, please ensure that the data is'
     ' contained in the first sheet of the workbook.')
+
+NAMING_ERROR = ('The {idx}s of your table contained identifiers with'
+    ' characters that we do not permit. Since we depend on software'
+    ' tools that may not support these characters, we only allow'
+    ' letters A-Z, numbers 0-9, dots (.), dashes (-), and underscores (_).')
 
 def col_str_formatter(x):
     '''
@@ -209,6 +217,23 @@ class TableResource(DataResource):
         else:
             return False
 
+    @staticmethod
+    def index_names_valid(names):
+        '''
+        We check the identifiers (row or column names) to ensure 
+        we do not run into any unicode, etc. errors with downstream tools.
+        Since we cannot control how those tools will treat non-ascii,
+        we restrict the available characters for naming rows and columns  
+        
+        Works for both row and column indexes.  Returns
+        True if all the index labels are valid. 
+        '''
+        try:
+            [normalize_identifier(x) for x in names]
+            return True
+        except StringIdentifierException:
+            return False
+
     def read_resource(self, resource_instance, requested_file_format=None):
         '''
         One common spot to define how the file is read.
@@ -281,7 +306,6 @@ class TableResource(DataResource):
             # indicate missing row names (i.e. a column of data is read
             # as the index)
             rows_all_numbers = TableResource.index_all_numbers(self.table.index)
-
             if rows_all_numbers:
                 return (False, NUMBERED_ROW_NAMES_ERROR)
 
@@ -292,6 +316,15 @@ class TableResource(DataResource):
             # check for duplicate row names
             if self.table.index.has_duplicates:
                 return (False, NONUNIQUE_ROW_NAMES_ERROR)
+
+            # check that the column names are "valid" in that we don't allow unicode
+            columns_all_valid = TableResource.index_names_valid(self.table.columns)
+            rows_all_valid = TableResource.index_names_valid(self.table.index)
+            if not columns_all_valid:
+                return (False, NAMING_ERROR.format(idx='column'))
+
+            if not rows_all_valid:
+                return (False, NAMING_ERROR.format(idx='row'))
 
             # passed the basic checks-- looks good so far. Derived classes
             # can apply more specific checks.

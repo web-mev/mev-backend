@@ -128,10 +128,11 @@ class TestElement(unittest.TestCase):
 
         # this is fine since we tell it to ignore extra keys
         o = Observation({'id':'foo', 'other':3}, ignore_extra_keys=True)
+
     def test_fails_with_bad_id(self):
 
         d =  {
-            "id": '9',
+            "id": '9?',
             "attributes": {}        
         }
         # an exception is raised that should mention

@@ -114,11 +114,11 @@ class TestBasicAttributeConverter(BaseAPITestCase):
         with self.assertRaises(DataStructureValidationException):
             s.convert_output('', '', '', 2)
 
-        with self.assertRaises(AttributeValueError):
-            v = s.convert_input( ['1','2'], '', '')
+        v = s.convert_input( ['1','2'], '', '')
+        self.assertCountEqual(['1','2'], v)
 
-        with self.assertRaises(AttributeValueError):
-            s.convert_output('', '', '', ['1','2'])
+        v = s.convert_output('', '', '', ['1','2'])
+        self.assertCountEqual(['1','2'], v)
 
         s = UnrestrictedStringListConverter()
         v = s.convert_input( ['ab','c d'], '', '')
