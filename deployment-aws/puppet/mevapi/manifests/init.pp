@@ -62,7 +62,7 @@ class mevapi (
   # other directories that live under that data dir
   $data_dirs = [
     "${data_root}/pending_user_uploads",
-    "${data_root}/resource_validation_tmp",
+    "${data_root}/tmp",
     "${data_root}/resource_cache",
     "${data_root}/operation_staging",
     "${data_root}/operations",

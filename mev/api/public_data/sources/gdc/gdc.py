@@ -715,7 +715,7 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         )
         response_head_cd = download_response.headers["Content-Disposition"]
         file_name = re.findall("filename=(.+)", response_head_cd)[0]
-        fout = os.path.join('/tmp', file_name)
+        fout = os.path.join(settings.TMP_DIR, file_name)
         with open(fout, "wb") as output_file:
             output_file.write(download_response.content)
         return fout
