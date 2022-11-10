@@ -47,29 +47,6 @@ resource "aws_iam_role_policy" "server_s3_access" {
   )
 }
 
-resource "aws_iam_role_policy" "server_kms_access" {
-  name =  "AllowKMSEncryptDecryptByAPIServer"
-  role = aws_iam_role.api_server_role.id
-  policy = jsonencode(
-    {
-      Version   =  "2012-10-17",
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = [
-            "kms:GenerateDataKey",
-            "kms:Decrypt"            
-          ],
-          Resource  = [
-            aws_kms_key.main_storage_kms_key.arn,
-            aws_kms_key.cromwell_storage_kms_key.arn
-          ]
-        }
-      ]
-    }
-  )
-}
-
 # For adding SSM to the instance:
 resource "aws_iam_role_policy_attachment" "api-server-ssm-policy-attach" {
   role       = aws_iam_role.api_server_role.id
@@ -88,7 +65,6 @@ resource "aws_ebs_volume" "data_volume" {
   final_snapshot    = true
   snapshot_id       = var.data_volume_snapshot_id
   encrypted         = true
-  kms_key_id        = aws_kms_key.ebs_kms_key.arn
   tags = {
     Name = "${local.common_tags.Name}-ebs"
   }
@@ -122,7 +98,6 @@ resource "aws_instance" "api" {
     volume_type = "gp3"
     volume_size = 12
     encrypted   = true
-    kms_key_id  = aws_kms_key.apiroot_ebs_kms_key.arn
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT

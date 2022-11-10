@@ -83,30 +83,6 @@ resource "aws_iam_role_policy" "cromwell_batch_access" {
   )
 }
 
-resource "aws_iam_role_policy" "cromwell_kms_access" {
-  name =  "AllowKMSEncryptDecryptByCromwellServer"
-  role = aws_iam_role.cromwell.id
-  policy = jsonencode(
-    {
-      Version   =  "2012-10-17",
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = [
-            "kms:GenerateDataKey",
-            "kms:Decrypt"            
-          ],
-          Resource  = [
-            aws_kms_key.cromwell_storage_kms_key.arn
-          ]
-        }
-      ]
-    }
-  )
-}
-
-
-
 
 resource "aws_iam_role_policy" "cromwell_cloudwatch" {
   name   = "CromwellCloudWatchAccess"
@@ -177,7 +153,6 @@ resource "aws_instance" "cromwell" {
     volume_type = "gp3"
     volume_size = 20
     encrypted   = true
-    kms_key_id  = aws_kms_key.cromwellroot_ebs_kms_key.arn
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT
