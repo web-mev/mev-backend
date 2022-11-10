@@ -145,8 +145,8 @@ class GtexRnaseqDataSource(RnaSeqMixin, PublicDataSource):
         '''
         Create a temporary directory where we munge all the files
         '''
-        folder_name = 'tmp-{u}'.format(u=uuid.uuid4())
-        tmp_dir = os.path.join(settings.DATA_DIR, folder_name)
+        folder_name = f'tmp-{uuid.uuid4()}'
+        tmp_dir = os.path.join(settings.TMP_DIR, folder_name)
         if not os.path.exists(tmp_dir):
             make_local_directory(tmp_dir)
         return tmp_dir

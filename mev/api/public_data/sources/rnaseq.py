@@ -121,9 +121,7 @@ class RnaSeqMixin(object):
             u=str(uuid.uuid4()),
             file_format=TSV_FORMAT
         )
-        dest_dir = os.path.join(settings.DATA_DIR, 'tmp')
-        if not os.path.exists(dest_dir):
-            make_local_directory(dest_dir)
+        dest_dir = os.path.join(settings.TMP_DIR, 'tmp')
         count_filepath = os.path.join(dest_dir, filename)
         try:
             final_df.to_csv(count_filepath, sep='\t')

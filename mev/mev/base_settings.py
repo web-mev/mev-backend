@@ -205,24 +205,14 @@ if not os.path.exists(PENDING_UPLOADS_DIR):
         path = PENDING_UPLOADS_DIR)
     )
 
-# A tmp dir where we place files that are in the process of being validated.
+# A tmp dir where we place files that are in the process of being validated,
+# created, or manipulated. Nothing permanent there.
 # We perform the work there so as not to potentially corrupt the "real"
 # user files in our local cache.
-VALIDATION_TMP_DIR = os.path.join(DATA_DIR, 'resource_validation_tmp')
-if not os.path.exists(VALIDATION_TMP_DIR):
-    raise ImproperlyConfigured('Please create a directory for'
-    ' resource validation at {path}.'.format(
-        path = VALIDATION_TMP_DIR)
-    )
-
-# A local directory to be used as a tmp dir
-# Don't write to /tmp since we can't 
-TMP_DIR = '/tmp'
+TMP_DIR = os.path.join(DATA_DIR, 'tmp')
 if not os.path.exists(TMP_DIR):
-    raise ImproperlyConfigured('Please ensure there exists a'
-    ' temporary directory for files at {path}.'.format(
-        path = TMP_DIR)
-    )
+    raise ImproperlyConfigured('Please create a directory for'
+        f' resource validation at {TMP_DIR}.')
 
 # change the class that handles the direct file uploads.  This provides a mechanism
 # to query for upload progress.
