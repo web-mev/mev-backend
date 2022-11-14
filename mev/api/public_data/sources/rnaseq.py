@@ -13,6 +13,9 @@ from constants import TSV_FORMAT, \
     ANNOTATION_TABLE_KEY
 from api.utilities.basic_utils import make_local_directory
 
+logger = logging.getLogger(__name__)
+
+
 class RnaSeqMixin(object):
 
     # A common feature of RNA-seq is that we will have annotation
@@ -121,7 +124,7 @@ class RnaSeqMixin(object):
             u=str(uuid.uuid4()),
             file_format=TSV_FORMAT
         )
-        dest_dir = os.path.join(settings.TMP_DIR, 'tmp')
+        dest_dir = settings.TMP_DIR
         count_filepath = os.path.join(dest_dir, filename)
         try:
             final_df.to_csv(count_filepath, sep='\t')

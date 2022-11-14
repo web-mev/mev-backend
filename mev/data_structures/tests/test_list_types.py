@@ -44,8 +44,8 @@ class TestStringListAttributes(unittest.TestCase):
     def test_creation_fail(self):        
 
         # the second entry is invalid:
-        mylist = ['a','-b','c']
-        with self.assertRaisesRegex(AttributeValueError, '-b'):
+        mylist = ['a','?b','c']
+        with self.assertRaises(AttributeValueError):
             s = StringListAttribute(mylist)
 
         # test that we need a list
