@@ -10,6 +10,7 @@ class mevapi (
   String                  $aws_region,
   Optional[String]        $app_user,
   String                  $backend_domain,
+  String                  $cloudwatch_log_group,
   Optional[String]        $container_registry = 'github',
   String                  $cromwell_bucket_name,
   String                  $cromwell_server_ip,

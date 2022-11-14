@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 
 from .settings_helpers import get_env
 
-logger = logging.getLogger(__name__)
-
 load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -218,9 +216,6 @@ if not os.path.exists(TMP_DIR):
 # to query for upload progress.
 FILE_UPLOAD_HANDLERS = ['mev.upload_handler.UploadProgressCachedHandler',] + \
     global_settings.FILE_UPLOAD_HANDLERS
-
-# Import the logging config:
-from mev import base_logging_config as log_config
 
 
 ###############################################################################
@@ -533,4 +528,3 @@ PUBLIC_DATA_INDEXER = 'solr'
 ###############################################################################
 # END settings/imports for public data indexing
 ###############################################################################
-

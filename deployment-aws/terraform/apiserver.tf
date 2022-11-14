@@ -142,6 +142,7 @@ resource "aws_instance" "api" {
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
+  export FACTER_CLOUDWATCH_LOG_GROUP='${aws_cloudwatch_log_group.default.name}'
   export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
   export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
   export FACTER_CROMWELL_SERVER_IP='${aws_instance.cromwell.private_ip}'

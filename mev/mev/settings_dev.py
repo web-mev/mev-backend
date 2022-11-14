@@ -1,4 +1,3 @@
-import copy
 import logging.config
 
 from .settings_helpers import get_env
@@ -18,12 +17,22 @@ CACHES = {
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# setup some logging options for production:
-dev_config_dict = copy.deepcopy(log_config.base_logging_config_dict)
-
-# make changes to the default logging dict below:
-
-#######
+# Change the LOGLEVEL env variable if you want logging
+# different than INFO:
+LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level':  LOGLEVEL,
+    },
+}
 
 # finally, register this config:
-logging.config.dictConfig(dev_config_dict)
+logging.config.dictConfig(LOGGING)
