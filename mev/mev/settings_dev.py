@@ -17,22 +17,15 @@ CACHES = {
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Change the LOGLEVEL env variable if you want logging
-# different than INFO:
-LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level':  LOGLEVEL,
-    },
-}
+###############################################################################
+# START logging settings for dev
+###############################################################################
+# If desired, modify `LOGGING` to customize beyond the basic console logging 
+# created in base_settings.py
 
-# finally, register this config:
+# Register the logging config:
 logging.config.dictConfig(LOGGING)
+
+###############################################################################
+# END logging settings
+###############################################################################

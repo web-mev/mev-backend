@@ -104,7 +104,7 @@ resource "aws_iam_role_policy" "cromwell_cloudwatch" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "cromwell-ssm-policy-attach" {
+resource "aws_iam_role_policy_attachment" "cromwell_ssm" {
   role       = aws_iam_role.cromwell.id
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }

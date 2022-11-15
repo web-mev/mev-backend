@@ -118,7 +118,7 @@ resource "aws_iam_role_policy_attachment" "batch_service" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
 }
 
-resource "aws_iam_role_policy_attachment" "batch_ssm_policy_attach" {
+resource "aws_iam_role_policy_attachment" "batch_ssm" {
   role       = aws_iam_role.batch_service.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }

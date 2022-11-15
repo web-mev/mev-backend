@@ -528,3 +528,23 @@ PUBLIC_DATA_INDEXER = 'solr'
 ###############################################################################
 # END settings/imports for public data indexing
 ###############################################################################
+
+# Change the LOGLEVEL env variable if you want logging
+# different than INFO:
+LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
+
+# By default, use a console logger. Override/modify/etc.
+# in settings_dev or settings_production modules
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level':  LOGLEVEL,
+    },
+}
