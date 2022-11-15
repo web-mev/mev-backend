@@ -828,6 +828,66 @@ class TestResourceUtilities(BaseAPITestCase):
             el.update({'attributes': {}})
         self.assertCountEqual(rm3.observation_set['elements'], elements)
 
+    def test_add_metadata_with_null(self):
+        '''
+        Test that we can successfully add resource metadata 
+        that contains null values.
+
+        As an example, consider a basic annotation file where an entry is missing.
+        The observation set we extract from that file will contain a null value
+        '''
+        # create a new Resource
+        r = Resource.objects.create(
+            name='foo.txt',
+            owner = self.regular_user_1,
+            datafile = File(BytesIO(), 'foo.txt')
+        )
+        rm = ResourceMetadata.objects.create(
+            resource=r
+        )
+        rm_pk = rm.pk
+
+        mock_obs_set = {
+            'elements': [
+                {
+                    'id': 'sampleA',
+                    'attributes' : {
+                        "alcohol_history": {
+                            "attribute_type": "UnrestrictedString",
+                            "value": "yes"
+                        },
+                        "age_at_index": {
+                            "attribute_type": "Float",
+                            "value": 13.2
+                        },
+                    }
+                },
+                {
+                    'id': 'sampleB',
+                    'attributes' : {
+                        "alcohol_history": {
+                            "attribute_type": "UnrestrictedString",
+                            "value": "yes"
+                        },
+                        "age_at_index": {
+                            "attribute_type": "Float",
+                            "value": None
+                        },
+                    }
+                }
+            ]
+        }
+        # verify that the mock above is valid
+        oss = ObservationSet(mock_obs_set, permit_null_attributes=True)
+
+        # if no errors here, then we are ok
+        add_metadata_to_resource(
+            r, 
+            {
+                OBSERVATION_SET_KEY:mock_obs_set
+            }
+        )
+
     @mock.patch('api.utilities.resource_utilities.retrieve_metadata')
     @mock.patch('api.utilities.resource_utilities.alert_admins')
     def test_catch_large_metadata_addition(self, \

@@ -540,6 +540,18 @@ class TestAnnotationTableMetadata(BaseAPITestCase):
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[PARENT_OP_KEY])
         
+    def test_annotations_with_empty_fields_ok(self):
+        '''
+        Some of the fields in the annotation file don't have entries. Verify
+        that this is acceptable.
+        '''
+        resource_path = os.path.join(TESTDIR, 'gbm.tsv')
+        r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
+        associate_file_with_resource(r, resource_path)
+        t = AnnotationTable()
+        metadata = t.extract_metadata(r)
+        add_metadata_to_resource(r, metadata)
+    
 
 class TestFeatureTableMetadata(BaseAPITestCase):
 
@@ -1002,4 +1014,60 @@ class TestResourceMetadataSerializer(BaseAPITestCase):
         rms = ResourceMetadataSerializer(data=d)
         with self.assertRaisesRegex(ValidationError, 'does not exist'):
             rms.is_valid(raise_exception=True)
-        
+
+    def test_respects_null_attribute_context(self):
+        '''
+        This tests that passing `allow_null_attributes` via the context 
+        kwarg works as expected
+        '''
+        mock_obs_set = {
+            'elements': [
+                {
+                    'id': 'sampleA',
+                    'attributes' : {
+                        "alcohol_history": {
+                            "attribute_type": "UnrestrictedString",
+                            "value": "yes"
+                        },
+                        "age_at_index": {
+                            "attribute_type": "Float",
+                            "value": 13.2
+                        },
+                    }
+                },
+                {
+                    'id': 'sampleB',
+                    'attributes' : {
+                        "alcohol_history": {
+                            "attribute_type": "UnrestrictedString",
+                            "value": "yes"
+                        },
+                        "age_at_index": {
+                            "attribute_type": "Float",
+                            "value": None
+                        },
+                    }
+                }
+            ]
+        }
+        r = Resource.objects.all()
+        r = r[0]
+        d = {
+            RESOURCE_KEY: r.pk,
+            OBSERVATION_SET_KEY: mock_obs_set,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY:None
+        }
+        # pass the proper kwarg to allow the None/null:
+        rms = ResourceMetadataSerializer(data=d, context={'permit_null_attributes': True})
+        self.assertTrue(rms.is_valid())
+
+        # try without any kwarg-- should fail since we implicitly do not allow None unless dictated
+        rms = ResourceMetadataSerializer(data=d)
+        with self.assertRaises(ValidationError):
+            rms.is_valid(raise_exception=True)
+
+        # explicitly deny nulls-- should fail
+        rms = ResourceMetadataSerializer(data=d, context={'permit_null_attributes': False})
+        with self.assertRaises(ValidationError):
+            rms.is_valid(raise_exception=True)

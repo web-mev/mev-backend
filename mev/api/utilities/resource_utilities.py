@@ -155,15 +155,15 @@ def get_resource_paginator(resource_type):
 
 def add_metadata_to_resource(resource, metadata):
     d = {}
-    d[RESOURCE_KEY] = resource.pk
+    d[RESOURCE_KEY] = str(resource.pk)
     metadata.update(d)
     try:
         rm = ResourceMetadata.objects.get(resource=resource)
-        rms = ResourceMetadataSerializer(rm, data=metadata)
+        rms = ResourceMetadataSerializer(rm, data=metadata, context={'permit_null_attributes': True})
         logger.info('Resource had some existing metadata, so update.')
     except ResourceMetadata.DoesNotExist:
         logger.info('Resource did not previously have metadata attached.')
-        rms = ResourceMetadataSerializer(data=metadata)
+        rms = ResourceMetadataSerializer(data=metadata, context={'permit_null_attributes': True})
     if rms.is_valid(raise_exception=True):
         logger.info('Resource metadata was valid. Now save it.')
         try:

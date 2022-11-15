@@ -20,10 +20,16 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
     observation_set = serializers.JSONField(allow_null=True, default=None)
     feature_set = serializers.JSONField(allow_null=True, default=None)
 
+    def _permits_null(self):
+        if 'permit_null_attributes' in self.context:
+            return self.context['permit_null_attributes']
+        else:
+            return False
+
     def validate_observation_set(self, obs_set_data):
         if obs_set_data is not None:
             try:
-                o = ObservationSet(obs_set_data)
+                o = ObservationSet(obs_set_data, permit_null_attributes=self._permits_null())
                 return o.to_simple_dict()
             except Exception as ex:
                 raise ValidationError(f'Invalid observation set: {ex}')
@@ -32,7 +38,7 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
     def validate_feature_set(self, feature_set_data):
         if feature_set_data is not None:
             try:
-                f = FeatureSet(feature_set_data)
+                f = FeatureSet(feature_set_data, permit_null_attributes=self._permits_null())
                 return f.to_simple_dict()
             except Exception as ex:
                 raise ValidationError(f'Invalid feature set: {ex}')
