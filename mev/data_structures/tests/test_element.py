@@ -142,6 +142,23 @@ class TestElement(unittest.TestCase):
                 AttributeValueError, 'did not match the naming requirements'):
                 t(d)
 
+        # This should work fine:
+        d =  {
+            # a valid UUID:
+            "id": '799e22c2-f44f-417c-ad33-599519552a99',
+            "attributes": {}        
+        }
+        for t in [Observation, Feature]:
+            t(d)
+
+        d =  {
+            # a valid UUID:
+            "id": '.72',
+            "attributes": {}        
+        }
+        for t in [Observation, Feature]:
+            t(d)
+
     def test_fails_with_bad_attributes(self):
         d = {
             "id": 'ID',
