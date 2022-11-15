@@ -278,6 +278,30 @@ class OperationUtilsTester(BaseAPITestCase):
                 sample_inputs, self.db_op, self.workspace)
 
     @mock.patch('api.utilities.operations.get_operation_instance')
+    @mock.patch('api.utilities.operations.check_resource_request_validity')
+    def test_optional_resource_input(self, 
+        mock_check_resource_request_validity, mock_get_operation_instance):
+        '''
+        Tests the case where an input is a Resource, but it is not
+        required. In that case, the supplied input is None
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'optional_resource_input.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+
+        sample_inputs = {
+            'p_val': 0.05,
+            'input_file': None
+        }
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
+            sample_inputs, self.db_op, self.workspace)
+        self.assertDictEqual(final_inputs, sample_inputs)
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
     @mock.patch('api.utilities.operations.get_operation_resources_for_field')
     def test_resource_operation_inputs(self, 
         mock_get_operation_resources_for_field, mock_get_operation_instance):

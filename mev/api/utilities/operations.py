@@ -190,7 +190,7 @@ def validate_operation_inputs(
         # when another application (e.g. the frontend) interacts with it.
         op_input.check_value(supplied_input, ignore_extra_keys=True)
 
-        if op_input.is_data_resource_input():
+        if op_input.is_data_resource_input() and (supplied_input is not None):
 
             # if the input resource is user-associated:
             if op_input.is_user_data_resource_input():
