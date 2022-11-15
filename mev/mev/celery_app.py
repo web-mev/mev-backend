@@ -12,6 +12,7 @@ app.conf.update(
     accept_content=['json'],
     task_serializer='json',
     result_serializer='json',
+    worker_hijack_root_logger = False,
     enable_utc=True
 )
 app.autodiscover_tasks(

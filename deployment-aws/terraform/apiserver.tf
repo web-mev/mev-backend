@@ -48,9 +48,14 @@ resource "aws_iam_role_policy" "server_s3_access" {
 }
 
 # For adding SSM to the instance:
-resource "aws_iam_role_policy_attachment" "api-server-ssm-policy-attach" {
+resource "aws_iam_role_policy_attachment" "api_server_ssm_policy_attach" {
   role       = aws_iam_role.api_server_role.id
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "api_server_cloudwatch_policy_attach" {
+  role       = aws_iam_role.api_server_role.id
+  policy_arn = "arn:aws:iam::aws:policy/AWSOpsWorksCloudWatchLogs"
 }
 
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
