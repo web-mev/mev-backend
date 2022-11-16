@@ -21,22 +21,8 @@ EMAIL_USE_TLS = True
 # START logging settings
 ###############################################################################
 
-# Change the LOGLEVEL env variable if you want logging
-# different than INFO:
-LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level':  LOGLEVEL,
-    },
-}
+# By default (in base_settings.py), we set up console logging via
+# the `LOGGING` dictionary. Modify below:
 
 if CLOUD_PLATFORM == AMAZON:
     boto3_logs_client = boto3.client("logs", region_name=get_env('AWS_REGION'))

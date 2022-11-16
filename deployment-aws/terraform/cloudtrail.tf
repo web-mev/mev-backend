@@ -1,8 +1,8 @@
 resource "aws_cloudtrail" "default" {
-  name                           = local.common_tags.Name
-  s3_bucket_name                 = aws_s3_bucket.logging.id
-  s3_key_prefix                  = local.stack
-  include_global_service_events  = true
+  name                          = local.common_tags.Name
+  s3_bucket_name                = aws_s3_bucket.logging.id
+  s3_key_prefix                 = local.stack
+  include_global_service_events = true
 
   event_selector {
 
@@ -12,8 +12,8 @@ resource "aws_cloudtrail" "default" {
     data_resource {
       type = "AWS::S3::Object"
       values = [
-          "${aws_s3_bucket.api_storage_bucket.arn}/",
-          "${aws_s3_bucket.cromwell_storage_bucket.arn}/",
+        "${aws_s3_bucket.api_storage_bucket.arn}/",
+        "${aws_s3_bucket.cromwell_storage_bucket.arn}/",
       ]
     }
   }

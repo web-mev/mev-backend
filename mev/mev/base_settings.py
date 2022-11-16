@@ -531,7 +531,7 @@ PUBLIC_DATA_INDEXER = 'solr'
 
 # Change the LOGLEVEL env variable if you want logging
 # different than INFO:
-LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 
 # By default, use a console logger. Override/modify/etc.
 # in settings_dev or settings_production modules
