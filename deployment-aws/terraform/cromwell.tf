@@ -83,27 +83,6 @@ resource "aws_iam_role_policy" "cromwell_batch_access" {
   )
 }
 
-resource "aws_iam_role_policy" "cromwell_kms_access" {
-  name =  "AllowKMSEncryptDecryptByCromwellServer"
-  role = aws_iam_role.cromwell.id
-  policy = jsonencode(
-    {
-      Version   =  "2012-10-17",
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = [
-            "kms:GenerateDataKey",
-            "kms:Decrypt"            
-          ],
-          Resource  = [
-            aws_kms_key.cromwell_storage_kms_key.arn
-          ]
-        }
-      ]
-    }
-  )
-}
 
 resource "aws_iam_role_policy" "cromwell_cloudwatch" {
   name   = "CromwellCloudWatchAccess"
@@ -125,6 +104,11 @@ resource "aws_iam_role_policy" "cromwell_cloudwatch" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "cromwell_ssm" {
+  role       = aws_iam_role.cromwell.id
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_instance_profile" "cromwell" {
   name = "${local.common_tags.Name}-cromwell"
   role = aws_iam_role.cromwell.name
@@ -140,14 +124,6 @@ resource "aws_security_group" "cromwell" {
     to_port         = 8000
     protocol        = "tcp"
     security_groups = [aws_security_group.api_server.id]
-  }
-  ingress {
-    description      = "SSH from the Internet"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
   }
   # implicit with AWS but Terraform requires this to be explicit
   egress {
@@ -169,7 +145,6 @@ resource "aws_instance" "cromwell" {
   vpc_security_group_ids = [aws_security_group.cromwell.id]
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.cromwell.name
-  key_name               = var.ssh_key_pair_name
   tags                   = {
     Name = "${local.common_tags.Name}-cromwell"
   }
@@ -178,7 +153,6 @@ resource "aws_instance" "cromwell" {
     volume_type = "gp3"
     volume_size = 20
     encrypted   = true
-    kms_key_id  = aws_kms_key.cromwellroot_ebs_kms_key.arn
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT

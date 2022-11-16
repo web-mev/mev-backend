@@ -68,29 +68,6 @@ resource "aws_iam_role_policy" "batch_instance_s3_access" {
   )
 }
 
-resource "aws_iam_role_policy" "batch_instance_kms_access" {
-  name =  "AllowKMSEncryptDecryptByBatchInstance"
-  role = aws_iam_role.batch_instance.id
-  policy = jsonencode(
-    {
-      Version   =  "2012-10-17",
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = [
-            "kms:GenerateDataKey",
-            "kms:Decrypt"            
-          ],
-          Resource  = [
-            aws_kms_key.main_storage_kms_key.arn,
-            aws_kms_key.cromwell_storage_kms_key.arn
-          ]
-        }
-      ]
-    }
-  )
-}
-
 resource "aws_iam_role_policy" "batch_instance_ebs" {
   name   = "AutoscaleEBS"
   role   = aws_iam_role.batch_instance.id
@@ -139,6 +116,11 @@ resource "aws_iam_role" "batch_service" {
 resource "aws_iam_role_policy_attachment" "batch_service" {
   role       = aws_iam_role.batch_service.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
+}
+
+resource "aws_iam_role_policy_attachment" "batch_ssm" {
+  role       = aws_iam_role.batch_service.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_security_group" "batch_service" {
@@ -208,7 +190,6 @@ resource "aws_batch_compute_environment" "cromwell" {
     create_before_destroy = true
   }
   compute_resources {
-    ec2_key_pair       = var.ssh_key_pair_name
     instance_role      = aws_iam_instance_profile.batch_instance.arn
     instance_type      = ["optimal"]
     max_vcpus          = 64

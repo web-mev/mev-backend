@@ -6,7 +6,7 @@ resource "aws_s3_bucket" "cromwell_storage_bucket" {
     bucket = "${local.stack}-cromwell-storage"
 }
 
-resource "aws_s3_bucket" "log_bucket" {
+resource "aws_s3_bucket" "logging" {
     bucket = "${local.stack}-webmev-backend-logs"
 }
 
@@ -22,32 +22,30 @@ resource "aws_s3_bucket_cors_configuration" "storage_bucket_cors" {
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "main_storage_encryption_config" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "main_storage" {
   bucket = aws_s3_bucket.api_storage_bucket.bucket
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.main_storage_kms_key.arn
       sse_algorithm     = "aws:kms"
     }
     bucket_key_enabled = true
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "cromwell_storage_encryption_config" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "cromwell_storage" {
   bucket = aws_s3_bucket.cromwell_storage_bucket.bucket
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.cromwell_storage_kms_key.arn
       sse_algorithm     = "aws:kms"
     }
     bucket_key_enabled = true
   }
 }
 
-resource "aws_s3_bucket_policy" "logging_bucket_policy"  {
-  bucket = aws_s3_bucket.log_bucket.id
+resource "aws_s3_bucket_policy" "logging_bucket"  {
+  bucket = aws_s3_bucket.logging.id
   policy = data.aws_iam_policy_document.logging_bucket_policy_doc.json
 }
 
@@ -71,7 +69,7 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     actions = ["s3:PutObject"]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
     
   }
@@ -92,7 +90,7 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}"
     ]
 
     condition {
@@ -119,7 +117,7 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.log_bucket.id}/${local.stack}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}/${local.stack}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
 
     condition  {

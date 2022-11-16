@@ -47,27 +47,15 @@ resource "aws_iam_role_policy" "server_s3_access" {
   )
 }
 
-resource "aws_iam_role_policy" "server_kms_access" {
-  name =  "AllowKMSEncryptDecryptByAPIServer"
-  role = aws_iam_role.api_server_role.id
-  policy = jsonencode(
-    {
-      Version   =  "2012-10-17",
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = [
-            "kms:GenerateDataKey",
-            "kms:Decrypt"            
-          ],
-          Resource  = [
-            aws_kms_key.main_storage_kms_key.arn,
-            aws_kms_key.cromwell_storage_kms_key.arn
-          ]
-        }
-      ]
-    }
-  )
+# For adding SSM to the instance:
+resource "aws_iam_role_policy_attachment" "api_server_ssm" {
+  role       = aws_iam_role.api_server_role.id
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "api_server_cloudwatch" {
+  role       = aws_iam_role.api_server_role.id
+  policy_arn = "arn:aws:iam::aws:policy/AWSOpsWorksCloudWatchLogs"
 }
 
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
@@ -82,7 +70,6 @@ resource "aws_ebs_volume" "data_volume" {
   final_snapshot    = true
   snapshot_id       = var.data_volume_snapshot_id
   encrypted         = true
-  kms_key_id        = aws_kms_key.ebs_kms_key.arn
   tags = {
     Name = "${local.common_tags.Name}-ebs"
   }
@@ -108,7 +95,6 @@ resource "aws_instance" "api" {
   vpc_security_group_ids = [aws_security_group.api_server.id]
   ebs_optimized          = true
   iam_instance_profile   = aws_iam_instance_profile.api_server_instance_profile.name
-  key_name               = var.ssh_key_pair_name
   tags                   = {
     Name = "${local.common_tags.Name}-api"
   }
@@ -117,7 +103,6 @@ resource "aws_instance" "api" {
     volume_type = "gp3"
     volume_size = 12
     encrypted   = true
-    kms_key_id  = aws_kms_key.apiroot_ebs_kms_key.arn
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOT
@@ -162,6 +147,7 @@ resource "aws_instance" "api" {
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
+  export FACTER_CLOUDWATCH_LOG_GROUP='${aws_cloudwatch_log_group.default.name}'
   export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
   export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
   export FACTER_CROMWELL_SERVER_IP='${aws_instance.cromwell.private_ip}'

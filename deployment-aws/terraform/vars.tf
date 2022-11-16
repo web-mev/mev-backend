@@ -64,11 +64,6 @@ variable "sentry_url" {
   default     = ""
 }
 
-variable "ssh_key_pair_name" {
-  description = "SSH key pair name for API and Cromwell servers"
-  type        = string
-}
-
 variable "storage_location" {
   description = "Where the data will be stored. One of remote or local"
   type        = string
