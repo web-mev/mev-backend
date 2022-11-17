@@ -19,5 +19,11 @@ class cromwell::install () {
     source => "https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb"
   }
 
+  package { "cloudwatch_agent":
+    provider  => "dpkg",
+    ensure    => installed,
+    source    => "/opt/amazon-cloudwatch-agent.deb"
+  }
+
   class { 'postgresql::server': }
 }

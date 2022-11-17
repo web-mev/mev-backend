@@ -18,6 +18,13 @@ class cromwell (
   contain cromwell::install
   contain cromwell::config
   contain cromwell::service
+  contain cromwell::cloudwatch_agent
 
-  Class['cromwell::install'] -> Class['cromwell::config'] ~> Class['cromwell::service']
+  Class['cromwell::install']
+  ->
+  Class['cromwell::config']
+  ~>
+  Class['cromwell::service']
+  ~>
+  Class['cromwell::cloudwatch_agent']
 }

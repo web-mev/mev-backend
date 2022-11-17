@@ -19,9 +19,10 @@ class cromwell::config () {
     group   => $cromwell::user,
   }
 
-  file { '/etc/cromwell_cloudwatch_config.json':
+  file { 'cloudwatch_agent_config':
     ensure  => file,
-    content => epp('cromwell/cromwell_cloudwatch_config.json.epp'),
+    path    => "/etc/cloudwatch_agent_config.json",
+    content => epp('cromwell/cloudwatch_agent_config.json.epp'),
     owner   => $cromwell::user,
     group   => $cromwell::user,
   }
