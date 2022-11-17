@@ -14,6 +14,7 @@ class cromwell (
   $user = 'ubuntu'
   $log_dir = '/var/log/cromwell'
   $db_password = fqdn_rand_string(6)
+  $cloudwatch_agent_dir = '/opt/aws/amazon-cloudwatch-agent'
 
   contain cromwell::install
   contain cromwell::config
@@ -25,6 +26,4 @@ class cromwell (
   Class['cromwell::config']
   ~>
   Class['cromwell::service']
-  ~>
-  Class['cromwell::cloudwatch_agent']
 }
