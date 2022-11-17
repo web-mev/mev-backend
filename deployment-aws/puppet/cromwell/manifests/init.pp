@@ -7,6 +7,7 @@
 class cromwell (
   Optional[String] $api_storage_bucket,
   Optional[String] $aws_region,
+  Optional[String] $cloudwatch_log_group,
   Optional[String] $job_queue,
   Optional[String] $storage_bucket,
 ) {

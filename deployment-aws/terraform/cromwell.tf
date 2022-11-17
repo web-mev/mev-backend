@@ -109,6 +109,11 @@ resource "aws_iam_role_policy_attachment" "cromwell_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "cromwell_server_cloudwatch" {
+  role       = aws_iam_role.cromwell.id
+  policy_arn = "arn:aws:iam::aws:policy/AWSOpsWorksCloudWatchLogs"
+}
+
 resource "aws_iam_instance_profile" "cromwell" {
   name = "${local.common_tags.Name}-cromwell"
   role = aws_iam_role.cromwell.name
@@ -192,6 +197,7 @@ resource "aws_instance" "cromwell" {
   # configure and run Puppet
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
   export FACTER_API_STORAGE_BUCKET='${aws_s3_bucket.api_storage_bucket.id}'
+  export FACTER_CLOUDWATCH_LOG_GROUP='${aws_cloudwatch_log_group.default.name}'
   export FACTER_CROMWELL_STORAGE_BUCKET='${aws_s3_bucket.cromwell_storage_bucket.id}'
   export FACTER_CROMWELL_JOB_QUEUE='${aws_batch_job_queue.cromwell.arn}'
 

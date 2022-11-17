@@ -1,0 +1,19 @@
+{
+	"agent": {
+		"run_as_user": "<%= $cromwell::user %>"
+	},
+	"logs": {
+		"logs_collected": {
+			"files": {
+				"collect_list": [
+					{
+						"file_path": "<%= $cromwell::log_dir %>/stdout.log",
+						"log_group_name": "<%= $cromwell::cloudwatch_log_group %>",
+						"log_stream_name": "cromwell-stdout",
+						"retention_in_days": 90
+					}
+				]
+			}
+		}
+	}
+}

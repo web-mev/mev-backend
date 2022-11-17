@@ -19,6 +19,13 @@ class cromwell::config () {
     group   => $cromwell::user,
   }
 
+  file { '/etc/cromwell_cloudwatch_config.json':
+    ensure  => file,
+    content => epp('cromwell/cromwell_cloudwatch_config.json.epp'),
+    owner   => $cromwell::user,
+    group   => $cromwell::user,
+  }
+
   postgresql::server::db { 'cromwell':
     user     => $cromwell::user,
     password => $cromwell::db_password,
