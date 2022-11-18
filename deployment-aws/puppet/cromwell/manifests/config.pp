@@ -19,15 +19,22 @@ class cromwell::config () {
     group   => $cromwell::user,
   }
 
+  postgresql::server::db { 'cromwell':
+    user     => $cromwell::user,
+    password => $cromwell::db_password,
+  }
+
   file { "${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json":
     ensure  => file,
     content => epp('cromwell/amazon-cloudwatch-agent.json.epp'),
     owner   => $cromwell::user,
     group   => $cromwell::user,
   }
-
-  postgresql::server::db { 'cromwell':
-    user     => $cromwell::user,
-    password => $cromwell::db_password,
+  ~>
+  exec { 'cloudwatch_agent':
+    command => "${cromwell::cloudwatch_agent_dir}/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
+    -c file:${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json",
+    owner   => $cromwell::user,
+    group   => $cromwell::user
   }
 }
