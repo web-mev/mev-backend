@@ -1,7 +1,6 @@
 resource "aws_cloudtrail" "default" {
   name                          = local.common_tags.Name
   s3_bucket_name                = aws_s3_bucket.logging.id
-  s3_key_prefix                 = local.stack
   include_global_service_events = true
 
   event_selector {
