@@ -18,7 +18,7 @@ class cromwell::install () {
   file { '/tmp/amazon-cloudwatch-agent.deb':
     source => 'https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb'
   }
-
+  ->
   package { 'cloudwatch_agent':
     provider => dpkg,
     source   => '/tmp/amazon-cloudwatch-agent.deb'
