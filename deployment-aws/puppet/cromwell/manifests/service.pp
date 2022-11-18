@@ -3,4 +3,9 @@ class cromwell::service () {
     ensure => running,
     enable => true,
   }
+
+  service { 'amazon-cloudwatch-agent':
+    ensure => running,
+    enable => true,
+  }
 }

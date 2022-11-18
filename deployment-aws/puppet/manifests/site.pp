@@ -28,9 +28,10 @@ node /api/ {
 
 node /cromwell/ {
   class { 'cromwell':
-    api_storage_bucket => $facts['api_storage_bucket'],
-    aws_region         => $facts['aws_region'],
-    job_queue          => $facts['cromwell_job_queue'],
-    storage_bucket     => $facts['cromwell_storage_bucket'],
+    api_storage_bucket   => $facts['api_storage_bucket'],
+    aws_region           => $facts['aws_region'],
+    cloudwatch_log_group => $facts['cloudwatch_log_group'],
+    job_queue            => $facts['cromwell_job_queue'],
+    storage_bucket       => $facts['cromwell_storage_bucket'],
   }
 }

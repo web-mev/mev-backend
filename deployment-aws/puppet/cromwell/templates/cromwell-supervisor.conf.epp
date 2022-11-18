@@ -1,6 +1,6 @@
 [program:cromwell]
 
-command = /usr/bin/java -Dconfig.file=/etc/cromwell.conf -jar /opt/cromwell.jar server
+command = /usr/bin/java -Dconfig.file=/etc/opt/cromwell.conf -jar /opt/cromwell.jar server
 
 user = <%= $cromwell::user %>
 
