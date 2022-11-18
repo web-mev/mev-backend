@@ -34,7 +34,5 @@ class cromwell::config () {
   exec { 'cloudwatch_agent':
     command => "${cromwell::cloudwatch_agent_dir}/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
     -c file:${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json",
-    user    => $cromwell::user,
-    group   => $cromwell::user
   }
 }
