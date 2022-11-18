@@ -5,7 +5,7 @@ class cromwell::config () {
     group  => $cromwell::user,
   }
 
-  file { '/etc/cromwell.conf':
+  file { '/etc/opt/cromwell.conf':
     ensure  => file,
     content => epp('cromwell/cromwell.conf.epp'),
     owner   => $cromwell::user,
