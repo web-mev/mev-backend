@@ -5,7 +5,7 @@ resource "aws_lb" "api" {
   subnets         = [aws_subnet.public.id, aws_subnet.extra.id]
   security_groups = [aws_security_group.load_balancer.id]
   access_logs {
-    bucket  = "webmev-logs"
+    bucket  = aws_s3_bucket.logging.bucket
     enabled = true
   }
 }
