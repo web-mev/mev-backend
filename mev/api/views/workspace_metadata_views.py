@@ -1,4 +1,5 @@
 import logging
+import json
 
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
@@ -35,7 +36,7 @@ class WorkspaceMetadataBase(object):
         perform merging operations
         '''
         try:
-            return self.set_type(data)
+            return self.set_type(data, permit_null_attributes=True)
         except WebMeVException as ex:
             logger.error('The data to create an element set'
                          ' has been corrupted.')
@@ -54,7 +55,10 @@ class WorkspaceMetadataBase(object):
         # create an empty set to start. We will then perform
         # union operations to create the complete set of Observations
         # or Feature across all resources.
-        union_set = self.set_type({'elements': []})
+        # Note that we permit null attributes so that set operations work 
+        # as expected. Otherwise, it would reject any sets that contained
+        # null attributes
+        union_set = self.set_type({'elements': []}, permit_null_attributes=True)
         for metadata in all_metadata:
             set_data = getattr(metadata, field)
             if set_data is not None:

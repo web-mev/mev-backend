@@ -37,12 +37,18 @@ class ObservationSet(BaseElementSet):
         
     def set_intersection(self, other):
         intersection_list = super()._set_intersection(other)       
-        return ObservationSet({'elements': intersection_list})
+        return ObservationSet(
+            {'elements': intersection_list},
+            permit_null_attributes=self._permit_null_attributes)
         
     def set_union(self, other):
         union_list = super()._set_union(other)
-        return ObservationSet({'elements': union_list})
+        return ObservationSet(
+            {'elements': union_list}, 
+            permit_null_attributes=self._permit_null_attributes)
 
     def set_difference(self, other):
         diff_set = super()._set_difference(other)
-        return ObservationSet({'elements': diff_set})
+        return ObservationSet(
+            {'elements': diff_set},
+            permit_null_attributes=self._permit_null_attributes)

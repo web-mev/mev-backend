@@ -927,3 +927,104 @@ class TestElementSet(unittest.TestCase):
     def test_permit_null_attributes_in_elements(self):
         self._permit_null_attributes_in_elements_test(ObservationSet)
         self._permit_null_attributes_in_elements_test(FeatureSet)
+
+
+    def _set_operations_for_null_attributes_in_elements_test(self, SetClass):
+        '''
+        Runs the test for both Obs/FeatureSet
+
+        This tests set operations where one of the observation/feature sets
+        has a null attribute.
+
+        This is important for ingesting metadata from
+        annotation files where we may encounter some missing
+        data
+        '''
+        el1 = {
+            "id": 'ID1',
+            "attributes": {
+                "stage": {
+                    "attribute_type": "String",
+                    "value": "IV"
+                },
+                "age": {
+                    "attribute_type": "PositiveInteger",
+                    "value": 5
+                }        
+            }
+        }
+
+        el2 = {
+            "id": 'ID2',
+            "attributes": {
+                "stage": {
+                    "attribute_type": "String",
+                    # without permit_null_attributes=True,
+                    # this would cause the validation to fail
+                    "value": None
+                },
+                "age": {
+                    "attribute_type": "PositiveInteger",
+                    "value": 3
+                }        
+            }
+        }
+
+        el_set1 = {
+            'elements':[
+                el1,
+                el2
+            ]
+        }
+
+        el_set2 = {'elements': []}
+
+        # create the two sets amd create a union:
+        s1 = SetClass(el_set1, permit_null_attributes=True)
+        s2 = SetClass(el_set2, permit_null_attributes=True)
+        s3 = s2.set_union(s1)
+        expected_union = ['ID1', 'ID2']
+        resulting_union = []
+        for item in s3.elements:
+            resulting_union.append(item.id)
+        self.assertCountEqual(expected_union, resulting_union)
+
+        # create sets for an intersection:
+        el_set2 = {'elements': [
+            el1
+        ]}
+        s1 = SetClass(el_set1, permit_null_attributes=True)
+        s2 = SetClass(el_set2, permit_null_attributes=True)
+        s3 = s2.set_intersection(s1)
+        self.assertTrue(len(s3.elements) == 1)
+        el = list(s3.elements)[0]
+        self.assertTrue(el.id == 'ID1')
+
+        # run a set difference:
+        s3 = s1.set_difference(s2)
+        el = list(s3.elements)[0]
+        self.assertTrue(el.id == 'ID2')
+
+        # finally, test that if we DON'T set the 'permit_null_attributes'
+        # kwarg, we DO reject:
+        el_set1 = {
+            'elements':[
+                el1  # <-- this element does NOT have any nulls
+            ]
+        }
+        el_set2 = {'elements': [
+            el2  # <-- this has a null
+        ]}
+        s1 = SetClass(el_set1) # <-- does NOT permit nulls
+        s2 = SetClass(el_set2, permit_null_attributes=True)
+        with self.assertRaises(NullAttributeError):
+            s1.set_union(s2) 
+
+        # note that the set intersection does NOT raise an exception
+        # since the intersection is empty:
+        s3 = s1.set_intersection(s2)
+        self.assertTrue(len(s3)==0)
+
+    def test_set_operations_with_null_attributes_in_elements(self):
+        self._set_operations_for_null_attributes_in_elements_test(ObservationSet)
+        self._set_operations_for_null_attributes_in_elements_test(FeatureSet)

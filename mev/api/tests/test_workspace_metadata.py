@@ -466,3 +466,70 @@ class TestWorkspaceMetadata(BaseAPITestCase):
         )
         response = self.authenticated_regular_client.get(url)
         response_json = response.json()
+
+
+    def test_metadata_with_null_returns_properly(self):
+
+        my_resource = Resource.objects.create(
+            name='foo.txt',
+            owner=self.regular_user_1,
+            is_active=True,
+            datafile=File(BytesIO(), 'foo.txt')
+        )
+
+        obs1_data = {
+            'id': 'sampleA',
+            'attributes': {
+                'phenotype': {
+                    'attribute_type': 'String',
+                    'value': 'WT'
+                }
+            }
+        }
+
+        obs2_data = {
+            'id': 'sampleB',
+            'attributes': {
+                'phenotype': {
+                    'attribute_type': 'String',
+                    'value': None
+                }
+            }
+        }
+        # create an ObservationSet for resource1
+        observation_set_data = {
+            'elements': [
+                obs1_data,
+                obs2_data
+            ]
+        }
+
+        # just check that the observation set is formatted correctly first:
+        o = ObservationSet(observation_set_data, permit_null_attributes=True)
+
+        metadata = {
+            RESOURCE_KEY: my_resource.pk,
+            OBSERVATION_SET_KEY: observation_set_data,
+            FEATURE_SET_KEY: None,
+            PARENT_OP_KEY: None
+        }
+
+        rms = ResourceMetadataSerializer(data=metadata, context={'permit_null_attributes': True})
+        if rms.is_valid(raise_exception=True):
+            rms.save()
+
+        # Done with setup, now run the actual test:
+        my_resource.workspaces.add(self.workspace)
+        my_resource.save()
+
+        url = reverse(
+            'workspace-observations-metadata',
+            kwargs={'workspace_pk': self.workspace.pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        expected_obs = set(['sampleA', 'sampleB'])
+        returned_obs = set()
+        for el in response_json['results']:
+            returned_obs.add(el['id'])
+        self.assertEqual(expected_obs, returned_obs)

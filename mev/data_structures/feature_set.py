@@ -37,12 +37,18 @@ class FeatureSet(BaseElementSet):
         
     def set_intersection(self, other):
         intersection_list = super()._set_intersection(other)
-        return FeatureSet({'elements': intersection_list})
+        return FeatureSet(
+            {'elements': intersection_list},
+            permit_null_attributes=self._permit_null_attributes)
 
     def set_union(self, other):
         union_list = super()._set_union(other)
-        return FeatureSet({'elements': union_list})
+        return FeatureSet(
+            {'elements': union_list},
+            permit_null_attributes=self._permit_null_attributes)
 
     def set_difference(self, other):
         diff_set = super()._set_difference(other)
-        return FeatureSet({'elements': diff_set})
+        return FeatureSet(
+            {'elements': diff_set},
+            permit_null_attributes=self._permit_null_attributes)
