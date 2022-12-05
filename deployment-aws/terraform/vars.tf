@@ -22,6 +22,7 @@ variable "container_registry" {
 
 variable "data_volume_snapshot_id" {
   description = "Snapshot ID for the data volume. Used to persist data between deployments."
+  type        = string
   default     = null
 }
 
@@ -90,5 +91,6 @@ variable django_superuser_password {
 
 variable database_snapshot {
   description = "RDS snapshot ID"
-  default = null
+  type        = string
+  default     = null
 }
