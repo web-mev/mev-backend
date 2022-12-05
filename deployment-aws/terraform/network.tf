@@ -38,6 +38,8 @@ resource "aws_subnet" "extra" {
   availability_zone = "${data.aws_region.current.name}b"
   cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 8, 1)
   ipv6_cidr_block   = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 1)
+  map_public_ip_on_launch         = true
+  assign_ipv6_address_on_creation = true
   tags = {
     Name = "${local.common_tags.Name}-extra"
   }
@@ -46,6 +48,11 @@ resource "aws_subnet" "extra" {
 resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
   subnet_id      = aws_subnet.public.id
+}
+
+resource "aws_route_table_association" "extra" {
+  route_table_id = aws_route_table.public.id
+  subnet_id      = aws_subnet.extra.id
 }
 
 resource "aws_subnet" "private_a" {
