@@ -69,7 +69,7 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     actions = ["s3:PutObject"]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.logging.id}/*/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
     
   }
@@ -117,7 +117,7 @@ data "aws_iam_policy_document" "logging_bucket_policy_doc" {
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.logging.id}/${local.stack}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      "arn:aws:s3:::${aws_s3_bucket.logging.id}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
 
     condition  {
