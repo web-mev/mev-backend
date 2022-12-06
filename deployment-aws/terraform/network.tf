@@ -27,20 +27,20 @@ resource "aws_subnet" "public" {
   ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 0)
   map_public_ip_on_launch         = true
   assign_ipv6_address_on_creation = true
-  tags = {
+  tags                            = {
     Name = "${local.common_tags.Name}-public"
   }
 }
 
 resource "aws_subnet" "extra" {
   # currently unused but ALB requires at least two subnets in two different AZs
-  vpc_id            = aws_vpc.main.id
-  availability_zone = "${data.aws_region.current.name}b"
-  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 8, 1)
-  ipv6_cidr_block   = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 1)
+  vpc_id                          = aws_vpc.main.id
+  availability_zone               = "${data.aws_region.current.name}b"
+  cidr_block                      = cidrsubnet(aws_vpc.main.cidr_block, 8, 1)
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 1)
   map_public_ip_on_launch         = true
   assign_ipv6_address_on_creation = true
-  tags = {
+  tags                            = {
     Name = "${local.common_tags.Name}-extra"
   }
 }
@@ -61,7 +61,7 @@ resource "aws_subnet" "private_a" {
   cidr_block                      = cidrsubnet(aws_vpc.main.cidr_block, 8, 10)
   ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 10)
   assign_ipv6_address_on_creation = true
-  tags = {
+  tags                            = {
     Name = "${local.common_tags.Name}-private-a"
   }
 }
@@ -72,7 +72,7 @@ resource "aws_subnet" "private_b" {
   cidr_block                      = cidrsubnet(aws_vpc.main.cidr_block, 8, 11)
   ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 11)
   assign_ipv6_address_on_creation = true
-  tags = {
+  tags                            = {
     Name = "${local.common_tags.Name}-private-b"
   }
 }
