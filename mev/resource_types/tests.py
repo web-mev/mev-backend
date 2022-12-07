@@ -57,6 +57,18 @@ class TestTableResource(unittest.TestCase):
         reader = TableResource().get_reader('TsV')
         self.assertIsNotNone(reader)
 
+    def test_index_all_numbers_method(self):
+        t = TableResource()
+
+        idx = [0.2, 'A', 0.2]
+        self.assertFalse(t.index_all_numbers(idx))
+        
+        idx = ['A', 'B']
+        self.assertFalse(t.index_all_numbers(idx))
+
+        idx = [0.2, 1, 0.2]
+        self.assertTrue(t.index_all_numbers(idx))
+
 class TestResourceElementTable(unittest.TestCase):
 
     def test_returns_empty_metadata_from_large_table(self):

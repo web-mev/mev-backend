@@ -212,9 +212,12 @@ class TableResource(DataResource):
         Works for both row and column indexes.  Returns
         True if all the index labels are numbers.  
         '''
-        if all([re.fullmatch('\d+', str(x)) for x in names]):
+        try:
+            # if this comprehension succeeds, then all the column headers
+            # or row names were able to be parsed as numbers.
+            [float(x) for x in names]
             return True
-        else:
+        except ValueError:
             return False
 
     @staticmethod

@@ -197,7 +197,22 @@ class TestBasicTable(BaseAPITestCase):
         df = pd.read_table(self.r.datafile.open(), index_col=0)
         self.assertCountEqual(df.index.values, ['ENSG1','ENSG3'])
 
-        
+    def test_handles_excel_table_without_header(self):
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'excel_no_header.xlsx'))
+        is_valid, err = t.validate_type(self.r, XLSX_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertEqual(err, NUMBERED_COLUMN_NAMES_ERROR)  
+
+    def test_handles_excel_table_parsed_as_tsv(self):
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'excel_no_header.xlsx'))
+        is_valid, err = t.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+
+
 class TestMatrix(BaseAPITestCase):
     '''
     Tests tables where all entries must be numeric
