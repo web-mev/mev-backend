@@ -1,5 +1,7 @@
 import logging
 
+from exceptions import JobSubmissionException
+
 from .local_docker import LocalDockerRunner
 from .remote_cromwell import RemoteCromwellRunner
 
@@ -35,7 +37,10 @@ def submit_job(executed_op, op, validated_inputs):
     '''
     runner_class = get_runner(executed_op.mode)
     runner = runner_class()
-    runner.run(executed_op, op, validated_inputs)
+    try:
+        runner.run(executed_op, op, validated_inputs)
+    except Exception as ex:
+        raise JobSubmissionException(f'Failed to submit job {executed_op.pk}')
 
 
 def finalize_job(executed_op, op):

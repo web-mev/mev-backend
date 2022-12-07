@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from django.contrib.auth import get_user_model
@@ -13,6 +14,7 @@ from api.models import Operation, \
 from api.utilities.ingest_operation import perform_operation_ingestion
 from api.runners import submit_job, finalize_job, get_runner
 from api.utilities.operations import get_operation_instance
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +108,13 @@ def submit_async_job(executed_op_pk,
     try:
         submit_job(executed_op, op, validated_inputs)
     except JobSubmissionException as ex:
-        logger.info('Caught a job submission exception.')
+        logger.info(f'Caught a job submission exception: {ex}')
+        executed_op.job_failed = True
+        executed_op.status = ('Job submission failed.'
+                              ' An administrator has been notified.')
+        executed_op.execution_stop_datetime = datetime.datetime.now()
+        executed_op.save()
+        alert_admins(f'Job {executed_op_pk} failed for unexpected reason.')
         return
 
     # also start a task that will watch for job status changes
