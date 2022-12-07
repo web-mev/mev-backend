@@ -1,6 +1,7 @@
 from io import BytesIO
-import unittest
+import unittest.mock as mock
 import os
+import uuid
 
 import pandas as pd
 
@@ -151,7 +152,52 @@ class TestBasicTable(BaseAPITestCase):
         is_valid, err = t.validate_type(self.r, TSV_FORMAT)
         self.assertFalse(is_valid)
 
+    @mock.patch('resource_types.table_types.uuid')
+    def test_saves_cleaned_data_in_standard_format(self, mock_uuid):
+        '''
+        This tests that we save the "cleaned" data after rows with only NA
+        are removed.
 
+        This stemmed from a situation where a TSV-format table was 
+        submitted that had a full row of NAs. We parsed the table and
+        removed the offending row(s), but then did NOT bother to save
+        this "updated" data since the original data was ALREADY in
+        the desired "target" format (recall we ultimately save all
+        table-based files in a standard format, e.g. TSV).
+
+        This test ensures that we save that version where the NA-rows
+        were removed. Those rows can cause challenges for downstream
+        analysis tools.
+        '''
+
+        # check the situation where we are supplied a TSV
+        # and save to a TSV. Previously, this was not done
+        # and hence the final file still had the row of NAs.
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_table_with_full_na_row.tsv'))
+        is_valid, err = t.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+        t.save_in_standardized_format(self.r, TSV_FORMAT)
+        df = pd.read_table(self.r.datafile.open(), index_col=0)
+        self.assertCountEqual(df.index.values, ['ENSG1','ENSG3'])
+
+        # check that we get the same behavior starting from a
+        # non-standard file format (CSV)
+        mock_uuid.reset_mock()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_table_with_full_na_row.csv'))
+        is_valid, err = t.validate_type(self.r, CSV_FORMAT)
+        self.assertTrue(is_valid)
+        u = uuid.uuid4()
+        mock_uuid.uuid4.return_value = u
+        t.save_in_standardized_format(self.r, CSV_FORMAT)
+        df = pd.read_table(self.r.datafile.open(), index_col=0)
+        self.assertCountEqual(df.index.values, ['ENSG1','ENSG3'])
+
+        
 class TestMatrix(BaseAPITestCase):
     '''
     Tests tables where all entries must be numeric

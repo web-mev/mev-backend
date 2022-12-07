@@ -628,20 +628,16 @@ class TableResource(DataResource):
 
         Note that `current_file_format` is the format BEFORE we have standardized.
         This can obviously match our standard format
+
+        Note that even if the data was already in the standard format, we STILL
+        go through the process of writing a new resource. This is because we can
+        guarantee the file has been appropriately cleaned. For instance, if an entire
+        row of NA (blank) values is submitted, we have already removed that. Edge cases
+        like that will often cause problem for downstream tools, so we remove those rows.
         '''
         logger.info(f'Saving resource ({resource_instance.pk}) to the standard'
             ' format for a table-based resource. The original name'
             f' was: {resource_instance.datafile.name}')
-
-        # the 'current' file extension (e.g. 'csv')
-        # was used to successfully validate the file.
-        # If it happens that this is also our standard format (tsv)
-        # then we can just return immediately
-        if current_file_format.lower() == self.STANDARD_FORMAT.lower():
-            return
-
-        # If we are here, then the selected file format did not match our
-        # "standard" format.  Have to parse and rewrite to that standard format.
 
         # If the self.table field was not already filled, we need to 
         # read the data
