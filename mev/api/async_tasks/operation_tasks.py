@@ -110,8 +110,8 @@ def submit_async_job(executed_op_pk,
     except JobSubmissionException as ex:
         logger.info(f'Caught a job submission exception: {ex}')
         executed_op.job_failed = True
-        executed_op.status = ('Job submission failed.'
-                              ' An administrator has been notified.')
+        executed_op.error_messages = [('Job submission failed.'
+                        ' An administrator has been notified.')]
         executed_op.execution_stop_datetime = datetime.datetime.now()
         executed_op.save()
         alert_admins(f'Job {executed_op_pk} failed for unexpected reason.')
