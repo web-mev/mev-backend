@@ -1,6 +1,6 @@
 asn1crypto==0.24.0
 cachetools==5.0.0
-certifi==2021.10.8
+certifi==2022.12.7
 charset-normalizer==2.0.11
 cryptography==3.3.2
 entrypoints==0.3
