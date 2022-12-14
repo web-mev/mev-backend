@@ -1,18 +1,10 @@
-import os
 import uuid
 import unittest.mock as mock
-import shutil
 
 from django.urls import reverse
-from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 
-from api.uploaders.dropbox_upload import DropboxLocalUpload, \
-    DropboxGCPRemoteUpload
-
 from api.tests.base import BaseAPITestCase
-from api.tests import test_settings
 
 
 class LocalDropboxUploadTests(BaseAPITestCase):
@@ -61,7 +53,7 @@ class LocalDropboxUploadTests(BaseAPITestCase):
         self.assertEqual(j['upload_ids'][0], str(u1))
 
 
-class GCPRemoteDropboxUploadTests(BaseAPITestCase):
+class AWSRemoteDropboxUploadTests(BaseAPITestCase):
     def setUp(self):
         self.url = reverse('dropbox-upload')
         self.establish_clients()
@@ -76,16 +68,16 @@ class GCPRemoteDropboxUploadTests(BaseAPITestCase):
         mock_uuid.uuid4.side_effect = [u1, u2]
         mock_dropbox_uploader = mock.MagicMock()
         item1 = {
-            'GCPDropboxUpload.dropbox_link': 'l1',
-            'GCPDropboxUpload.filename': 'f1',
-            'GCPDropboxUpload.bucketname': 'x',
-            'GCPDropboxUpload.storage_root': 'y'  
+            'AWSDropboxUpload.dropbox_link': 'l1',
+            'AWSDropboxUpload.filename': 'f1',
+            'AWSDropboxUpload.bucketname': 'x',
+            'AWSDropboxUpload.storage_root': 'y'  
         }
         item2 = {
-            'GCPDropboxUpload.dropbox_link': 'l2',
-            'GCPDropboxUpload.filename': 'f2',
-            'GCPDropboxUpload.bucketname': 'x',
-            'GCPDropboxUpload.storage_root': 'y'  
+            'AWSDropboxUpload.dropbox_link': 'l2',
+            'AWSDropboxUpload.filename': 'f2',
+            'AWSDropboxUpload.bucketname': 'x',
+            'AWSDropboxUpload.storage_root': 'y'  
         }
         mock_op_id = 'abc'
         mock_dropbox_uploader.op_id = mock_op_id

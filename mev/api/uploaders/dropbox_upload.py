@@ -1,8 +1,6 @@
-import uuid
 import os
 import logging
 
-from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.models import Operation as OperationDbModel
@@ -32,9 +30,10 @@ class DropboxUploadMixin(object):
             # exception if a client request had bad or missing keys. Since we control
             # everything here, it is unlikely this exception will be raised.
             logger.error('Failed to map the inputs provided by the Dropbox-payload'
-                ' into inputs compatible with the GCP Dropbox uploader.'
+                ' into inputs compatible with the Dropbox uploader.'
             )
             raise ex
+
 
 class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
     '''
@@ -104,78 +103,6 @@ class DropboxLocalUpload(LocalUpload, DropboxUploadMixin):
         d = self.validate(user, d)
         # as mentioned above, we return a one-item list
         return [d,]
-
-
-class DropboxGCPRemoteUpload(RemoteUpload, DropboxUploadMixin):
-    '''
-    This handles Dropbox-specific behavior for files that go directly to the 
-    storage backend. Since we require google-specific behavior, we have a 
-    GCP-specific class
-    '''
-
-    # The directory containing the Operation components. Relative to the
-    # directory of this file. The actual Operation will be executed from the 
-    # files in the "final" operation dir, but this lets the ingestion script 
-    # know where the source is.
-    op_dir = os.path.join(THIS_DIR, 'gcp_bucket_dropbox_upload')
-
-    def __init__(self):
-        op = OperationDbModel.objects.filter(name='Dropbox upload app for GCP')\
-            .latest('addition_datetime')
-        self.op_id = str(op.pk)
-        super().__init__()
-
-    def rename_inputs(self, user, data):
-        '''
-        Takes the data provided by the front-end, which looks like:
-        ```
-        [
-            {
-                'download_link': 'https://dropbox-url.com/foo.txt',
-                'filename': 'foo.txt'
-            },
-            {
-                'download_link': 'https://dropbox-url.com/bar.txt',
-                'filename': 'bar.txt'
-            }
-        ]
-        ```
-        and reformats it into inputs for this GCP-based remote Dropbox 
-        upload, which looks like an array where each element is like:
-        ```
-        {
-            "GCPDropboxUpload.dropbox_link": "",
-            "GCPDropboxUpload.filename": "",
-            "GCPDropboxUpload.bucketname": "",
-            "GCPDropboxUpload.storage_root": "" 
-        }
-        ```
-
-        Note that this is different than the "input mapping" which takes that
-        dictionary above and creates the proper inputs.json for submission to
-        the cromwell server. In this case, it's a trivial operation since they
-        are the same thing.
-        '''
-
-        # In django-storages, this is the bucket where we store all user files.
-        bucket_name = settings.MEDIA_ROOT
-
-        input_template = {
-            'GCPDropboxUpload.dropbox_link': '',
-            'GCPDropboxUpload.filename': '',
-            'GCPDropboxUpload.bucketname': bucket_name,
-            'GCPDropboxUpload.storage_root': self.tmp_folder_name  
-        }
-        remapped_inputs = []
-        for item in data:
-            d = input_template.copy()
-            link = item['download_link']
-            name = item['filename']
-            d['GCPDropboxUpload.dropbox_link'] = link
-            d['GCPDropboxUpload.filename'] = name
-            d = self.validate(user, d)
-            remapped_inputs.append(d)
-        return remapped_inputs
 
 
 class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):

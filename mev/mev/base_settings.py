@@ -248,11 +248,10 @@ RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
 
 # For consistent reference, define the cloud platforms
 AMAZON = 'aws'
-GOOGLE = 'gce'
 VIRTUALBOX = 'virtualbox'
 
 # include any cloud platforms that are implemented in this list.
-AVAILABLE_CLOUD_PLATFORMS = [AMAZON, GOOGLE, VIRTUALBOX]
+AVAILABLE_CLOUD_PLATFORMS = [AMAZON, VIRTUALBOX]
 
 # get the requested platform from the environment variables and ensure 
 # that it's valid
@@ -335,10 +334,9 @@ if STORAGE_LOCATION == REMOTE:
         DEFAULT_FILE_STORAGE = 'api.storage.S3ResourceStorage'
         AWS_S3_SIGNATURE_VERSION = 's3v4'
         AWS_S3_REGION_NAME = get_env('AWS_REGION')
-    elif CLOUD_PLATFORM == GOOGLE:
-        # TODO: a temporary guard against problems if we deploy on GCP.
-        # Remove if/when all GCP-related content is removed
-        raise NotImplementedError('Not yet implemented!')
+    else:
+        raise NotImplementedError('Storage not implemented'
+                                  f' for cloud platform: {CLOUD_PLATFORM}')
 
     # Regardless of the platform, we still need to know the bucket name.
     # This setting is used by the storage class implementation to effectively
