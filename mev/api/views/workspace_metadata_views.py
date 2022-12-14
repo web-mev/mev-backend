@@ -125,6 +125,13 @@ class WorkspaceMetadataObservationsView(ListAPIView, WorkspaceMetadataBase):
     '''
     pagination_class = MetadataPagination
 
+    # This class attribute needs to be set for the DRF
+    # auto-generate API pages to work. Headless requests to 
+    # the API have no trouble without this. Note that we
+    # don't use this, since the `list` method defines the
+    # actual behavior
+    queryset = ResourceMetadata.objects.all()
+
     # This creates the proper type in the methods we inherit
     # from `WorkspaceMetadataBase`
     set_type = ObservationSet
@@ -137,6 +144,13 @@ class WorkspaceMetadataObservationsView(ListAPIView, WorkspaceMetadataBase):
 class WorkspaceMetadataFeaturesView(ListAPIView, WorkspaceMetadataBase):
     pagination_class = MetadataPagination
 
+    # This class attribute needs to be set for the DRF
+    # auto-generate API pages to work. Headless requests to 
+    # the API have no trouble without this. Note that we
+    # don't use this, since the `list` method defines the
+    # actual behavior
+    queryset = ResourceMetadata.objects.all()
+    
     # This creates the proper type in the methods we inherit
     # from `WorkspaceMetadataBase`
     set_type = FeatureSet
