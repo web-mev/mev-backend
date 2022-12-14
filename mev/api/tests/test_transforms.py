@@ -2,11 +2,18 @@ import os
 import unittest.mock as mock
 from itertools import chain
 
+from constants import MATRIX_KEY, \
+    TSV_FORMAT, \
+    FEATURE_TABLE_KEY, \
+    JSON_FILE_KEY, \
+    JSON_FORMAT
+
 from api.models import Resource
 from api.tests.base import BaseAPITestCase
 from api.tests.test_helpers import associate_file_with_resource
 
 from api.data_transformations.network_transforms import subset_PANDA_net
+from api.data_transformations.heatmap_transforms import heatmap_reduce
 
 class ResourceTransformTests(BaseAPITestCase):
 
@@ -18,7 +25,80 @@ class ResourceTransformTests(BaseAPITestCase):
         )
         # get an example from the database:
         self.resource = Resource.objects.all()[0]
+
+    def test_heatmap_hcl_transform_case(self):
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'mad_n': 5
+        }
+        result = heatmap_reduce(self.resource, query_params)
+        expected_row_ordering = ['g3','g1','g2','g6','g4']
+        self.assertEqual(expected_row_ordering, [x['rowname'] for x in result])
+        expected_col_ordering = ['s1','s3','s5','s2','s4','s6']
+        self.assertEqual(expected_col_ordering, [x for x in result[0]['values']])
+
+    def test_heatmap_hcl_bad_resource_type(self):
+        '''
+        Test that we appropriately warn if the heatmap clustering function
+        is called for an unacceptable resource type
+        '''
+        # test that it works for an all-numeric FT:
+        fp = os.path.join(self.TESTDIR, 'json_array_file.json')
+        self.resource.resource_type = JSON_FILE_KEY
+        self.resource.file_format = JSON_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'mad_n': 5
+        }
+        with self.assertRaisesRegex(Exception, 'Not an acceptable resource type'):
+            heatmap_reduce(self.resource, query_params)
+
+    def test_heatmap_hcl_warns_non_numeric(self):
+        '''
+        Test that we appropriately warn if the heatmap clustering function
+        can't work due to a non-numeric entry in the table. Since we can
+        technically have feature tables that are all numeric, they CAN
+        work on some types. However, we need to catch and warn attempts
+        where we can't perform the calculation. 
         
+        An example would be an output from LIONESS--
+        it's a feature table since each row concerns the weights
+        (e.g. to transcription factors) for each gene. It's NOT
+        a matrix since the columns are not technically observations
+        (samples).
+        '''
+        # test that it works for an all-numeric FT:
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'mad_n': 5
+        }
+        result = heatmap_reduce(self.resource, query_params)
+        expected_row_ordering = ['g3','g1','g2','g6','g4']
+        self.assertEqual(expected_row_ordering, [x['rowname'] for x in result])
+        expected_col_ordering = ['s1','s3','s5','s2','s4','s6']
+        self.assertEqual(expected_col_ordering, [x for x in result[0]['values']])
+
+        # now test that it fails for a table with non-numeric
+        fp = os.path.join(self.TESTDIR, 'table_with_string_field.tsv')
+        self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'mad_n': 5
+        }
+        with self.assertRaisesRegex(Exception, 'Could not calculate'):
+            heatmap_reduce(self.resource, query_params)
+
     def test_panda_subset_transform_case(self):
         fp = os.path.join(self.TESTDIR, 'example_panda_output.tsv')
         associate_file_with_resource(self.resource, fp)

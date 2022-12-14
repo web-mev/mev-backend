@@ -7,10 +7,9 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from constants import MATRIX_KEY, \
     INTEGER_MATRIX_KEY, \
     EXPRESSION_MATRIX_KEY, \
-    RNASEQ_COUNT_MATRIX_KEY
+    RNASEQ_COUNT_MATRIX_KEY, \
+    FEATURE_TABLE_KEY
 from data_structures.attribute_types import PositiveIntegerAttribute
-
-from api.utilities.resource_utilities import localize_resource
 
 from resource_types import get_resource_type_instance
 
@@ -50,17 +49,22 @@ def heatmap_reduce(resource, query_params):
         MATRIX_KEY,
         EXPRESSION_MATRIX_KEY,
         INTEGER_MATRIX_KEY,
-        RNASEQ_COUNT_MATRIX_KEY
+        RNASEQ_COUNT_MATRIX_KEY,
+        FEATURE_TABLE_KEY
     ]
     if not resource.resource_type in acceptable_resource_types:
         raise Exception('Not an acceptable resource type for this function.')
 
     resource_type_instance = get_resource_type_instance(resource.resource_type)
-    local_path = localize_resource(resource)
-    resource_type_instance.read_resource(local_path, resource.file_format)
+    resource_type_instance.read_resource(resource, resource.file_format)
     df = resource_type_instance.table
-
-    mad_values = median_abs_deviation(df, axis=1)
+    try:
+        mad_values = median_abs_deviation(df, axis=1)
+    except:
+        raise Exception('Could not calculate the median absolute deviation when preparing'
+            ' the heatmap data. Often this is due to non-numerical data in your table.'
+            ' If you are using a feature table or other file that can contain'
+            ' non-numerical entries, you cannot use this data transformation.')
     sort_ordering = np.argsort(mad_values)[::-1][:mad_n]
 
     # use that sort order to subset the matrix:
@@ -103,6 +107,5 @@ def heatmap_reduce(resource, query_params):
 
     # reorder the matrix to correspond to the clustering
     df = df.loc[row_order, col_order]
-
     # convert to our usual return payload
     return df.apply(resource_type_instance.main_contents_converter, axis=1).tolist()

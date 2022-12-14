@@ -5,6 +5,7 @@ import re
 import uuid
 from functools import reduce
 from io import BytesIO
+from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
@@ -528,7 +529,7 @@ class TableResource(DataResource):
         Input arg is a row of a pandas dataframe
         '''
 
-        return {'rowname': row.name, 'values': row.to_dict()}
+        return {'rowname': row.name, 'values': row.to_dict(OrderedDict)}
 
     def extra_contents_converter(self, row):
         '''
