@@ -1,0 +1,14 @@
+{% load i18n %}
+
+{% blocktrans %}
+You're receiving this message because this email was used to register an account at {{ protocol }}://{{ frontend_domain }}
+{% endblocktrans %}
+
+{% trans "To complete your registration, please click the following (or copy/paste) to activate your account:" %}
+{{ protocol }}://{{ frontend_domain }}/{{ activation_url|safe }}
+
+{% trans "If this was not you, you may disregard this message." %}
+
+{% trans "Thanks!" %}
+
+{% blocktrans %}The {{ site_name }} team{% endblocktrans %}

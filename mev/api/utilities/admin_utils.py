@@ -1,6 +1,7 @@
 from sentry_sdk import capture_message
 from api.utilities.email_utils import send_email_to_admins
 
+
 def alert_admins(msg):
     '''
     A function to be called when an error occurs that is not necessarily

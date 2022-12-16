@@ -39,8 +39,8 @@ class FeedbackTests(BaseAPITestCase):
         response = self.regular_client.post(self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_401_UNAUTHORIZED)
 
-    @mock.patch('api.views.feedback_views.alert_admins')
-    def test_submit_message(self, mock_alert_admins):
+    @mock.patch('api.views.feedback_views.send_email_to_admins')
+    def test_submit_message(self, mock_send_email_to_admins):
         orig_messages = FeedbackMessage.objects.all()
         n0 = len(orig_messages)
         msg = 'Here is a feedback message'
@@ -55,8 +55,7 @@ class FeedbackTests(BaseAPITestCase):
         final_messages = FeedbackMessage.objects.all()
         n1 = len(final_messages)
         self.assertEqual(n1 - n0, 1)
-        mock_alert_admins.assert_called_with(msg)
-
+        mock_send_email_to_admins.assert_called_with(msg)
 
     def test_malformatted_message(self):
         orig_messages = FeedbackMessage.objects.all()

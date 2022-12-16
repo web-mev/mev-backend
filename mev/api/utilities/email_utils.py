@@ -1,141 +1,137 @@
-import logging 
+import logging
 
 from django.contrib.auth.tokens import default_token_generator
-
 from django.conf import settings
-from django.contrib.sites.shortcuts import get_current_site
-from django.core import mail
-from django.template.context import make_context
-from django.template.loader import get_template
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
-from .basic_utils import encode_uid, decode_uid
+from .basic_utils import encode_uid
 
 logger = logging.getLogger(__name__)
 
-class BaseEmailMessage(mail.EmailMultiAlternatives):
-    _node_map = {
-        'subject': 'subject',
-        'text_body': 'body',
-        'html_body': 'html',
-    }
-    template_name = None
 
-    def __init__(self, request=None, context=None, template_name=None,
-                 *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class BaseEmailMessage(object):
+
+    # by default, we don't require an HTML template.
+    # Child classes can declare this if they want to
+    # send html email messages
+    html_template_path = None
+
+    def __init__(self,
+                 context=None,
+                 request=None):
 
         self.request = request
         self.context = {} if context is None else context
-        self.html = None
+        self.from_email = settings.FROM_EMAIL
 
-        if template_name is not None:
-            self.template_name = template_name
+        # augment the provided context with the "common" fields
+        self._get_common_context()
 
-    def get_context_data(self, **kwargs):
-        context = dict(**self.context)
+        # read/render the templates:
+        self.plaintext_content = render_to_string(self.plaintext_template_path,
+                                                  context=self.context,
+                                                  request=self.request)
+        if self.html_template_path is not None:
+            self.html_content = render_to_string(self.html_template_path,
+                                                 context=self.context,
+                                                 request=self.request)
+        else:
+            self.html_content = None
+
+    def send(self, recipient_list):
+        success = send_mail(self.subject,
+                            self.plaintext_content,
+                            settings.FROM_EMAIL,
+                            recipient_list,
+                            html_message=self.html_content)
+        if not success:
+            logger.info(f'Failed to send email to {",".join(recipient_list)}')
+
+    def _get_common_context(self):
+        '''
+        Returns a dictionary with common "context" parameters
+        for email templates. These are parameters that are
+        often injected into emails (such as frontend domain).
+
+        The context parameters are not required to be in the
+        templates, so it's fine if a parameter does not apply
+        to a particular template
+        '''
+
+        # if we haven't already provided the site name in the
+        # context dict, get it from the django settings. If 
+        # that isn't declared in our settings, an exception
+        # will be raised (which will be caught by the caller)
+        if 'site_name' not in self.context:
+            self.context['site_name'] = settings.SITE_NAME
+
         if self.request:
-            site = get_current_site(self.request)
-            domain = context.get('domain') or (
-                getattr(settings, 'BACKEND_DOMAIN', '') or site.domain
-            )
-            protocol = context.get('protocol') or (
+
+            protocol = self.context.get('protocol') or (
                 'https' if self.request.is_secure() else 'http'
             )
-            site_name = context.get('site_name') or (
-                getattr(settings, 'SITE_NAME', '') or site.name
-            )
 
-            # If no frontend domain is given, default to the site name
-            frontend_domain = context.get('frontend_domain') or (
-                getattr(settings, 'FRONTEND_DOMAIN', '') or site.name
-            )
+            # If no frontend domain is given, fail out. The links
+            # created for various activities like activation, registration,
+            # etc. are dependent on the frontend taking the link and
+            # forming a post request
+            frontend_domain = self.context.get('frontend_domain') or (
+                getattr(settings, 'FRONTEND_DOMAIN'))
 
-            user = context.get('user') or self.request.user
-
-            context.update({
-                'domain': domain,
+            self.context.update({
                 'protocol': protocol,
-                'site_name': site_name,
                 'frontend_domain': frontend_domain
             })
-        return context
 
-    def render(self):
-        context = make_context(self.get_context_data(), request=self.request)
-        template = get_template(self.template_name)
-        with context.bind_template(template.template):
-            for node in template.template.nodelist:
-                self._process_node(node, context)
-        self._attach_body()
 
-    def send(self, to, *args, **kwargs):
-        self.render()
+class TokenAndUidMixin(object):
+    '''
+    A mixin class that has behavior for creating
+    tokens and encoded UIDs
+    '''
+    def _get_uid_and_token(self, user):
+        '''
+        Common behavior for situations where we send a link to the
+        user with a token and an encoded UID.
 
-        self.to = to
-        self.cc = kwargs.pop('cc', [])
-        self.bcc = kwargs.pop('bcc', [])
-        self.reply_to = kwargs.pop('reply_to', [])
-        self.from_email = kwargs.pop('from_email', None)
-        if self.from_email is None:
-            self.from_email = settings.DEFAULT_FROM_EMAIL
+        Returns the token and encoded uid for use in
+        construction of activation links, etc.
+        '''
+        token = default_token_generator.make_token(user)
+        encoded_uid = encode_uid(user.pk)
+        return token, encoded_uid
 
-        super().send(*args, **kwargs)
 
-    def _process_node(self, node, context):
-        attr = self._node_map.get(getattr(node, 'name', ''))
-        if attr is not None:
-            setattr(self, attr, node.render(context).strip())
+class ActivationEmail(BaseEmailMessage, TokenAndUidMixin):
+    plaintext_template_path = 'email/activation.txt'
+    html_template_path = 'email/activation.html'
+    subject = 'Account activation for WebMeV'
 
-    def _attach_body(self):
-        if self.body and self.html:
-            self.attach_alternative(self.html, 'text/html')
-        elif self.html:
-            self.body = self.html
-            self.content_subtype = 'html'
+    def __init__(self, request, user):
+        token, uid = self._get_uid_and_token(user)
+        context = {}
+        context['activation_url'] = settings.ACTIVATION_URL.format(
+                                        uid=uid, token=token)
+        super().__init__(context=context, request=request)
 
-class ActivationEmail(BaseEmailMessage):
-    template_name = "email/activation.html"
 
-    def get_context_data(self):
-        context = super().get_context_data()
-        context["url"] = settings.ACTIVATION_URL.format(**context)
-        return context
+class PasswordResetEmail(BaseEmailMessage, TokenAndUidMixin):
+    plaintext_template_path = 'email/password_reset.txt'
+    html_template_path = 'email/password_reset.html'
+    subject = 'Password reset request for WebMeV'
 
-class PasswordResetEmail(BaseEmailMessage):
-    template_name = "email/password_reset.html"
+    def __init__(self, request, user):
+        token, uid = self._get_uid_and_token(user)
+        context = {}
+        context['reset_url'] = settings.RESET_PASSWORD_URL.format(
+                            uid=uid, token=token)
+        super().__init__(context=context, request=request)
 
-    def get_context_data(self):
-        context = super().get_context_data()
-        context["url"] = settings.RESET_PASSWORD_URL.format(**context)
-        return context
 
 class AdminNotificationEmail(BaseEmailMessage):
-    template_name = "email/admin_notification.html"
-
-    def get_context_data(self):
-        context = super().get_context_data()
-        return context
-
-def send_uid_and_token_link(request, user, message_cls):
-    '''
-    Common behavior for situations where we send a link to the
-    user with a token and an encoded UID.
-
-    message_cls is a subclass of BaseEmailMessage 
-    (not instantiated- just the type)
-    '''
-    token = default_token_generator.make_token(user)
-    encoded_uid = encode_uid(user.pk)
-
-    context = {
-        "user": user,
-        'uid': encoded_uid,
-        'token': token
-    }
-    to = [user.email]
-    message_cls(request, context).send(
-        to, 
-        from_email=settings.FROM_EMAIL)
+    plaintext_template_path = 'email/admin_notification.txt'
+    subject = '[WebMeV] Admin notification'
 
 
 def send_activation_email(request, user):
@@ -143,25 +139,26 @@ def send_activation_email(request, user):
     Orchestrates sending of the activation email after
     a user has registered.
     '''
-    logger.info('Sending activation email to {email}'.format(email=user.email))
-    message_cls = ActivationEmail
-    send_uid_and_token_link(request, user, message_cls)
+    logger.info(f'Sending activation email to {user.email}')
+    ActivationEmail(request, user).send([user.email])
+
 
 def send_password_reset_email(request, user):
     '''
     Orchestrates sending of the email to reset a user password.
     '''
-    logger.info('Sending password reset email to {email}'.format(email=user.email))
-    message_cls = PasswordResetEmail
-    send_uid_and_token_link(request, user, message_cls)
+    logger.info(f'Sending password reset email to {user.email}')
+    PasswordResetEmail(request, user).send([user.email])
+
 
 def send_email_to_admins(message):
     '''
-    Orchestrates sending an email to the admins
+    Orchestrates sending an email to the admins.
+
+    If error=True, then use the AdminNotificationEmail
     '''
     context = {
         'message': message
     }
     AdminNotificationEmail(context=context).send(
-        settings.ADMIN_EMAIL_LIST, 
-        from_email=settings.FROM_EMAIL)
+        settings.ADMIN_EMAIL_LIST)

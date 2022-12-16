@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from api.serializers.feedback import FeedbackSerializer
 from api.models import FeedbackMessage
-from api.utilities.admin_utils import alert_admins
+from api.utilities.email_utils import send_email_to_admins
 
 class SubmitFeedbackView(APIView):
     '''
@@ -25,6 +25,6 @@ class SubmitFeedbackView(APIView):
         if serializer.is_valid():
             serializer.save(user=request.user)
             data = serializer.data
-            alert_admins(data['message'])
+            send_email_to_admins(data['message'])
             return Response(data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

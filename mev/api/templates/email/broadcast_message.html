@@ -1,0 +1,40 @@
+{% load i18n %}
+
+{% block subject %}
+{% blocktrans %}{{site_name}} account and data migration{% endblocktrans %}
+{% endblock subject %}
+
+{% block text_body %}
+{% blocktrans %}
+You're receiving this message because this email because you have previously registered an account at {{ site_name }}
+{% endblocktrans %}
+
+{% trans "Beginning in 2023, WebMeV will be migrating our infrastructure from Google Cloud to Amazon Web Services (AWS)." %}
+
+{% trans "To reduce the chance of data loss and corruption, we will NOT be migrating accounts and data to AWS systems. Therefore, if you wish to save your WebMeV data, you should download it before our migration on January 10, 2023" %}
+
+{% trans "If you have questions or comments, you can reach us at qbrc@hsph.harvard.edu. Do not reply to this email- the address is not monitored." %}
+
+{% trans "Thanks!" %}
+
+{% blocktrans %}The {{ site_name }} team{% endblocktrans %}
+{% endblock text_body %}
+
+{% block html_body %}
+<p>{% blocktrans %}You're receiving this message because you have previously registered
+    an account at {{ site_name }}.  
+    {% endblocktrans %}</p>
+
+<p>{% trans "Beginning in 2023, WebMeV will be migrating our infrastructure from Google Cloud to Amazon Web Services (AWS)." %}</p>
+
+<p>{% trans "To reduce the chance of data loss and corruption, we will <b>not</b> be migrating accounts and data to AWS systems." %}</p>
+
+<p><u>{% trans "If you wish to save your WebMeV data, you should download it before our migration on January 10, 2023" %}</u></p>
+
+<p>{% trans "If you have questions or comments, you can reach us at <a href=\"mailto:qbrc@hsph.harvard.edu\">qbrc@hsph.harvard.edu</a>. Do not reply to this email- the address is not monitored." %}</p>
+
+<p>{% trans "Thanks!" %}</p>
+
+<p>{% blocktrans %}The {{ site_name }} team{% endblocktrans %}</p>
+
+{% endblock html_body %}
