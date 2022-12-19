@@ -75,6 +75,7 @@ An `OperationInput` looks like:
     "description": <string>,
     "name": <string>,
     "required": <bool>,
+    "converter": <string>,
     "spec": <InputSpec>
 }
 ```
@@ -86,6 +87,7 @@ As an example of an `OperationInputs`, consider a p-value for thresholding:
     "description": "The filtering threshold for the p-value",
     "name": "P-value threshold:",
     "required": false,
+    "converter": "api.converters.basic_attributes.FloatConverter",
     "spec": {
         "type": "BoundedFloat",
         "min": 0,
@@ -95,6 +97,8 @@ As an example of an `OperationInputs`, consider a p-value for thresholding:
 }
 ```
 The `spec` key addresses a child class of `InputSpec` whose behavior is specific to each "type" (above, a `BoundedFloat`). The `spec` allows us to validate a user's input for compliance with the expected type; for instance, when an analysis is requested, the `spec` ensures that we get sensible inputs for that field.
+
+The `converter` key addresses a "dot-style" Python class which takes the input value, e.g. 0.05 and casts to a float. In this case, the converter is trivial, but more complex transformations can be created.
 
 
 ####`ExecutedOperation`s
@@ -122,48 +126,81 @@ Thus, the file which defines this analysis would look like:
 
 ```
 {
-    "name":"DESeq2 differential gene expression",
-    "description": "Find genes which are differentially expressed and filter..."
+    "name": "DESeq2", 
+    "description": "Execute a simple differential expression analysis comparing two groups of samples.", 
     "inputs": {
-        "count_matrix": {
-            "description": "The count matrix of expressions",
-            "name": "Count matrix:",
-            "required": true,
+        "raw_counts": {
+            "description": "The input raw count matrix. Must be an integer-based table.", 
+            "name": "Count matrix:", 
+            "required": true, 
+            "converter": "api.converters.data_resource.LocalDockerSingleVariableDataResourceConverter",
             "spec": {
-                "attribute_type": "DataResource",
-                "resource_types": ["RNASEQ_COUNT_MTX", "I_MTX"],
+                "attribute_type": "VariableDataResource", 
+                "resource_types": ["I_MTX", "RNASEQ_COUNT_MTX"], 
+                "many": false
+            }
+        }, 
+        "base_condition_samples": {
+            "description": "The set of samples that are in the \"base\" or \"control\" condition.", 
+            "name": "Control/base group samples:", 
+            "required": true, 
+            "converter": "api.converters.element_set.ObservationSetCsvConverter",
+            "spec": {
+                "attribute_type": "ObservationSet"
+            }
+        },
+        "experimental_condition_samples": {
+            "description": "The set of samples that are in the \"treated\" or \"experimental\" condition.", 
+            "name": "Treated/experimental samples:", 
+            "required": true,
+            "converter": "api.converters.element_set.ObservationSetCsvConverter",
+            "spec": {
+                "attribute_type": "ObservationSet"
+            }
+        },
+        "base_condition_name": {
+            "description": "The condition that should be considered as the \"control\" or \"baseline\".", 
+            "name": "Base condition:", 
+            "required": false,
+            "converter": "api.converters.basic_attributes.StringConverter",
+            "spec": {
+                "attribute_type": "String",
+                "default": "Control"
+            }
+        },
+        "experimental_condition_name": {
+            "description": "The condition that should be considered as the \"non-control\" or \"experimental\".", 
+            "name": "Experimental/treated condition", 
+            "required": false, 
+            "converter": "api.converters.basic_attributes.StringConverter",
+            "spec": {
+                "attribute_type": "String",
+                "default": "Experimental"
+            }
+        }
+    }, 
+    "outputs": {
+        "dge_results": {
+            "required": true,
+            "converter": "api.converters.data_resource.LocalDockerSingleDataResourceConverter",
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "FT",
                 "many": false
             }
         },
-        "p_val": {
-            "description": "The filtering threshold for the p-value",
-            "name": "P-value threshold:",
-            "required": false,
+        "normalized_counts": {
+            "required": true,
+            "converter": "api.converters.data_resource.LocalDockerSingleDataResourceConverter",
             "spec": {
-                "attribute_type": "BoundedFloat",
-                "min": 0,
-                "max": 1.0,
-                "default": 0.05
-            },
-        }
-        "output_filename": {
-            "description": "The name of the contrast for your own reference.",
-            "name": "Contrast name:",
-            "required": false,
-            "spec": {
-                "attribute_type": "String",
-                "default": "deseq2_results"
+                "attribute_type": "DataResource", 
+                "resource_type": "EXP_MTX",
+                "many": false
             }
         }
-    },
-    "outputs": {
-        "dge_table": {
-            "spec":{
-                "attribute_type": "DataResource",
-                "resource_type": "FT"
-            } 
-        }
-    }
+    }, 
+    "mode": "local_docker",
+    "workspace_operation": true
 }
 ```
 This specification will be placed into a file. In the repo, there will be a Dockerfile and possibly other files (e.g. scripts). Upon ingestion, MEV will read this inputs file, get the commit hash, assign a UUID, build the container, push the container, etc. 

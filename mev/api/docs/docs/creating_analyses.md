@@ -20,13 +20,20 @@ To construct a WebMEV-compatible analysis for local-Docker execution mode, we re
 
 - `operation_spec.json`
     - This file dictates the input and output parameters for the analysis. Of type `Operation`.
-- `converters.json`
-    - This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/`Observation`s)
-    and format it for the commandline invocation (e.g. as a comma-delimited list of strings)
 - `entrypoint.txt`
     - This is a text file that provides a command template to be filled-in with the appropriate concrete arguments. The templating syntax is Jinja2 (https://jinja.palletsprojects.com)
 - `docker/Dockerfile`
     - The `docker` folder contains (at minimum) a `Dockerfile` which provides the "recipe" for building the Docker image. Additional files to be included in the Docker build context (such as scripts or static data) can be placed in this folder.
+
+**About container registries and Docker images for local jobs**
+
+You can distribute your Docker images in a couple of ways, but they ultimately must be located in a public Docker repository where WebMEV (and others!) can find and pull them. At the current time, you must choose one method for all your local analysis tools. That is, you can't have one tool pull from Dockerhub while another uses Github. There are two options here, currently:
+
+- (preferred and current default) Configure Github Actions to build your Docker image automatically upon each commit. This requires the use of a Github Actions yaml file which can be added to the repository; see the other WebMEV tool repositories and/or look at Github actions docs. As configured for the currently available tools, the script builds the image with the following name format: `<github-org>/<repository-name>:<commit hash>`. Then, the image will be available at `ghcr.io/<github-org>/<repository-name>:<commit hash>`. The advantage of this method is that everything is contained in a single github repository and there is a lesser chance of the built image drifting from that specified in `docker/Dockerfile`.
+
+- Manually build and push your Docker images (based off `docker/Dockerfile`) to Dockerhub in a public account. If you do this, then you must configure WebMEV to use Dockerhub (change the `container_registry` setting to `"dockerhub"` in  `deployment-aws/puppet/mevapi/manifests/init.pp`). This requires a manual build, however, which requires an extra step and can result in differences between the committed `docker/Dockerfile` and the one used to build the image. 
+
+Note that depending on the `container_registry` setting, the workflow ingestion scripts will expect a certain container repository. For example, with the default setting of `"github"`, the image URI will be prefixed by `"ghcr.io"`.
 
 **Outputs**
 While there are no restrictions on the nature or content of the analysis itself, we have to capture the analysis outputs in a manner that WebMEV can interpret those outputs and present them to end-users. Thus, we require that the process create an `outputs.json` file in the container's "workspace". This file is accessible to WebMEV via the shared volume provided with the `-v` argument to the `docker run` command. More details below in the concrete example.
@@ -43,7 +50,6 @@ We first describe the overall structure and then talk specifically about each fi
 
 The repository has:
 - `operation_spec.json` (required)
-- `converters.json` (required)
 - `entrypoint.txt` (required)
 - `docker/`
     - `Dockerfile` (required)
@@ -133,8 +139,9 @@ Concretely our PCA analysis:
             "description": "The input matrix. For example, a gene expression matrix for a cohort of samples.", 
             "name": "Input matrix:", 
             "required": true, 
+            "converter": "api.converters.data_resource.LocalDockerSingleVariableDataResourceConverter",
             "spec": {
-                "attribute_type": "DataResource", 
+                "attribute_type": "VariableDataResource", 
                 "resource_types": ["MTX","I_MTX", "EXP_MTX", "RNASEQ_COUNT_MTX"], 
                 "many": false
             }
@@ -143,6 +150,7 @@ Concretely our PCA analysis:
             "description": "The samples to use in the PCA. By default, it will use all samples/observations.", 
             "name": "Samples:", 
             "required": false, 
+            "converter": "api.converters.element_set.ObservationSetCsvConverter",
             "spec": {
                 "attribute_type": "ObservationSet"
             }
@@ -150,6 +158,8 @@ Concretely our PCA analysis:
     }, 
     "outputs": {
         "pca_coordinates": {
+            "required": true,
+            "converter": "api.converters.data_resource.LocalDockerSingleDataResourceConverter",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "MTX",
@@ -157,6 +167,8 @@ Concretely our PCA analysis:
             }
         },
         "pc1_explained_variance": {
+            "required": true,
+            "converter": "api.converters.basic_attributes.FloatConverter",
             "spec": {
                 "attribute_type": "BoundedFloat",
                 "min": 0,
@@ -164,6 +176,8 @@ Concretely our PCA analysis:
             }
         },
         "pc2_explained_variance": {
+            "required": true,
+            "converter": "api.converters.basic_attributes.FloatConverter",
             "spec": {
                 "attribute_type": "BoundedFloat",
                 "min": 0,
@@ -171,32 +185,18 @@ Concretely our PCA analysis:
             }
         }
     }, 
-    "mode": "local_docker"
+    "mode": "local_docker",
+    "workspace_operation": true
 }
+
 ```
-In the `inputs` section, this `Operation` states that it has one required (`input_matrix`) and one optional input (`samples`). For `input_matrix`, we expect a single input file (a `DataResource` with `many=false`) that has an appropriate resource type. As PCA requires a numeric matrix (in our convention, with samples/observations in columns and genes/features in rows) we restrict these input types to one of `"MTX"`,`"I_MTX"`, `"EXP_MTX"`, or `"RNASEQ_COUNT_MTX"`. The full list of all resource types is available at `/api/resource-types/`
+In the `inputs` section, this `Operation` states that it has one required (`input_matrix`) and one optional input (`samples`). For `input_matrix`, we expect a single input file (a `VariableDataResource` with `many=false`); the `VariableDataResource` permits multiple resource types. As PCA requires a numeric matrix (in our convention, with samples/observations in columns and genes/features in rows) we restrict these input types to one of `"MTX"`,`"I_MTX"`, `"EXP_MTX"`, or `"RNASEQ_COUNT_MTX"`. The full list of all resource types is available at `/api/resource-types/`
 
-The second, optional input (`samples` ) allows us to subset the columns of the matrix to only include samples/observations of interest. The specification of this input states that we must provide it with an object of type `ObservationSet`. Recall, however, that our script is invoked by providing a comma-delimited list of sample names to the `-s` argument. Thus, we will use one of the "converter" classes to convert the `ObservationSet` instance into a comma-delimited string. This choice is left up to the developer of the analysis-- one could very well choose to provde the `ObservationSet` instance as an argument to their script and parse that accordingly.
+The second, optional input (`samples` ) allows us to subset the columns of the matrix to only include samples/observations of interest. The specification of this input states that we must provide it with an object of type `ObservationSet`. Recall, however, that our script is invoked by providing a comma-delimited list of sample names to the `-s` argument. Thus, we will use the `api.converters.element_set.ObservationSetCsvConverter` "converter" class to convert the `ObservationSet` instance into a comma-delimited string. This choice is left up to the developer of the analysis-- one could very well choose to provde the `ObservationSet` instance as an argument to their script and parse that accordingly. 
 
-For outputs, we expect a single `DataResource` with type `"MTX"` and two bounded floats, which represent the explained variance of the PCA.
-
-**`converters.json`**
-
-The `converters.json` file tells WebMEV how to take a user-input and convert it to the appropriate format to invoke the script. To accomplish this, we provide a mapping of the input "name" to a class which implements the conversion. For us, this looks like:
+As a concrete example of the converter, consider the following `ObservationSet`:
 ```
 {
-  "input_matrix":"api.converters.data_resource.LocalDockerSingleDataResourceConverter", 
-  "samples": "api.converters.element_set.ObservationSetCsvConverter"
-}
-```
-The class implementations are provided using Python's "dotted" notation. A variety of commonly-used converters are provided with WebMEV, but developers are free to create their own implementations for their own WebMEV instances. The only requirement is that the class implements a common interface method named `convert`, which takes the user-supplied input and returns an appropriate output.
-
-As an example, we note that the `LocalDockerSingleDataResourceConverter` above takes the user-supplied input (a UUID which identifies a file/`Resource` they own) and "converts" it to a path on the server. In this way, the `run_pca.py` script is not concerned with how WebMEV stores files, etc. WebMEV handles the file moving/copying and analyses can be written without dependencies on WebMEV-related architecture or how files are stored within WebMEV.
-
-The `samples` input uses the `api.converters.element_set.ObservationSetCsvConverter` which converts an `ObservationSet` such as:
-```
-{
-    "multiple": true,
     "elements": [
         {
             "id":"sampleA",
@@ -209,9 +209,10 @@ The `samples` input uses the `api.converters.element_set.ObservationSetCsvConver
     ]
 }
 ```
-into a CSV string: `sampleA,sampleB`.
+The `api.converters.element_set.ObservationSetCsvConverter` class will take that data structure and return a comma-delimited string. In this case, `"sampleA,sampleB"`.
 
-Clearly, this requires some knowledge of the available "converter" implementations. We expect that there are not so many that this burden is unreasonable. We decided that the flexibility provided by this inconvenience was more beneficial than restricting the types of inputs and how they can be formatted for invoking jobs.
+
+For outputs, we expect a single `DataResource` with type `"MTX"` and two bounded floats, which represent the explained variance of the PCA.
 
 **`entrypoint.txt`**
 
@@ -244,8 +245,6 @@ Create a Dockerfile and corresponding Docker image with and an analysis script t
 
 Take the "prototype" command you would use to execute the script and write it into `entrypoint.txt` using jinja2 template syntax. The input variable keys should correspond to those in your `operation_spec.json`. 
 
-Create the `converters.json` file which will reformat the inputs into items that the entrypoint command will understand.
-
 Once all these files are in place, create a git repository and check the code into github. The analysis is ready for ingestion with WebMEV.
 
 ---
@@ -258,7 +257,7 @@ Cromwell-based jobs are executed using "Workflow Definition Language" (WDL) synt
 
 - WDL file(s): Specifies the commands that are run. You can think of this as you would a typical shell script.
 - A JSON-format inputs file: This maps the expected workflow inputs (e.g. strings, numbers, or files) to specific values. For instance, if we expect a file, then the inputs JSON file will map the input variable to a file path. WebMEV is responsible for creating this file at runtime.
-- One of more Docker containers: Cromwell orchestrates the startup/shutdown of cloud-based virtual machines but all commands are run within Docker runtimes on those machines. Thus, the WDL files will dictate which Docker images are used for each step in the analysis. There can be an arbitrary number of these. 
+- One of more Docker containers: Cromwell orchestrates the startup/shutdown of cloud-based virtual machines but all commands are run within Docker runtimes on those machines. Thus, the WDL files will dictate which Docker images are used for each step in the analysis. There can be an arbitrary number of these. Furthermore, unlike the local Docker-based jobs which require a single image, these jobs can use multiple images which can be placed in any combination of public Docker repositories (Dockerhub, Github CR, quay.io).
 
 
 Thus, to create a Cromwell-based job that is compatible with WebMEV we require: 
@@ -271,13 +270,9 @@ Thus, to create a Cromwell-based job that is compatible with WebMEV we require:
 
 - `inputs.json`
     - This is the JSON-format file which dictates the inputs to the workflow. It is a template that will be appropriately filled at runtime. Thus, the "values" of the mapping do not matter, but the keys must map to input variables in `main.wdl`. Typically, this file is easily created by Broad's WOMTool. See below for an example.
-- `static_inputs.json`
-    - An *optional* file that gives values for variables like genome indexes and other relatively static inputs. Keys in this should be a subset of those in `inputs.json`. File paths contained here are used to copy files into a WebMEV-associated bucket.
-- `converters.json`
-    - This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/`Observation`s)
-    and format it to be used in `inputs.json`. As above, this is a mapping of the input name to a "dotted" class implementation.
+
 - `docker/`
-    - The `docker` folder contains one or more Dockerfile-format files and the dependencies to create those Docker images. Each Dockerfile is named according to its target image. For instance, if one of the WDL files specifies that it depends on a Docker image named `docker.io/myUser/foo`, then the Dockerfile defining that image should be named `Dockerfile.foo`.
+    - The `docker` folder contains one or more Dockerfile-format files and the dependencies to create those Docker images.
 
 #### Additional notes:
 
@@ -321,7 +316,7 @@ Finally, WebMEV has to know which inputs of the `Operation` correspond to which 
 
 **Converting inputs**
 
-As with all analysis execution modes, we have "converter" classes which translate user inputs into formats that are compatible with the job runner. 
+As with all analysis execution modes, we have "converter" classes (specified in `operation_spec.json`) which translate user inputs into formats that are compatible with the job runner. 
 
 For instance, using the example above, one of the inputs for a WDL could be an array of strings (`Array[String]` in WDL-type syntax). Thus, a converter would be responsible for taking say, an `ObservationSet`, and turning that into a list of strings to provide the same names. For example, we may wish to convert an `ObservationSet` given as:
 
@@ -351,7 +346,7 @@ Then, the "inputs" data structure submitted to Cromwell (basically `inputs.json`
 
 **Creation of Docker images**
 
-As described above, each repository can contain an arbitrary (non-zero) number of WDL files, each of which can depend on one more Docker images for their runtime. There are some custom steps involved during the ingestion of new Cromwell-based workflow, which we explain below.
+As described above, each repository can contain an arbitrary (non-zero) number of WDL files, each of which can depend on one more Docker images for their runtime. In contrast to local jobs which can only use a single image, WDL/Cromwell-based jobs can use any number of images. However, there are some custom steps involved during the ingestion of new Cromwell-based workflow, which we explain below.
 
 When Docker images are specified in the `runtime` section of the WDL files, the line is formatted as:
 
@@ -371,36 +366,38 @@ runtime {
     ...
 }
 ```
-Note that we only use the image name (`foo`) when we are ingesting and preparing a new workflow for use in WebMEV. The reason is that we wish to keep all Docker images "in house" within our own Dockerhub account; we do not want to depend on external Docker resources which may change without our knowledge or control. Therefore, the repository and username are not used. Further, the tag is also ignored as we ultimately replace it with the git commit hash. Since the git commit hash is not produced until *after* the commit, we obviously can't append the images with the proper tag prior to the commit. Thus, during the ingestion process we perform the following:
+
+**When using pre-built Docker images:**
+Recall that if there is no explicit image "tag", then Docker defaults to using the image with the "latest" tag, which is implicitly the last build. Thus, if you are using an external Docker image (e.g. biocontainers/samtools) for one of your WDL tasks, then be sure to pick a specific tagged version so that it is not ambiguous, since `latest` can change over time.
+
+**When creating our own Docker images:**
+
+As mentioned in the local tools section, by default we use Github Actions to automatically build Docker images off the current repository state. The images are tagged with the github commit hash.
+
+If you have configured WebMEV to use the Dockerhub repo by default, then just be sure to build/tag/push your images carefully. That is, if you use `docker: "docker.io/myUser/foo:v1"` in your WDL, you need to name+tag your image, e.g. `docker build -t myUser/foo:v1`.
+
+When using a custom Docker image built directly by Github Actions, we have a bit of a "chicken or egg" problem when it comes to providing tagged Docker images in our WDL files. As configured, Github Actions tags the Docker image with the commit hash. However, we obviously can't know that hash up front and use it in our WDL file(s). Hence, we reference untagged images in the `docker` attribute as follows:
+```
+runtime {
+    ...
+    docker: "ghcr.io/web-mev/mev-hcl"
+    ...
+}
+```
+
+As part of the process of ingesting analysis tools into WebMEV, we modify that `docker` WDL attribute to attach a tag corresponding to the git commit. The process is roughly:
 
 - Parse all WDL files in the github repo and extract out all the runtime Docker images. This will be a set of strings.
-- For each Docker "image string" (e.g. `someUser/foo:v1`):
-    - Extract the image name, e.g. `foo`
-    - Search for a corresponding Dockerfile in the repo, e.g. `docker/Dockerfile.foo`
-    - Build the image, tagging with the github commit ID, e.g. `abc123`
-    - Push the image to the WebMEV Dockerhub, e.g. `docker.io/web-mev`
-    - Edit and save the WDL file with the newly-built Docker image, e.g. `docker.io/web-mev/foo:abc123`.
-
-Thus, regardless of whoever creates the original image, the repository should have all the files necessary to build a fresh image which we "claim as our own" by assigning our username/tag and pushing it to the WebMEV Dockerhub account. 
+- For each Docker untagged "image string" (e.g. `ghcr.io/someUser/foo`):
+    - Get the current git commit (say, `abc123`) and append that (e.g. `ghcr.io/someUser/foo:abc123`)
+    - Search for that image. If it does not exist, fail the ingestion process. This effectively prevents untagged images from being used. For instance, if an untagged `docker.io/biocontainers/samtools` Docker image was specifed, the full, tagged image would be `docker.io/bioco`ntainers/samtools:abc123`. There is a vanishingly small chance that our git repository's commit hash has a corresponding tag in the `biocontainers/samtools` library. 
+- For each tagged "image string" (e.g. `docker.io/biocontainers/samtools:v1.9-4-deb_cv1`), simply search for it.
 
 We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not *exactly* the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.
-
-Note that repositories based on many Docker containers may take a significant time to ingest, as each image must be built and pushed to Dockerhub.
 
 **Copying of static resources**
 
 If the `static_inputs.json` file is present, we expect that this file will be used for static items that are not dependent on user input. We could also put such items as `default` in the `operation_spec.json` file, but we instead choose to extract them out to this file.
 
-Upon ingestion, the files will be copied to an `Operation`-specific bucket/folder. For instance, given the following `static_inputs.json`:
-```
-{
-    "Workflow.genome_idx":"gs://some-bucket/grch38.idx"
-}
-```
-During ingestion, this `Operation` will be assigned a UUID. Then, we copy this index to a new location identified by that UUID. The updated/edited `static_inputs.json` file will be:
-```
-{
-    "Workflow.genome_idx":"gs://mev-bucket/<UUID>/grch38.idx"
-}
-```
+At current, no tools use this feature, but this will be updated if necessary.
 

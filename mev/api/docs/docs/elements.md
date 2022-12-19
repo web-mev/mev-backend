@@ -9,11 +9,11 @@ We use `Observation`s and `Feature`s to hold metadata (as key-value pairs) about
 
 These data structures have similar (if not exactly the same) behavior but we separate them for future compatability in case specialization of each class is needed.
 
-::: api.data_structures.element.BaseElement
+::: data_structures.element.BaseElement
     :docstring:
 
-::: api.data_structures.observation.Observation
+::: data_structures.observation.Observation
     :docstring:
 
-::: api.data_structures.feature.Feature
+::: data_structures.feature.Feature
     :docstring:

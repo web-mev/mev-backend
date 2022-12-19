@@ -50,6 +50,8 @@ class OperationCategoryDetail(APIView, SchemaMixin):
         framework_permissions.IsAuthenticated
     ]
 
+    serializer_class = OperationCategorySerializer
+
     def get(self, request, *args, **kwargs):
         category = self.kwargs['category']
         category_records = OperationCategory.objects.filter(category = category)

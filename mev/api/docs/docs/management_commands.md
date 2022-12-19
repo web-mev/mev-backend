@@ -21,15 +21,21 @@ Note that each public dataset has, in general, different formats and requirement
 
 #### `index_data`
 
-This command will index one or more flat files into the specified dataset
+This command will index one or more flat files into the specified dataset. This command modifies the database so that it's available for querying and usage.
 
 ```
-usage: manage.py index_data -d DATASET_ID path [path ...]
+usage: manage.py index_data -d DATASET_ID <key=value> [<key=value>] ...
 ```
+where the >=1 key-value pairs are specific to the dataset we are indexing. Those parameters tell the indexing process the identity of the files. Recall that each dataset will have different requirements and files, in general. 
 
-Note that this assumes a "core" (in solr parlance) already exists for the dataset; typically these are created during machine provisioning. The files to index should be amenable to the XML schema defining that core. Files should also be one of the formats that indexing technology (solr) understands, such as CSV.
+As an example, consider the TCGA RNA-seq dataset. Here, the `pull_public_data` command prepares a HDF5-format file of gene expression counts *and* a CSV-format file of sample annotations. To index RNA-seq data from TCGA (and most RNA-seq datasets), we would run:
 
-Use of this command requires some knowledge of how the data will be exposed via the public dataset query interface. For instance, in the case of TCGA RNA-seq data, we create two files using the `pull_public_data` command above. However, this indexing step will only work with CSV-format metadata file. After all, we are using the indexer to provide a means to query/search datasets for appropriate data. Attempting to index the count file would likely break the process and realistically not make much sense.
+```
+manage.py index_data -d tcga-rnaseq annotations=<path to annotation CSV file> counts=<path to HDF5 file>
+```
+For the TCGA dataset, our process knows to look for these two key-value pairs. It knows to use the value paired with the `annotations` key as the file for indexing by Solr. The database then tracks both of these files so that we can query and prepare datasets for users. 
+
+Note that this assumes a "core" (in solr parlance) already exists for the dataset; typically these are created during machine provisioning. Since each dataset requires some amount of manual curation, we still have to do the work of understanding each dataset and preparing the necessary Solr core files.
 
 
 ### Other commands
@@ -48,12 +54,6 @@ This command creates this documentation. If the `--push` flag is added, then the
 #### `dump_db_for_test`
 
 This is a thin wrapper around the Django `dumpdata` command, which will dump the contents of the database models under `api` to a JSON file. That data can then be used for the test suite. Note that the repository includes a `api/tests/test_db.json` file, so this command would typically be run by a developer to add new data to the test database.
-
-#### `edit_db_data`
-
-This is used if you would like to stand up a mock server that has some data prepopulated. The script modifies database records (e.g. changing the ownership of files) accordingly.
-
-The motivation for this command was to allow us to create a backend instance to be used by a frontend developer. In that case, we would like to provide "real" data they can use for visualizations. However, we can't simply export data from, for instance, our production server since the resources, etc. would be owned by user accounts only present on the production system. This command handles the modification of database records to hand over ownership to a single user. 
 
 #### `populate_db`
 

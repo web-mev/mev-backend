@@ -1,5 +1,7 @@
 ### Operation resources
 
+(Note that this feature is not fully implemented yet, and may change. Update as necessary. The ideas below are sketches)
+
 For certain `Operation`s, we require data such as gene lists, gene-alias lookups, genome indices, and similar files which are not provided or owned by WebMEV users. Instead, these special `Resource`s are associated with the `Operation` they are used with. Suggestively, we call these `OperationResource` instances. Depending on the run-mode of the `Operation`, these `OperationResource`s are handled in different ways.
 
 Regardless of the run-mode of the `Operation` (i.e. local, remote), we can handle these operation-specific resources in two ways. One method relies on the image container to hold the file. The other method requires WebMEV to "register" the `OperationResource` just as it does with user-associated `Resource`s .

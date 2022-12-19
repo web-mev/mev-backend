@@ -12,6 +12,7 @@ from data_structures.feature_set import FeatureSet
 from api.models import ResourceMetadata, \
     Resource
 
+
 class ResourceMetadataSerializer(serializers.ModelSerializer):
 
     resource = serializers.PrimaryKeyRelatedField(
@@ -29,7 +30,8 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
     def validate_observation_set(self, obs_set_data):
         if obs_set_data is not None:
             try:
-                o = ObservationSet(obs_set_data, permit_null_attributes=self._permits_null())
+                o = ObservationSet(
+                    obs_set_data, permit_null_attributes=self._permits_null())
                 return o.to_simple_dict()
             except Exception as ex:
                 raise ValidationError(f'Invalid observation set: {ex}')
@@ -38,7 +40,8 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
     def validate_feature_set(self, feature_set_data):
         if feature_set_data is not None:
             try:
-                f = FeatureSet(feature_set_data, permit_null_attributes=self._permits_null())
+                f = FeatureSet(feature_set_data,
+                               permit_null_attributes=self._permits_null())
                 return f.to_simple_dict()
             except Exception as ex:
                 raise ValidationError(f'Invalid feature set: {ex}')
@@ -77,17 +80,20 @@ class ResourceMetadataSerializer(serializers.ModelSerializer):
             'feature_set'
         ]
 
+
 class ResourceMetadataObservationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceMetadata
-        fields = ['observation_set',]
+        fields = ['observation_set', ]
+
 
 class ResourceMetadataFeaturesSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceMetadata
-        fields = ['feature_set',]
+        fields = ['feature_set', ]
+
 
 class ResourceMetadataParentOperationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceMetadata
-        fields = ['parent_operation',]
+        fields = ['parent_operation', ]

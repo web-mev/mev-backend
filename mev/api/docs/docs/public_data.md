@@ -19,7 +19,7 @@ python3 manage.py create_new_public_dataset \
 
 The core name (`-d`) should be relatively short/simple (e.g. `ccle-data`) and the the file (`-f`) should be an example of the data you wish to index. It can be a row subset (not ALL the data), but should have all the potential fields.
 
-Note that the script will still require you to fill out the stubbed-out python module for the new dataset AND also require you to add some content to the Puppet manifests to fully integrate this new core.
+Note that the script will still require you to fill out the stubbed-out python module for the new dataset AND also require you to add some content to the Puppet manifests to fully integrate this new core. The script will direct you to the stubs and remind you what needs to be done.
 
 You will also need to commit the solr files (`solr/<core>/schema.xml`  and `solr/<core>/solrconfig.xml`) when everything is fully ready.
 

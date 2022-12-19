@@ -1,6 +1,6 @@
 ## Authentication with MEV
 
-Once a user is registered (with an email and password), requests to the API are controlled with a JWT contained in the request header.  Below is an example using Python's Requests library.  This example assumes you have created a user. 
+Once a user is registered (with an email + password *or* via social authentication such as Google), requests to the API are controlled with a JWT contained in the request header.  Below is an example using Python's Requests library.  This example assumes you have created a user. 
 
 First, exchange the username/password to get the API token:
 ```

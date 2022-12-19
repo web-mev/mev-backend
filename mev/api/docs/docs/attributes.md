@@ -5,50 +5,47 @@
 `Attribute`s are used to provide metadata (e.g. a phenotype of a sample given as a `StringAttribute`) or are used as parameters to analyses (e.g. a `BoundedFloatAttribute` for filtering p-values less than a particular value)
 
 
-::: api.data_structures.attributes.BaseAttribute
+::: data_structures.base_attribute.BaseAttributeType
     :docstring:
 
-::: api.data_structures.attributes.BoundedBaseAttribute
+::: data_structures.attribute_types.BoundedBaseAttribute
     :docstring:
 
-::: api.data_structures.attributes.IntegerAttribute
+::: data_structures.attribute_types.IntegerAttribute
     :docstring:
 
-::: api.data_structures.attributes.PositiveIntegerAttribute
+::: data_structures.attribute_types.PositiveIntegerAttribute
     :docstring:
 
-::: api.data_structures.attributes.NonnegativeIntegerAttribute
+::: data_structures.attribute_types.NonnegativeIntegerAttribute
     :docstring:
 
-::: api.data_structures.attributes.BoundedIntegerAttribute
+::: data_structures.attribute_types.BoundedIntegerAttribute
     :docstring:
 
-::: api.data_structures.attributes.FloatAttribute
+::: data_structures.attribute_types.FloatAttribute
     :docstring:
 
-::: api.data_structures.attributes.PositiveFloatAttribute
+::: data_structures.attribute_types.PositiveFloatAttribute
     :docstring:
 
-::: api.data_structures.attributes.NonnegativeFloatAttribute
+::: data_structures.attribute_types.NonnegativeFloatAttribute
     :docstring:
 
-::: api.data_structures.attributes.BoundedFloatAttribute
+::: data_structures.attribute_types.BoundedFloatAttribute
     :docstring:
 
-::: api.data_structures.attributes.StringAttribute
+::: data_structures.attribute_types.StringAttribute
     :docstring:
 
-::: api.data_structures.attributes.OptionStringAttribute
+::: data_structures.attribute_types.OptionStringAttribute
     :docstring:
 
-::: api.data_structures.attributes.BooleanAttribute
+::: data_structures.attribute_types.BooleanAttribute
     :docstring:
 
-::: api.data_structures.attributes.DataResourceAttribute
+::: data_structures.data_resource_attributes.DataResourceAttribute
     :docstring:
 
-::: api.data_structures.attributes.OperationDataResourceAttribute
-    :docstring:
-
-::: api.data_structures.create_attribute
+::: data_structures.data_resource_attributes.OperationDataResourceAttribute
     :docstring:

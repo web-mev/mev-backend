@@ -13,7 +13,9 @@ from data_structures.observation_set import ObservationSet
 from data_structures.feature_set import FeatureSet
 
 from api.models import Workspace, ResourceMetadata
-
+from api.serializers.resource_metadata import \
+    ResourceMetadataObservationsSerializer, \
+    ResourceMetadataFeaturesSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -125,6 +127,10 @@ class WorkspaceMetadataObservationsView(ListAPIView, WorkspaceMetadataBase):
     '''
     pagination_class = MetadataPagination
 
+    # although we don't use the serializer for sending back the payload
+    # the auto-generate openAPI spec requires this:
+    serializer_class = ResourceMetadataObservationsSerializer
+    
     # This class attribute needs to be set for the DRF
     # auto-generate API pages to work. Headless requests to 
     # the API have no trouble without this. Note that we
@@ -151,6 +157,10 @@ class WorkspaceMetadataFeaturesView(ListAPIView, WorkspaceMetadataBase):
     # actual behavior
     queryset = ResourceMetadata.objects.all()
     
+    # although we don't use the serializer for sending back the payload
+    # the auto-generate openAPI spec requires this:
+    serializer_class = ResourceMetadataFeaturesSerializer
+
     # This creates the proper type in the methods we inherit
     # from `WorkspaceMetadataBase`
     set_type = FeatureSet

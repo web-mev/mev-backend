@@ -16,15 +16,19 @@ Much of the information regarding `Resource` instances is provided in the auto-g
 
 - `Resource` instances have a single owner, which is the owner who uploaded the file, or directly specified by the admin in the API request. `OperationResource`s do not have owners, but instead maintain a foreign-key relationship with their associated `Operation`.
 
-**Resource "type"**
+**Resource "type" and "format"**
 
-- A `Resource` is required to have a "type" (e.g. an integer matrix) which we call a `resource_type`.  These types are restricted to a set of common file formats in addition to more generic text-based formats such as CSV, TSV.  Upon creation, `resource_type` is set to `None` which indicates that the `Resource` has not been validated.
+- To properly parse and validate a file, a `Resource` is required to have:
+    - a "type" (e.g. an integer matrix) which we call a `resource_type`. This describes what the file represents (e.g. BED file, expression matrix, etc.). Upon creation, `resource_type` is set to `None` which indicates that the `Resource` has not been validated.
+    - a "format" which tells us how the data is stored (e.g. TSV, CSV, Excel)
 
-- The type of the `Resource` can be specified when the file is uploaded or at any other time (i.e. users can change the type if they desire).  Each request to change type initiates an asynchronous validation process. Note that we can only validate certain types of files, such as CSV and TSV. Validation of sequence-based files such as FastQ and BAM is not feasible and thus we skip validation.
+- We need *both* the type and format to proceed with validation.
 
-- If the validation of the `resource_type` fails, we revert back to the previous successfully validated type.  If the type was previously `None` (as with a new upload), we simply revert back to `None` and inform the user the validation failed.
+- The type and format of the `Resource` can be specified immediately following the file upload or at any other time (i.e. users can change the type if they desire).  Each request to change type initiates an asynchronous validation process. Note that we can only validate certain types of files, like expression matrices. Validation of sequence-based files such as FastQ and BAM is not feasible and thus we skip validation.
 
-- Succesfully validated files can sometimes be changed to a convenient internal representation. For instance, we accept expression matrices in multiple formats (e.g. CSV, TSV, XLSX). However, to avoid each analysis `Operation` from having to parse many potential file formats, we internally convert it to a consistent format, such as TSV. Thus, all the downstream tools expect that the validated resource passed as an input is saved in a TSV/tab-delimited format.
+- If the validation fails, we revert back to the previous successfully validated type and format.  If the type was previously `None` (as with a new upload), we simply revert back to `None` and inform the user the validation failed.
+
+- Succesfully validated files are changed to a convenient internal representation. For instance, we accept expression matrices in multiple formats (e.g. CSV, TSV, XLSX). However, to avoid each analysis `Operation` from having to parse many potential file formats, we internally convert it to a consistent format, such as TSV. Thus, all the downstream tools expect that the validated resource passed as an input is saved in a TSV/tab-delimited format.
 
 **Resources and metadata**
 
