@@ -1,78 +1,68 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="canonical" href="https://webmev.tm4.org/elements/">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Observations and Features - WebMeV REST API</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
-
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="../style.css" rel="stylesheet" />
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Observations and Features";
-    var mkdocs_page_input_path = "elements.md";
-    var mkdocs_page_url = "/elements/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://webmev.tm4.org/elements/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Observations and Features - WebMeV REST API</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../style.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Observations and Features";
+        var mkdocs_page_input_path = "elements.md";
+        var mkdocs_page_url = "/elements/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> WebMeV REST API</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> WebMeV REST API
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">Installation and setup</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">API</span></p>
-                <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
-                    </li>
-                    <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../install/">Install</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
@@ -99,71 +89,53 @@
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
-                    </li>
-                </ul>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">WebMeV REST API</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">WebMeV REST API</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-        
-          <li>Data Structures &raquo;</li>
-        
-      
-        
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
           <li>API &raquo;</li>
-        
-      
-    
-    <li>Observations and Features</li>
+          <li>Data Structures &raquo;</li>
+      <li>Observations and Features</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/elements.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="https://github.com/web-mev/mev-backend/edit/master/docs/elements.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
-  
   <hr/>
 </div>
-
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <p><a id="observations"></a></p>
 <h3 id="elements-observations-and-features"><a class="toclink" href="#elements-observations-and-features">Elements, Observations, and Features</a></h3>
@@ -172,12 +144,12 @@
 <p>We use <code>Observation</code>s and <code>Feature</code>s to hold metadata (as key-value pairs) about data that we manipulating in WebMEV. For instance, given a typical gene expression matrix we have information about only the <em>names</em> of the <code>Observation</code>s/samples and <code>Feature</code>s/genes. We can then specify <a href="../attributes/">attributes</a> to annotate the <code>Observation</code>s and <code>Feature</code>s, allowing users to define experimental groups, or specify other information useful for visualization or filtering.</p>
 <p>These data structures have similar (if not exactly the same) behavior but we separate them for future compatability in case specialization of each class is needed.</p>
 <div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.element.<strong>BaseElement</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-signature"><em>class </em><code>data_structures.element.<strong>BaseElement</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">val</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
 <div class="autodoc-docstring"><p>A <code>BaseElement</code> is a base class from which we can derive both <code>Observation</code>
-and <code>Features</code>.  For the purposes of clarity, we keep those entities separate.
-Yet, their behavior and structure are very much the same.  This also allows
-us to add custom behavior to each at a later time if we require.</p>
-<p>An <code>Element</code> is structured as:</p>
+and <code>Features</code>.  For the purposes of clarity and potential customization,
+we keep those entities separate.</p>
+<p>As a type of attribute, an <code>Element</code> (using an Observation below)
+would look like:</p>
 <pre class="codehilite"><code>{
     &quot;id&quot;: &lt;string identifier&gt;,
     &quot;attributes&quot;: {
@@ -185,10 +157,36 @@ us to add custom behavior to each at a later time if we require.</p>
         &quot;keyB&quot;: &lt;Attribute&gt;
     }
 }
-</code></pre></div>
+</code></pre>
+
+<p>We require that all <code>Element</code> instances be created with an identifier.
+Equality (e.g. in set operations) is checked using this identifier member</p>
+<p>The nested attributes are objects that dictate a simple attribute
+For instance:</p>
+<pre class="codehilite"><code>{
+    &quot;id&quot;: &lt;string identifier&gt;,
+    &quot;attributes&quot;: {
+        &quot;stage&quot;: {
+            &quot;attribute_type&quot;: &quot;String&quot;,
+            &quot;value&quot;: &quot;IV&quot;
+        },
+        &quot;age&quot;: {
+            &quot;attribute_type&quot;: &quot;PositiveInteger&quot;,
+            &quot;value&quot;: 5
+        }
+    }
+}
+</code></pre>
+
+<p>The nested dict <code>attributes</code> CAN be empty.</p>
+<p>In situations like annotation tables where
+certain rows may not have values (but others do),
+we want to be able to permit null attributes
+if the constructor is explicitly passed the
+<code>permit_null_attributes</code> kwarg</p></div>
 </div>
 <div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.observation.<strong>Observation</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-signature"><em>class </em><code>data_structures.observation.<strong>Observation</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">val</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
 <div class="autodoc-docstring"><p>An <code>Observation</code> is the generalization of a "sample" in the typical context
 of biological studies.  One may think of samples and observations as
 interchangeable concepts.  We call it an observation so that we are not
@@ -206,7 +204,7 @@ the data to which it is associated/attached.</p>
 </code></pre></div>
 </div>
 <div class="autodoc">
-<div class="autodoc-signature"><em>class </em><code>api.data_structures.feature.<strong>Feature</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">id</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">attribute_dict={}</em><span class="autodoc-punctuation">)</span></div>
+<div class="autodoc-signature"><em>class </em><code>data_structures.feature.<strong>Feature</strong></code><span class="autodoc-punctuation">(</span><em class="autodoc-param">val</em><span class="autodoc-punctuation">, </span><em class="autodoc-param">**kwargs</em><span class="autodoc-punctuation">)</span></div>
 <div class="autodoc-docstring"><p>A <code>Feature</code> can also be referred to as a covariate or variable.
 These are measurements one can make about an <code>Observation</code>.  For example,
 in the genomics context, a sample can have 30,000+ genes which we call
@@ -227,29 +225,21 @@ where the attribute "oncogene" is set to "true"</p>
 </div>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../attributes/" class="btn btn-neutral float-left" title="Attributes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../observation_and_feature_sets/" class="btn btn-neutral float-right" title="ObservationSet and FeatureSets">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../attributes/" class="btn btn-neutral" title="Attributes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -257,11 +247,11 @@ where the attribute "oncogene" is set to "true"</p>
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/web-mev/mev-backend" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     

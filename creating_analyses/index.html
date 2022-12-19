@@ -1,78 +1,68 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="canonical" href="https://webmev.tm4.org/creating_analyses/">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Creating new analyses/operations - WebMeV REST API</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
-
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="../style.css" rel="stylesheet" />
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Creating new analyses/operations";
-    var mkdocs_page_input_path = "creating_analyses.md";
-    var mkdocs_page_url = "/creating_analyses/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://webmev.tm4.org/creating_analyses/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Creating new analyses/operations - WebMeV REST API</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../style.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Creating new analyses/operations";
+        var mkdocs_page_input_path = "creating_analyses.md";
+        var mkdocs_page_url = "/creating_analyses/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> WebMeV REST API</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> WebMeV REST API
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">Installation and setup</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">API</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../install/">Install</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
@@ -97,18 +87,18 @@
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
-                    </li>
-                </ul>
-                <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Creating new analyses/operations</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Creating new analyses/operations</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#local-docker-based-mode">Local Docker-based mode</a>
         <ul>
@@ -125,51 +115,39 @@
         </ul>
     </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
-                    </li>
-                </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">WebMeV REST API</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">WebMeV REST API</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-    
-    <li>Creating new analyses/operations</li>
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Creating new analyses/operations</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/creating_analyses.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="https://github.com/web-mev/mev-backend/edit/master/docs/creating_analyses.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
-  
   <hr/>
 </div>
-
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h2 id="creating-a-new-analysis-operation-for-use-with-webmev"><a class="toclink" href="#creating-a-new-analysis-operation-for-use-with-webmev">Creating a new analysis (<code>Operation</code>) for use with WebMEV</a></h2>
 <p>WebMEV analyses (AKA <code>Operation</code>s) are designed to be transparent and portable. While certain files are required for integration with the WebMEV application, the analyses are designed so that they are self-contained and can be transparently reproduced elsewhere. </p>
@@ -188,11 +166,6 @@
 <li>This file dictates the input and output parameters for the analysis. Of type <code>Operation</code>.</li>
 </ul>
 </li>
-<li><code>converters.json</code><ul>
-<li>This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/<code>Observation</code>s)
-and format it for the commandline invocation (e.g. as a comma-delimited list of strings)</li>
-</ul>
-</li>
 <li><code>entrypoint.txt</code><ul>
 <li>This is a text file that provides a command template to be filled-in with the appropriate concrete arguments. The templating syntax is Jinja2 (https://jinja.palletsprojects.com)</li>
 </ul>
@@ -202,6 +175,17 @@ and format it for the commandline invocation (e.g. as a comma-delimited list of 
 </ul>
 </li>
 </ul>
+<p><strong>About container registries and Docker images for local jobs</strong></p>
+<p>You can distribute your Docker images in a couple of ways, but they ultimately must be located in a public Docker repository where WebMEV (and others!) can find and pull them. At the current time, you must choose one method for all your local analysis tools. That is, you can't have one tool pull from Dockerhub while another uses Github. There are two options here, currently:</p>
+<ul>
+<li>
+<p>(preferred and current default) Configure Github Actions to build your Docker image automatically upon each commit. This requires the use of a Github Actions yaml file which can be added to the repository; see the other WebMEV tool repositories and/or look at Github actions docs. As configured for the currently available tools, the script builds the image with the following name format: <code>&lt;github-org&gt;/&lt;repository-name&gt;:&lt;commit hash&gt;</code>. Then, the image will be available at <code>ghcr.io/&lt;github-org&gt;/&lt;repository-name&gt;:&lt;commit hash&gt;</code>. The advantage of this method is that everything is contained in a single github repository and there is a lesser chance of the built image drifting from that specified in <code>docker/Dockerfile</code>.</p>
+</li>
+<li>
+<p>Manually build and push your Docker images (based off <code>docker/Dockerfile</code>) to Dockerhub in a public account. If you do this, then you must configure WebMEV to use Dockerhub (change the <code>container_registry</code> setting to <code>"dockerhub"</code> in  <code>deployment-aws/puppet/mevapi/manifests/init.pp</code>). This requires a manual build, however, which requires an extra step and can result in differences between the committed <code>docker/Dockerfile</code> and the one used to build the image. </p>
+</li>
+</ul>
+<p>Note that depending on the <code>container_registry</code> setting, the workflow ingestion scripts will expect a certain container repository. For example, with the default setting of <code>"github"</code>, the image URI will be prefixed by <code>"ghcr.io"</code>.</p>
 <p><strong>Outputs</strong>
 While there are no restrictions on the nature or content of the analysis itself, we have to capture the analysis outputs in a manner that WebMEV can interpret those outputs and present them to end-users. Thus, we require that the process create an <code>outputs.json</code> file in the container's "workspace". This file is accessible to WebMEV via the shared volume provided with the <code>-v</code> argument to the <code>docker run</code> command. More details below in the concrete example.</p>
 <p>Note that this is the only place where analysis code makes any reference to WebMEV. However, the creation of an <code>outputs.json</code> file does not influence the analysis code in any manner-- one could take an existing script, add a few lines to create the <code>outputs.json</code> and it would be ready for use as an analysis module in WebMEV.</p>
@@ -211,7 +195,6 @@ While there are no restrictions on the nature or content of the analysis itself,
 <p><strong>Overall structure</strong></p>
 <p>The repository has:
 - <code>operation_spec.json</code> (required)
-- <code>converters.json</code> (required)
 - <code>entrypoint.txt</code> (required)
 - <code>docker/</code>
     - <code>Dockerfile</code> (required)
@@ -284,8 +267,9 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
             &quot;description&quot;: &quot;The input matrix. For example, a gene expression matrix for a cohort of samples.&quot;, 
             &quot;name&quot;: &quot;Input matrix:&quot;, 
             &quot;required&quot;: true, 
+            &quot;converter&quot;: &quot;api.converters.data_resource.LocalDockerSingleVariableDataResourceConverter&quot;,
             &quot;spec&quot;: {
-                &quot;attribute_type&quot;: &quot;DataResource&quot;, 
+                &quot;attribute_type&quot;: &quot;VariableDataResource&quot;, 
                 &quot;resource_types&quot;: [&quot;MTX&quot;,&quot;I_MTX&quot;, &quot;EXP_MTX&quot;, &quot;RNASEQ_COUNT_MTX&quot;], 
                 &quot;many&quot;: false
             }
@@ -294,6 +278,7 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
             &quot;description&quot;: &quot;The samples to use in the PCA. By default, it will use all samples/observations.&quot;, 
             &quot;name&quot;: &quot;Samples:&quot;, 
             &quot;required&quot;: false, 
+            &quot;converter&quot;: &quot;api.converters.element_set.ObservationSetCsvConverter&quot;,
             &quot;spec&quot;: {
                 &quot;attribute_type&quot;: &quot;ObservationSet&quot;
             }
@@ -301,6 +286,8 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
     }, 
     &quot;outputs&quot;: {
         &quot;pca_coordinates&quot;: {
+            &quot;required&quot;: true,
+            &quot;converter&quot;: &quot;api.converters.data_resource.LocalDockerSingleDataResourceConverter&quot;,
             &quot;spec&quot;: {
                 &quot;attribute_type&quot;: &quot;DataResource&quot;, 
                 &quot;resource_type&quot;: &quot;MTX&quot;,
@@ -308,6 +295,8 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
             }
         },
         &quot;pc1_explained_variance&quot;: {
+            &quot;required&quot;: true,
+            &quot;converter&quot;: &quot;api.converters.basic_attributes.FloatConverter&quot;,
             &quot;spec&quot;: {
                 &quot;attribute_type&quot;: &quot;BoundedFloat&quot;,
                 &quot;min&quot;: 0,
@@ -315,6 +304,8 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
             }
         },
         &quot;pc2_explained_variance&quot;: {
+            &quot;required&quot;: true,
+            &quot;converter&quot;: &quot;api.converters.basic_attributes.FloatConverter&quot;,
             &quot;spec&quot;: {
                 &quot;attribute_type&quot;: &quot;BoundedFloat&quot;,
                 &quot;min&quot;: 0,
@@ -322,26 +313,15 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
             }
         }
     }, 
-    &quot;mode&quot;: &quot;local_docker&quot;
+    &quot;mode&quot;: &quot;local_docker&quot;,
+    &quot;workspace_operation&quot;: true
 }
 </code></pre>
 
-<p>In the <code>inputs</code> section, this <code>Operation</code> states that it has one required (<code>input_matrix</code>) and one optional input (<code>samples</code>). For <code>input_matrix</code>, we expect a single input file (a <code>DataResource</code> with <code>many=false</code>) that has an appropriate resource type. As PCA requires a numeric matrix (in our convention, with samples/observations in columns and genes/features in rows) we restrict these input types to one of <code>"MTX"</code>,<code>"I_MTX"</code>, <code>"EXP_MTX"</code>, or <code>"RNASEQ_COUNT_MTX"</code>. The full list of all resource types is available at <code>/api/resource-types/</code></p>
-<p>The second, optional input (<code>samples</code> ) allows us to subset the columns of the matrix to only include samples/observations of interest. The specification of this input states that we must provide it with an object of type <code>ObservationSet</code>. Recall, however, that our script is invoked by providing a comma-delimited list of sample names to the <code>-s</code> argument. Thus, we will use one of the "converter" classes to convert the <code>ObservationSet</code> instance into a comma-delimited string. This choice is left up to the developer of the analysis-- one could very well choose to provde the <code>ObservationSet</code> instance as an argument to their script and parse that accordingly.</p>
-<p>For outputs, we expect a single <code>DataResource</code> with type <code>"MTX"</code> and two bounded floats, which represent the explained variance of the PCA.</p>
-<p><strong><code>converters.json</code></strong></p>
-<p>The <code>converters.json</code> file tells WebMEV how to take a user-input and convert it to the appropriate format to invoke the script. To accomplish this, we provide a mapping of the input "name" to a class which implements the conversion. For us, this looks like:</p>
+<p>In the <code>inputs</code> section, this <code>Operation</code> states that it has one required (<code>input_matrix</code>) and one optional input (<code>samples</code>). For <code>input_matrix</code>, we expect a single input file (a <code>VariableDataResource</code> with <code>many=false</code>); the <code>VariableDataResource</code> permits multiple resource types. As PCA requires a numeric matrix (in our convention, with samples/observations in columns and genes/features in rows) we restrict these input types to one of <code>"MTX"</code>,<code>"I_MTX"</code>, <code>"EXP_MTX"</code>, or <code>"RNASEQ_COUNT_MTX"</code>. The full list of all resource types is available at <code>/api/resource-types/</code></p>
+<p>The second, optional input (<code>samples</code> ) allows us to subset the columns of the matrix to only include samples/observations of interest. The specification of this input states that we must provide it with an object of type <code>ObservationSet</code>. Recall, however, that our script is invoked by providing a comma-delimited list of sample names to the <code>-s</code> argument. Thus, we will use the <code>api.converters.element_set.ObservationSetCsvConverter</code> "converter" class to convert the <code>ObservationSet</code> instance into a comma-delimited string. This choice is left up to the developer of the analysis-- one could very well choose to provde the <code>ObservationSet</code> instance as an argument to their script and parse that accordingly. </p>
+<p>As a concrete example of the converter, consider the following <code>ObservationSet</code>:</p>
 <pre class="codehilite"><code>{
-  &quot;input_matrix&quot;:&quot;api.converters.data_resource.LocalDockerSingleDataResourceConverter&quot;, 
-  &quot;samples&quot;: &quot;api.converters.element_set.ObservationSetCsvConverter&quot;
-}
-</code></pre>
-
-<p>The class implementations are provided using Python's "dotted" notation. A variety of commonly-used converters are provided with WebMEV, but developers are free to create their own implementations for their own WebMEV instances. The only requirement is that the class implements a common interface method named <code>convert</code>, which takes the user-supplied input and returns an appropriate output.</p>
-<p>As an example, we note that the <code>LocalDockerSingleDataResourceConverter</code> above takes the user-supplied input (a UUID which identifies a file/<code>Resource</code> they own) and "converts" it to a path on the server. In this way, the <code>run_pca.py</code> script is not concerned with how WebMEV stores files, etc. WebMEV handles the file moving/copying and analyses can be written without dependencies on WebMEV-related architecture or how files are stored within WebMEV.</p>
-<p>The <code>samples</code> input uses the <code>api.converters.element_set.ObservationSetCsvConverter</code> which converts an <code>ObservationSet</code> such as:</p>
-<pre class="codehilite"><code>{
-    &quot;multiple&quot;: true,
     &quot;elements&quot;: [
         {
             &quot;id&quot;:&quot;sampleA&quot;,
@@ -355,8 +335,8 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
 }
 </code></pre>
 
-<p>into a CSV string: <code>sampleA,sampleB</code>.</p>
-<p>Clearly, this requires some knowledge of the available "converter" implementations. We expect that there are not so many that this burden is unreasonable. We decided that the flexibility provided by this inconvenience was more beneficial than restricting the types of inputs and how they can be formatted for invoking jobs.</p>
+<p>The <code>api.converters.element_set.ObservationSetCsvConverter</code> class will take that data structure and return a comma-delimited string. In this case, <code>"sampleA,sampleB"</code>.</p>
+<p>For outputs, we expect a single <code>DataResource</code> with type <code>"MTX"</code> and two bounded floats, which represent the explained variance of the PCA.</p>
 <p><strong><code>entrypoint.txt</code></strong></p>
 <p>The entrypoint file has the command that will be run as the <code>ENTRYPOINT</code> of the Docker container. To accommodate optional inputs and permit additional flexibility, we use jinja2 template syntax.</p>
 <p>In our example, we have:</p>
@@ -378,7 +358,6 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
 <p>First, without consideration for WebMEV, consider the expected inputs and outputs of your analysis. Generally, this will be some combination of files and simple parameters like strings or numbers. Now, write this hypothetical analysis as a formal <code>Operation</code> into the <code>operation_spec.json</code> file. </p>
 <p>Create a Dockerfile and corresponding Docker image with and an analysis script that is executable as a simple commandline program. Take care to include some code to create the <code>outputs.json</code> file at some point in the process. </p>
 <p>Take the "prototype" command you would use to execute the script and write it into <code>entrypoint.txt</code> using jinja2 template syntax. The input variable keys should correspond to those in your <code>operation_spec.json</code>. </p>
-<p>Create the <code>converters.json</code> file which will reformat the inputs into items that the entrypoint command will understand.</p>
 <p>Once all these files are in place, create a git repository and check the code into github. The analysis is ready for ingestion with WebMEV.</p>
 <hr />
 <h3 id="remote-cromwell-based-jobs"><a class="toclink" href="#remote-cromwell-based-jobs">Remote, Cromwell-based jobs</a></h3>
@@ -387,7 +366,7 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
 <ul>
 <li>WDL file(s): Specifies the commands that are run. You can think of this as you would a typical shell script.</li>
 <li>A JSON-format inputs file: This maps the expected workflow inputs (e.g. strings, numbers, or files) to specific values. For instance, if we expect a file, then the inputs JSON file will map the input variable to a file path. WebMEV is responsible for creating this file at runtime.</li>
-<li>One of more Docker containers: Cromwell orchestrates the startup/shutdown of cloud-based virtual machines but all commands are run within Docker runtimes on those machines. Thus, the WDL files will dictate which Docker images are used for each step in the analysis. There can be an arbitrary number of these. </li>
+<li>One of more Docker containers: Cromwell orchestrates the startup/shutdown of cloud-based virtual machines but all commands are run within Docker runtimes on those machines. Thus, the WDL files will dictate which Docker images are used for each step in the analysis. There can be an arbitrary number of these. Furthermore, unlike the local Docker-based jobs which require a single image, these jobs can use multiple images which can be placed in any combination of public Docker repositories (Dockerhub, Github CR, quay.io).</li>
 </ul>
 <p>Thus, to create a Cromwell-based job that is compatible with WebMEV we require: </p>
 <ul>
@@ -409,17 +388,10 @@ json.dump(outputs, open(os.path.join(working_dir, 'outputs.json'), 'w'))
 <li>This is the JSON-format file which dictates the inputs to the workflow. It is a template that will be appropriately filled at runtime. Thus, the "values" of the mapping do not matter, but the keys must map to input variables in <code>main.wdl</code>. Typically, this file is easily created by Broad's WOMTool. See below for an example.</li>
 </ul>
 </li>
-<li><code>static_inputs.json</code><ul>
-<li>An <em>optional</em> file that gives values for variables like genome indexes and other relatively static inputs. Keys in this should be a subset of those in <code>inputs.json</code>. File paths contained here are used to copy files into a WebMEV-associated bucket.</li>
-</ul>
-</li>
-<li><code>converters.json</code><ul>
-<li>This file tells WebMEV how to take a user-supplied input (e.g. a list of samples/<code>Observation</code>s)
-and format it to be used in <code>inputs.json</code>. As above, this is a mapping of the input name to a "dotted" class implementation.</li>
-</ul>
-</li>
-<li><code>docker/</code><ul>
-<li>The <code>docker</code> folder contains one or more Dockerfile-format files and the dependencies to create those Docker images. Each Dockerfile is named according to its target image. For instance, if one of the WDL files specifies that it depends on a Docker image named <code>docker.io/myUser/foo</code>, then the Dockerfile defining that image should be named <code>Dockerfile.foo</code>.</li>
+<li>
+<p><code>docker/</code></p>
+<ul>
+<li>The <code>docker</code> folder contains one or more Dockerfile-format files and the dependencies to create those Docker images.</li>
 </ul>
 </li>
 </ul>
@@ -455,7 +427,7 @@ and format it to be used in <code>inputs.json</code>. As above, this is a mappin
 </code></pre>
 
 <p><strong>Converting inputs</strong></p>
-<p>As with all analysis execution modes, we have "converter" classes which translate user inputs into formats that are compatible with the job runner. </p>
+<p>As with all analysis execution modes, we have "converter" classes (specified in <code>operation_spec.json</code>) which translate user inputs into formats that are compatible with the job runner. </p>
 <p>For instance, using the example above, one of the inputs for a WDL could be an array of strings (<code>Array[String]</code> in WDL-type syntax). Thus, a converter would be responsible for taking say, an <code>ObservationSet</code>, and turning that into a list of strings to provide the same names. For example, we may wish to convert an <code>ObservationSet</code> given as:</p>
 <pre class="codehilite"><code>{
     &quot;multiple&quot;: true,
@@ -481,7 +453,7 @@ and format it to be used in <code>inputs.json</code>. As above, this is a mappin
 </code></pre>
 
 <p><strong>Creation of Docker images</strong></p>
-<p>As described above, each repository can contain an arbitrary (non-zero) number of WDL files, each of which can depend on one more Docker images for their runtime. There are some custom steps involved during the ingestion of new Cromwell-based workflow, which we explain below.</p>
+<p>As described above, each repository can contain an arbitrary (non-zero) number of WDL files, each of which can depend on one more Docker images for their runtime. In contrast to local jobs which can only use a single image, WDL/Cromwell-based jobs can use any number of images. However, there are some custom steps involved during the ingestion of new Cromwell-based workflow, which we explain below.</p>
 <p>When Docker images are specified in the <code>runtime</code> section of the WDL files, the line is formatted as:</p>
 <pre class="codehilite"><code>runtime {
     ...
@@ -498,59 +470,50 @@ and format it to be used in <code>inputs.json</code>. As above, this is a mappin
 }
 </code></pre>
 
-<p>Note that we only use the image name (<code>foo</code>) when we are ingesting and preparing a new workflow for use in WebMEV. The reason is that we wish to keep all Docker images "in house" within our own Dockerhub account; we do not want to depend on external Docker resources which may change without our knowledge or control. Therefore, the repository and username are not used. Further, the tag is also ignored as we ultimately replace it with the git commit hash. Since the git commit hash is not produced until <em>after</em> the commit, we obviously can't append the images with the proper tag prior to the commit. Thus, during the ingestion process we perform the following:</p>
-<ul>
-<li>Parse all WDL files in the github repo and extract out all the runtime Docker images. This will be a set of strings.</li>
-<li>For each Docker "image string" (e.g. <code>someUser/foo:v1</code>):<ul>
-<li>Extract the image name, e.g. <code>foo</code></li>
-<li>Search for a corresponding Dockerfile in the repo, e.g. <code>docker/Dockerfile.foo</code></li>
-<li>Build the image, tagging with the github commit ID, e.g. <code>abc123</code></li>
-<li>Push the image to the WebMEV Dockerhub, e.g. <code>docker.io/web-mev</code></li>
-<li>Edit and save the WDL file with the newly-built Docker image, e.g. <code>docker.io/web-mev/foo:abc123</code>.</li>
-</ul>
-</li>
-</ul>
-<p>Thus, regardless of whoever creates the original image, the repository should have all the files necessary to build a fresh image which we "claim as our own" by assigning our username/tag and pushing it to the WebMEV Dockerhub account. </p>
-<p>We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not <em>exactly</em> the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.</p>
-<p>Note that repositories based on many Docker containers may take a significant time to ingest, as each image must be built and pushed to Dockerhub.</p>
-<p><strong>Copying of static resources</strong></p>
-<p>If the <code>static_inputs.json</code> file is present, we expect that this file will be used for static items that are not dependent on user input. We could also put such items as <code>default</code> in the <code>operation_spec.json</code> file, but we instead choose to extract them out to this file.</p>
-<p>Upon ingestion, the files will be copied to an <code>Operation</code>-specific bucket/folder. For instance, given the following <code>static_inputs.json</code>:</p>
-<pre class="codehilite"><code>{
-    &quot;Workflow.genome_idx&quot;:&quot;gs://some-bucket/grch38.idx&quot;
+<p><strong>When using pre-built Docker images:</strong>
+Recall that if there is no explicit image "tag", then Docker defaults to using the image with the "latest" tag, which is implicitly the last build. Thus, if you are using an external Docker image (e.g. biocontainers/samtools) for one of your WDL tasks, then be sure to pick a specific tagged version so that it is not ambiguous, since <code>latest</code> can change over time.</p>
+<p><strong>When creating our own Docker images:</strong></p>
+<p>As mentioned in the local tools section, by default we use Github Actions to automatically build Docker images off the current repository state. The images are tagged with the github commit hash.</p>
+<p>If you have configured WebMEV to use the Dockerhub repo by default, then just be sure to build/tag/push your images carefully. That is, if you use <code>docker: "docker.io/myUser/foo:v1"</code> in your WDL, you need to name+tag your image, e.g. <code>docker build -t myUser/foo:v1</code>.</p>
+<p>When using a custom Docker image built directly by Github Actions, we have a bit of a "chicken or egg" problem when it comes to providing tagged Docker images in our WDL files. As configured, Github Actions tags the Docker image with the commit hash. However, we obviously can't know that hash up front and use it in our WDL file(s). Hence, we reference untagged images in the <code>docker</code> attribute as follows:</p>
+<pre class="codehilite"><code>runtime {
+    ...
+    docker: &quot;ghcr.io/web-mev/mev-hcl&quot;
+    ...
 }
 </code></pre>
 
-<p>During ingestion, this <code>Operation</code> will be assigned a UUID. Then, we copy this index to a new location identified by that UUID. The updated/edited <code>static_inputs.json</code> file will be:</p>
-<pre class="codehilite"><code>{
-    &quot;Workflow.genome_idx&quot;:&quot;gs://mev-bucket/&lt;UUID&gt;/grch38.idx&quot;
-}
-</code></pre>
+<p>As part of the process of ingesting analysis tools into WebMEV, we modify that <code>docker</code> WDL attribute to attach a tag corresponding to the git commit. The process is roughly:</p>
+<ul>
+<li>Parse all WDL files in the github repo and extract out all the runtime Docker images. This will be a set of strings.</li>
+<li>For each Docker untagged "image string" (e.g. <code>ghcr.io/someUser/foo</code>):<ul>
+<li>Get the current git commit (say, <code>abc123</code>) and append that (e.g. <code>ghcr.io/someUser/foo:abc123</code>)</li>
+<li>Search for that image. If it does not exist, fail the ingestion process. This effectively prevents untagged images from being used. For instance, if an untagged <code>docker.io/biocontainers/samtools</code> Docker image was specifed, the full, tagged image would be <code>docker.io/bioco</code>ntainers/samtools:abc123<code>. There is a vanishingly small chance that our git repository's commit hash has a corresponding tag in the</code>biocontainers/samtools` library. </li>
+</ul>
+</li>
+<li>For each tagged "image string" (e.g. <code>docker.io/biocontainers/samtools:v1.9-4-deb_cv1</code>), simply search for it.</li>
+</ul>
+<p>We note that this technically modifies the workflow relative to the github repository, so the WebMEV-internal version is not <em>exactly</em> the same. However, this difference is limited to the name of the Docker image. All other aspects of the analysis are able to be exactly recreated based on the repository.</p>
+<p><strong>Copying of static resources</strong></p>
+<p>If the <code>static_inputs.json</code> file is present, we expect that this file will be used for static items that are not dependent on user input. We could also put such items as <code>default</code> in the <code>operation_spec.json</code> file, but we instead choose to extract them out to this file.</p>
+<p>At current, no tools use this feature, but this will be updated if necessary.</p>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../operations/" class="btn btn-neutral float-left" title="Operation concepts"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../example_workflow/" class="btn btn-neutral float-right" title="Workflow and analysis concepts">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../operations/" class="btn btn-neutral" title="Operation concepts"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -558,11 +521,11 @@ and format it to be used in <code>inputs.json</code>. As above, this is a mappin
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/web-mev/mev-backend" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     

@@ -1,78 +1,68 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="canonical" href="https://webmev.tm4.org/public_data/">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Creating and managing public data - WebMeV REST API</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
-
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="../style.css" rel="stylesheet" />
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Creating and managing public data";
-    var mkdocs_page_input_path = "public_data.md";
-    var mkdocs_page_url = "/public_data/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://webmev.tm4.org/public_data/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Creating and managing public data - WebMeV REST API</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../style.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Creating and managing public data";
+        var mkdocs_page_input_path = "public_data.md";
+        var mkdocs_page_url = "/public_data/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> WebMeV REST API</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> WebMeV REST API
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">Installation and setup</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">API</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../install/">Install</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
@@ -97,65 +87,53 @@
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
-                    </li>
-                </ul>
-                <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Creating and managing public data</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Creating and managing public data</a>
     <ul class="current">
     </ul>
-                    </li>
-                </ul>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">WebMeV REST API</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">WebMeV REST API</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-    
-    <li>Creating and managing public data</li>
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Creating and managing public data</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/public_data.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="https://github.com/web-mev/mev-backend/edit/master/docs/public_data.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
-  
   <hr/>
 </div>
-
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h3 id="working-with-public-datasets"><a class="toclink" href="#working-with-public-datasets">Working with public datasets</a></h3>
 <p>WebMeV provides the ability to easily create custom datasets derived from publicly available databases such as the Cancer Genome Atlas (TCGA). Query functionality of these datasets is exposed through Solr, which provides us a standard indexing and query syntax.</p>
@@ -170,7 +148,7 @@
 </code></pre>
 
 <p>The core name (<code>-d</code>) should be relatively short/simple (e.g. <code>ccle-data</code>) and the the file (<code>-f</code>) should be an example of the data you wish to index. It can be a row subset (not ALL the data), but should have all the potential fields.</p>
-<p>Note that the script will still require you to fill out the stubbed-out python module for the new dataset AND also require you to add some content to the Puppet manifests to fully integrate this new core.</p>
+<p>Note that the script will still require you to fill out the stubbed-out python module for the new dataset AND also require you to add some content to the Puppet manifests to fully integrate this new core. The script will direct you to the stubs and remind you what needs to be done.</p>
 <p>You will also need to commit the solr files (<code>solr/&lt;core&gt;/schema.xml</code>  and <code>solr/&lt;core&gt;/solrconfig.xml</code>) when everything is fully ready.</p>
 <hr />
 <h3 id="the-longer-way-or-the-way-if-the-script-above-does-not-work"><a class="toclink" href="#the-longer-way-or-the-way-if-the-script-above-does-not-work">The longer way (or the way if the script above does not work!)</a></h3>
@@ -188,23 +166,38 @@ Note that <code>mev/api/public_data/sources</code> contains a <code>gdc</code> s
 <li><code>TAG</code>: This is a unique string which acts as an identifier for the dataset. If the name is not unique, then registering the dataset in the database will not be permitted, and hence the indexed dataset will not be usable. Additionally, the unit test suite will check that all implementing classes have unique identifiers. This string is limited to 30 characters by a database constraint.</li>
 <li><code>PUBLIC_NAME</code>: This string should be a relatively short "name" for the dataset, such as "TCGA RNA-seq"</li>
 <li><code>DESCRIPTION</code>: This is another string which provides more context and a thorough description of the data is contains.</li>
+<li><code>DATASET_FILES</code>: This is a list which enumerates the files necessary for this dataset. For example, in the TCGA RNA-seq dataset, we have the metadata/annotations file, and we have a separate count file. This list of used to ensure that the proper
+files are present when indexing and creating datasets.</li>
 </ul>
 </li>
 <li>Methods:<ul>
 <li><code>prepare(self)</code>: a method that takes no arguments (other than the class instance) and prepares the data. A return value is not expected.</li>
+<li><code>verify_files(self, file_dict)</code>: a method that takes a dictionary with keys that should match those in <code>DATASET_FILES</code> and the values are file paths so we can verify
+that the files exist.</li>
+<li><code>get_indexable_files(self, file_dict)</code>: a method that iterates through the passed
+dictionary and returns a list of file paths for files that are to be indexed.</li>
+<li><code>get_additional_metadata(self)</code>: a method that returns a dictionary containing additional information that is relevant to the dataset, but not part of the traditional data or metadata. An example from the TCGA project is a mapping of the TCGA IDs (e.g. "TCGA-LUAD") to full names (e.g. "Lung adenocarcinoma"). The results of this method are placed into the <code>additional_metadata</code> JSON field in the database. There is no defined structure so that each dataset will be different in general.</li>
+<li><code>create_from_query(self, query_params)</code>: a method that takes a dict which specifies how to create the dataset. Think of the dict as a generic payload
+for filtering, etc. Returns a tuple of a filepath(string) and a resource type string (one of our "special" types like <code>"EXP_MTX"</code>)</li>
 </ul>
 </li>
 </ul>
 <p>A template for this new class:</p>
-<pre class="codehilite"><code>from api.public_data.sources.base import PublicDataset
+<pre class="codehilite"><code>from api.public_data.sources.base import PublicDataSource
 
-class MyDataset(PublicDataset):
+class MyDataset(PublicDataSource):
 
     TAG = ''
     PUBLIC_NAME = ''
     DESCRIPTION = ''
-
+    DATASET_FILES = []
     def prepare(self):
+        pass
+    def verify_files(self, file_dict):
+        pass
+    def get_indexable_files(self, file_dict):
+        pass
+    def create_from_query(self, query_params):
         pass
 </code></pre>
 
@@ -259,7 +252,11 @@ Now, we will query for the current/inferred schema that was just created. Here, 
 <pre class="codehilite"><code>&lt;field name=&quot;project_id&quot; type=&quot;string&quot;/&gt;
 </code></pre>
 
-<p>Similarly, there will likely be many <code>&lt;dynamicField&gt;</code> and <code>&lt;copyField&gt;</code> entries which can be removed. These are added to enable further text processing that (usually) is not necessary and only increases the size of the index.</p>
+<p><strong>Important:</strong> Do NOT remove this field, as this causes a failure to build the core on provisioning:</p>
+<pre class="codehilite"><code>&lt;field name=&quot;_version_&quot; type=&quot;plong&quot; indexed=&quot;false&quot; stored=&quot;false&quot;/&gt;
+</code></pre>
+
+<p>There will likely be many <code>&lt;dynamicField&gt;</code> and <code>&lt;copyField&gt;</code> entries which can be removed. These are added to enable further text processing that (usually) is not necessary and only increases the size of the index.</p>
 <p>In the end, you should have a simple, human-interpretable list of fields that correspond to data types you recognize in the dataset. You <em>could</em> have created this all yourself, but Solr typically does a good job of guessing for most things.</p>
 <h4 id="step-4-copy-the-core-files-to-the-repository-and-commit"><a class="toclink" href="#step-4-copy-the-core-files-to-the-repository-and-commit">Step 4: Copy the core files to the repository and commit</a></h4>
 <p>Recall that to create your core, we had to do a bit of a workaround above. The files defining your solr core are located in <code>/var/solr/data/&lt;core name&gt;</code>. We want to copy these files and our edited schema (AND remove the managed schema) to the WebMeV repository so that all the required items will be there for the new dataset. Hence:</p>
@@ -290,29 +287,24 @@ your new core will be ready-to-go on the next round of provisioning:</p>
 <p>Then, to index a file into this core:</p>
 <pre class="codehilite"><code>python3 manage.py index_data -d &lt;core name&gt; &lt;path&gt; [&lt;path&gt; ...]
 </code></pre>
+
+<p>Finally, note that if you core expected core does not exist, you can always check by visiting the Solr admin interface at http://localhost:8983/solr/ on the host machine. The "core admin" tab will typically report error messages that occurred.</p>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-      
-        <a href="../example_workflow/" class="btn btn-neutral" title="Workflow and analysis concepts"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../example_workflow/" class="btn btn-neutral float-left" title="Workflow and analysis concepts"><span class="icon icon-circle-arrow-left"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -320,11 +312,11 @@ your new core will be ready-to-go on the next round of provisioning:</p>
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/web-mev/mev-backend" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     

@@ -1,69 +1,61 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="canonical" href="https://webmev.tm4.org/management_commands/">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Management commands - WebMeV REST API</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
-
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="../style.css" rel="stylesheet" />
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Management commands";
-    var mkdocs_page_input_path = "management_commands.md";
-    var mkdocs_page_url = "/management_commands/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://webmev.tm4.org/management_commands/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Management commands - WebMeV REST API</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../style.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Management commands";
+        var mkdocs_page_input_path = "management_commands.md";
+        var mkdocs_page_url = "/management_commands/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> WebMeV REST API</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> WebMeV REST API
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">Installation and setup</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
-                    </li>
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Management commands</a>
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../install/">Install</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Management commands</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#commands-for-working-public-datasets">Commands for working public datasets</a>
         <ul>
@@ -81,22 +73,18 @@
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#dump_db_for_test">dump_db_for_test</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#edit_db_data">edit_db_data</a>
-    </li>
     <li class="toctree-l3"><a class="reference internal" href="#populate_db">populate_db</a>
     </li>
         </ul>
     </li>
     </ul>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">API</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
@@ -121,67 +109,52 @@
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
-                    </li>
-                </ul>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">WebMeV REST API</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">WebMeV REST API</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-        
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
           <li>Installation and Setup &raquo;</li>
-        
-      
-    
-    <li>Management commands</li>
+      <li>Management commands</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/management_commands.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="https://github.com/web-mev/mev-backend/edit/master/docs/management_commands.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
-  
   <hr/>
 </div>
-
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h2 id="django-management-commands-in-webmev"><a class="toclink" href="#django-management-commands-in-webmev">Django management commands in WebMeV</a></h2>
 <p>There are several custom Django management commands available. For the most part, these are used by processes such as provisioning scripts. However, there are several that are actively used by WebMeV admins. We list these below and note what they do and how they are used.</p>
@@ -196,12 +169,17 @@
 <p>This command only performs download and data munging- it does not modify any database tables or expose any new datasets. It only handles the preparation of the data that will ultimately be indexed in another step.</p>
 <p>Note that each public dataset has, in general, different formats and requirements. We expect that the implementation of this command for each public dataset will appropriately inform the admin of its actions and any output files. For instance, the TCGA dataset icreates two files- a metadata file and a count matrix.</p>
 <h4 id="index_data"><a class="toclink" href="#index_data"><code>index_data</code></a></h4>
-<p>This command will index one or more flat files into the specified dataset</p>
-<pre class="codehilite"><code>usage: manage.py index_data -d DATASET_ID path [path ...]
+<p>This command will index one or more flat files into the specified dataset. This command modifies the database so that it's available for querying and usage.</p>
+<pre class="codehilite"><code>usage: manage.py index_data -d DATASET_ID &lt;key=value&gt; [&lt;key=value&gt;] ...
 </code></pre>
 
-<p>Note that this assumes a "core" (in solr parlance) already exists for the dataset; typically these are created during machine provisioning. The files to index should be amenable to the XML schema defining that core. Files should also be one of the formats that indexing technology (solr) understands, such as CSV.</p>
-<p>Use of this command requires some knowledge of how the data will be exposed via the public dataset query interface. For instance, in the case of TCGA RNA-seq data, we create two files using the <code>pull_public_data</code> command above. However, this indexing step will only work with CSV-format metadata file. After all, we are using the indexer to provide a means to query/search datasets for appropriate data. Attempting to index the count file would likely break the process and realistically not make much sense.</p>
+<p>where the &gt;=1 key-value pairs are specific to the dataset we are indexing. Those parameters tell the indexing process the identity of the files. Recall that each dataset will have different requirements and files, in general. </p>
+<p>As an example, consider the TCGA RNA-seq dataset. Here, the <code>pull_public_data</code> command prepares a HDF5-format file of gene expression counts <em>and</em> a CSV-format file of sample annotations. To index RNA-seq data from TCGA (and most RNA-seq datasets), we would run:</p>
+<pre class="codehilite"><code>manage.py index_data -d tcga-rnaseq annotations=&lt;path to annotation CSV file&gt; counts=&lt;path to HDF5 file&gt;
+</code></pre>
+
+<p>For the TCGA dataset, our process knows to look for these two key-value pairs. It knows to use the value paired with the <code>annotations</code> key as the file for indexing by Solr. The database then tracks both of these files so that we can query and prepare datasets for users. </p>
+<p>Note that this assumes a "core" (in solr parlance) already exists for the dataset; typically these are created during machine provisioning. Since each dataset requires some amount of manual curation, we still have to do the work of understanding each dataset and preparing the necessary Solr core files.</p>
 <h3 id="other-commands"><a class="toclink" href="#other-commands">Other commands</a></h3>
 <h4 id="add_static_operations"><a class="toclink" href="#add_static_operations"><code>add_static_operations</code></a></h4>
 <p>This is used to add "static" operations like file transfers (e.g. the Drobox+Cromwell flow) to the application. This is different than the "dynamic" analysis operations that are added after the WebMeV application is running. This is typically called by the provisioning script and does not need to be run manually.</p>
@@ -210,37 +188,26 @@
 <p>This command creates this documentation. If the <code>--push</code> flag is added, then the documentation will be pushed to github to the <code>gh-pages</code> branch. By default, it is <em>not</em> pushed so you can inspect the pages locally.</p>
 <h4 id="dump_db_for_test"><a class="toclink" href="#dump_db_for_test"><code>dump_db_for_test</code></a></h4>
 <p>This is a thin wrapper around the Django <code>dumpdata</code> command, which will dump the contents of the database models under <code>api</code> to a JSON file. That data can then be used for the test suite. Note that the repository includes a <code>api/tests/test_db.json</code> file, so this command would typically be run by a developer to add new data to the test database.</p>
-<h4 id="edit_db_data"><a class="toclink" href="#edit_db_data"><code>edit_db_data</code></a></h4>
-<p>This is used if you would like to stand up a mock server that has some data prepopulated. The script modifies database records (e.g. changing the ownership of files) accordingly.</p>
-<p>The motivation for this command was to allow us to create a backend instance to be used by a frontend developer. In that case, we would like to provide "real" data they can use for visualizations. However, we can't simply export data from, for instance, our production server since the resources, etc. would be owned by user accounts only present on the production system. This command handles the modification of database records to hand over ownership to a single user. </p>
 <h4 id="populate_db"><a class="toclink" href="#populate_db"><code>populate_db</code></a></h4>
 <p>This command will add some dummy data to the database. The data added are a minimum set of database records that will allow for unit testing. </p>
 <p>As mentioned, the repository includes a test database file at <code>api/tests/test_db.json</code>. However, one could instead use this command to populate the database with new data, then subsequently use the <code>dumb_db_for_test</code> command above to create a new <code>api/tests/test_db.json</code> file.</p>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../data_server/" class="btn btn-neutral float-right" title="Mock data server">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../setup_configuration/" class="btn btn-neutral" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../setup_configuration/" class="btn btn-neutral float-left" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../api/" class="btn btn-neutral float-right" title="Intro and core concepts">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -248,18 +215,18 @@
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/web-mev/mev-backend" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     
       <span><a href="../setup_configuration/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../data_server/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../api/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

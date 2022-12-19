@@ -1,78 +1,68 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="canonical" href="https://webmev.tm4.org/resource_types/">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Resource types - WebMeV REST API</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
-
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="../style.css" rel="stylesheet" />
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Resource types";
-    var mkdocs_page_input_path = "resource_types.md";
-    var mkdocs_page_url = "/resource_types/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://webmev.tm4.org/resource_types/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Resource types - WebMeV REST API</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../style.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Resource types";
+        var mkdocs_page_input_path = "resource_types.md";
+        var mkdocs_page_url = "/resource_types/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> WebMeV REST API</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> WebMeV REST API
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">Installation and setup</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">API</span></p>
-                <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
-                    </li>
-                    <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../install/">Install</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../setup_configuration/">Configuration</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Data Structures</a>
     <ul class="current">
                 <li class="toctree-l2 current"><a class="reference internal current" href="#">Resources</a>
     <ul class="current">
@@ -103,75 +93,54 @@
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
-                    </li>
-                </ul>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">WebMeV REST API</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">WebMeV REST API</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-        
-          <li>Resources &raquo;</li>
-        
-      
-        
-          <li>Data Structures &raquo;</li>
-        
-      
-        
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
           <li>API &raquo;</li>
-        
-      
-    
-    <li>Resource types</li>
+          <li>Data Structures &raquo;</li>
+          <li>Resources &raquo;</li>
+      <li>Resource types</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/resource_types.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="https://github.com/web-mev/mev-backend/edit/master/docs/resource_types.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
-  
   <hr/>
 </div>
-
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h3 id="resource-types"><a class="toclink" href="#resource-types">Resource types</a></h3>
 <p>A <code>Resource</code> represents some generic notion of data and its <code>resource_type</code> field/member is a string identifier that identifies the specific format of the data. Resource types allow us to specify the format of input/output files of <code>Operation</code>s. Therefore, we can predictably present options for those inputs and allow <code>Resource</code>s to flow from one analysis to another.</p>
@@ -219,8 +188,6 @@ type of data that can be represented as rows and columns.</p>
 <p>This or any of the more specific subclasses can be contained in files
 saved in CSV, TSV, or Excel (xls/xlsx) format.  If in Excel format, the
 data of interest must reside in the first sheet of the workbook.</p>
-<p>Special tab-delimited files like BED or VCF files are recognized by
-their canonical extension (e.g. ".bed" or ".vcf").</p>
 <p>Note that unless you create a "specialized" implementation (e.g. like
 for a BED file), then we assume you have features as rows and observables
 as columns.</p></div>
@@ -314,62 +281,33 @@ remotely</p></div>
 </div>
 <div class="autodoc">
 <div class="autodoc-signature"><em>class </em><code>resource_types.sequence_types.<strong>FastAResource</strong></code><span class="autodoc-punctuation">(</span><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>This type is for validating Fasta files,
-compressed or not.  Fasta files are recognized using
-the following formats:</p>
-<ul>
-<li>fasta</li>
-<li>fasta.gz</li>
-<li>fa</li>
-<li>fa.gz</li>
-</ul></div>
+<div class="autodoc-docstring"><p>This type is for compressed Fasta files</p></div>
 </div>
 <div class="autodoc">
 <div class="autodoc-signature"><em>class </em><code>resource_types.sequence_types.<strong>FastQResource</strong></code><span class="autodoc-punctuation">(</span><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>This resource type is for Fastq files,
-compressed or not. Fastq files are recognized using
-the following formats:</p>
-<ul>
-<li>fastq</li>
-<li>fastq.gz</li>
-<li>fq</li>
-<li>fq.gz</li>
-</ul></div>
+<div class="autodoc-docstring"><p>This resource type is for gzip-compressed Fastq files</p></div>
 </div>
 <div class="autodoc">
 <div class="autodoc-signature"><em>class </em><code>resource_types.sequence_types.<strong>AlignedSequenceResource</strong></code><span class="autodoc-punctuation">(</span><span class="autodoc-punctuation">)</span></div>
-<div class="autodoc-docstring"><p>This resource type is for SAM/BAM files.  We accept
-both SAM and BAM files named using their canonical extensions:</p>
-<ul>
-<li>".bam" for BAM files</li>
-<li>".sam" for SAM files</li>
-</ul></div>
+<div class="autodoc-docstring"><p>This resource type is for SAM/BAM files.</p></div>
 </div>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../resources/" class="btn btn-neutral float-left" title="General info"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../resource_metadata/" class="btn btn-neutral float-right" title="Resource metadata">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../resources/" class="btn btn-neutral" title="General info"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -377,11 +315,11 @@ both SAM and BAM files named using their canonical extensions:</p>
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/web-mev/mev-backend" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     

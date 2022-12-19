@@ -1,84 +1,74 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="canonical" href="https://webmev.tm4.org/setup_configuration/">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Configuration - WebMeV REST API</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
-
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  <link href="../style.css" rel="stylesheet" />
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Configuration";
-    var mkdocs_page_input_path = "setup_configuration.md";
-    var mkdocs_page_url = "/setup_configuration/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://webmev.tm4.org/setup_configuration/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Configuration - WebMeV REST API</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../style.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Configuration";
+        var mkdocs_page_input_path = "setup_configuration.md";
+        var mkdocs_page_url = "/setup_configuration/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> WebMeV REST API</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> WebMeV REST API
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">Installation and Setup</span></p>
-                <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../install/">Preliminaries</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../mev_cluster_setup/">Installation and setup</a>
-                    </li>
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Configuration</a>
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../general_architecture/">Architecture</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation and Setup</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../install/">Install</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Configuration</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#email-backends-email_backend_choice">Email backends (EMAIL_BACKEND_CHOICE) </a>
+    <li class="toctree-l2"><a class="reference internal" href="#email-backends">Email backends</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#about-storage-backends">About storage backends</a>
     </li>
     </ul>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../data_server/">Mock data server</a>
-                    </li>
-                </ul>
-                <p class="caption"><span class="caption-text">API</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
-                    </li>
-                    <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../management_commands/">Management commands</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Intro and core concepts</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Data Structures</a>
     <ul>
                 <li class="toctree-l2"><a class="reference internal" href="#">Resources</a>
     <ul>
@@ -103,185 +93,104 @@
                 <li class="toctree-l2"><a class="reference internal" href="../metadata/">Workspace metadata</a>
                 </li>
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
-                    </li>
-                </ul>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../auth/">Authentication</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../operations/">Operation concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creating_analyses/">Creating new analyses/operations</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../example_workflow/">Workflow and analysis concepts</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../public_data/">Creating and managing public data</a>
+                </li>
+              </ul>
       </div>
     </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">WebMeV REST API</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">WebMeV REST API</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-        
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
           <li>Installation and Setup &raquo;</li>
-        
-      
-    
-    <li>Configuration</li>
+      <li>Configuration</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/web-mev/mev-backend/edit/master/docs/setup_configuration.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="https://github.com/web-mev/mev-backend/edit/master/docs/setup_configuration.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
-  
   <hr/>
 </div>
-
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h2 id="configuration-options-and-parameters"><a class="toclink" href="#configuration-options-and-parameters">Configuration options and parameters</a></h2>
 <p>As described in the installation section, the WebMeV API depends on environment variables to configure the application.</p>
-<p>For local development with Vagrant, this requires copying <code>vagrant/env.tmpl</code> to <code>vagrant/env.txt</code> and filling in the relevant variables. Each environment variable is commented with detailed explanations and you should consult that file for their interpretation. </p>
-<p>For a cloud-based deployment with terraform, you similarly need to copy the <code>config.tfvars.template</code> file to <code>terraform.tfvars</code> and enter the config parameters. For the most part, these variables are similar to the local deployment, but we make some detailed notes/comments below.</p>
+<p>For local development with Vagrant, this may require setting some environment variables before running <code>vagrant up</code>. See <code>Vagrantfile</code> for details. In most cases, you do not need to modify anything or set environment variables. </p>
+<p>For a cloud-based deployment with terraform, you will need to create a <code>terraform.tfvars</code> file and enter the config parameters. See <code>deployment-aws/terraform/README.md</code> for details.</p>
 <p><strong>Comments about configuration parameters:</strong></p>
+<p>While most variables are sane default, note the following:</p>
 <ul>
 <li>
-<p><code>project_id</code>: This is the "string" name of the Google project, not the numerical ID.</p>
-</li>
-<li>
-<p><code>credentials_file</code>: This is the name of the JSON-format file containing your service account credentials. See the section on setup to learn about where and how to obtain this file. This is assumed to reside in the <code>deploy/terraform/live</code> folder so your "main" <code>terraform.tfvars</code> file can reference it easily.</p>
+<p><code>admin_email_csv</code>: This a comma-delimited string of the emails for administrators. Note that this does <em>not</em> create Django superusers, but rather provides a set of email addresses who will receive notifications (about errors, feedback, etc.)</p>
 </li>
 <li>
 <p><code>enable_remote_job_runners</code>: The value "yes" enables the remote job runners like Cromwell. If any other value, then we will not allow remote jobs to be executed, which limits the types of analyses that can be run.</p>
 </li>
 <li>
-<p><code>cromwell_db_*</code>: Database params, so make these appropriately secure.</p>
+<p><code>frontend_domain</code>: This is not strictly necessary, but will allow a frontend application located on another domain to interact with the API. Otherwise, Django will reject the request due to same-origin CORS policies. Do NOT include protocol.</p>
 </li>
 <li>
-<p><code>service_account_email</code>: The full, email-like name for the service account you created for installation. See instructions there. Something like "abc123@myproject.iam.gserviceaccount.com".</p>
+<p><code>additional_cors_origins</code>: This will allow additional frontend applications to connect. For instance, if you would like your local development frontend (accessible at localhost:4200) to connect to this deployment, you can add "http://localhost:4200". This is a comma-delimited string, so you can have multiple values. Be sure to include the http protocol, as shown.</p>
 </li>
 <li>
-<p><code>managed_dns_zone</code>: As part of the deployment, we have terraform add DNS records which will point at the IP address of the public-facing load balancer. Hence, you must already have Google Cloud DNS as your nameserver for your domain. As mentioned in setup, deviations from this expectation are not covered and will require customization of your terraform <code>main.tf</code> script(s).</p>
+<p><code>storage_location</code>: This is either "remote" or "local". Using "remote" makes use of remote bucket storage. The "local" setting stores files on the server, which can be inappropriate for working with larger files since it requires larger hard disk space. <strong>For cloud deployments, just set this to "remote".</strong></p>
 </li>
 <li>
-<p><code>ssl_cert</code>: As described in the setup section, you will need to provision a SSL certificate to serve HTTPS. This certificate will be added to your load balancer. It is given as a "resource string", so it will be something like: <code>projects/&lt;GCP PROJECT&gt;/global/sslCertificates/&lt;CERTIFICATE NAME&gt;</code>.</p>
-</li>
-<li>
-<p><code>domain</code>: The domain where your API will be accessed. We add a DNS record for this domain which points at the IP address of the load balancer.</p>
-</li>
-<li>
-<p><code>frontend_domain</code>: This is not strictly necessary, but will allow a frontend application located on another domain to interact with the API. Otherwise, Django will reject the request due to same-origin CORS policies.</p>
-</li>
-<li>
-<p><code>other_cors_origins</code>: This will allow additional frontend applications to connect. For instance, if you would like your local development frontend (accessible at localhost:4200) to connect to this deployment, you can add "http://localhost:4200". This is a comma-delimited string, so you can have multiple values. Be sure to include the http protocol, as shown.</p>
-</li>
-<li>
-<p><code>storage_location</code>: This is either "remote" or "local". Using "remote" makes use of the Google storage bucket named above. The "local" setting stores files on the server, which can be inappropriate for working with larger files since it requires larger hard disk space. <strong>For cloud deployments, just set this to "remote".</strong></p>
-</li>
-<li>
-<p><code>from_email</code>: Since we are using the Gmail API, we can use a Google group-associated email send messages. Thus, if you are using the Gmail account of "user@gmail.com" who is associated with the "mygroup@gmail.com" address, then you can set this to "Some group <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#109;&#121;&#103;&#114;&#111;&#117;&#112;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">&#109;&#121;&#103;&#114;&#111;&#117;&#112;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a>" so that emails are sent on behalf of that group. This allows emails to appear to be sent from non-personal Gmail accounts. <em>Specify as a format like <code>"Some name &lt;some@email.com&gt;"</code></em></p>
-</li>
-<li>
-<p><code>gmail_*</code>: These are the authentication parameters obtained by <a href="#email">performing an authentication flow with Gmail</a>. </p>
+<p><code>from_email</code>: We uses AWS simple email service (SES) to send emails. This sets to "from" field in the emails. It's helpful to set this to something like <code>"WebMEV &lt;noreply@mail.webmev.tm4.org&gt;"</code> so that users will know not to reply directly to the email.</p>
 </li>
 <li>
 <p><code>sentry_url</code>: Only necessary to use if you are using a Sentry issue-tracker. If not using Sentry, then you can just leave this as an empty string.</p>
 </li>
-<li>
-<p><code>dockerhub_username</code>, <code>dockerhub_passwd</code>: These parameters are used to set your username and password for interacting with your Dockerhub account. This allows us to dynamically create Docker images and push them to the Dockerhub registry so that they are accessible and users can replicate their analyses.</p>
-</li>
-<li>
-<p><code>dockerhub_org</code>: An organization-level account for Dockerhub. Your individual user must be associated with this organization. <em>If you do not have one or do not wish to use a Dockerhub organization, simply set this to your Dockerhub username</em>.</p>
-</li>
 </ul>
-<h3 id="email-backends-email_backend_choice"><a class="toclink" href="#email-backends-email_backend_choice">Email backends (<code>EMAIL_BACKEND_CHOICE</code>) <a name="email"></a></a></h3>
-<p>Various operations like user registration and password changes require us to send users emails with encoded tokens to verify their email address and permit changes to their account.  Accordingly, WebMEV needs the ability to send emails.  We allow customization of this email backend through the <code>EMAIL_BACKEND_CHOICE</code> Django setting. The value for that comes from the <code>EMAIL_BACKEND_CHOICE</code> environment variable for local dev and from the <code>email_backend</code> setting in <code>terraform.tfvars</code>. </p>
-<p>Certain cloud providers, such as GCP, place restrictions on outgoing emails to prevent abuse.  Per their documentation ( https://cloud.google.com/compute/docs/tutorials/sending-mail ), GCP recommends to use a third-party service such as SendGrid.  If you wish to use these, you will have to implement your own email backend per the interface described at the Django project: https://docs.djangoproject.com/en/3.0/topics/email/#defining-a-custom-email-backend</p>
-<p>By default, we provide the following email backends. <strong>Currently, the only real/outgoing mail backend is Gmail.</strong></p>
-<p><strong>Console (<code>EMAIL_BACKEND_CHOICE=CONSOLE</code>)</strong></p>
-<p><em>Note: This backend is for development purposes only-- no emails are actually sent!</em></p>
-<p>If <code>EMAIL_BACKEND_CHOICE</code> is not set, WebMEV defaults to using Django's "console" backend, which simply prints the emails to stdout.  This is fine for development purposes where the tokens can be copy/pasted for live-testing, but is obviously not suitable for a production environment.</p>
-<p><strong>Gmail (<code>EMAIL_BACKEND_CHOICE=GMAIL</code>)</strong></p>
-<p>Alternatively, one can use the Gmail API to send emails from their personal or institution google account. <strong>As mentioned, this is the only setting that allows actual email to be sent!</strong> To use this email backend, you will need to perform an OAuth2 authentication flow to obtain the proper credentials: </p>
-<p><em>Steps:</em></p>
-<ul>
-<li>
-<p>Choose a Gmail account (or create a new account) from which you wish to send email notifications.  On your own machine (or wherever you can login to your Google account), go to the Google developers console ( https://console.developers.google.com  or https://console.cloud.google.com ) and head to "APIs &amp; Services" and "Dashboard".  Click on "Enable APIs and Services", search for "Gmail", and enable the Gmail API. </p>
-</li>
-<li>
-<p>Go to the "Credentials" section under "APIs and Services".  Just as above, we will create a set of OAuth credentials.  Click on the "Create credentials" button and choose "OAuth Client ID".   Choose "Other" from the options and give these credentials a name.</p>
-</li>
-<li>
-<p>Once the credentials are created, download the JSON-format file when it prompts.</p>
-</li>
-<li>
-<p>Using that credential file, run the <code>helpers/exchange_gmail_credentials.py</code> script like:</p>
-</li>
-</ul>
-<pre class="codehilite"><code>python3 helpers/exchange_gmail_credentials.py -i &lt;original_creds_path&gt; -o &lt;final_creds_path&gt;
-</code></pre>
-
-<p>(Note that this script can be run from within the WebMeV local VM, as it contains the appropriate Python packages.  If you are not using the application container, you can run the script as long as the <code>google-auth-oauthlib</code> (https://pypi.org/project/google-auth-oauthlib/) library is installed.</p>
-<p>The script will ask you to copy a link into your browser, which you can do on any machine where you can authenticate with Google.  That URL will ask you to choose/log-in to the Gmail account you will be using to send emails.  Finally, if successfully authenticated, it will provide you with a "code" which you will copy into your terminal.  Once complete, the script will write a new JSON-format file at the location specified with the <code>-o</code> argument.</p>
-<ul>
-<li>Using that final JSON file, you can fill in the <em>four</em> variables contained in either your <code>vagrant/env.txt</code> for local dev or your <code>deploy/terraform/live/terraform.tfvars</code> for a cloud deployment.  <em>Be careful with these credentials as they give full access to the Gmail account in question!!</em>  </li>
-</ul>
+<h3 id="email-backends"><a class="toclink" href="#email-backends">Email backends<a name="email"></a></a></h3>
+<p>The "dev" settings (<code>mev/settings_dev.py</code>) use the default "console" email backend. This means that for development purposes, no emails will be sent. If you are deploying into a cloud environment, but want that enabled, alter that file OR just simply declare your dev environment as production. There's nothing particularly special about the "production" designation. It's effectively only production if it's properly associated with our "live" URL.</p>
+<p>The "production" email uses AWS SES. Terraform will create an IAM user with appropriate permissions and the user/host/etc will automatically be linked up with the Django application during the provisioning.</p>
 <h3 id="about-storage-backends"><a class="toclink" href="#about-storage-backends">About storage backends</a></h3>
-<p>Storage of user files can be either local (on the WebMEV server) or in some remote filesystem (e.g. in a Google storage bucket).  To abstract this, we have storage "backends" that control the behavior for each storage choice and provide a common interface.</p>
-<p>Implementations for storage backends can be found in the <code>api/storage_backends</code> folder. However, for ease, we limit the options for these backends depending on other configuration variables.</p>
-<p>For instance, if the admin indicates that they want to run remote jobs (e.g. with Cromwell), we only allow remote storage (<code>storage_location = "remote"</code> in <code>terraform.tfvars</code>), as the job runner will require access to bucket storage. We anticipate that the job runner will be handling/processing large files and we want to keep all files in remote bucket-based storage instead of consuming disk space on the host machine.  Thus, one may only use <code>storage_location = "local"</code> if they are only planning to use local Docker-based jobs.</p>
-<p>Note that each storage backend may require additional environment variables to be set. For instance, if using the bucket-based backend, we naturally require the name of the bucket we will be using (e.g. <code>mev_bucket_name</code> for GCP). Checking for these additional required environment variables is accomplished by attempting an initial import of the storage backend class during startup of the Django applicatoin.  By convention, any configuration parameters required should at the "top-level" of the Python module/file.  This way, when we attempt the import while starting the application, any missing configuration variables will raise an exception.  This (ideally) prevents errors in runtime due to incomplete/invalid configuration.</p>
+<p>Storage of user files can be either local (on the WebMEV server) or in some remote filesystem (e.g. in an AWS S3 storage bucket).  To abstract this, we use the <code>django-storages</code> library for a common interface. For cloud deployments, we always use the "remote" setting, which corresponds to S3 storage. This setting is also required if you are planning to use the Cromwell (or other) remote job runner. Since Cromwell needs access to the files, we must be using bucket storage (barring some other, more complex setup).</p>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../install/" class="btn btn-neutral float-left" title="Install"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../management_commands/" class="btn btn-neutral float-right" title="Management commands">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../mev_cluster_setup/" class="btn btn-neutral" title="Installation and setup"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -289,15 +198,15 @@
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/web-mev/mev-backend/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/web-mev/mev-backend" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     
-      <span><a href="../mev_cluster_setup/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../install/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
       <span><a href="../management_commands/" style="color: #fcfcfc">Next &raquo;</a></span>
