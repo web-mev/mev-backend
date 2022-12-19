@@ -25,6 +25,11 @@ class SubmitFeedbackView(APIView):
         if serializer.is_valid():
             serializer.save(user=request.user)
             data = serializer.data
+
+            # add on the user's email to the message
+            data['message'] = data['message'] + \
+                f'\nFrom: {request.user.email}'
+
             send_email_to_admins(data['message'])
             return Response(data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
