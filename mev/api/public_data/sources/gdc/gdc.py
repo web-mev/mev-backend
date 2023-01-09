@@ -585,6 +585,17 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
             for project_id in project_dict.keys():
                 logger.info('Pull data for %s' % project_id)
                 ann_df, count_df = self._download_cohort(project_id, data_fields)
+
+                # In some cases there can be duplicate IDs in the columns. In principle, this should NOT
+                # happen (since aliquots are supposed to be unique), but some TARGET datasets contain
+                # duplicates.
+                logger.info(f'Count matrix size: {count_df.shape[0]}')
+                logger.info(f'Unique aliquots: {len(count_df.columns.unique())}')
+                logger.info(f'Duplicated: {count_df.columns[count_df.columns.duplicated()]}')
+
+                count_df = count_df.iloc[:,~count_df.columns.duplicated()]
+                logger.info(f'Count matrix size (after duplicate removal): {count_df.shape[0]}')
+
                 total_annotation_df = pd.concat([total_annotation_df, ann_df], axis=0)
 
                 # save the counts to a cancer-specific dataset. Store each
