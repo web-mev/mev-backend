@@ -1,6 +1,5 @@
 import sys
 import os
-from collections import UserDict
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -11,6 +10,16 @@ from rest_framework.schemas.openapi import SchemaGenerator
 from mkdocs.__main__ import cli
 from mkdocs import config as mkdocs_config
 from mkdocs.commands import build, gh_deploy
+
+
+# A class that allows 'internal' data to be accessed in a 
+# dict-like format (e.g. x['abc']) OR by attribute (e.g. x.abc).
+# The call to the mkdocs function below requires an object with
+# these properties
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 
 class Command(BaseCommand):
@@ -78,8 +87,8 @@ class Command(BaseCommand):
 
         # due to the way config info is accessed from within the mkdocs gh_deploy
         # function below, it needs both dict-like access and attribute-like access
-        # UserDict fits that bill
-        config = UserDict(kwargs)
+        # AttrDict fits that bill
+        config = AttrDict(**kwargs)
         config.config_file_path = settings.MAIN_DOC_YAML
 
         if options['push']:
