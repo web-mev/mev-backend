@@ -1375,6 +1375,69 @@ class OperationRunTests(BaseAPITestCase):
             payload[OperationRun.INPUTS]
         )
 
+    @mock.patch('api.views.executed_operation_views.submit_async_job')
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_boolean_inputs_kept(self, mock_get_operation_instance, mock_submit_async_job):
+        '''
+        Tests the situation where a job input is a boolean. Before fixing this,
+        input keys corresponding to 'false'y inputs were ignored due to
+        a poor if-statement 
+        '''
+
+        # read a very simple and valid operation spec file
+        f = os.path.join(
+            TESTDIR,
+            'op_with_boolean_input.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+
+        # no specified input for the boolean input, which
+        # will cause it to default to False
+        input_dict = {
+            'some_number': 5,
+        }
+
+        db_ops = OperationDbModel.objects.filter(active=True)
+        if len(db_ops) == 0:
+            raise ImproperlyConfigured('Need at least one Operation that is active')
+
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            raise ImproperlyConfigured('Need at least one Workspace owned by'
+                ' a non-admin user.')
+
+        workspace = user_workspaces[0]
+        db_op = db_ops[0]
+        # make it a workspace operation if it's not already
+        db_op.workspace_operation = True
+        db_op.save()
+
+        # first try a payload where the job_name field is not given.
+        # Check that the given name is the same as the execution job_id
+        payload = {
+            OperationRun.OP_UUID: str(db_op.id),
+            OperationRun.INPUTS: input_dict,
+            OperationRun.WORKSPACE_UUID: str(workspace.id)
+        }
+        response = self.authenticated_regular_client.post(self.url, data=payload, format='json')
+        response_json = response.json()
+        executed_op_uuid = response_json['executed_operation_id']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        expected_inputs = {
+            'some_number': 5,
+            'some_bool': False  #<-- was not included in the request payload, but is the default
+        }
+        mock_submit_async_job.delay.assert_called_once_with(
+            uuid.UUID(executed_op_uuid), 
+            db_op.id, 
+            self.regular_user_1.pk,
+            workspace.id, 
+            executed_op_uuid,
+            expected_inputs
+        )
+
 
 class OperationUpdateTests(BaseAPITestCase):
 

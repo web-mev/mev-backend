@@ -310,7 +310,7 @@ class OperationRun(APIView):
         if validated_inputs is not None:
             dict_representation = {}
             for k,v in validated_inputs.items():
-                if v:
+                if v is not None:
                     dict_representation[k] = v
 
             logger.info(f'dict repr of inputs: {dict_representation}')
