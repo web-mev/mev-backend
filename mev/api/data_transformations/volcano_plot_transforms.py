@@ -3,7 +3,9 @@ import logging
 import numpy as np
 import pandas as pd
 
-from constants import FEATURE_TABLE_KEY
+from constants import FEATURE_TABLE_KEY, \
+    POSITIVE_INF_MARKER, \
+    NEGATIVE_INF_MARKER
 from data_structures.attribute_types import PositiveFloatAttribute, \
     BoundedFloatAttribute
 
@@ -73,4 +75,11 @@ def volcano_subset(resource, query_params):
     final_df = pd.concat([interesting_subset, unintersting_subset], axis=0)
 
     # convert to our usual return payload
+    # TODO: this logic for serialization should be implemented in a central
+    # manner. Remove this once we have that.
+    final_df = final_df.replace({
+            -np.infty: NEGATIVE_INF_MARKER, 
+            np.infty: POSITIVE_INF_MARKER,
+            np.nan: None
+        })
     return final_df.apply(resource_type_instance.main_contents_converter, axis=1).tolist()
