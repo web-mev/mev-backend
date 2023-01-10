@@ -51,6 +51,7 @@ class EmailTests(BaseAPITestCase):
                 html_message=self.html)
 
     @override_settings(FRONTEND_DOMAIN='something.com')
+    @override_settings(SITE_NAME='WEBMEV')
     @mock.patch('api.utilities.email_utils.render_to_string')
     @mock.patch('api.utilities.email_utils.default_token_generator')
     @mock.patch('api.utilities.email_utils.encode_uid')
@@ -65,7 +66,7 @@ class EmailTests(BaseAPITestCase):
         message = ActivationEmail(self.request, self.regular_user_1)
         expected_context = {
             'activation_url': f'#/activate/{mock_uid}/{mock_token_str}',
-            'site_name': 'WebMEV',
+            'site_name': 'WEBMEV',
             'protocol': 'https',
             'frontend_domain': 'something.com'
         }
@@ -79,9 +80,13 @@ class EmailTests(BaseAPITestCase):
             context=expected_context,
             request=self.request
         )
+        mock_render.assert_called_with(ActivationEmail.html_template_path,
+            context=expected_context,
+            request=self.request)
         mock_render.assert_has_calls([call1, call2])
 
     @override_settings(FRONTEND_DOMAIN='something.com')
+    @override_settings(SITE_NAME='WEBMEV')
     @mock.patch('api.utilities.email_utils.render_to_string')
     @mock.patch('api.utilities.email_utils.default_token_generator')
     @mock.patch('api.utilities.email_utils.encode_uid')
@@ -96,7 +101,7 @@ class EmailTests(BaseAPITestCase):
         message = PasswordResetEmail(self.request, self.regular_user_1)
         expected_context = {
             'reset_url': f'#/reset-password/{mock_uid}/{mock_token_str}',
-            'site_name': 'WebMEV',
+            'site_name': 'WEBMEV',
             'protocol': 'https',
             'frontend_domain': 'something.com'
         }

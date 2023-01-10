@@ -44,6 +44,7 @@ class FeedbackTests(BaseAPITestCase):
         orig_messages = FeedbackMessage.objects.all()
         n0 = len(orig_messages)
         msg = 'Here is a feedback message'
+        msg_to_admin = msg + '\nFrom: reguser1@foo.com'
         payload = {
             'message': msg
         }
@@ -55,7 +56,7 @@ class FeedbackTests(BaseAPITestCase):
         final_messages = FeedbackMessage.objects.all()
         n1 = len(final_messages)
         self.assertEqual(n1 - n0, 1)
-        mock_send_email_to_admins.assert_called_with(msg)
+        mock_send_email_to_admins.assert_called_with(msg_to_admin)
 
     def test_malformatted_message(self):
         orig_messages = FeedbackMessage.objects.all()
