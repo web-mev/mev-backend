@@ -14,6 +14,8 @@ from api.tests.test_helpers import associate_file_with_resource
 
 from api.data_transformations.network_transforms import subset_PANDA_net
 from api.data_transformations.heatmap_transforms import heatmap_reduce
+from api.data_transformations.volcano_plot_transforms import volcano_subset
+
 
 class ResourceTransformTests(BaseAPITestCase):
 
@@ -352,4 +354,88 @@ class ResourceTransformTests(BaseAPITestCase):
         with self.assertRaisesRegex(Exception, 'choose fewer'):
             result = subset_PANDA_net(self.resource, query_params)
 
-        
+    def test_volcano_subset(self):
+        '''
+        Test that the volcano subset transform works as
+        expected
+        '''
+        # test that it works for an all-numeric FT:
+        fp = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'pval': 0.03,
+            'lfc': 0.5
+        }
+        result = volcano_subset(self.resource, query_params)
+        self.assertTrue(len(result) == 2)
+
+        # with 40 lines in the file (39 data rows), a 'frac'
+        # of 0.1 will give 4 'other' rows
+        query_params = {
+            'pval': 0.03,
+            'lfc': 0.5,
+            'fraction': 0.1
+        }
+        result = volcano_subset(self.resource, query_params)
+        self.assertTrue(len(result) == 6)
+
+        # with these parameters, we don't return any
+        # results under that threshold. then, we only
+        # return the 'other' 4 results
+        query_params = {
+            'pval': 0.001,
+            'lfc': 0.5,
+            'fraction': 0.1
+        }
+        result = volcano_subset(self.resource, query_params)
+        self.assertTrue(len(result) == 4)
+
+        # test that we watch errors:
+        query_params = {
+            'pval': -0.1, #<-- bad, negative
+            'lfc': 0.5,
+        }
+        with self.assertRaisesRegex(Exception, 'positive float between'):
+            volcano_subset(self.resource, query_params)
+
+        query_params = {
+            'pval': 0.1,
+            'lfc': -0.5, #<-- bad, negative
+        }
+        with self.assertRaisesRegex(Exception, 'positive float'):
+            volcano_subset(self.resource, query_params)
+
+        query_params = {
+            'pval': 0.1,
+            'lfc': 0.5,
+            'fraction': 1.5
+        }
+        with self.assertRaisesRegex(Exception, 'positive float between'):
+            volcano_subset(self.resource, query_params)
+
+        # check that it must be a particular resource type
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.save()
+        query_params = {
+            'pval': 0.001,
+            'lfc': 0.5,
+            'fraction': 0.1
+        }
+        with self.assertRaisesRegex(Exception, 'Not an acceptable resource type'):
+            volcano_subset(self.resource, query_params)
+
+        # check using a file that doesn't have the correct column
+        fp = os.path.join(self.TESTDIR, 'demo_file2.tsv')
+        self.resource.resource_type = FEATURE_TABLE_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'pval': 0.03,
+            'lfc': 0.5
+        }
+        with self.assertRaisesRegex(Exception, '"padj" and "log2FoldChange" column'):
+            volcano_subset(self.resource, query_params)
