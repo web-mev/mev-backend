@@ -413,8 +413,6 @@ class TableResource(DataResource):
                 f' names were: {",".join(table_cols)}')
         filters = []
 
-        # used to map the pandas native type to a MEV-type so we can do type casting consistently
-        type_dict = self.get_type_dict()
         for k,v in query_params.items():
             split_v = v.split(settings.QUERY_PARAM_DELIMITER)
             if (not k in self.IGNORED_QUERY_PARAMS) and (k in table_cols):
@@ -449,8 +447,6 @@ class TableResource(DataResource):
                     raise ParseException(f'The query param string ({v}) for'
                         f' filtering on the {k} column was not'
                         ' formatted properly.')
-            elif k in self.IGNORED_QUERY_PARAMS:
-                 pass
             elif k == settings.ROWNAME_FILTER:
                 if len(split_v) != 2:
                     raise ParseException('The query for filtering on the rows'
@@ -474,6 +470,11 @@ class TableResource(DataResource):
                     raise ParseException('Error encountered with filter on rows.'
                         ' Admin has been notified.'
                     )
+            elif k in self.IGNORED_QUERY_PARAMS:
+                # need to have this here or else the 'ignored' query params
+                # are treated as unknown columns to sort on in the `else` statement
+                # below
+                pass
             else:
                 raise ParseException(f'The column "{k}" is'
                     ' not available for filtering.')
@@ -495,7 +496,8 @@ class TableResource(DataResource):
             type_dict[c] = convert_dtype(str(self.table.dtypes[c]), **kwargs)
         return type_dict
 
-    def replace_special_values(self):
+    @staticmethod
+    def replace_special_values(df):
         '''
         NaN and Inf values cause issues when we are serializing into JSON. If we have 
         an action/event that requires serialization of the table-based resource, then we
@@ -505,8 +507,8 @@ class TableResource(DataResource):
         ensure you don't call this method first, as it will replace infinity values with
         strings and the filter won't work properly.
         '''
-        self.table = self.table.replace({
-            -np.infty: NEGATIVE_INF_MARKER, 
+        return df.replace({
+            -np.infty: NEGATIVE_INF_MARKER,
             np.infty: POSITIVE_INF_MARKER,
             np.nan: None
         })
@@ -521,29 +523,47 @@ class TableResource(DataResource):
         '''
         pass
 
-    def main_contents_converter(self, row):
+    @staticmethod
+    def to_json(df, additional_cols=[]):
         '''
-        A method that takes the resource contents to 
-        something that can be serialized.
+        Takes the table content (in `df`) and prepares a JSON-compatible
+        data structure. This includes removing any out-of-bounds content
+        such as NaN (not supported by JSON standard).
 
-        Input arg is a row of a pandas dataframe
+        Note that `standard_cols` is a list of the columns that are
+        located in the original dataframe (as when loaded from a file). 
+
+        additional_cols are 'extra' columns that we might add to 'supplement'
+        the original table contents. An example might be a row-mean for a 
+        numerical matrix. Those columns aren't part of the original table so 
+        we want a way to keep them 'separate' in the returned data payload
         '''
+        if len(additional_cols) > 0:
+            standard_cols = [x for x in df.columns if not x in additional_cols]
+        else:
+            standard_cols = df.columns
 
-        return {'rowname': row.name, 'values': row.to_dict(OrderedDict)}
+        def row_converter(row):
+            '''
+            This function converts the row of a dataframe to a dict. 
+            
+            Note that our rows can have data that was NOT part of the original
+            data (i.e. the data stored in a flat file).  We keep the original
+            data separate by nesting inside a 'values' key.
 
-    def extra_contents_converter(self, row):
-        '''
-        A method that takes the resource contents to 
-        something that can be serialized.
+            The additional content can be things like calculated row means, etc.
+            which are not part of the original data. Hence, those get added into
+            their own fields, NOT part of the 'values' key.
+            '''
+            d = {'rowname': row.name, 'values': row[standard_cols].to_dict(OrderedDict)}
+            d.update(row[additional_cols].to_dict(OrderedDict))
+            return d
 
-        Input arg is a row of a pandas dataframe
-
-        Note that this is different since we don't create a 'values' key
-        as in the other contents converter method
-        '''
-        d = row.to_dict()
-        d['rowname'] = row.name
-        return d
+        df = TableResource.replace_special_values(df)
+        if df.shape[0] > 0:
+            return df.apply(row_converter, axis=1).tolist()
+        else:
+            return []
 
     def get_contents(self, resource_instance, query_params={}):
         '''
@@ -561,17 +581,7 @@ class TableResource(DataResource):
             self.filter_against_query_params(query_params)
             self._resource_specific_modifications()
             self.perform_sorting(query_params)
-            self.replace_special_values()
-            if self.table.shape[0] > 0:
-                standard_cols = [x for x in self.table.columns if not x in self.additional_exported_cols]
-                content = self.table[standard_cols].apply(self.main_contents_converter, axis=1).tolist()
-                if self.additional_exported_cols:
-                    additional_content = self.table[self.additional_exported_cols].apply(self.extra_contents_converter, axis=1).tolist()
-                    for x,y in zip(content, additional_content):
-                        x.update(y)
-                return content
-            else:
-                return []
+            return TableResource.to_json(self.table, self.additional_exported_cols)
         # for these first two exceptions, we already have logged
         # any problems when we called the `read_resource` method
         except ParserNotFoundException as ex:
@@ -1059,7 +1069,7 @@ class ElementTable(TableResource):
         type_dict = self.get_type_dict(allow_unrestricted_strings=True)
 
         # convert NaN and infs to our special marker values
-        self.replace_special_values()
+        self.table = TableResource.replace_special_values(self.table)
 
         element_list = []
         # Note that we do the `astype('object')` cast to address

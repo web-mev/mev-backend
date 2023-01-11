@@ -108,4 +108,4 @@ def heatmap_reduce(resource, query_params):
     # reorder the matrix to correspond to the clustering
     df = df.loc[row_order, col_order]
     # convert to our usual return payload
-    return df.apply(resource_type_instance.main_contents_converter, axis=1).tolist()
+    return resource_type_instance.to_json(df)

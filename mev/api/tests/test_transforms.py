@@ -1,5 +1,6 @@
 import os
 import unittest.mock as mock
+import json
 from itertools import chain
 
 from constants import MATRIX_KEY, \
@@ -360,7 +361,7 @@ class ResourceTransformTests(BaseAPITestCase):
         expected
         '''
         # test that it works for an all-numeric FT:
-        fp = os.path.join(self.TESTDIR, 'demo_deseq_table.tsv')
+        fp = os.path.join(self.TESTDIR, 'demo_deseq_table_2.tsv')
         self.resource.resource_type = FEATURE_TABLE_KEY
         self.resource.file_format = TSV_FORMAT
         self.resource.save()
@@ -372,26 +373,27 @@ class ResourceTransformTests(BaseAPITestCase):
         result = volcano_subset(self.resource, query_params)
         self.assertTrue(len(result) == 2)
 
-        # with 40 lines in the file (39 data rows), a 'frac'
-        # of 0.1 will give 4 'other' rows
+        # with 8 lines in the file (7 data rows), a 'frac'
+        # of 0.3 will give 2 'other' rows
         query_params = {
             'pval': 0.03,
             'lfc': 0.5,
-            'fraction': 0.1
-        }
-        result = volcano_subset(self.resource, query_params)
-        self.assertTrue(len(result) == 6)
-
-        # with these parameters, we don't return any
-        # results under that threshold. then, we only
-        # return the 'other' 4 results
-        query_params = {
-            'pval': 0.001,
-            'lfc': 0.5,
-            'fraction': 0.1
+            'fraction': 0.3
         }
         result = volcano_subset(self.resource, query_params)
         self.assertTrue(len(result) == 4)
+        j = json.dumps(result, indent=2)
+
+        # with these parameters, we don't return any
+        # results under that threshold. then, we only
+        # return the 'other' 2 results
+        query_params = {
+            'pval': 0.001,
+            'lfc': 0.5,
+            'fraction': 0.3
+        }
+        result = volcano_subset(self.resource, query_params)
+        self.assertTrue(len(result) == 2)
 
         # test that we watch errors:
         query_params = {

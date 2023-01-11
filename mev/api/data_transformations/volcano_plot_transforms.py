@@ -73,13 +73,4 @@ def volcano_subset(resource, query_params):
     interesting_subset = df.loc[interesting]
     unintersting_subset = df.loc[~interesting].sample(frac=c)
     final_df = pd.concat([interesting_subset, unintersting_subset], axis=0)
-
-    # convert to our usual return payload
-    # TODO: this logic for serialization should be implemented in a central
-    # manner. Remove this once we have that.
-    final_df = final_df.replace({
-            -np.infty: NEGATIVE_INF_MARKER, 
-            np.infty: POSITIVE_INF_MARKER,
-            np.nan: None
-        })
-    return final_df.apply(resource_type_instance.main_contents_converter, axis=1).tolist()
+    return resource_type_instance.to_json(final_df)
