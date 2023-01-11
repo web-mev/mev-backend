@@ -543,25 +543,35 @@ class TableResource(DataResource):
         else:
             standard_cols = df.columns
 
-        def row_converter(row):
+        def standard_row_converter(row):
             '''
-            This function converts the row of a dataframe to a dict. 
-            
-            Note that our rows can have data that was NOT part of the original
-            data (i.e. the data stored in a flat file).  We keep the original
-            data separate by nesting inside a 'values' key.
+            This function converts the row of a dataframe to a dict.
+            It only converts the 'standard' columns which were part of
+            the original data (i.e. the data stored in a flat file).  
+            We keep the original data separate by
+            nesting inside a 'values' key.
+            '''
+            return {'rowname': row.name, 'values': row.to_dict(OrderedDict)}
 
+        def additional_row_converter(row):
+            '''
             The additional content can be things like calculated row means, etc.
             which are not part of the original data. Hence, those get added into
             their own fields, NOT part of the 'values' key.
             '''
-            d = {'rowname': row.name, 'values': row[standard_cols].to_dict(OrderedDict)}
-            d.update(row[additional_cols].to_dict(OrderedDict))
+            d = {'rowname': row.name}
+            d.update(row.to_dict(OrderedDict))
             return d
 
         df = TableResource.replace_special_values(df)
         if df.shape[0] > 0:
-            return df.apply(row_converter, axis=1).tolist()
+            content = df[standard_cols].apply(standard_row_converter, axis=1).tolist()
+            if len(additional_cols) > 0:
+                additional_content = df[additional_cols].apply(
+                    additional_row_converter, axis=1).tolist()
+                for x,y in zip(content, additional_content):
+                    x.update(y)
+            return content
         else:
             return []
 
