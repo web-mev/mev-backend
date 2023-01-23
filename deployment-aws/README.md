@@ -5,6 +5,7 @@ Set up an AWS profile (use `us-east-2` region):
 aws configure --profile webmev
 export AWS_PROFILE=webmev
 ```
+If this is the first time deploying in your AWS account, [see the initial setup first](#init_setup).
 
 Configure Terraform:
 ```shell
@@ -48,6 +49,7 @@ Delete the site:
 terraform destroy
 ```
 
+<a name="init_setup"></a>
 ## Initial setup
 The following steps need to be done only once to bootstrap the project in your AWS account.
 
