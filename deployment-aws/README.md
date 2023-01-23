@@ -5,11 +5,7 @@ Set up an AWS profile (use `us-east-2` region):
 aws configure --profile webmev
 export AWS_PROFILE=webmev
 ```
-Download SSH keys:
-```shell
-aws s3 cp s3://webmev-terraform/secrets/dev-webmev.pem .
-aws s3 cp s3://webmev-terraform/secrets/prod-webmev.pem .
-```
+
 Configure Terraform:
 ```shell
 cd deployment-aws/terraform
