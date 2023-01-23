@@ -5,11 +5,8 @@ Set up an AWS profile (use `us-east-2` region):
 aws configure --profile webmev
 export AWS_PROFILE=webmev
 ```
-Download SSH keys:
-```shell
-aws s3 cp s3://webmev-terraform/secrets/dev-webmev.pem .
-aws s3 cp s3://webmev-terraform/secrets/prod-webmev.pem .
-```
+If this is the first time deploying in your AWS account, [see the initial setup first](#init_setup).
+
 Configure Terraform:
 ```shell
 cd deployment-aws/terraform
@@ -52,6 +49,7 @@ Delete the site:
 terraform destroy
 ```
 
+<a name="init_setup"></a>
 ## Initial setup
 The following steps need to be done only once to bootstrap the project in your AWS account.
 
@@ -60,6 +58,7 @@ Create a private S3 bucket named `webmev-terraform` to store Terraform state and
 aws s3 mb s3://webmev-terraform --region us-east-2
 aws s3api put-bucket-tagging --bucket webmev-terraform --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
 ```
+(note that if you name the bucket as something else, you will need to modify the s3 backend in `main.tf`-- edit accordingly)
 
 [Create an HTTPS certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) for `*.tm4.org` in Certificate Manager
 
