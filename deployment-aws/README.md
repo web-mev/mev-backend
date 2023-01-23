@@ -60,6 +60,7 @@ Create a private S3 bucket named `webmev-terraform` to store Terraform state and
 aws s3 mb s3://webmev-terraform --region us-east-2
 aws s3api put-bucket-tagging --bucket webmev-terraform --tagging 'TagSet=[{Key=Project,Value=WebMEV}]'
 ```
+(note that if you name the bucket as something else, you will need to modify the s3 backend in `main.tf`-- edit accordingly)
 
 [Create an HTTPS certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html) for `*.tm4.org` in Certificate Manager
 
