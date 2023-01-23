@@ -71,26 +71,38 @@ variable "storage_location" {
   default     = "remote"
 }
 
-variable database_superuser_password {
+variable "database_superuser_password" {
   description = "Root password for database"
   type        = string
   sensitive   = true
 }
 
-variable database_password {
+variable "database_password" {
   description = "Password for mev database user"
   type        = string
   sensitive   = true
 }
 
-variable django_superuser_password {
+variable "django_superuser_password" {
   description = "Django superuser password"
   type        = string
   sensitive   = true
 }
 
-variable database_snapshot {
+variable "database_snapshot" {
   description = "RDS snapshot ID"
+  type        = string
+  default     = null
+}
+
+variable "route53_managed_zone" {
+  description = "Name of the Route53 managed zone"
+  type        = string
+  default     = null
+}
+
+variable "https_certificate_id" {
+  description = "ID of the HTTPS certificate"
   type        = string
   default     = null
 }

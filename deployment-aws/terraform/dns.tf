@@ -1,5 +1,5 @@
 data "aws_route53_zone" "main" {
-  name = "aws.tm4.org"
+  name = var.route53_managed_zone
 }
 
 locals {

@@ -30,7 +30,7 @@ resource "aws_lb_listener" "https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = "arn:aws:acm:us-east-2:${data.aws_caller_identity.current.account_id}:certificate/3a63ddda-f80d-4318-a9b5-aa184c8a9e23"
+  certificate_arn   = "arn:aws:acm:us-east-2:${data.aws_caller_identity.current.account_id}:certificate/${var.https_certificate_id}"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.api.arn
