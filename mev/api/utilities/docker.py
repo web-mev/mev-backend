@@ -14,6 +14,7 @@ DOCKER_INSPECT_CMD = 'docker inspect {container_id} --format="{{{{{field}}}}}"'
 DOCKER_RUNNING_FLAG = 'running' # the "state" when a container is running
 DOCKER_EXITED_FLAG = 'exited' # the "state" when a container has exited (for whatever reason)
 
+
 def get_tag_format(docker_repo_prefix):
     '''
     Returns a format string specific to the Docker repo prefix provided.
@@ -24,6 +25,7 @@ def get_tag_format(docker_repo_prefix):
     registry = infer_container_registry_based_on_prefix(docker_repo_prefix)
     return registry.TAG_FORMAT 
 
+
 def check_image_exists(img_str):
     logger.info('Check if {img} exists.'.format(img = img_str))
     manifest_cmd = 'docker manifest inspect {img}'.format(img = img_str)
@@ -32,8 +34,14 @@ def check_image_exists(img_str):
         logger.info('Successfully found Docker image')
         return True
     except Exception as ex:
-        logger.info('Docker image lookup failed.')
+        logger.info('Docker image by manifest lookup failed. Attemping a pull')
+    
+    try:
+        pull_image(img_str)
+        return True
+    except Exception as ex:
         return False
+
 
 def get_image_name_and_tag(git_repository_name, commit_hash):
     container_registry = get_container_registry()
@@ -41,6 +49,7 @@ def get_image_name_and_tag(git_repository_name, commit_hash):
     full_image_url = container_registry.construct_image_url(
         org.lower(), git_repository_name.lower(), commit_hash)
     return full_image_url
+
 
 def pull_image(remote_container_url):
     '''
@@ -54,6 +63,7 @@ def pull_image(remote_container_url):
     except Exception as ex:
         logger.error('Docker pull failed.')
         raise ex
+
 
 def get_logs(container_id):
     '''
@@ -69,11 +79,13 @@ def get_logs(container_id):
         logger.error('Query of container logs did not succeed.')
         return ''
 
+
 def remove_container(container_id):
     rm_cmd = 'docker rm {id}'.format(id=container_id)
     logger.info('Remove Docker container with: {cmd}'.format(cmd=rm_cmd))
     stdout, stderr = run_shell_command(rm_cmd)
     logger.info('Successfully removed container: {id}.'.format(id=container_id))
+
 
 def check_if_container_running(container_id):
     '''
@@ -105,6 +117,7 @@ def check_if_container_running(container_id):
             ' that was unexpected. Container was: {container_id}')
         return True
 
+
 def check_container_exit_code(container_id):
     '''
     Queries the status of a docker container to see the exit code.
@@ -128,6 +141,7 @@ def check_container_exit_code(container_id):
         ))
         #TODO: do anything else here?
 
+
 def get_timestamp_as_datetime(container_id, field):
     cmd = DOCKER_INSPECT_CMD.format(container_id=container_id, field=field)
     logger.info('Inspect Docker container with: {cmd}'.format(cmd=cmd))
@@ -149,8 +163,10 @@ def get_timestamp_as_datetime(container_id, field):
             )
         )
 
+
 def get_finish_datetime(container_id):
     return get_timestamp_as_datetime(container_id, '.State.FinishedAt')
+
 
 def get_runtime(container_id):
     start_datetime = get_timestamp_as_datetime(container_id, '.State.StartedAt')
