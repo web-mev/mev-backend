@@ -59,6 +59,16 @@ variable "git_commit" {
   default     = ""
 }
 
+variable "globus_client_uuid" {
+  description = "The UUID for the Globus endpoint client"
+  type        = string
+}
+
+variable "globus_client_secret" {
+  description = "The corresponding secret for the Globus client"
+  type        = string
+}
+
 variable "sentry_url" {
   description = "The URL of the Sentry tracker. Include protocol, port"
   type        = string
