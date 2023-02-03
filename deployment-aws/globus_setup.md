@@ -6,18 +6,18 @@ In the end, you will need the following items saved **before** you destroy the i
 - the deployment key, which is a JSON file typically named `deployment-key.json`
 - the node configuration, which is a JSON file created towards the end of the process.
 
-Make sure those are saved (and not added to version control!). 
+Make sure those are saved (and not added to version control!) before you destroy your temporary EC2 instance used below.
 
 ### Initial setup
 
 To create the initial configuration, you will need to do the following:
 
-- Create an S3 bucket that Globus will use. Files can be read and written here by Globus. 
-    - As seen in `storage.tf`, we expect a deployment-specific bucket named `<stack>-webmev-globus` where `<stack>` is the name of the terraform workspace. Name your bucket to follow this convention.
+- Create an S3 bucket that Globus will use. Files can be read and written here by Globus. The WebMeV deployment process will also create this bucket, but here we use it as a means to test the manual setup. It will be destroyed at the end.
+    - As seen in `storage.tf`, we expect a deployment-specific bucket named `<stack>-webmev-globus` where `<stack>` is the name of the terraform workspace. *Name your bucket to follow this convention.*
 - Create an IAM user and access keys 
     - The name does not matter, but name it so it's clearly associated with your deployment stack, so as not to accidentally delete the in the case of multiple deployments.
     - The IAM user will be *permanent*. Otherwise, the Globus app will require manual configuration each time to update the user-associated key/secret.
-- Create a bucket policy and associate it with that IAM user. Replace `<BUCKET NAME>`:
+- Create a bucket policy and associate it with that IAM user. Replace `<BUCKET NAME>` with the bucket created above:
 ```
 {
     "Version": "2012-10-17",
@@ -56,7 +56,7 @@ To create the initial configuration, you will need to do the following:
 }
 ```
 - Create an EC2 instance to host the Globus Connect Server (GCS)
-    - Consult `globus.tf` for the AMI. Start an instance with this image. The instance type does not need to be large, so t2.small or similar should be fine.
+    - The instance requires some specific configuration, such as opening of ports 443 and 50000-51000. Consult the [Globus documentation](https://docs.globus.org/globus-connect-server/v5.4/#globus_connect_server_prerequisites) for more details. You can also consult `globus.tf` for configuration details on instances that will match those of the WebMeV deployment. The instance type does not need to be large, so t2.small or similar should be fine.
 
 **As a reminder, you will need to keep the IAM user (+ keys) and associated policy**. The bucket and EC2 instance can be deleted following the setup process, once we have the configuration files copied to a safe location.
 
@@ -144,13 +144,13 @@ globus-connect-server collection create \
     <DISPLAY NAME> \
     --allow-guest-collections
 ```
-which reports a collection ID. Note that the `--allow-guest-collection` flag provides the ability to create the guest collections which allow third-parties to add files to the collection. This is the mechanism by which WebMeV users will upload their files via Globus.
+which reports a collection ID. Note that the `--allow-guest-collection` flag provides the ability to create the guest collections which allow third-parties to add files to the collection. This is the mechanism by which WebMeV users will upload their files via Globus. Also note that `<BASE PATH>` is best set to the name of your bucket (e.g. `/<your bucket name>`). 
 
 Next, go to the [app.globus.org](app.globus.org) site and log in. From there, search for the `<DISPLAY NAME>` from the `collection create` command above. 
 
-Click on the collection and follow the instructions. This will ask you to log in with your Globus entity and ultimately enter the AWS IAM key/secret for the Globus user we created at the start. You will be asked to approve various actions by the Globus application.
+Click on the collection and then follow the instructions if prompted. If there is no prompt, click on the "Credentials" tab. This should allow you to add the AWS IAM key/secret for the Globus user we created at the start. You will be asked to approve various actions by the Globus application. 
 
-At this point, you should be able to upload to this collection. To test, you can install [Globus Connect Personal](https://www.globus.org/globus-connect-personal) on your machine and login with *a different entity* than the one you used to register the application. Perform the upload and you should be able to see the file in your S3 bucket.
+At this point, you should be able to upload to this collection. To test, navigate to this collection, click on "File manager" and search for your collection. Then click the "upload" button (which might require additional confirmations). Choose a file and confirm. After the upload is complete, you should be able to see the file in your bucket. This confirms that Globus can work with your bucket.
 
 If that works, your GCS endpoint is ready. However, the work is not done-- we still need to configure everything for WebMeV to interface with Globus.
 
@@ -158,7 +158,7 @@ If that works, your GCS endpoint is ready. However, the work is not done-- we st
 
 ### Configuring the WebMeV Globus application
 
-At this point, we have a GCS that can communicate and place files in our bucket. We now need to get it to work with the web application. The web application will manage third-party access to a shared Globus collection.
+At this point, we have a GCS that can communicate and place files in our bucket. We now need to get it to work with the web application. The web application will manage third-party access to a shared Globus collection. We first create the web application since we will need to assign the application client privileges on the "guest collection" we create later.
 
 First go to [developers.globus.org](developers.globus.org) site and click "Register your app with Globus"):
 ![](imgs/p1.png)
@@ -178,12 +178,15 @@ After this, you should see the following:
 
 ![](imgs/p4.png)
 
+**Save the application client ID/secret to your local machine. You will need this for the terraform variables.**
+
+
 
 ### Adding the guest collection
 
 Follow the directions at [https://docs.globus.org/how-to/share-files/](https://docs.globus.org/how-to/share-files/); be sure to login using the same identity used to create the endpoint and application. Search for the collection we created earlier; recall the collection was named by the `<DISPLAY NAME>` arg to `globus-connect-server collection create` above. 
 
-Note that in step 5, you will select "user" and enter the "email-like" identifier of the web application you created above (e.g. `<web app client id>@clients.auth.globus.org`)
+Note that in step 5 of the linked instructions, you will select "user" and enter the "email-like" identifier of the web application you created above (e.g. `<web app client id>@clients.auth.globus.org`)
 
 ### Exporting the DTN configuration
 
@@ -203,13 +206,13 @@ $ globus-connect-server node create \
     --client-id "<GCS UUID>" \
     --export-node node_config.json
 ```
-which will prompt for the client secret. The ID and secret here are the ones for the GCS endpoint, *not* the web application. Note that the name does not matter. Update the instructions to match the name you choose as necessary.
+which will prompt for the client secret. The ID and secret here are the ones for the GCS endpoint, *not* the web application. Note that the name of the `--export-node` arg does not matter. However, when we use that file for WebMeV deployments, we expect a name following a particular convention; see [below](#saving-files) for where to persist this file.
 
-**Copy and save the `node_config.json`**
+**Copy and save the `node_config.json` file created above.**
 
 ---
 
-### Saving the files
+### Saving the files <a id="saving-files"></a>
 
 The Globus GCS host provisioning script expects the deployment key and node configuration files to be located at:
 
@@ -217,7 +220,7 @@ The Globus GCS host provisioning script expects the deployment key and node conf
 s3://webmev-tf/secrets/<DEPLOYMENT>/deployment-key.<DEPLOYMENT>.json
 s3://webmev-tf/secrets/<DEPLOYMENT>/node_config.<DEPLOYMENT>.json
 ```
-where `<DEPLOYMENT>` is the name of the terraform workspace. Upload your files to the appropriate location; change the bucket name as necessary.
+where `<DEPLOYMENT>` is the name of the terraform workspace. Upload your files to the appropriate location; change the bucket name as necessary to match your deployment.
 
 ---
 
