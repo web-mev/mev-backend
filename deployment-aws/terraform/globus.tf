@@ -105,9 +105,9 @@ resource "aws_instance" "gcs" {
 
     globus-connect-server node setup \
     --deployment-key deployment-key.json \
-    --client-id ${var.globus_client_uuid} \
+    --client-id ${var.globus_endpoint_client_uuid} \
     --import-node node_config.json \
-    --secret ${var.globus_client_secret}
+    --secret ${var.globus_endpoint_client_secret}
 
     systemctl restart apache2
   EOF

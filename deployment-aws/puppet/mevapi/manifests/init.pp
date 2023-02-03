@@ -30,6 +30,8 @@ class mevapi (
   Optional[String]        $enable_remote_job_runners,
   Optional[String]        $from_email,
   String                  $frontend_domain,
+  Optional[String]        $globus_app_client_id= '',
+  Optional[String]        $globus_app_client_secret= '',
   Optional[String]        $project_root,
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,

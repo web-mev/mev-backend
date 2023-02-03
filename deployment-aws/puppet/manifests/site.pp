@@ -21,6 +21,8 @@ node /api/ {
     enable_remote_job_runners   => $facts['enable_remote_job_runners'],
     from_email                  => $facts['from_email'],
     frontend_domain             => $facts['frontend_domain'],
+    globus_app_client_id        => $facts['globus_app_client_id'],
+    globus_app_client_secret    => $facts['globus_app_client_secret'],
     storage_location            => $facts['storage_location'],
     storage_bucket_name         => $facts['storage_bucket_name'],
   }

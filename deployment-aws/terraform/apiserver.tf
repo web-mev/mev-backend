@@ -167,6 +167,8 @@ resource "aws_instance" "api" {
   export FACTER_EMAIL_HOST_PASSWORD="${aws_iam_access_key.ses_user.ses_smtp_password_v4}"
   export FACTER_FROM_EMAIL='${var.from_email}'
   export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
+  export FACTER_GLOBUS_APP_CLIENT_ID='${var.globus_app_client_uuid}'
+  export FACTER_GLOBUS_APP_CLIENT_SECRET='${var.globus_app_client_secret}'
   export FACTER_SENTRY_URL='${var.sentry_url}'
   export FACTER_STORAGE_LOCATION='${var.storage_location}'
   export FACTER_STORAGE_BUCKET_NAME='${aws_s3_bucket.api_storage_bucket.id}'
