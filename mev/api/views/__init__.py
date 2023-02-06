@@ -52,6 +52,7 @@ from .public_dataset import PublicDatasetList, \
     PublicDatasetQuery, \
     PublicDatasetCreate
 from .feedback_views import SubmitFeedbackView
+from .globus_views import GlobusInitiate, GlobusUploadView
 
 def sentry_debug(request):
     '''

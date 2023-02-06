@@ -18,6 +18,8 @@ from api.utilities.resource_utilities import create_resource
 logger = logging.getLogger(__name__)
 
 
+S3_PREFIX = 's3://'
+
 class LocalResourceStorage(FileSystemStorage):
 
     def get_absolute_path(self, path_relative_to_storage_root):
@@ -51,7 +53,6 @@ class LocalResourceStorage(FileSystemStorage):
             
 class S3ResourceStorage(S3Boto3Storage):
     bucket_name = settings.MEDIA_ROOT
-    s3_prefix = 's3://'
 
     # This will append random chars to the end of the object name
     # so that files are not overwritten
@@ -68,7 +69,7 @@ class S3ResourceStorage(S3Boto3Storage):
         attribute of the FileField of the Resource class, e.g.
         r.datafile.name
         '''
-        return f'{self.s3_prefix}{self.bucket_name}/{path_relative_to_storage_root}'
+        return f'{S3_PREFIX}{self.bucket_name}/{path_relative_to_storage_root}'
 
     def get_bucket_and_object_from_full_path(self, full_path):
         '''
@@ -76,10 +77,10 @@ class S3ResourceStorage(S3Boto3Storage):
         return a tuple of the bucket (`my-bucket`) and the object
         (`folderA/file.txt`)
         '''
-        if not full_path.startswith(self.s3_prefix):
+        if not full_path.startswith(S3_PREFIX):
             raise Exception(f'The full path must \
-                include the prefix {self.s3_prefix}')
-        return full_path[len(self.s3_prefix):].split('/', 1)
+                include the prefix {S3_PREFIX}')
+        return full_path[len(S3_PREFIX):].split('/', 1)
 
     def localize(self, resource, local_dir):
         '''

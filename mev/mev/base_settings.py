@@ -527,6 +527,36 @@ PUBLIC_DATA_INDEXER = 'solr'
 # END settings/imports for public data indexing
 ###############################################################################
 
+
+###############################################################################
+# START settings for Globus
+###############################################################################
+
+try:
+    # this is the client/secret for the application, NOT for the
+    # Globus endoint
+    GLOBUS_CLIENT_ID = get_env('GLOBUS_CLIENT_ID')
+    GLOBUS_CLIENT_SECRET = get_env('GLOBUS_CLIENT_SECRET')
+
+    # This endpoint ID is the UUID of the shared collection,
+    # NOT the endpoint ID of the GCS
+    GLOBUS_ENDPOINT_ID = get_env('GLOBUS_ENDPOINT_ID')
+
+    # The bucket where Globus will place files. Globus does NOT
+    # have access to the WebMeV buckets
+    GLOBUS_BUCKET = get_env('GLOBUS_BUCKET')
+
+    # If those succeeded, then we enable Globus
+    GLOBUS_ENABLED = True
+    GLOBUS_REAUTHENTICATION_WINDOW_IN_MINUTES = 60
+except ImproperlyConfigured as ex:
+    GLOBUS_ENABLED = False
+
+###############################################################################
+# END settings for Globus
+###############################################################################
+
+
 # Change the LOGLEVEL env variable if you want logging
 # different than INFO:
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
