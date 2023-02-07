@@ -535,8 +535,8 @@ PUBLIC_DATA_INDEXER = 'solr'
 try:
     # this is the client/secret for the application, NOT for the
     # Globus endoint
-    GLOBUS_CLIENT_ID = get_env('GLOBUS_CLIENT_ID')
-    GLOBUS_CLIENT_SECRET = get_env('GLOBUS_CLIENT_SECRET')
+    GLOBUS_CLIENT_ID = get_env('GLOBUS_APP_CLIENT_ID')
+    GLOBUS_CLIENT_SECRET = get_env('GLOBUS_APP_CLIENT_SECRET')
 
     # This endpoint ID is the UUID of the shared collection,
     # NOT the endpoint ID of the GCS

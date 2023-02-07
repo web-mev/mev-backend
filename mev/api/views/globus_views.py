@@ -170,7 +170,7 @@ class GlobusInitiate(APIView):
         request_origin = request.META['HTTP_ORIGIN']
         client = get_globus_client()
         client.oauth2_start_flow(
-            GLOBUS_AUTH_REDIRECT_URI,
+            GLOBUS_AUTH_REDIRECT_URI.format(origin=request_origin),
             refresh_tokens=True,
             requested_scopes=GLOBUS_SCOPES
         )
