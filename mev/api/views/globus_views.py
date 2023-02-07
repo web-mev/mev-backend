@@ -1,4 +1,3 @@
-from asyncore import poll
 import uuid
 import os
 import re
