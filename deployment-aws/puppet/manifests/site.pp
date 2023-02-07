@@ -23,6 +23,7 @@ node /api/ {
     frontend_domain             => $facts['frontend_domain'],
     globus_app_client_id        => $facts['globus_app_client_id'],
     globus_app_client_secret    => $facts['globus_app_client_secret'],
+    globus_endpoint_id          => $facts['globus_endpoint_id'],
     storage_location            => $facts['storage_location'],
     storage_bucket_name         => $facts['storage_bucket_name'],
   }

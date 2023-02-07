@@ -32,6 +32,7 @@ class mevapi (
   String                  $frontend_domain,
   Optional[String]        $globus_app_client_id= '',
   Optional[String]        $globus_app_client_secret= '',
+  Optional[String]        $globus_endpoint_id= '',
   Optional[String]        $project_root,
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,

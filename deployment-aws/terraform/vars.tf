@@ -79,6 +79,11 @@ variable "globus_app_client_secret" {
   type        = string
 }
 
+variable "globus_endpoint_id" {
+  description = "The endpoint UUID for the Globus shared collection."
+  type        = string
+}
+
 
 variable "sentry_url" {
   description = "The URL of the Sentry tracker. Include protocol, port"
