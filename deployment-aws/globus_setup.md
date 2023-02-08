@@ -65,7 +65,7 @@ To create the initial configuration, you will need to do the following:
 
 ### Configuring the GCS Endpoint
 
-The official reference for setting up the GCS endpoint can be found at [https://docs.globus.org/globus-connect-server/v5.4/](https://docs.globus.org/globus-connect-server/v5.4/)
+The official reference for setting up the GCS endpoint can be found at https://docs.globus.org/globus-connect-server/v5.4/
 
 - Go to [developers.globus.org](developers.globus.org) to register a new GCS instance. For this, you will need to login with some Globus-associated entity (for myself, it was using a Harvard-associated ID). After logging in, select your project (or create a new one) and choose "Add new Globus Connect Server" from the dropdown. Eventually, you will be presented with a screen where you can view the client ID and generate a client secret. Save these.
 

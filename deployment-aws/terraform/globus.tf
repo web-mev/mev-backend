@@ -94,9 +94,9 @@ resource "aws_instance" "gcs" {
     service ntp start
 
     # install aws cli to download the config files
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/root/awscliv2.zip"
-    unzip /root/awscliv2.zip -d /opt
-    /opt/aws/install
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+    unzip /tmp/awscliv2.zip -d /tmp
+    /tmp/aws/install
 
     aws s3 cp s3://${data.aws_s3_object.deployment_key.bucket}/${data.aws_s3_object.deployment_key.key} /root/deployment-key.json
     aws s3 cp s3://${data.aws_s3_object.node_config.bucket}/${data.aws_s3_object.node_config.key} /root/node_config.json
