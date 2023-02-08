@@ -25,3 +25,7 @@ class GlobusTask(models.Model):
     # to a specific location in our Globus bucket. We eventually want
     # to remove that once the transfer is complete. Store that here.
     rule_id = models.CharField(max_length=50, null=False, blank=False)
+
+    # whether the transfer is complete or not. This allows us to locally
+    # track ongoing and completed transfers
+    transfer_complete = models.BooleanField(default=False)
