@@ -15,7 +15,7 @@ To create the initial configuration, you will need to do the following:
 - Create an S3 bucket that Globus will use. Files can be read and written here by Globus. The WebMeV deployment process will also create this bucket, but here we use it as a means to test the manual setup. It will be destroyed at the end.
     - As seen in `storage.tf`, we expect a deployment-specific bucket named `<stack>-webmev-globus` where `<stack>` is the name of the terraform workspace. *Name your bucket to follow this convention.*
 - Create an IAM user and access keys 
-    - The name does not matter, but name it so it's clearly associated with your deployment stack, so as not to accidentally delete the in the case of multiple deployments.
+    - The name does not matter, but name it so it's clearly associated with your deployment stack, so as not to accidentally delete the IAM user in the case of multiple deployments.
     - The IAM user will be *permanent*. Otherwise, the Globus app will require manual configuration each time to update the user-associated key/secret.
 - Create a bucket policy and associate it with that IAM user. Replace `<BUCKET NAME>` with the bucket created above:
 ```
@@ -67,11 +67,11 @@ To create the initial configuration, you will need to do the following:
 
 The official reference for setting up the GCS endpoint can be found at [https://docs.globus.org/globus-connect-server/v5.4/](https://docs.globus.org/globus-connect-server/v5.4/)
 
-- Go to [developers.globus.org](developers.globus.org) to register a new GCS instance. For this, you will need to login with some Globus-associated entity (for myself, it was using a Harvard-associated ID). After logging in, selct your project (or create a new one) and choose "Add new Globus Connect Server" from the dropdown. Eventually, you will be presented with a screen where you can view the client ID and generate a client secret. Save these.
+- Go to [developers.globus.org](developers.globus.org) to register a new GCS instance. For this, you will need to login with some Globus-associated entity (for myself, it was using a Harvard-associated ID). After logging in, select your project (or create a new one) and choose "Add new Globus Connect Server" from the dropdown. Eventually, you will be presented with a screen where you can view the client ID and generate a client secret. Save these.
 
 - Open a shell on the EC2 instance and elevate permissions (`sudo -s`)
 
-- Setup the Globus endpoint (see Globus docs ):
+- Set up the Globus endpoint (see Globus docs ):
 ```
 $ globus-connect-server endpoint setup "<NAME>" \
     --organization <organization name> \
@@ -85,7 +85,7 @@ After LetsEncrypt completes, you will be presented with an auth.globus.org link 
 
 **This creates `deployment-key.json` in the current working dir. Copy/save that to your machine. You will need this for future deployments.**
 
-Next, setup the Data Transfer Node (DTN):
+Next, set up the Data Transfer Node (DTN):
 ```
 $ globus-connect-server node setup --client-id <CLIENT ID>
 ```
@@ -95,7 +95,7 @@ This will also prompt for your client secret. When complete, it will ask that yo
 $ systemctl restart apache2
 ```
 
-Next, we login, which makes us perform another OAuth2 flow:
+Next, we log in, which makes us perform another OAuth2 flow:
 ```
 $ globus-connect-server login localhost
 ```
@@ -206,13 +206,13 @@ $ globus-connect-server node create \
     --client-id "<GCS UUID>" \
     --export-node node_config.json
 ```
-which will prompt for the client secret. The ID and secret here are the ones for the GCS endpoint, *not* the web application. Note that the name of the `--export-node` arg does not matter. However, when we use that file for WebMeV deployments, we expect a name following a particular convention; see [below](#saving-files) for where to persist this file.
+which will prompt for the client secret. The ID and secret here are the ones for the GCS endpoint, *not* the web application. Note that the name of the `--export-node` arg does not matter. However, when we use that file for WebMeV deployments, we expect a name following a particular convention; see [below](#saving-the-files) for where to persist this file.
 
 **Copy and save the `node_config.json` file created above.**
 
 ---
 
-### Saving the files <a id="saving-files"></a>
+### Saving the files
 
 The Globus GCS host provisioning script expects the deployment key and node configuration files to be located at:
 
