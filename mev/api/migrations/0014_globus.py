@@ -20,4 +20,12 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='globus_tokens', to=settings.AUTH_USER_MODEL)),
             ],
         ),
+        migrations.CreateModel(
+            name='GlobusTask',
+            fields=[
+                ('task_id', models.CharField(max_length=50, primary_key=True, serialize=False)),
+                ('rule_id', models.CharField(max_length=50)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='globus_tasks', to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
     ]
