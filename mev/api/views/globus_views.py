@@ -21,29 +21,13 @@ from api.utilities.globus import random_string, \
     create_user_transfer_client, \
     create_application_transfer_client
 from api.async_tasks.globus_tasks import poll_globus_task
+from api.models import GlobusTask
 
 SESSION_MESSAGE = ('Since this is a high-assurance Globus collection, we'
                    ' require a recent authentication. Please sign-in again.'
                    )
 
 logger = logging.getLogger(__name__)
-
-# the (frontend) URL where Globus will redirect for the OAuth2 exchange
-GLOBUS_AUTH_REDIRECT_URI = '{origin}/globus/auth-redirect/'
-
-# the (frontend) URL where the Globus file chooser will redirect to once
-# the files are chosen
-GLOBUS_UPLOAD_REDIRECT_URI = '{origin}/globus/upload-redirect/'
-GLOBUS_UPLOAD_CALLBACK_METHOD = 'GET'
-GLOBUS_BROWSER_UPLOAD_URI = 'https://app.globus.org/file-manager?action={callback}&method=GET'
-
-GLOBUS_TRANSFER_SCOPE = 'urn:globus:auth:scope:transfer.api.globus.org:all'
-GLOBUS_SCOPES = (
-    "openid",
-    "profile",
-    "email",
-    GLOBUS_TRANSFER_SCOPE,
-)
 
 
 class GlobusUploadView(APIView):
@@ -98,7 +82,6 @@ class GlobusUploadView(APIView):
             settings.GLOBUS_ENDPOINT_ID, rule_data)
         logger.info(f'Added ACL. Result is:\n{result}')
 
-        # TODO: can save this to later remove the ACL
         rule_id = result['access_id']
 
         # Now onto the business of initiating the transfer
@@ -131,6 +114,11 @@ class GlobusUploadView(APIView):
         try:
             task_id = user_transfer_client.submit_transfer(transfer_data)[
                 'task_id']
+            gt = GlobusTask.objects.create(
+                user=request.user,
+                task_id=task_id,
+                rule_id=rule_id
+            )
         except globus_sdk.GlobusAPIError as ex:
             authz_params = ex.info.authorization_parameters
             if not authz_params:
@@ -146,10 +134,10 @@ class GlobusInitiate(APIView):
 
     def return_globus_browser_url(self, direction, request_origin):
         if direction == 'upload':
-            callback = GLOBUS_UPLOAD_REDIRECT_URI.format(
+            callback = settings.GLOBUS_UPLOAD_REDIRECT_URI.format(
                 origin=request_origin
             )
-            upload_uri = GLOBUS_BROWSER_UPLOAD_URI.format(callback=callback)
+            upload_uri = settings.GLOBUS_BROWSER_UPLOAD_URI.format(callback=callback)
             return Response({
                 'globus-browser-url': upload_uri
             })
@@ -170,9 +158,9 @@ class GlobusInitiate(APIView):
         request_origin = request.META['HTTP_ORIGIN']
         client = get_globus_client()
         client.oauth2_start_flow(
-            GLOBUS_AUTH_REDIRECT_URI.format(origin=request_origin),
+            settings.GLOBUS_AUTH_REDIRECT_URI.format(origin=request_origin),
             refresh_tokens=True,
-            requested_scopes=GLOBUS_SCOPES
+            requested_scopes=settings.GLOBUS_SCOPES
         )
         logger.info(f'Query params: {request.query_params}')
         upload_or_download_state = request.query_params.get('direction')

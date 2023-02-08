@@ -532,6 +532,26 @@ PUBLIC_DATA_INDEXER = 'solr'
 # START settings for Globus
 ###############################################################################
 
+# Some general settings for Globus:
+
+# the (frontend) URL where Globus will redirect for the OAuth2 exchange.
+# The view using this will detect the origin and fill the templated string
+GLOBUS_AUTH_REDIRECT_URI = '{origin}/globus/auth-redirect/'
+
+# the (frontend) URL where the Globus file chooser will redirect to once
+# the files are chosen.
+GLOBUS_UPLOAD_REDIRECT_URI = '{origin}/globus/upload-redirect/'
+GLOBUS_UPLOAD_CALLBACK_METHOD = 'GET'
+GLOBUS_BROWSER_UPLOAD_URI = 'https://app.globus.org/file-manager?action={callback}&method=GET'
+
+GLOBUS_TRANSFER_SCOPE = 'urn:globus:auth:scope:transfer.api.globus.org:all'
+GLOBUS_SCOPES = (
+    "openid",
+    "profile",
+    "email",
+    GLOBUS_TRANSFER_SCOPE,
+)
+
 try:
     # this is the client/secret for the application, NOT for the
     # Globus endoint
