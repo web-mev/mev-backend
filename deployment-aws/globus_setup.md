@@ -217,8 +217,8 @@ which will prompt for the client secret. The ID and secret here are the ones for
 The Globus GCS host provisioning script expects the deployment key and node configuration files to be located at:
 
 ```
-s3://webmev-tf/secrets/<DEPLOYMENT>/deployment-key.<DEPLOYMENT>.json
-s3://webmev-tf/secrets/<DEPLOYMENT>/node_config.<DEPLOYMENT>.json
+s3://webmev-tf/secrets/<DEPLOYMENT>/deployment-key.json
+s3://webmev-tf/secrets/<DEPLOYMENT>/node_config.json
 ```
 where `<DEPLOYMENT>` is the name of the terraform workspace. Upload your files to the appropriate location; change the bucket name as necessary to match your deployment.
 
