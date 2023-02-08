@@ -1,12 +1,12 @@
 data "aws_s3_object" "deployment_key" {
   bucket = "webmev-tf"
-  key    = "secrets/${local.stack}/deployment-key.${local.stack}.json"
+  key    = "secrets/${local.stack}/deployment-key.json"
 }
 
 
 data "aws_s3_object" "node_config" {
   bucket = "webmev-tf"
-  key    = "secrets/${local.stack}/node_config.${local.stack}.json"
+  key    = "secrets/${local.stack}/node_config.json"
 }
 
 
@@ -94,19 +94,17 @@ resource "aws_instance" "gcs" {
     service ntp start
 
     # install aws cli to download the config files
-    cd /opt/
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    ./aws/install
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/root/awscliv2.zip"
+    unzip /root/awscliv2.zip -d /opt
+    /opt/aws/install
 
-    cd /home/ubuntu
-    aws s3 cp s3://${data.aws_s3_object.deployment_key.bucket}/${data.aws_s3_object.deployment_key.key} ./deployment-key.json
-    aws s3 cp s3://${data.aws_s3_object.node_config.bucket}/${data.aws_s3_object.node_config.key} ./node_config.json
+    aws s3 cp s3://${data.aws_s3_object.deployment_key.bucket}/${data.aws_s3_object.deployment_key.key} /root/deployment-key.json
+    aws s3 cp s3://${data.aws_s3_object.node_config.bucket}/${data.aws_s3_object.node_config.key} /root/node_config.json
 
     globus-connect-server node setup \
-    --deployment-key deployment-key.json \
+    --deployment-key /root/deployment-key.json \
     --client-id ${var.globus_endpoint_client_uuid} \
-    --import-node node_config.json \
+    --import-node /root/node_config.json \
     --secret ${var.globus_endpoint_client_secret}
 
     systemctl restart apache2
