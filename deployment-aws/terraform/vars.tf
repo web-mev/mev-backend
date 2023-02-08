@@ -26,6 +26,24 @@ variable "data_volume_snapshot_id" {
   default     = null
 }
 
+variable "database_password" {
+  description = "Password for mev database user"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_snapshot" {
+  description = "RDS snapshot ID"
+  type        = string
+  default     = null
+}
+
+variable "database_superuser_password" {
+  description = "Root password for database"
+  type        = string
+  sensitive   = true
+}
+
 variable "django_settings_module" {
   description = "Settings module for the Django app"
   type        = string
@@ -35,6 +53,12 @@ variable "django_settings_module" {
 variable "django_superuser_email" {
   description = "Email address to use as username for Django Admin"
   type        = string
+}
+
+variable "django_superuser_password" {
+  description = "Django superuser password"
+  type        = string
+  sensitive   = true
 }
 
 variable "enable_remote_job_runners" {
@@ -59,38 +83,38 @@ variable "git_commit" {
   default     = ""
 }
 
-variable "sentry_url" {
-  description = "The URL of the Sentry tracker. Include protocol, port"
+variable "globus_app_client_secret" {
+  description = "The corresponding secret for the Globus application"
   type        = string
-  default     = ""
+  default     = null
 }
 
-variable "storage_location" {
-  description = "Where the data will be stored. One of remote or local"
+variable "globus_app_client_uuid" {
+  description = "The UUID for the Globus application client"
   type        = string
-  default     = "remote"
+  default     = null
 }
 
-variable "database_superuser_password" {
-  description = "Root password for database"
+variable "globus_endpoint_client_secret" {
+  description = "The corresponding secret for the Globus endpoint client"
   type        = string
-  sensitive   = true
+  default     = null
 }
 
-variable "database_password" {
-  description = "Password for mev database user"
+variable "globus_endpoint_client_uuid" {
+  description = "The UUID for the Globus endpoint client"
   type        = string
-  sensitive   = true
+  default     = null
 }
 
-variable "django_superuser_password" {
-  description = "Django superuser password"
+variable "globus_endpoint_id" {
+  description = "The endpoint UUID for the Globus shared collection."
   type        = string
-  sensitive   = true
+  default     = null
 }
 
-variable "database_snapshot" {
-  description = "RDS snapshot ID"
+variable "https_certificate_id" {
+  description = "ID of the HTTPS certificate"
   type        = string
   default     = null
 }
@@ -101,8 +125,14 @@ variable "route53_managed_zone" {
   default     = null
 }
 
-variable "https_certificate_id" {
-  description = "ID of the HTTPS certificate"
+variable "sentry_url" {
+  description = "The URL of the Sentry tracker. Include protocol, port"
   type        = string
-  default     = null
+  default     = ""
+}
+
+variable "storage_location" {
+  description = "Where the data will be stored. One of remote or local"
+  type        = string
+  default     = "remote"
 }
