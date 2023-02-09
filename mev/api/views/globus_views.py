@@ -21,13 +21,27 @@ from api.utilities.globus import random_string, \
     create_user_transfer_client, \
     create_application_transfer_client
 from api.async_tasks.globus_tasks import poll_globus_task
-from api.models import GlobusTask
+from api.models import GlobusTask, GlobusTask
 
 SESSION_MESSAGE = ('Since this is a high-assurance Globus collection, we'
                    ' require a recent authentication. Please sign-in again.'
                    )
 
 logger = logging.getLogger(__name__)
+
+
+class GlobusTransferList(APIView):
+
+    def get(self, request, *args, **kwargs):
+        '''
+        Returns a list of active (incomplete) Globus tasks.
+        '''
+        tasks = GlobusTask.objects.filter(
+            user=request.user, transfer_complete=False)
+        task_ids = [x.task_id for x in tasks]
+        return Response({
+            'task_ids': task_ids
+        })
 
 
 class GlobusUploadView(APIView):
