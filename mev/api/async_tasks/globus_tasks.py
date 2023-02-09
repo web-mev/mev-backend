@@ -31,11 +31,16 @@ def poll_globus_task(task_id):
     while not user_transfer_client.task_wait(task_id):
         logger.info(f'Task {task_id} not complete.')
 
-    logger.info(f'Task {task_id} completed.')  
+    logger.info(f'Task {task_id} completed.')
     for info in user_transfer_client.task_successful_transfers(task_id):
         # this is relative to the Globus bucket
         rel_path = info['destination_path']
         path = f'{S3_PREFIX}{settings.GLOBUS_BUCKET}/{rel_path}'
+        # Note that even if Globus says the transfer is complete,
+        # we can have a race condition where the copy does not work
+        # since boto3 can't (yet) locate the source object. Thus,
+        # we wait before attempting the copy
+        default_storage.wait_until_exists(path)
         default_storage.create_resource_from_interbucket_copy(
             task.user,
             path

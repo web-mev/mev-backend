@@ -1,6 +1,7 @@
 import uuid
 import os
 from io import BytesIO
+import datetime
 import logging
 
 import boto3
@@ -213,3 +214,22 @@ class S3ResourceStorage(S3Boto3Storage):
             resource.datafile.name,
             dest_object
         )
+
+    def wait_until_exists(self, full_path):
+        '''
+        For any full path (e.g. s3://<bucket>/<object>), call the 
+        boto3 `wait_until_exists`. This works on any bucket to which
+        the host ec2 instance has access
+        '''
+        s3 = boto3.resource('s3')
+        bucket_name, obj_name = self.get_bucket_and_object_from_full_path(full_path)
+        obj = s3.Object(bucket_name, obj_name)
+        try:
+            logger.info(f'Checking for {full_path}')
+            t0 = datetime.datetime.now()
+            obj.wait_until_exists()
+        except botocore.exceptions.WaiterError as ex:
+            t1 = datetime.datetime.now()
+            logger.info(f'After waiting {t1-t0}, still could not find'
+                f' an object at {full_path}')
+            raise FileNotFoundError
