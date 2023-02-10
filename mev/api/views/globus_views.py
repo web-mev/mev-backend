@@ -38,10 +38,15 @@ class GlobusTransferList(APIView):
         '''
         tasks = GlobusTask.objects.filter(
             user=request.user, transfer_complete=False)
-        task_ids = [x.task_id for x in tasks]
-        return Response({
-            'task_ids': task_ids
-        })
+        task_info = []
+        for t in tasks:
+            task_info.append(
+                {
+                    'label': t.label,
+                    'task_id': t.task_id
+                }
+            )
+        return Response(task_info)
 
 
 class GlobusUploadView(APIView):
@@ -128,10 +133,12 @@ class GlobusUploadView(APIView):
         try:
             task_id = user_transfer_client.submit_transfer(transfer_data)[
                 'task_id']
-            gt = GlobusTask.objects.create(
+            task_data = user_transfer_client.get_task(task_id)
+            GlobusTask.objects.create(
                 user=request.user,
                 task_id=task_id,
-                rule_id=rule_id
+                rule_id=rule_id,
+                label=task_data['label']
             )
         except globus_sdk.GlobusAPIError as ex:
             authz_params = ex.info.authorization_parameters

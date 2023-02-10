@@ -26,6 +26,9 @@ class GlobusTask(models.Model):
     # to remove that once the transfer is complete. Store that here.
     rule_id = models.CharField(max_length=50, null=False, blank=False)
 
+    # save the user-assigned transfer label so they can identify it more easily
+    label = models.CharField(max_length=100, blank=True, default='')
+
     # whether the transfer is complete or not. This allows us to locally
     # track ongoing and completed transfers
     transfer_complete = models.BooleanField(default=False)
