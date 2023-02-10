@@ -551,6 +551,7 @@ GLOBUS_SCOPES = (
     "email",
     GLOBUS_TRANSFER_SCOPE,
 )
+GLOBUS_REAUTHENTICATION_WINDOW_IN_MINUTES = 60
 
 try:
     # this is the client/secret for the application, NOT for the
@@ -568,7 +569,6 @@ try:
 
     # If those succeeded, then we enable Globus
     GLOBUS_ENABLED = True
-    GLOBUS_REAUTHENTICATION_WINDOW_IN_MINUTES = 60
 except ImproperlyConfigured as ex:
     GLOBUS_ENABLED = False
 
