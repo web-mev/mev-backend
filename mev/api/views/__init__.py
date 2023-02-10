@@ -55,7 +55,7 @@ from .feedback_views import SubmitFeedbackView
 from .globus_views import GlobusInitiate, \
     GlobusUploadView, \
     GlobusTransferList
-from .random import RandomView
+
 
 def sentry_debug(request):
     '''
