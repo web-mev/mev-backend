@@ -42,7 +42,7 @@ def get_globus_client():
 
 
 def create_token(user, token_dict):
-    gt = GlobusTokens.objects.create(
+    GlobusTokens.objects.create(
         user=user,
         tokens=token_dict
     )
@@ -64,15 +64,10 @@ def get_globus_token_from_db(user, existence_required=True):
     Returns a GlobusTokens instance (our database model)
     '''
     logger.info(f'Get Globus token for user {user}')
-    gt = GlobusTokens.objects.filter(user=user)
-    if len(gt) > 1:
-        raise Exception(f'Found multiple Globus tokens for user {user}.')
-    elif len(gt) == 1:
-        logger.info('Found a single token')
-        return gt[0]
-    else:
+    try:
+        return GlobusTokens.objects.get(user=user)
+    except GlobusTokens.DoesNotExist:
         logger.info('No tokens for this user')
-        # this means we have zero tokens for this user.
         if existence_required:
             logger.info('Required there to be an existing token,'
                         f' but none was found for user {user}')
@@ -113,7 +108,7 @@ def get_globus_tokens(user, key=None):
     elif key in tokens:
         return tokens[key]
     else:
-        Exception(f'Unknown key {key} requested in Globus token.'
+        raise Exception(f'Unknown key {key} requested in Globus token.'
                   f' Available keys are {tokens.keys()}')
 
 

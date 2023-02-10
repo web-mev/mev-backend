@@ -4,11 +4,9 @@ from django.db.models import JSONField
 
 
 class GlobusTokens(models.Model):
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         get_user_model(),
-        related_name='globus_tokens',
-        on_delete=models.CASCADE
-    )
+        on_delete=models.CASCADE)
     tokens = JSONField()
 
 
@@ -32,3 +30,4 @@ class GlobusTask(models.Model):
     # whether the transfer is complete or not. This allows us to locally
     # track ongoing and completed transfers
     transfer_complete = models.BooleanField(default=False)
+    
