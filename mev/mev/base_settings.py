@@ -565,7 +565,7 @@ try:
 
     # The bucket where Globus will place files. Globus does NOT
     # have access to the WebMeV buckets
-    GLOBUS_BUCKET = get_env('GLOBUS_BUCKET')
+    GLOBUS_BUCKET = get_env('GLOBUS_BUCKET_NAME')
 
     # If those succeeded, then we enable Globus
     GLOBUS_ENABLED = True
