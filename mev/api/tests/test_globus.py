@@ -5,6 +5,8 @@ from django.test import override_settings
 from django.db.utils import IntegrityError
 from django.conf import settings
 
+from globus_sdk.services.auth.errors import AuthAPIError
+
 from exceptions import NonexistentGlobusTokenException
 
 from api.tests.base import BaseAPITestCase
@@ -12,7 +14,9 @@ from api.models import GlobusTokens, GlobusTask
 from api.utilities.globus import get_globus_token_from_db, \
     get_globus_tokens, \
     get_active_token, \
-    session_is_recent
+    session_is_recent, \
+    refresh_globus_token, \
+    check_globus_tokens
 
 
 class GlobusUtilsTests(BaseAPITestCase):
@@ -130,6 +134,62 @@ class GlobusUtilsTests(BaseAPITestCase):
         mock_perform_token_introspection.return_value = introspection_data
         self.assertFalse(session_is_recent(mock_client, mock_auth_token))
 
+    @mock.patch('api.utilities.globus.alert_admins')
+    def test_globus_token_refresh(self, mock_alert_admins):
+        mock_client = mock.MagicMock()
+        mock_response = mock.MagicMock()
+        mock_response.http_status = 200
+        mock_obj = mock.MagicMock()
+        mock_response.by_resource_server = mock_obj
+        mock_client.oauth2_refresh_token.return_value = mock_response
+        t = refresh_globus_token(mock_client, {'refresh_token': 'foo'})
+        self.assertEqual(mock_obj, t)
+
+        mock_response.http_status = 400
+        t = refresh_globus_token(mock_client, {'refresh_token': 'foo'})
+        self.assertIsNone(t)
+        mock_alert_admins.assert_called()
+
+        mock_alert_admins.reset_mock()
+        mock_err_response = mock.MagicMock()
+        mock_err_response.status_code = 400
+        mock_err_response.headers = {}
+        mock_client.oauth2_refresh_token.side_effect = AuthAPIError(mock_err_response)
+        t = refresh_globus_token(mock_client, {'refresh_token': 'foo'})
+        self.assertIsNone(t)
+        mock_alert_admins.assert_called()
+
+    @mock.patch('api.utilities.globus.session_is_recent')
+    @mock.patch('api.utilities.globus.update_tokens_in_db')
+    @mock.patch('api.utilities.globus.get_globus_tokens')
+    @mock.patch('api.utilities.globus.get_globus_client')
+    @mock.patch('api.utilities.globus.get_active_token')
+    def test_globus_token_check(self, \
+        mock_get_active_token, \
+        mock_get_globus_client, \
+        mock_get_globus_tokens,\
+        mock_update_tokens_in_db, \
+        mock_session_is_recent):
+
+        mock_client = mock.MagicMock()
+        mock_get_globus_client.return_value = mock_client
+
+        mock_get_active_token.return_value = 2
+        mock_get_globus_tokens.return_value = {'auth.globus.org':1}
+
+        mock_session_is_recent.return_value = True
+
+        mock_user = mock.MagicMock()
+
+        self.assertTrue(check_globus_tokens(mock_user))
+        mock_session_is_recent.assert_called_with(mock_client, 2)
+        mock_update_tokens_in_db.assert_called_with(mock_user, {'auth.globus.org': 2})
+
+        # now mock an update failure (`get_active_token` returns None)
+        mock_get_active_token.return_value = None
+        mock_session_is_recent.reset_mock()
+        self.assertFalse(check_globus_tokens(mock_user))
+        mock_session_is_recent.assert_not_called()
 
 class GlobusUploadTests(BaseAPITestCase):
 

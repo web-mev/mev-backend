@@ -11,6 +11,7 @@ from django.conf import settings
 
 from exceptions import NonexistentGlobusTokenException
 from api.models import GlobusTokens
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -177,9 +178,28 @@ def refresh_globus_token(client, token):
         }
     }
     '''
-    token_refresh_response = client.oauth2_refresh_token(
-        token['refresh_token'])
-    return token_refresh_response.by_resource_server
+    try:
+        token_refresh_response = client.oauth2_refresh_token(
+            token['refresh_token'])
+        if token_refresh_response.http_status == 200:
+            return token_refresh_response.by_resource_server
+        else:
+            err_msg = ('Encountered an issue refreshing token.'
+                f' Status code: {token_refresh_response.http_status}.\n'
+                f' Text: {token_refresh_response.text}'
+            )
+            logger.info(err_msg)
+            alert_admins(err_msg)
+            return None
+    except globus_sdk.services.auth.errors.AuthAPIError as ex:
+        status_code = ex.http_status
+        message = ex.message
+        err_msg = ('Encountered error with Globus token refresh.'
+            f' Code was {status_code}\nMessage was: {message}'
+        )
+        logger.info(err_msg)
+        alert_admins(err_msg)
+        return None
 
 
 def get_active_token(client, token, resource_server):
@@ -195,14 +215,16 @@ def get_active_token(client, token, resource_server):
 
     # This section establishes whether the token itself is still active.
     # This is separate from any session refreshes we might need to perform
-    if not response.data['active']:
-        logger.info('Token was not active. Go refresh.')
-        refreshed_token_dict = refresh_globus_token(client, token)
-        return refreshed_token_dict[resource_server]
-    else:
+    if response.data['active']:
         logger.info('Token was active.')
         return token
-
+    else:
+        logger.info('Token was not active. Go refresh.')
+        refreshed_token_dict = refresh_globus_token(client, token)
+        if refreshed_token_dict is not None:
+            return refreshed_token_dict[resource_server]
+        return None
+        
 
 def update_tokens_in_db(user, updated_tokens):
     '''
@@ -287,17 +309,30 @@ def check_globus_tokens(user):
     all_tokens = get_globus_tokens(user)
     client = get_globus_client()
     updated_tokens = {}
-    # TODO: what if we can't refresh??
+    update_failed = False
     for resource_server in all_tokens.keys():
-        updated_tokens[resource_server] = get_active_token(
+        d = get_active_token(
             client,
             all_tokens[resource_server],
             resource_server
         )
+        if d is not None:
+            updated_tokens[resource_server] = d
+        else:
+            logger.info('Failed to update or get active tokens for Globus.')
+            update_failed = True
+            break # if a token was not active, break the for loop
 
-    update_tokens_in_db(user, updated_tokens)
+    if update_failed:
+        # at least one of the token updates failed. We don't update the 
+        # database and return False to indicate we don't have a recent session.
+        # This is likely the most conservative route if one of the token
+        # updates fails.
+        return False
+    else:
+        update_tokens_in_db(user, updated_tokens)
 
-    # At this point we have an active token. However, we still need to
-    # ensure we have a recent session. The high-assurance storage on S3
-    # requires a relatively recent session authentication.
-    return session_is_recent(client, updated_tokens['auth.globus.org'])
+        # At this point we have an active token. However, we still need to
+        # ensure we have a recent session. The high-assurance storage on S3
+        # requires a relatively recent session authentication.
+        return session_is_recent(client, updated_tokens['auth.globus.org'])
