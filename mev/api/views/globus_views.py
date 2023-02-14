@@ -11,6 +11,8 @@ from rest_framework import status
 from django.conf import settings
 
 import globus_sdk
+from globus_sdk import TransferAPIError, \
+    GlobusAPIError
 
 from api.utilities.globus import random_string, \
     get_globus_client, \
@@ -20,6 +22,7 @@ from api.utilities.globus import random_string, \
     check_globus_tokens, \
     create_user_transfer_client, \
     create_application_transfer_client
+from api.utilities.admin_utils import alert_admins
 from api.async_tasks.globus_tasks import poll_globus_task
 from api.models import GlobusTask, GlobusTask
 
@@ -130,6 +133,7 @@ class GlobusUploadView(APIView):
 
         user_transfer_client.endpoint_autoactivate(source_endpoint_id)
         user_transfer_client.endpoint_autoactivate(destination_endpoint_id)
+        task_id = None
         try:
             task_id = user_transfer_client.submit_transfer(transfer_data)[
                 'task_id']
@@ -140,20 +144,27 @@ class GlobusUploadView(APIView):
                 rule_id=rule_id,
                 label=task_data['label']
             )
-        except globus_sdk.GlobusAPIError as ex:
+            poll_globus_task.delay(task_id)
+        except TransferAPIError as ex:
             authz_params = ex.info.authorization_parameters
             if not authz_params:
-                logger.info(f'Exception: {ex}')
-                raise
-            logger.info(f'got authz params: {authz_params}')
+                err_msg = f'Exception with initiating Globus transfer: {ex}'
+            else:
+                err_msg = f'Error with initiating Globus transfer. Got auth params: {authz_params}'
+            logger.info(err_msg)
+            alert_admins(err_msg)
+        except GlobusAPIError as ex:
+            err_msg = f'Caught a general GlobusAPIError. Exception was {ex}'
+            logger.info(err_msg)
+            alert_admins(err_msg)
 
-        poll_globus_task.delay(task_id)
         return Response({'transfer_id': task_id})
 
 
 class GlobusInitiate(APIView):
 
     def return_globus_browser_url(self, direction, request_origin):
+
         if direction == 'upload':
             callback = settings.GLOBUS_UPLOAD_REDIRECT_URI.format(
                 origin=request_origin
