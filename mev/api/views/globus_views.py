@@ -14,6 +14,8 @@ import globus_sdk
 from globus_sdk import TransferAPIError, \
     GlobusAPIError
 
+from exceptions import NoResourceFoundException
+
 from api.utilities.globus import random_string, \
     get_globus_client, \
     create_or_update_token, \
@@ -21,9 +23,14 @@ from api.utilities.globus import random_string, \
     get_globus_uuid, \
     check_globus_tokens, \
     create_user_transfer_client, \
-    create_application_transfer_client
+    create_application_transfer_client, \
+    add_acl_rule, \
+    submit_transfer, \
+    GLOBUS_UPLOAD
 from api.utilities.admin_utils import alert_admins
-from api.async_tasks.globus_tasks import poll_globus_task
+from api.utilities.resource_utilities import get_resource_by_pk
+from api.async_tasks.globus_tasks import poll_globus_task, \
+    perform_globus_download
 from api.models import GlobusTask, GlobusTask
 
 SESSION_MESSAGE = ('Since this is a high-assurance Globus collection, we'
@@ -92,19 +99,15 @@ class GlobusUploadView(APIView):
         # This is a temporary folder within the Globus shared collection
         tmp_folder = f'/tmp-{uuid.uuid4()}/'
 
-        # Create the rule and add it
-        rule_data = {
-            "DATA_TYPE": "access",
-            "principal_type": "identity",
-            "principal": user_uuid,
-            "path": tmp_folder,
-            "permissions": "rw",
-        }
-        result = app_transfer_client.add_endpoint_acl_rule(
-            settings.GLOBUS_ENDPOINT_ID, rule_data)
-        logger.info(f'Added ACL. Result is:\n{result}')
-
-        rule_id = result['access_id']
+        # Create the rule and add it to the Globus shared collection
+        rule_id = add_acl_rule(
+            app_transfer_client, user_uuid, tmp_folder, 'rw')
+        if rule_id is None:
+            alert_admins('Failed to add ACL rule. See logs.')
+            return Response(
+                {'message': 'Unable to upload. An administrator has been notified'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         # Now onto the business of initiating the transfer
         source_endpoint_id = params['endpoint_id']
@@ -133,10 +136,8 @@ class GlobusUploadView(APIView):
 
         user_transfer_client.endpoint_autoactivate(source_endpoint_id)
         user_transfer_client.endpoint_autoactivate(destination_endpoint_id)
-        task_id = None
-        try:
-            task_id = user_transfer_client.submit_transfer(transfer_data)[
-                'task_id']
+        task_id = submit_transfer(user_transfer_client, transfer_data)
+        if task_id:
             task_data = user_transfer_client.get_task(task_id)
             GlobusTask.objects.create(
                 user=request.user,
@@ -144,21 +145,35 @@ class GlobusUploadView(APIView):
                 rule_id=rule_id,
                 label=task_data['label']
             )
-            poll_globus_task.delay(task_id)
-        except TransferAPIError as ex:
-            authz_params = ex.info.authorization_parameters
-            if not authz_params:
-                err_msg = f'Exception with initiating Globus transfer: {ex}'
-            else:
-                err_msg = f'Error with initiating Globus transfer. Got auth params: {authz_params}'
-            logger.info(err_msg)
-            alert_admins(err_msg)
-        except GlobusAPIError as ex:
-            err_msg = f'Caught a general GlobusAPIError. Exception was {ex}'
-            logger.info(err_msg)
-            alert_admins(err_msg)
-
+            poll_globus_task.delay(task_id, GLOBUS_UPLOAD)
         return Response({'transfer_id': task_id})
+
+
+class GlobusDownloadView(APIView):
+
+    permission_classes = [
+        framework_permissions.IsAuthenticated 
+    ]  
+
+    def post(self, request, *args, **kwargs):
+
+        logger.info('Requesting download of data to Globus with'
+            f' data={request.data}')
+
+        # before starting a potentially long async call, check that the
+        # provided resource PKs are fine
+        requested_pks = [uuid.UUID(x) for x in request.data['pk_set']]
+        resource_set = set()
+        for pk in requested_pks:
+            try:
+                resource_set.add(get_resource_by_pk(pk))
+            except NoResourceFoundException:
+                return Response(f'Could not locate resource with pk={pk}', 
+                    status=status.HTTP_404_NOT_FOUND)        
+
+        perform_globus_download.delay(requested_pks,
+            request.user.pk, request.data)
+        return Response(status=status.HTTP_200_OK)
 
 
 class GlobusInitiate(APIView):

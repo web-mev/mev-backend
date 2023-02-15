@@ -1,10 +1,12 @@
 import unittest.mock as mock
 import uuid
+from io import BytesIO
 
 from django.urls import reverse
 from django.test import override_settings
 from django.db.utils import IntegrityError
 from django.conf import settings
+from django.core.files import File
 
 from globus_sdk.services.auth.errors import AuthAPIError
 from globus_sdk import TransferAPIError
@@ -12,13 +14,196 @@ from globus_sdk import TransferAPIError
 from exceptions import NonexistentGlobusTokenException
 
 from api.tests.base import BaseAPITestCase
-from api.models import GlobusTokens, GlobusTask
+from api.models import GlobusTokens, \
+    GlobusTask, \
+    Resource
 from api.utilities.globus import get_globus_token_from_db, \
     get_globus_tokens, \
     get_active_token, \
     session_is_recent, \
     refresh_globus_token, \
-    check_globus_tokens
+    check_globus_tokens, \
+    submit_transfer, \
+    post_upload, \
+    add_acl_rule, \
+    delete_acl_rule, \
+    GLOBUS_UPLOAD, \
+    GLOBUS_DOWNLOAD
+from api.async_tasks.globus_tasks import poll_globus_task, \
+    perform_globus_download
+
+class GlobusAsyncTests(BaseAPITestCase):
+    def setUp(self):
+        self.establish_clients()
+
+    @mock.patch('api.async_tasks.globus_tasks.delete_acl_rule')
+    @mock.patch('api.async_tasks.globus_tasks.post_upload')
+    @mock.patch('api.async_tasks.globus_tasks.create_user_transfer_client')
+    def test_poll_globus_task_for_upload(self, mock_create_user_transfer_client, 
+        mock_post_upload, mock_delete_acl_rule):
+        task_id = uuid.uuid4()
+        gt = GlobusTask.objects.create(
+            user=self.regular_user_1,
+            task_id=task_id,
+            rule_id='myrule',
+            label='some label'
+        )
+
+        mock_client = mock.MagicMock()
+        # mocks the transfer being complete-
+        mock_client.task_wait.return_value = True
+        mock_create_user_transfer_client.return_value = mock_client
+        
+        poll_globus_task(task_id, GLOBUS_UPLOAD)
+        mock_post_upload.assert_called_with(mock_client, task_id, self.regular_user_1)
+
+        # query the task to see that it's marked as completed
+        gt2 = GlobusTask.objects.get(pk=gt.pk)
+        self.assertTrue(gt2.transfer_complete)
+
+    @mock.patch('api.async_tasks.globus_tasks.delete_acl_rule')
+    @mock.patch('api.async_tasks.globus_tasks.post_upload')
+    @mock.patch('api.async_tasks.globus_tasks.create_user_transfer_client')
+    def test_poll_globus_task_for_download(self, mock_create_user_transfer_client, 
+        mock_post_upload, mock_delete_acl_rule):
+        task_id = uuid.uuid4()
+        gt = GlobusTask.objects.create(
+            user=self.regular_user_1,
+            task_id=task_id,
+            rule_id='myrule',
+            label='some label'
+        )
+
+        mock_client = mock.MagicMock()
+        # mocks the transfer being complete-
+        mock_client.task_wait.return_value = True
+        mock_create_user_transfer_client.return_value = mock_client
+        
+        poll_globus_task(task_id, GLOBUS_DOWNLOAD)
+        mock_post_upload.assert_not_called()
+
+        # query the task to see that it's marked as completed
+        gt2 = GlobusTask.objects.get(pk=gt.pk)
+        self.assertTrue(gt2.transfer_complete)
+
+    @override_settings(GLOBUS_BUCKET='my-globus-bucket', 
+        GLOBUS_ENDPOINT_ID='my_endpoint_id')
+    @mock.patch('api.async_tasks.globus_tasks.create_application_transfer_client')
+    @mock.patch('api.async_tasks.globus_tasks.create_user_transfer_client')
+    @mock.patch('api.async_tasks.globus_tasks.get_globus_uuid')
+    @mock.patch('api.async_tasks.globus_tasks.default_storage')
+    @mock.patch('api.async_tasks.globus_tasks.add_acl_rule')
+    @mock.patch('api.async_tasks.globus_tasks.TransferData')
+    @mock.patch('api.async_tasks.globus_tasks.submit_transfer')
+    @mock.patch('api.async_tasks.globus_tasks.poll_globus_task')
+    @mock.patch('api.async_tasks.globus_tasks.uuid')
+    def test_download(self,
+        mock_uuid,
+        mock_poll_globus_task,
+        mock_submit_transfer,
+        mock_TransferData,
+        mock_add_acl_rule,
+        mock_default_storage,
+        mock_get_globus_uuid,
+        mock_create_user_transfer_client,
+        mock_create_application_transfer_client):
+
+        mock_app_tc = mock.MagicMock()
+        mock_user_tc = mock.MagicMock()
+        mock_user_tc.get_task.return_value = {'label': 'some label'}
+        mock_transfer_data = mock.MagicMock()
+        globus_user_uuid = uuid.uuid4()
+        globus_tmp_uuid = uuid.uuid4()
+        mock_task_id = uuid.uuid4()
+        mock_rule_id = 'some-rule-id'
+
+        mock_create_application_transfer_client.return_value = mock_app_tc
+        mock_create_user_transfer_client.return_value = mock_user_tc
+        mock_get_globus_uuid.return_value = globus_user_uuid
+        mock_default_storage.copy_out_to_bucket.side_effect = [
+            'path/to/dest/f0.txt',
+            'path/to/dest/f1.txt'
+        ]
+        mock_uuid.uuid4.return_value = globus_tmp_uuid
+        mock_TransferData.return_value = mock_transfer_data
+        mock_submit_transfer.return_value = mock_task_id
+        mock_add_acl_rule.return_value = mock_rule_id
+
+        user_pk = self.regular_user_1.pk
+        r0 = Resource.objects.create(
+            name='foo.txt',
+            owner = self.regular_user_1,
+            datafile = File(BytesIO(), 'foo.txt')
+        )
+        r1 = Resource.objects.create(
+            name='bar.txt',
+            owner = self.regular_user_1,
+            datafile = File(BytesIO(), 'bar.txt')
+        )
+        request_data = {
+            'label': 'mylabel',
+            'endpoint_id': 'my_endpoint_id',
+            'path': '/rootpath'
+        }
+        gt0 = GlobusTask.objects.filter(user=self.regular_user_1)
+        self.assertTrue(len(gt0)==0)
+        perform_globus_download(
+            [r0.pk, r1.pk],
+            user_pk,
+            request_data
+        )
+        mock_default_storage.copy_out_to_bucket.assert_has_calls([
+            mock.call(r0, 'my-globus-bucket', f'tmp-{globus_tmp_uuid}/foo.txt'),
+            mock.call(r1, 'my-globus-bucket', f'tmp-{globus_tmp_uuid}/bar.txt')
+        ])
+        mock_transfer_data.add_item.assert_has_calls([
+            mock.call(
+                source_path=f'tmp-{globus_tmp_uuid}/foo.txt',
+                destination_path='/rootpath/foo.txt'),
+            mock.call(
+                source_path=f'tmp-{globus_tmp_uuid}/bar.txt',
+                destination_path='/rootpath/bar.txt'),
+        ])
+        mock_submit_transfer.assert_called_with(mock_user_tc, mock_transfer_data)
+        mock_poll_globus_task.assert_called_with(mock_task_id, GLOBUS_DOWNLOAD)
+        gt1 = GlobusTask.objects.filter(user=self.regular_user_1)
+        self.assertTrue(len(gt1) == 1)
+        self.assertTrue(gt1[0].task_id == str(mock_task_id))
+
+        # now mock a submission failure and check that we show this in the db
+        mock_default_storage.reset_mock()
+        mock_default_storage.copy_out_to_bucket.side_effect = [
+            'path/to/dest/f0.txt',
+            'path/to/dest/f1.txt'
+        ]
+        mock_transfer_data.reset_mock()
+        mock_submit_transfer.reset_mock()
+        mock_poll_globus_task.reset_mock()
+        failed_submissions = GlobusTask.objects.filter(user=self.regular_user_1, submission_failure=True)
+        self.assertTrue(len(failed_submissions)==0)
+        mock_submit_transfer.return_value = None
+        perform_globus_download(
+            [r0.pk, r1.pk],
+            user_pk,
+            request_data
+        )
+        failed_submissions = GlobusTask.objects.filter(user=self.regular_user_1, submission_failure=True)
+        self.assertTrue(len(failed_submissions)==1)
+        mock_default_storage.copy_out_to_bucket.assert_has_calls([
+            mock.call(r0, 'my-globus-bucket', f'tmp-{globus_tmp_uuid}/foo.txt'),
+            mock.call(r1, 'my-globus-bucket', f'tmp-{globus_tmp_uuid}/bar.txt')
+        ])
+        mock_transfer_data.add_item.assert_has_calls([
+            mock.call(
+                source_path=f'tmp-{globus_tmp_uuid}/foo.txt',
+                destination_path='/rootpath/foo.txt'),
+            mock.call(
+                source_path=f'tmp-{globus_tmp_uuid}/bar.txt',
+                destination_path='/rootpath/bar.txt'),
+        ])
+        mock_submit_transfer.assert_called_with(mock_user_tc, mock_transfer_data)
+        mock_poll_globus_task.assert_not_called()
+
 
 
 class GlobusUtilsTests(BaseAPITestCase):
@@ -198,6 +383,111 @@ class GlobusUtilsTests(BaseAPITestCase):
         self.assertFalse(check_globus_tokens(mock_user))
         mock_session_is_recent.assert_not_called()
 
+    @mock.patch('api.utilities.globus.alert_admins')
+    def test_submit_transfer(self, mock_alert_admins):
+        mock_transfer_client = mock.MagicMock()
+        mock_transfer_client.submit_transfer.return_value = {'task_id': 'my_task_id'}
+        mock_transfer_data = mock.MagicMock()
+        result = submit_transfer(mock_transfer_client, mock_transfer_data)
+        self.assertTrue(result == 'my_task_id')
+        mock_alert_admins.assert_not_called()
+
+        mock_alert_admins.reset_mock()
+        mock_err_response = mock.MagicMock()
+        mock_err_response.status_code = 400
+        mock_err_response.headers = {}
+        mock_transfer_client.submit_transfer.side_effect = TransferAPIError(mock_err_response)
+        
+        result = submit_transfer(mock_transfer_client, mock_transfer_data)
+        self.assertIsNone(result)
+        mock_alert_admins.assert_called()
+
+    def test_add_acl(self):
+        mock_transfer_client = mock.MagicMock()
+        mock_response = mock.MagicMock()
+        mock_response.http_status = 201
+        d = {'access_id': 'rule_id'}
+        mock_response.__getitem__.side_effect = d.__getitem__
+        mock_transfer_client.add_endpoint_acl_rule.return_value = mock_response
+        result = add_acl_rule(mock_transfer_client, '123', '/foo', 'rw')  
+        self.assertEqual(result, 'rule_id') 
+
+        mock_response.http_status = 400
+        result = add_acl_rule(mock_transfer_client, '123', '/foo', 'rw')  
+        self.assertIsNone(result) 
+
+        mock_err_response = mock.MagicMock()
+        mock_err_response.status_code = 400
+        mock_err_response.headers = {}
+        mock_transfer_client.add_endpoint_acl_rule.side_effect = TransferAPIError(mock_err_response)
+
+        result = add_acl_rule(mock_transfer_client, '123', '/foo', 'rw')  
+        self.assertIsNone(result) 
+
+    @mock.patch('api.utilities.globus.create_application_transfer_client')
+    def test_delete_acl(self, mock_create_application_transfer_client):
+        mock_transfer_client = mock.MagicMock()
+        mock_response = mock.MagicMock()
+        mock_response.http_status = 200
+        mock_transfer_client.delete_endpoint_acl_rule.return_value = mock_response
+        mock_create_application_transfer_client.return_value = mock_transfer_client
+        self.assertTrue(delete_acl_rule('rule_id'))
+
+        mock_response.http_status = 400
+        mock_transfer_client.delete_endpoint_acl_rule.return_value = mock_response
+        mock_create_application_transfer_client.return_value = mock_transfer_client
+        self.assertFalse(delete_acl_rule('rule_id'))
+
+        mock_err_response = mock.MagicMock()
+        mock_err_response.status_code = 404
+        mock_err_response.headers = {}
+        mock_transfer_client.delete_endpoint_acl_rule.side_effect = TransferAPIError(mock_err_response)
+        mock_create_application_transfer_client.return_value = mock_transfer_client
+        self.assertFalse(delete_acl_rule('rule_id'))
+
+    @mock.patch('api.utilities.globus.alert_admins')
+    def test_transfer_submission(self, mock_alert_admins):
+        mock_transfer_client = mock.MagicMock()
+        mock_transfer_data = mock.MagicMock()
+
+        mock_transfer_client.submit_transfer.return_value = {'task_id': 'my_task_id'}
+        result = submit_transfer(mock_transfer_client, mock_transfer_data)
+        self.assertEqual(result, 'my_task_id')
+        mock_alert_admins.assert_not_called()
+
+        mock_err_response = mock.MagicMock()
+        mock_err_response.status_code = 404
+        mock_err_response.headers = {}
+        mock_transfer_client.submit_transfer.side_effect = TransferAPIError(mock_err_response)
+        result = submit_transfer(mock_transfer_client, mock_transfer_data)
+        self.assertIsNone(result)
+        mock_alert_admins.assert_called()
+
+    @override_settings(GLOBUS_BUCKET=True)
+    @mock.patch('api.utilities.globus.default_storage')
+    def test_post_upload(self, mock_default_storage):
+        mock_info = [
+            {'destination_path': '/path/to/dest/f1.tsv'},
+            {'destination_path': '/path/to/dest/f2.tsv'},
+        ]
+        mock_transfer_client = mock.MagicMock()
+        mock_transfer_client.task_successful_transfers.return_value = mock_info
+        task_id = 'abc123'
+        mock_user = mock.MagicMock()
+        post_upload(mock_transfer_client, task_id, mock_user)
+        paths = [
+            f's3://{settings.GLOBUS_BUCKET}/path/to/dest/f1.tsv',
+            f's3://{settings.GLOBUS_BUCKET}/path/to/dest/f2.tsv',            
+        ]
+        mock_default_storage.wait_until_exists.assert_has_calls([
+            mock.call(paths[0]),
+            mock.call(paths[1]),
+        ])
+        mock_default_storage.create_resource_from_interbucket_copy.has_calls(
+            mock.call(mock_user, paths[0]),
+            mock.call(mock_user, paths[1])
+        )
+
 
 class GlobusUploadTests(BaseAPITestCase):
 
@@ -206,6 +496,8 @@ class GlobusUploadTests(BaseAPITestCase):
         self.establish_clients()
 
     @override_settings(GLOBUS_ENABLED=True, GLOBUS_ENDPOINT_ID='dest_id')
+    @mock.patch('api.views.globus_views.add_acl_rule')
+    @mock.patch('api.views.globus_views.submit_transfer')
     @mock.patch('api.views.globus_views.poll_globus_task')
     @mock.patch('api.views.globus_views.create_application_transfer_client')
     @mock.patch('api.views.globus_views.create_user_transfer_client')
@@ -217,7 +509,9 @@ class GlobusUploadTests(BaseAPITestCase):
         mock_get_globus_uuid,
         mock_create_user_transfer_client, 
         mock_create_application_transfer_client,
-        mock_poll_globus_task):
+        mock_poll_globus_task,
+        mock_submit_transfer,
+        mock_add_acl_rule):
 
         mock_payload = {
             'params': {
@@ -244,11 +538,12 @@ class GlobusUploadTests(BaseAPITestCase):
 
         mock_app_transfer_client = mock.MagicMock()
         mock_user_transfer_client = mock.MagicMock()
-        mock_app_transfer_client.add_endpoint_acl_rule.return_value = {'access_id': 'some_rule_id'}
-        mock_user_transfer_client.submit_transfer.return_value = {'task_id': 'my_task_id'}
+        mock_add_acl_rule.return_value = 'some_rule_id'
         mock_user_transfer_client.get_task.return_value = {'label': mock_payload['params']['label']}
         mock_create_application_transfer_client.return_value = mock_app_transfer_client
         mock_create_user_transfer_client.return_value = mock_user_transfer_client
+        mock_submit_transfer.return_value = 'my_task_id'
+
 
         headers = {'HTTP_ORIGIN': 'foo'}
         r = self.authenticated_regular_client.post(
@@ -258,7 +553,7 @@ class GlobusUploadTests(BaseAPITestCase):
             **headers)
         j = r.json()
         self.assertTrue(j['transfer_id'] == 'my_task_id')
-        mock_app_transfer_client.add_endpoint_acl_rule.assert_called()
+        mock_add_acl_rule.assert_called()
         mock_transfer_data.add_item.assert_has_calls([
             mock.call(source_path='/home/folder/f0.txt', destination_path=f'/tmp-{u}/f0.txt'),
             mock.call(source_path='/home/folder/f1.txt', destination_path=f'/tmp-{u}/f1.txt'),
@@ -267,9 +562,9 @@ class GlobusUploadTests(BaseAPITestCase):
             mock.call('source_id'),
             mock.call('dest_id')
         ])
-        mock_user_transfer_client.submit_transfer.assert_called_with(mock_transfer_data)
+        mock_submit_transfer.assert_called_with(mock_user_transfer_client, mock_transfer_data)
         mock_user_transfer_client.get_task.assert_called_with('my_task_id')
-        mock_poll_globus_task.delay.assert_called_with('my_task_id')
+        mock_poll_globus_task.delay.assert_called_with('my_task_id', GLOBUS_UPLOAD)
 
         tasks = GlobusTask.objects.filter(user=self.regular_user_1)
         self.assertTrue(len(tasks) == 1)
@@ -278,7 +573,32 @@ class GlobusUploadTests(BaseAPITestCase):
         self.assertTrue(task.rule_id == 'some_rule_id')
         self.assertTrue(task.label == mock_payload['params']['label'])
 
+    @override_settings(GLOBUS_ENABLED=True)
+    @mock.patch('api.views.globus_views.alert_admins')
+    @mock.patch('api.views.globus_views.add_acl_rule')
+    @mock.patch('api.views.globus_views.create_application_transfer_client')
+    @mock.patch('api.views.globus_views.create_user_transfer_client')
+    @mock.patch('api.views.globus_views.get_globus_uuid')
+    def test_acl_addition_failure_returns_500(self,
+        mock_get_globus_uuid,
+        mock_create_user_transfer_client, 
+        mock_create_application_transfer_client,
+        mock_add_acl_rule,
+        mock_alert_admins):
+
+        mock_add_acl_rule.return_value = None
+        headers = {'HTTP_ORIGIN': 'foo'}
+        r = self.authenticated_regular_client.post(
+            self.globus_upload_url, 
+            data={'params': None}, 
+            format='json', 
+            **headers)
+        mock_alert_admins.assert_called()
+        self.assertTrue(r.status_code == 500)
+
     @override_settings(GLOBUS_ENABLED=True, GLOBUS_ENDPOINT_ID='dest_id')
+    @mock.patch('api.views.globus_views.add_acl_rule')
+    @mock.patch('api.views.globus_views.submit_transfer')
     @mock.patch('api.views.globus_views.poll_globus_task')
     @mock.patch('api.views.globus_views.create_application_transfer_client')
     @mock.patch('api.views.globus_views.create_user_transfer_client')
@@ -290,7 +610,9 @@ class GlobusUploadTests(BaseAPITestCase):
         mock_get_globus_uuid,
         mock_create_user_transfer_client, 
         mock_create_application_transfer_client,
-        mock_poll_globus_task):
+        mock_poll_globus_task,
+        mock_submit_transfer,
+        mock_add_acl_rule):
 
         mock_payload = {
             'params': {
@@ -317,11 +639,10 @@ class GlobusUploadTests(BaseAPITestCase):
 
         mock_app_transfer_client = mock.MagicMock()
         mock_user_transfer_client = mock.MagicMock()
-        mock_app_transfer_client.add_endpoint_acl_rule.return_value = {'access_id': 'some_rule_id'}
-        mock_err_response = mock.MagicMock()
-        mock_err_response.status_code = 400
-        mock_err_response.headers = {}
-        mock_user_transfer_client.submit_transfer.side_effect = TransferAPIError(mock_err_response)
+        mock_add_acl_rule.return_value = 'some_rule_id'
+        # If the submission fails, this function returns None, indicating
+        # a failure
+        mock_submit_transfer.return_value = None
         mock_create_application_transfer_client.return_value = mock_app_transfer_client
         mock_create_user_transfer_client.return_value = mock_user_transfer_client
 
@@ -333,7 +654,7 @@ class GlobusUploadTests(BaseAPITestCase):
             **headers)
         j = r.json()
         self.assertTrue(j['transfer_id'] is None)
-        mock_app_transfer_client.add_endpoint_acl_rule.assert_called()
+        mock_add_acl_rule.assert_called()
         mock_transfer_data.add_item.assert_has_calls([
             mock.call(source_path='/home/folder/f0.txt', destination_path=f'/tmp-{u}/f0.txt'),
             mock.call(source_path='/home/folder/f1.txt', destination_path=f'/tmp-{u}/f1.txt'),
@@ -342,7 +663,7 @@ class GlobusUploadTests(BaseAPITestCase):
             mock.call('source_id'),
             mock.call('dest_id')
         ])
-        mock_user_transfer_client.submit_transfer.assert_called_with(mock_transfer_data)
+        mock_submit_transfer.assert_called_with(mock_user_transfer_client, mock_transfer_data)
         mock_poll_globus_task.delay.assert_not_called()
 
         tasks = GlobusTask.objects.filter(user=self.regular_user_1)

@@ -23,10 +23,12 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='GlobusTask',
             fields=[
-                ('task_id', models.CharField(max_length=50, primary_key=True, serialize=False)),
-                ('rule_id', models.CharField(max_length=50)),
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('task_id', models.CharField(max_length=50, blank=True)),
+                ('rule_id', models.CharField(max_length=50, blank=True)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='globus_tasks', to=settings.AUTH_USER_MODEL)),
                 ('transfer_complete', models.BooleanField(default=False)),
+                ('submission_failure', models.BooleanField(default=False)),
                 ('label', models.CharField(blank=True, max_length=100, default=''))
             ],
         ),

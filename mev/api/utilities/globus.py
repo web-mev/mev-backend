@@ -6,14 +6,21 @@ import json
 import logging
 
 import globus_sdk
+from globus_sdk import TransferAPIError, \
+    GlobusAPIError
 
 from django.conf import settings
+from django.core.files.storage import default_storage
 
 from exceptions import NonexistentGlobusTokenException
-from api.models import GlobusTokens
+from api.models import GlobusTokens, GlobusTask
 from api.utilities.admin_utils import alert_admins
+from api.storage import S3_PREFIX
 
 logger = logging.getLogger(__name__)
+
+GLOBUS_UPLOAD = '__globus_upload__'
+GLOBUS_DOWNLOAD = '__globus_download__'
 
 
 def random_string(length=12):
@@ -336,3 +343,93 @@ def check_globus_tokens(user):
         # ensure we have a recent session. The high-assurance storage on S3
         # requires a relatively recent session authentication.
         return session_is_recent(client, updated_tokens['auth.globus.org'])
+
+
+def add_acl_rule(transfer_client, globus_user_uuid, folder, permissions):
+    '''
+    Calls the Globus API to add an access rule so that the WebMeV
+    user's data can be transferred into our Globus shared collection.
+    Returns the rule ID, which allows us to revoke once the transfer is 
+    complete.
+    '''
+    rule_data = {
+        "DATA_TYPE": "access",
+        "principal_type": "identity",
+        "principal": globus_user_uuid,
+        "path": folder,
+        "permissions": permissions,
+    }
+    try:
+        result = transfer_client.add_endpoint_acl_rule(
+            settings.GLOBUS_ENDPOINT_ID, rule_data)
+        logger.info(f'ACL add result is:\n{result}')
+        if result.http_status == 201:
+            return result['access_id']
+        else:
+            logger.info('Failed to add ACL rule.')
+            return None
+    except GlobusAPIError as ex:
+        logger.info(f'Failed to add ACL rule. Exception was {ex}')
+        return None
+
+
+def delete_acl_rule(rule_id):
+    app_transfer_client = create_application_transfer_client()
+    logger.info(f'Remove endpoint rule {rule_id}')
+    try:
+        result = app_transfer_client.delete_endpoint_acl_rule(
+            settings.GLOBUS_ENDPOINT_ID, rule_id)
+        logger.info(f'Rule removal result {result}')
+        if result.http_status == 200:
+            return True
+        else:
+            logger.info('ACL rule was not deleted.')
+            return False
+    except GlobusAPIError as ex:
+        logger.info(f'Failed to remove ACL rule. Exception was {ex}')
+        return False
+
+
+def submit_transfer(transfer_client, transfer_data):
+
+    task_id = None
+    try:
+        task_id = transfer_client.submit_transfer(transfer_data)['task_id']
+    except TransferAPIError as ex:
+        authz_params = ex.info.authorization_parameters
+        if not authz_params:
+            err_msg = f'Exception with initiating Globus transfer: {ex}'
+        else:
+            err_msg = f'Error with initiating Globus transfer. Got auth params: {authz_params}'
+        logger.info(err_msg)
+        alert_admins(err_msg)
+    except GlobusAPIError as ex:
+        err_msg = f'Caught a general GlobusAPIError. Exception was {ex}'
+        logger.info(err_msg)
+        alert_admins(err_msg)
+    return task_id
+
+
+def post_upload(transfer_client, task_id, user):
+    '''
+    Handles the post-upload behavior following a Globus transfer
+    where the files are transferred TO WebMeV. 
+    '''
+
+    # Copy the files from the Globus bucket to our WebMeV storage
+    # TODO: Use the endpoint manager client here?
+    for info in transfer_client.task_successful_transfers(task_id):
+        # this is relative to the Globus bucket
+        rel_path = info['destination_path']
+        path = f'{S3_PREFIX}{settings.GLOBUS_BUCKET}{rel_path}'
+        # Note that even if Globus says the transfer is complete,
+        # we can have a race condition where the copy does not work
+        # since boto3 can't (yet) locate the source object. Thus,
+        # we wait before attempting the copy
+        default_storage.wait_until_exists(path)
+        default_storage.create_resource_from_interbucket_copy(
+            user,
+            path
+        )
+    
+    #TODO: handle transfer failures
