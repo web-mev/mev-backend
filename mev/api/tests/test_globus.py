@@ -55,7 +55,7 @@ class GlobusAsyncTests(BaseAPITestCase):
         mock_create_user_transfer_client.return_value = mock_client
         
         poll_globus_task(task_id, GLOBUS_UPLOAD)
-        mock_post_upload.assert_called_with(mock_client, task_id, self.regular_user_1)
+        mock_post_upload.assert_called_with(task_id, self.regular_user_1)
 
         # query the task to see that it's marked as completed
         gt2 = GlobusTask.objects.get(pk=gt.pk)
@@ -464,17 +464,20 @@ class GlobusUtilsTests(BaseAPITestCase):
         mock_alert_admins.assert_called()
 
     @override_settings(GLOBUS_BUCKET=True)
+    @mock.patch('api.utilities.globus.create_endpoint_manager_transfer_client')
     @mock.patch('api.utilities.globus.default_storage')
-    def test_post_upload(self, mock_default_storage):
+    def test_post_upload(self, 
+        mock_default_storage, mock_create_endpoint_manager_transfer_client):
         mock_info = [
             {'destination_path': '/path/to/dest/f1.tsv'},
             {'destination_path': '/path/to/dest/f2.tsv'},
         ]
         mock_transfer_client = mock.MagicMock()
-        mock_transfer_client.task_successful_transfers.return_value = mock_info
+        mock_transfer_client.endpoint_manager_task_successful_transfers.return_value = mock_info
+        mock_create_endpoint_manager_transfer_client.return_value = mock_transfer_client
         task_id = 'abc123'
         mock_user = mock.MagicMock()
-        post_upload(mock_transfer_client, task_id, mock_user)
+        post_upload(task_id, mock_user)
         paths = [
             f's3://{settings.GLOBUS_BUCKET}/path/to/dest/f1.tsv',
             f's3://{settings.GLOBUS_BUCKET}/path/to/dest/f2.tsv',            

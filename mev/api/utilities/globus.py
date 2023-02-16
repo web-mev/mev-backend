@@ -133,13 +133,30 @@ def get_globus_uuid(user):
 
 def create_application_transfer_client():
     '''
-    Given a WebMeV user, create/return a globus_sdk.TransferClient that 
+    Create/return a globus_sdk.TransferClient that 
     is associated with our application. Note that this client does NOT
     use the tokens for the user who is transferring data. This client is used, 
     for instance, to set ACLs on the Globus Collection we own/control
     '''
-
     client = get_globus_client()
+    cc_authorizer = globus_sdk.ClientCredentialsAuthorizer(
+        client, settings.GLOBUS_TRANSFER_SCOPE)
+    return globus_sdk.TransferClient(authorizer=cc_authorizer)
+
+
+def create_endpoint_manager_transfer_client():
+    '''
+    Create/return a globus_sdk.TransferClient that 
+    is associated with our endpoint manager. Note that this client does NOT
+    use the tokens for the user who is transferring data. This client is used, 
+    for instance, to check file transfers. This way, we do not risk
+    attempting to use a client that has credentials which might
+    expire during the transfer period
+    '''
+    client = globus_sdk.ConfidentialAppAuthClient(
+        settings.GLOBUS_ENDPOINT_CLIENT_ID,
+        settings.GLOBUS_ENDPOINT_CLIENT_SECRET
+    )
     cc_authorizer = globus_sdk.ClientCredentialsAuthorizer(
         client, settings.GLOBUS_TRANSFER_SCOPE)
     return globus_sdk.TransferClient(authorizer=cc_authorizer)
@@ -410,15 +427,20 @@ def submit_transfer(transfer_client, transfer_data):
     return task_id
 
 
-def post_upload(transfer_client, task_id, user):
+def post_upload(task_id, user):
     '''
     Handles the post-upload behavior following a Globus transfer
-    where the files are transferred TO WebMeV. 
+    where the files are transferred TO WebMeV.
+
+    Note that we use the endpoint manager to check the transfers
+    to avoid the situation where a user's session expires prior
+    to the completion of the transfer. If that happens, then 
+    clients based on the user's credentials will fail with a 403.
     '''
+    transfer_client = create_endpoint_manager_transfer_client()
 
     # Copy the files from the Globus bucket to our WebMeV storage
-    # TODO: Use the endpoint manager client here?
-    for info in transfer_client.task_successful_transfers(task_id):
+    for info in transfer_client.endpoint_manager_task_successful_transfers(task_id):
         # this is relative to the Globus bucket
         rel_path = info['destination_path']
         path = f'{S3_PREFIX}{settings.GLOBUS_BUCKET}{rel_path}'

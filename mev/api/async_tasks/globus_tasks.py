@@ -9,7 +9,6 @@ from django.conf import settings
 
 from globus_sdk import TransferData
 
-from api.storage import S3_PREFIX
 from api.utilities.globus import \
     create_user_transfer_client, \
     create_application_transfer_client, \
@@ -45,7 +44,7 @@ def poll_globus_task(task_id, transfer_direction):
 
     logger.info(f'Task {task_id} completed.')
     if transfer_direction == GLOBUS_UPLOAD:
-        post_upload(user_transfer_client, task_id, task.user)
+        post_upload(task_id, task.user)
 
     # Now that the transfer is complete, we can remove modify the ACL on
     # the collection and mark this transfer as complete (in our db)

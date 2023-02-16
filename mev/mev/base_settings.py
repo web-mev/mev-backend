@@ -554,6 +554,10 @@ GLOBUS_SCOPES = (
 GLOBUS_REAUTHENTICATION_WINDOW_IN_MINUTES = 60
 
 try:
+    # this is the client/secret for the endpoint manager.
+    GLOBUS_ENDPOINT_CLIENT_ID = get_env('GLOBUS_ENDPOINT_CLIENT_UUID')
+    GLOBUS_ENDPOINT_CLIENT_SECRET = get_env('GLOBUS_ENDPOINT_CLIENT_SECRET')
+
     # this is the client/secret for the application, NOT for the
     # Globus endoint
     GLOBUS_CLIENT_ID = get_env('GLOBUS_APP_CLIENT_ID')
@@ -570,6 +574,7 @@ try:
     # If those succeeded, then we enable Globus
     GLOBUS_ENABLED = True
 except ImproperlyConfigured as ex:
+    print(ex)
     GLOBUS_ENABLED = False
 
 ###############################################################################
