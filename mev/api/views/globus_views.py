@@ -196,6 +196,31 @@ class GlobusInitiate(APIView):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+    def handle_session_condition(self, client, user, upload_or_download_state, request_origin):
+        '''
+        Even if we have valid Globus tokens, we can enounter situations where the session
+        is too old. If that is the case, we have to redirect the user to reauthenticate.
+        '''
+        has_recent_globus_session = check_globus_tokens(user)
+        if has_recent_globus_session:
+            logger.info(
+                'Had recent globus token/session. Go to Globus file browser')
+            return self.return_globus_browser_url(upload_or_download_state, request_origin)
+        else:
+            logger.info(
+                'Did not have a recent authentication/session. Send to Globus auth.')
+            globus_user_uuid = get_globus_uuid(user)
+            additional_authorize_params = {}
+            additional_authorize_params['state'] = random_string()
+            additional_authorize_params['session_required_identities'] = globus_user_uuid
+            additional_authorize_params['prompt'] = 'login'
+            additional_authorize_params['session_message'] = SESSION_MESSAGE
+            auth_uri = client.oauth2_get_authorize_url(
+                query_params=additional_authorize_params)
+            return Response({
+                'globus-auth-url': auth_uri
+            })
+
     def get(self, request, *args, **kwargs):
 
         if not settings.GLOBUS_ENABLED:
@@ -238,8 +263,8 @@ class GlobusInitiate(APIView):
             #     }
             # }
             create_or_update_token(request.user, rt)
-            return self.return_globus_browser_url(upload_or_download_state, request_origin)
-
+            return self.handle_session_condition(client, 
+                request.user, upload_or_download_state, request_origin)
         else:
             logger.info('No "code" present in request params')
             # no 'code'. This means we are not receiving
@@ -251,25 +276,8 @@ class GlobusInitiate(APIView):
 
             if existing_globus_tokens:
                 logger.info('Had existing globus tokens for this user')
-                has_recent_globus_session = check_globus_tokens(request.user)
-                if has_recent_globus_session:
-                    logger.info(
-                        'Had recent globus token/session. Go to Globus file browser')
-                    return self.return_globus_browser_url(upload_or_download_state, request_origin)
-                else:
-                    logger.info(
-                        'Did not have a recent authentication/session. Send to Globus auth.')
-                    globus_user_uuid = get_globus_uuid(request.user)
-                    additional_authorize_params = {}
-                    additional_authorize_params['state'] = random_string()
-                    additional_authorize_params['session_required_identities'] = globus_user_uuid
-                    additional_authorize_params['prompt'] = 'login'
-                    additional_authorize_params['session_message'] = SESSION_MESSAGE
-                    auth_uri = client.oauth2_get_authorize_url(
-                        query_params=additional_authorize_params)
-                    return Response({
-                        'globus-auth-url': auth_uri
-                    })
+                return self.handle_session_condition(client, 
+                    request.user, upload_or_download_state, request_origin)
             else:
                 logger.info(
                     'did NOT have existing globus tokens for this user. Init oauth2')

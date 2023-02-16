@@ -472,8 +472,16 @@ class GlobusUtilsTests(BaseAPITestCase):
             {'destination_path': '/path/to/dest/f1.tsv'},
             {'destination_path': '/path/to/dest/f2.tsv'},
         ]
+        # TODO: remove these workarounds once Globus creates a new release:
+        response = mock.MagicMock()
+        response.data = {
+            'DATA': mock_info
+        }
+
         mock_transfer_client = mock.MagicMock()
-        mock_transfer_client.endpoint_manager_task_successful_transfers.return_value = mock_info
+        mock_transfer_client.get.return_value = response
+        # TODO: re-enable once Globus releases new version:
+        #mock_transfer_client.endpoint_manager_task_successful_transfers.return_value = mock_info
         mock_create_endpoint_manager_transfer_client.return_value = mock_transfer_client
         task_id = 'abc123'
         mock_user = mock.MagicMock()
@@ -767,20 +775,48 @@ class GlobusInitTests(BaseAPITestCase):
     @override_settings(GLOBUS_ENABLED=True)
     @mock.patch('api.views.globus_views.get_globus_client')
     @mock.patch('api.views.globus_views.create_or_update_token')
-    def test_oauth2_code_request(self, mock_create_or_update_token,
+    @mock.patch('api.views.globus_views.check_globus_tokens')
+    @mock.patch('api.views.globus_views.get_globus_uuid')
+    def test_oauth2_code_request(self, mock_get_globus_uuid, 
+                                 mock_check_globus_tokens, 
+                                 mock_create_or_update_token,
                                  mock_get_globus_client):
         '''
         Tests the leg of the oauth2 flow where the backend receives the code
         '''
+
         mock_client = mock.MagicMock()
         mock_tokens = mock.MagicMock()
         mock_tokens.by_resource_server = {'a': 1}
         mock_client.oauth2_exchange_code_for_tokens.return_value = mock_tokens
+        mock_client.oauth2_get_authorize_url.return_value = 'some-auth-uri'
         mock_get_globus_client.return_value = mock_client
+
+        # We first mock the situation where a user has tokens and 
+        # a recent globus session. The high-assurance collections
+        # require this.
+
+        # by returning True, we are mocking there being valid tokens
+        # and a recent Globus session
+        mock_check_globus_tokens.return_value = True
+
         headers = {'HTTP_ORIGIN': 'foo'}
         url = f'{self.globus_init_url}?direction=upload&code=foo'
         r = self.authenticated_regular_client.get(url, **headers)
         j = r.json()
         self.assertTrue('globus-browser-url' in j)
+        mock_create_or_update_token.assert_called_with(
+            self.regular_user_1, {'a': 1})
+
+        # Now mock the case where we have tokens, but the session
+        # was not recent
+        mock_get_globus_uuid.return_value = uuid.uuid4()
+        mock_check_globus_tokens.return_value = False
+        mock_create_or_update_token.reset_mock()
+        headers = {'HTTP_ORIGIN': 'foo'}
+        url = f'{self.globus_init_url}?direction=upload&code=foo'
+        r = self.authenticated_regular_client.get(url, **headers)
+        j = r.json()
+        self.assertTrue('globus-auth-url' in j)
         mock_create_or_update_token.assert_called_with(
             self.regular_user_1, {'a': 1})

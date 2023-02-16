@@ -440,7 +440,12 @@ def post_upload(task_id, user):
     transfer_client = create_endpoint_manager_transfer_client()
 
     # Copy the files from the Globus bucket to our WebMeV storage
-    for info in transfer_client.endpoint_manager_task_successful_transfers(task_id):
+    # TODO: substitute this once Globus creates a release including the
+    #       bug-fix related to https://github.com/globus/globus-sdk-python/issues/682
+    #for info in transfer_client.endpoint_manager_task_successful_transfers(task_id):
+    response = transfer_client.get(
+        f"endpoint_manager/task/{task_id}/successful_transfers")
+    for info in response.data['DATA']:
         # this is relative to the Globus bucket
         rel_path = info['destination_path']
         path = f'{S3_PREFIX}{settings.GLOBUS_BUCKET}{rel_path}'
