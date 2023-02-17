@@ -54,6 +54,7 @@ from .public_dataset import PublicDatasetList, \
 from .feedback_views import SubmitFeedbackView
 from .globus_views import GlobusInitiate, \
     GlobusUploadView, \
+    GlobusDownloadView, \
     GlobusTransferList
 
 

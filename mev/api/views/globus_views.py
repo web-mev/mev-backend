@@ -172,7 +172,7 @@ class GlobusDownloadView(APIView):
                     status=status.HTTP_404_NOT_FOUND)        
 
         perform_globus_download.delay(requested_pks,
-            request.user.pk, request.data)
+            request.user.pk, request.data['params'])
         return Response(status=status.HTTP_200_OK)
 
 

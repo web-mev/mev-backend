@@ -47,6 +47,7 @@ urlpatterns = [
     # For globus 
     path('globus/initiate/', api.views.GlobusInitiate.as_view(), name='globus-init'),
     path('globus/transfer/upload/', api.views.GlobusUploadView.as_view(), name='globus-upload'),
+    path('globus/transfer/download/', api.views.GlobusDownloadView.as_view(), name='globus-download'),
     path('globus/transfer/', api.views.GlobusTransferList.as_view(), name='globus-transfer-list'),
 
     # For querying the available types of Resources:
