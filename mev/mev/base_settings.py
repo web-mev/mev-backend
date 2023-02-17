@@ -541,8 +541,10 @@ GLOBUS_AUTH_REDIRECT_URI = '{origin}/globus/auth-redirect/'
 # the (frontend) URL where the Globus file chooser will redirect to once
 # the files are chosen.
 GLOBUS_UPLOAD_REDIRECT_URI = '{origin}/globus/upload-redirect/'
+GLOBUS_DOWNLOAD_REDIRECT_URI = '{origin}/globus/download-redirect/'
 GLOBUS_UPLOAD_CALLBACK_METHOD = 'GET'
 GLOBUS_BROWSER_UPLOAD_URI = 'https://app.globus.org/file-manager?action={callback}&method=GET'
+GLOBUS_BROWSER_DOWNLOAD_URI = 'https://app.globus.org/file-manager?action={callback}&method=GET&folderlimit=1&filelimit=0'
 
 GLOBUS_TRANSFER_SCOPE = 'urn:globus:auth:scope:transfer.api.globus.org:all'
 GLOBUS_SCOPES = (

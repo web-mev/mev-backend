@@ -189,9 +189,12 @@ class GlobusInitiate(APIView):
                 'globus-browser-url': upload_uri
             })
         elif direction == 'download':
-            # TODO change when download implemented
+            callback = settings.GLOBUS_DOWNLOAD_REDIRECT_URI.format(
+                origin=request_origin
+            )
+            download_uri = settings.GLOBUS_BROWSER_DOWNLOAD_URI.format(callback=callback)
             return Response({
-                'globus-browser-url': ''
+                'globus-browser-url': download_uri
             })
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
