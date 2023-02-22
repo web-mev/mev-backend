@@ -169,7 +169,7 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
     ]
 
     # Additional annotation categories that are not used. We ignore these
-    IGNORED_CATEGORIES = ['General']
+    IGNORED_CATEGORIES = ['General', 'Item is noncanonical']
 
     def __init__(self):
         super().__init__()
