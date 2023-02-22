@@ -165,6 +165,9 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
     # the process fails (and reports the new category)
     KNOWN_QC_CATEGORIES = ['Item flagged DNU', 'Center QC failed']
 
+    # Additional annotation categories that are not used. We ignore these
+    IGNORED_CATEGORIES = ['General']
+
     def __init__(self):
         super().__init__()
         self.date_str = datetime.datetime.now().strftime('%m%d%Y')
@@ -361,8 +364,14 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
                     category = hit['category']
                     if category in self.KNOWN_QC_CATEGORIES:
                         ann_df.loc[entity_id, category] = 'Y'
+                    elif category in self.IGNORED_CATEGORIES:
+                        logger.info(f'Ignoring category {category} for entity {entity_id}')
                     else:
-                        raise Exception(f'Found a new miRNA QC category: {category}')
+                        logger.info('New miRNA-seq annotation category found. Check'
+                            f' out the result: {hit}'
+                        )
+                        raise Exception(f'For entity {entity_id}, found'
+                                  ' a new miRNA QC category: {category}')
                 pagination_idx += 1
                 if end_index >= total_records:
                     finished = True
