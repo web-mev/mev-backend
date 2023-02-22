@@ -163,7 +163,10 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
     # annotation metadata from the GDC API. 
     # If the dataset is updated to include additional ones, add here. Otherwise
     # the process fails (and reports the new category)
-    KNOWN_QC_CATEGORIES = ['Item flagged DNU', 'Center QC failed']
+    KNOWN_QC_CATEGORIES = ['Item flagged DNU', 
+        'Center QC failed', 
+        'Item Flagged Low Quality'
+    ]
 
     # Additional annotation categories that are not used. We ignore these
     IGNORED_CATEGORIES = ['General']
