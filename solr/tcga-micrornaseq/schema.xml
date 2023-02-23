@@ -43,6 +43,7 @@
   
   <field name="Center_QC_failed" type="text_general"/>
   <field name="Item_flagged_DNU" type="text_general"/>
+  <field name="Item_Flagged_Low_Quality" type="text_general"/>
   <field name="_version_" type="plong" indexed="false" stored="false"/>
   <field name="id" type="string" multiValued="false" indexed="true" required="true" stored="true"/>
   <field name="project_id" type="string"/>

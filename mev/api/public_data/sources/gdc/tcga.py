@@ -229,8 +229,7 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
         Given a list of the downloaded archives, extract and
         merge them into a single count matrix
         '''
-        print(downloaded_archives)
-        print(len(file_to_aliquot_mapping))
+
         logger.info('Begin merging the individual count'
             ' matrix archives into a single count matrix')
         count_df = pd.DataFrame()
@@ -314,7 +313,9 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
         # Add default 'no' for these. If there are no annotations for
         # a given aliquot, then we assume it's fine
         for c in self.KNOWN_QC_CATEGORIES:
-            ann_df[c] = 'N'
+            # solr likes names without spaces, etc. so we replace
+            # the GDC-assigned name
+            ann_df[c.replace(' ', '_')] = 'N'
 
         # we can't make a request for the entire annotation 
         # dataframe if it's large. This limits how many we
@@ -370,7 +371,8 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
                     entity_id = hit['entity_id']
                     category = hit['category']
                     if category in self.KNOWN_QC_CATEGORIES:
-                        ann_df.loc[entity_id, category] = 'Y'
+                        # note the replacement to match the columns dictated above
+                        ann_df.loc[entity_id, category.replace(' ', '_')] = 'Y'
                     elif category in self.IGNORED_CATEGORIES:
                         logger.info(f'Ignoring category {category} for entity {entity_id}')
                     else:
