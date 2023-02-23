@@ -22,7 +22,8 @@ from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.gdc.gdc import GDCDataSource, \
     GDCRnaSeqDataSourceMixin
 from api.public_data.sources.rnaseq import RnaSeqMixin
-from api.public_data.sources.gdc.tcga import TCGADataSource
+from api.public_data.sources.gdc.tcga import TCGADataSource, \
+    TCGAMicroRnaSeqDataSource
 from api.public_data.sources.gdc.target import TargetDataSource
 from api.public_data.sources.gtex_rnaseq import GtexRnaseqDataSource
 from api.public_data.indexers.solr import SolrIndexer
@@ -798,3 +799,259 @@ class TestRnaSeqMixin(BaseAPITestCase):
         }
         with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
             paths, resource_types = data_src.create_from_query(mock_db_record, query)
+
+
+class TestTCGAMirnaSeq(BaseAPITestCase): 
+    '''
+    Tests the specialized methods of the class which handles
+    TCGA miRNA-seq
+    '''
+
+    def test_proper_filters_created(self):
+        '''
+        Tests that the json payload for a metadata
+        query is created as expected
+        '''
+        ds = TCGAMicroRnaSeqDataSource()
+        d = ds._create_rnaseq_query_params('TCGA-FOO')
+        expected_query_filters = {
+            "fields": "file_id,file_name,cases.project.program.name,cases.case_id,cases.aliquot_ids,cases.samples.portions.analytes.aliquots.aliquot_id",
+            "format": "JSON",
+            "size": "100",
+            "expand": "cases.demographic,cases.diagnoses,cases.exposures,cases.tissue_source_site,cases.project",
+            "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-FOO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"BCGSC miRNA Profiling\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"miRNA-Seq\"]}}]}"
+            }
+        self.assertDictEqual(d, expected_query_filters)      
+
+    @mock.patch('api.public_data.sources.rnaseq.RnaSeqMixin.COUNT_OUTPUT_FILE_TEMPLATE', '__TEST__counts.{tag}.{ds}.tsv')
+    def test_counts_merged_correctly(self):
+        file_to_aliquot_mapping = {
+            's1': 'x1',
+            's2': 'x2',
+            's3': 'x3'
+        }
+        expected_matrix = pd.DataFrame(
+            [[509, 1446, 2023],[0,2,22],[1768, 2356, 1768]],
+            index=['hsa-let-7a','hsa-mir-1-1','hsa-mir-10a'],
+            columns = ['x1', 'x2', 'x3']
+        )
+        expected_matrix.index.name = 'mirna_id'
+
+        archives = [
+            os.path.join(THIS_DIR, 'public_data_test_files', 'mirna_archive1.tar.gz'),
+            os.path.join(THIS_DIR, 'public_data_test_files', 'mirna_archive2.tar.gz')
+        ]
+
+        data_src = TCGAMicroRnaSeqDataSource()
+        # The derived classes will have a ROOT_DIR attribute, but
+        # this mixin class doesn't. Patch it here
+        data_src.ROOT_DIR = '/tmp'
+        actual_df = data_src._merge_downloaded_archives(archives, file_to_aliquot_mapping)
+        self.assertTrue(expected_matrix.equals(actual_df))
+
+    @mock.patch('api.public_data.sources.gdc.tcga.get_with_retry')
+    @mock.patch('api.public_data.sources.gdc.tcga.GDCDataSource')
+    def test_annotation_data_addition_case1(self, mock_GDCDataSource, mock_get_with_retry):
+        '''
+        Test that we properly add 'dummy' values for annotation categories if no 
+        annotations are returned
+        '''
+        data_src = TCGAMicroRnaSeqDataSource()
+
+        # override this attribute so we can mock paginated responses below:
+        mock_GDCDataSource.PAGE_SIZE=1
+
+        # create a dummy dataframe to append to
+        ann_df = pd.DataFrame({'sex':['M','F','F'], 'age':[35,46,54]}, index=['A', 'B', 'C'])
+
+        # first try an empty response:
+        mock_response = mock.MagicMock()
+        mock_response_json = {
+            'data': {
+                'hits': [], 
+                'pagination': {
+                    'count': 0, 
+                    'total': 0, 
+                    'size': 100, 
+                    'from': 0, 
+                    'sort': '', 
+                    'page': 0, 
+                    'pages': 0
+                }
+            }, 
+            'warnings': {}
+        }
+        mock_response.json.return_value = mock_response_json
+        mock_get_with_retry.return_value = mock_response
+        updated_df = data_src._append_gdc_annotations(ann_df)
+
+        # check that the QC populates with 'N' values (indicating no QC failures)
+        for c in data_src.KNOWN_QC_CATEGORIES:
+            self.assertTrue(c in updated_df.columns)
+            col_vals = updated_df[c].values
+            self.assertTrue(all(col_vals == 'N'))
+
+    @mock.patch('api.public_data.sources.gdc.tcga.get_with_retry')
+    @mock.patch('api.public_data.sources.gdc.tcga.GDCDataSource')
+    def test_annotation_data_addition_case2(self, mock_GDCDataSource, mock_get_with_retry):
+        '''
+        Test that we properly add the annotations when we do not need to paginate results
+        '''
+        data_src = TCGAMicroRnaSeqDataSource()
+
+        # override this attribute so we can mock paginated responses below:
+        mock_GDCDataSource.PAGE_SIZE=1
+
+        # create a dummy dataframe to append to
+        ann_df = pd.DataFrame({'sex':['M','F','F'], 'age':[35,46,54]}, index=['A', 'B', 'C'])
+
+        # first try an empty response:
+        mock_response = mock.MagicMock()
+        # Now mock a response where we get all results back and do not have to
+        # paginate the results (e.g. total < size in the pagination key)
+        mock_response_json = {
+            'data': {
+                'hits': [
+                    {
+                        'id': '51a41ba4-f8df-5543-94b1-4606f5302919', 
+                        'entity_id': 'B', 
+                        'category': 'Center QC failed', 
+
+                    }
+                ],
+                'pagination': {
+                    'count': 0, 
+                    'total': 1, 
+                    'size': 100, 
+                    'from': 0, 
+                    'sort': '', 
+                    'page': 1, 
+                    'pages': 1
+                }
+            }, 
+            'warnings': {}
+        }
+        mock_response.json.return_value = mock_response_json
+        mock_get_with_retry.return_value = mock_response
+
+        updated_df = data_src._append_gdc_annotations(ann_df)
+        vals = updated_df['Center QC failed']
+        expected = pd.Series({'A':'N', 'B':'Y', 'C':'N'})
+        self.assertTrue((vals==expected).all())
+
+    @mock.patch('api.public_data.sources.gdc.tcga.get_with_retry')
+    @mock.patch('api.public_data.sources.gdc.tcga.GDCDataSource')
+    def test_annotation_data_addition_case3(self, mock_GDCDataSource, mock_get_with_retry):
+        '''
+        Test that we properly add annotations when pagination of the results payload
+        is required
+        '''
+        data_src = TCGAMicroRnaSeqDataSource()
+
+        # override this attribute so we can mock paginated responses below:
+        mock_GDCDataSource.PAGE_SIZE=1
+
+        # create a dummy dataframe to append to
+        ann_df = pd.DataFrame({'sex':['M','F','F'], 'age':[35,46,54]}, index=['A', 'B', 'C'])
+
+        # first try an empty response:
+        mock_response = mock.MagicMock()
+        # Now mock a response where we have to
+        # paginate the results
+        mock_response_json_1 = {
+            'data': {
+                'hits': [
+                    {
+                        'id': 'UUID1', 
+                        'entity_id': 'B', 
+                        'category': 'Center QC failed', 
+
+                    }
+                ],
+                'pagination': {
+                    'count': 1, 
+                    'total': 2, 
+                    'size': 1, 
+                    'from': 0, 
+                    'sort': '', 
+                    'page': 1, 
+                    'pages': 2
+                }
+            }, 
+            'warnings': {}
+        }
+        mock_response_json_2 = {
+            'data': {
+                'hits': [
+                    {
+                        'id': 'UUID2', 
+                        'entity_id': 'C', 
+                        'category': 'Item flagged DNU', 
+
+                    }
+                ],
+                'pagination': {
+                    'count': 1, 
+                    'total': 2, 
+                    'size': 1, 
+                    'from': 1, 
+                    'sort': '', 
+                    'page': 2, 
+                    'pages': 2
+                }
+            }, 
+            'warnings': {}
+        }
+        mock_response.json.side_effect = [mock_response_json_1, mock_response_json_2]
+        mock_get_with_retry.return_value = mock_response
+
+        updated_df = data_src._append_gdc_annotations(ann_df)
+        vals = updated_df['Center QC failed']
+        expected = pd.Series({'A':'N', 'B':'Y', 'C':'N'})
+        self.assertTrue((vals==expected).all())
+
+        vals = updated_df['Item flagged DNU']
+        expected = pd.Series({'A':'N', 'B':'N', 'C':'Y'})
+        self.assertTrue((vals==expected).all())
+
+    @mock.patch('api.public_data.sources.gdc.tcga.get_with_retry')
+    def test_catch_unexpected_annotation_category(self, mock_get_with_retry):
+        '''
+        If the GDC data annotations are updated to include new category values
+        beyond what we've already seen, check that we catch those values
+        and issue an exception
+        '''
+        data_src = TCGAMicroRnaSeqDataSource()
+
+        mock_response = mock.MagicMock()
+
+        # create a dummy dataframe to append to
+        ann_df = pd.DataFrame({'sex':['M','F','F'], 'age':[35,46,54]}, index=['A', 'B', 'C'])
+        # finally, mock a response with a new, unexpected category
+        mock_response_json = {
+            'data': {
+                'hits': [
+                    {
+                        'id': '51a41ba4-f8df-5543-94b1-4606f5302919', 
+                        'entity_id': 'B', 
+                        'category': 'SOMETHING UNEXPECTED', 
+
+                    }
+                ],
+                'pagination': {
+                    'count': 0, 
+                    'total': 1, 
+                    'size': 100, 
+                    'from': 0, 
+                    'sort': '', 
+                    'page': 1, 
+                    'pages': 1
+                }
+            }, 
+            'warnings': {}
+        }
+        mock_response.json.return_value = mock_response_json
+        mock_get_with_retry.return_value = mock_response
+
+        with self.assertRaisesRegex(Exception, 'SOMETHING UNEXPECTED'):
+            data_src._append_gdc_annotations(ann_df)
