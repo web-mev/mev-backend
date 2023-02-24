@@ -43,7 +43,7 @@ DATABASES = {
 ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if len(x) > 0]
 
 # Necessary for use of the DRF pages and django 4.0+
-CSRF_TRUSTED_ORIGINS = ['https://' + x for x in ALLOWED_HOSTS]
+CSRF_TRUSTED_ORIGINS = ['https://' + x for x in ALLOWED_HOSTS] + ['http://' + x + ':8000'for x in ALLOWED_HOSTS]
 
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
@@ -364,6 +364,19 @@ AUTHENTICATION_BACKENDS = [
     # required for usual username/password authentication
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+SOCIAL_AUTH_STRATEGY = 'api.social_auth_strategy.WebMeVAuthStrategy'
+
+# sets the proper redirect URL (e.g. <FRONTEND_URL>/redirect/)
+# which is the frontend client
+REST_SOCIAL_OAUTH_REDIRECT_URI = '/oauth2-redirect/'
+
+# This is the default, but we are being explicit here that the redirect
+# URL should correspond to the frontend.
+REST_SOCIAL_DOMAIN_FROM_ORIGIN = True
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = get_env('GOOGLE_OAUTH2_CLIENT_ID')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = get_env('GOOGLE_OAUTH2_CLIENT_SECRET')
 
 ###############################################################################
 # END Parameters for configuring social authentication/registration
