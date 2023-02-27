@@ -21,5 +21,8 @@ class WebMeVAuthStrategy(DRFStrategy):
         that is not from the domain hosting the backend. Redirects will
         be sent to the frontend application, not the backend.
         '''
-        request_origin = self.request.META['HTTP_ORIGIN']
-        return request_origin + settings.REST_SOCIAL_OAUTH_REDIRECT_URI
+        if self.request:
+            request_origin = self.request.META['HTTP_ORIGIN']
+            return request_origin + settings.REST_SOCIAL_OAUTH_REDIRECT_URI
+        else:
+            return path
