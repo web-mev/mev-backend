@@ -887,8 +887,9 @@ class TestTCGAMirnaSeq(BaseAPITestCase):
 
         # check that the QC populates with 'N' values (indicating no QC failures)
         for c in data_src.KNOWN_QC_CATEGORIES:
-            self.assertTrue(c in updated_df.columns)
-            col_vals = updated_df[c].values
+            normalized_name = c.replace(' ', '_')
+            self.assertTrue(normalized_name in updated_df.columns)
+            col_vals = updated_df[normalized_name].values
             self.assertTrue(all(col_vals == 'N'))
 
     @mock.patch('api.public_data.sources.gdc.tcga.get_with_retry')
@@ -935,7 +936,7 @@ class TestTCGAMirnaSeq(BaseAPITestCase):
         mock_get_with_retry.return_value = mock_response
 
         updated_df = data_src._append_gdc_annotations(ann_df)
-        vals = updated_df['Center QC failed']
+        vals = updated_df['Center_QC_failed']
         expected = pd.Series({'A':'N', 'B':'Y', 'C':'N'})
         self.assertTrue((vals==expected).all())
 
@@ -1006,11 +1007,11 @@ class TestTCGAMirnaSeq(BaseAPITestCase):
         mock_get_with_retry.return_value = mock_response
 
         updated_df = data_src._append_gdc_annotations(ann_df)
-        vals = updated_df['Center QC failed']
+        vals = updated_df['Center_QC_failed']
         expected = pd.Series({'A':'N', 'B':'Y', 'C':'N'})
         self.assertTrue((vals==expected).all())
 
-        vals = updated_df['Item flagged DNU']
+        vals = updated_df['Item_flagged_DNU']
         expected = pd.Series({'A':'N', 'B':'N', 'C':'Y'})
         self.assertTrue((vals==expected).all())
 

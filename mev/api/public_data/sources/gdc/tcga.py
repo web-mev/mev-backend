@@ -380,7 +380,7 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
                             f' out the result: {hit}'
                         )
                         raise Exception(f'For entity {entity_id}, found'
-                                  ' a new miRNA QC category: {category}')
+                                  f' a new miRNA QC category: {category}')
                 pagination_idx += 1
                 if end_index >= total_records:
                     finished = True
