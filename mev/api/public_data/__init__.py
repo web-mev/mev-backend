@@ -7,7 +7,8 @@ from django.core.files import File
 from api.models import PublicDataset, Resource
 from api.async_tasks.async_resource_tasks import validate_resource
 from api.utilities.resource_utilities import create_resource
-from .sources.gdc.tcga import TCGARnaSeqDataSource
+from .sources.gdc.tcga import TCGARnaSeqDataSource, \
+    TCGAMicroRnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
 from .sources.gtex_rnaseq import GtexRnaseqDataSource
 from .indexers import get_indexer
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 IMPLEMENTING_CLASSES = [
     TCGARnaSeqDataSource,
     TargetRnaSeqDataSource,
-    GtexRnaseqDataSource
+    GtexRnaseqDataSource,
+    TCGAMicroRnaSeqDataSource
 ]
 
 DATASET_MAPPING = {x.TAG:x for x in IMPLEMENTING_CLASSES}
