@@ -1,5 +1,6 @@
 node /api/ {
   class { 'mevapi':
+<<<<<<< HEAD
     admin_email_csv                => $facts['admin_email_csv'],
     aws_region                     => $facts['aws_region'],
     backend_domain                 => $facts['backend_domain'],
@@ -27,6 +28,8 @@ node /api/ {
     globus_endpoint_client_secret  => $facts['globus_endpoint_client_secret'],
     globus_endpoint_client_uuid    => $facts['globus_endpoint_client_uuid'],
     globus_endpoint_id             => $facts['globus_endpoint_id'],
+    google_oauth2_client_id        => $facts['google_oauth2_client_id'],
+    google_oauth2_client_secret    => $facts['google_oauth2_client_secret'],
     storage_location               => $facts['storage_location'],
     storage_bucket_name            => $facts['storage_bucket_name'],
   }
