@@ -113,6 +113,18 @@ variable "globus_endpoint_id" {
   default     = null
 }
 
+variable "google_oauth2_client_id" {
+  description = "The client ID for OAuth2 sign-in"
+  type        = string
+  default     = null
+}
+
+variable "google_oauth2_client_secret" {
+  description = "The client secret for OAuth2 sign-in"
+  type        = string
+  default     = null
+}
+
 variable "https_certificate_id" {
   description = "ID of the HTTPS certificate"
   type        = string
