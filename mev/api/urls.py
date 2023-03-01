@@ -19,7 +19,6 @@ urlpatterns = [
     path('users/reset-password/confirm/', api.views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('users/reset-password/', api.views.PasswordResetView.as_view(), name='password-reset'),
     path('users/change-password/', api.views.PasswordChangeView.as_view(), name='password-change'),
-    path('users/social/google/', api.views.GoogleOauth2View.as_view(), name='google-social'),
     path('users/social/<str:backend>/', api.views.get_auth_url, name='social-oauth2'),
     # Used for social auth. This takes a response code and returns a JWT pair
     path('login/', include('rest_social_auth.urls_jwt_pair')),
