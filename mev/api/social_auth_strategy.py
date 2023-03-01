@@ -22,7 +22,8 @@ class WebMeVAuthStrategy(DRFStrategy):
         be sent to the frontend application, not the backend.
         '''
         if self.request:
+            provider = self.request.get_full_path().split('/')[-2]
             request_origin = self.request.META['HTTP_ORIGIN']
-            return request_origin + settings.REST_SOCIAL_OAUTH_REDIRECT_URI
+            return request_origin + settings.REST_SOCIAL_OAUTH_REDIRECT_URI + provider + '/'
         else:
             return path
