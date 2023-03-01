@@ -458,5 +458,8 @@ def post_upload(task_id, user):
             user,
             path
         )
+        # remove the intermediate file in the globus bucket now that
+        # it's stored in the "main" webmev storage
+        default_storage.delete_object(path)
     
     #TODO: handle transfer failures

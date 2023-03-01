@@ -233,3 +233,9 @@ class S3ResourceStorage(S3Boto3Storage):
             logger.info(f'After waiting {t1-t0}, still could not find'
                 f' an object at {full_path}')
             raise FileNotFoundError
+
+    def delete_object(self, full_path):
+        s3 = boto3.client('s3')
+        bucket_name, obj_name = self.get_bucket_and_object_from_full_path(full_path)
+        s3.delete_object(Bucket=bucket_name, Key=obj_name)
+        
