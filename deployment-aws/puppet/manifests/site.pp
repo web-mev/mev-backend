@@ -1,6 +1,5 @@
 node /api/ {
   class { 'mevapi':
-<<<<<<< HEAD
     admin_email_csv                => $facts['admin_email_csv'],
     aws_region                     => $facts['aws_region'],
     backend_domain                 => $facts['backend_domain'],
