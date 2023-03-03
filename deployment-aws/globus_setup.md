@@ -231,3 +231,24 @@ Before you remove the bucket and EC2 instance, ensure you have saved both:
 - node_config.json
 
 You can now delete both the bucket and the EC2 instance. Recall that you need to keep the IAM user and associated keys.
+
+
+### Modifying the associated bucket
+
+If you encounter a situation where you need to change the bucket associated with Globus, you can perform the following steps. For instance, we had an existing association for one stack `foo` (and hence associated with `s3://foo-webmev-globus`) and want to change it to `bar` (and bucket `s3://bar-webmev-globus`).
+
+First, if it does not already exist, create the IAM user and associated bucket policy, as described at the top of this document. Also generate an access key/secret for this user
+
+Then:
+- Log onto the existing GCS VM (i.e. `foo-mev-gcs` EC2 instance)
+- `sudo -s`
+- Log in and perform the OAuth2 flow using `globus-connect-server login localhost`
+- Get the current storage gateway ID using `globus-connect-server storage-gateway list`
+- List current collections with `globus-connect-server collection list`
+- Delete the existing collections with `globus-connect-server collection delete <ID>` (for each)
+- Delete the storage gateway `globus-connect-server storage-gateway delete <ID>`
+- Create a new S3 storage gateway and proceed with all the steps above for:
+    - create a new collection
+    - Add AWS keys to the collection in the Globus web app
+    - Create a guest collection
+- In the end, don't forget to export the node config and save in the proper bucket.

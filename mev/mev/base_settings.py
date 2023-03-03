@@ -540,6 +540,63 @@ PUBLIC_DATA_INDEXER = 'solr'
 # END settings/imports for public data indexing
 ###############################################################################
 
+
+###############################################################################
+# START settings for Globus
+###############################################################################
+
+# Some general settings for Globus:
+
+# the (frontend) URL where Globus will redirect for the OAuth2 exchange.
+# The view using this will detect the origin and fill the templated string
+GLOBUS_AUTH_REDIRECT_URI = '{origin}/globus/auth-redirect/'
+
+# the (frontend) URL where the Globus file chooser will redirect to once
+# the files are chosen.
+GLOBUS_UPLOAD_REDIRECT_URI = '{origin}/globus/upload-redirect/'
+GLOBUS_DOWNLOAD_REDIRECT_URI = '{origin}/globus/download-redirect/'
+GLOBUS_UPLOAD_CALLBACK_METHOD = 'GET'
+GLOBUS_BROWSER_UPLOAD_URI = 'https://app.globus.org/file-manager?action={callback}&method=GET'
+GLOBUS_BROWSER_DOWNLOAD_URI = 'https://app.globus.org/file-manager?action={callback}&method=GET&folderlimit=1&filelimit=0'
+
+GLOBUS_TRANSFER_SCOPE = 'urn:globus:auth:scope:transfer.api.globus.org:all'
+GLOBUS_SCOPES = (
+    "openid",
+    "profile",
+    "email",
+    GLOBUS_TRANSFER_SCOPE,
+)
+GLOBUS_REAUTHENTICATION_WINDOW_IN_MINUTES = 60
+
+try:
+    # this is the client/secret for the endpoint manager.
+    GLOBUS_ENDPOINT_CLIENT_ID = get_env('GLOBUS_ENDPOINT_CLIENT_UUID')
+    GLOBUS_ENDPOINT_CLIENT_SECRET = get_env('GLOBUS_ENDPOINT_CLIENT_SECRET')
+
+    # this is the client/secret for the application, NOT for the
+    # Globus endoint
+    GLOBUS_CLIENT_ID = get_env('GLOBUS_APP_CLIENT_ID')
+    GLOBUS_CLIENT_SECRET = get_env('GLOBUS_APP_CLIENT_SECRET')
+
+    # This endpoint ID is the UUID of the shared collection,
+    # NOT the endpoint ID of the GCS
+    GLOBUS_ENDPOINT_ID = get_env('GLOBUS_ENDPOINT_ID')
+
+    # The bucket where Globus will place files. Globus does NOT
+    # have access to the WebMeV buckets
+    GLOBUS_BUCKET = get_env('GLOBUS_BUCKET_NAME')
+
+    # If those succeeded, then we enable Globus
+    GLOBUS_ENABLED = True
+except ImproperlyConfigured as ex:
+    print(ex)
+    GLOBUS_ENABLED = False
+
+###############################################################################
+# END settings for Globus
+###############################################################################
+
+
 # Change the LOGLEVEL env variable if you want logging
 # different than INFO:
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()

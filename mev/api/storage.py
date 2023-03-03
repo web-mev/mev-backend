@@ -1,6 +1,7 @@
 import uuid
 import os
 from io import BytesIO
+import datetime
 import logging
 
 import boto3
@@ -17,6 +18,8 @@ from api.utilities.resource_utilities import create_resource
 
 logger = logging.getLogger(__name__)
 
+
+S3_PREFIX = 's3://'
 
 class LocalResourceStorage(FileSystemStorage):
 
@@ -51,7 +54,6 @@ class LocalResourceStorage(FileSystemStorage):
             
 class S3ResourceStorage(S3Boto3Storage):
     bucket_name = settings.MEDIA_ROOT
-    s3_prefix = 's3://'
 
     # This will append random chars to the end of the object name
     # so that files are not overwritten
@@ -68,7 +70,7 @@ class S3ResourceStorage(S3Boto3Storage):
         attribute of the FileField of the Resource class, e.g.
         r.datafile.name
         '''
-        return f'{self.s3_prefix}{self.bucket_name}/{path_relative_to_storage_root}'
+        return f'{S3_PREFIX}{self.bucket_name}/{path_relative_to_storage_root}'
 
     def get_bucket_and_object_from_full_path(self, full_path):
         '''
@@ -76,10 +78,10 @@ class S3ResourceStorage(S3Boto3Storage):
         return a tuple of the bucket (`my-bucket`) and the object
         (`folderA/file.txt`)
         '''
-        if not full_path.startswith(self.s3_prefix):
+        if not full_path.startswith(S3_PREFIX):
             raise Exception(f'The full path must \
-                include the prefix {self.s3_prefix}')
-        return full_path[len(self.s3_prefix):].split('/', 1)
+                include the prefix {S3_PREFIX}')
+        return full_path[len(S3_PREFIX):].split('/', 1)
 
     def localize(self, resource, local_dir):
         '''
@@ -212,3 +214,28 @@ class S3ResourceStorage(S3Boto3Storage):
             resource.datafile.name,
             dest_object
         )
+
+    def wait_until_exists(self, full_path):
+        '''
+        For any full path (e.g. s3://<bucket>/<object>), call the 
+        boto3 `wait_until_exists`. This works on any bucket to which
+        the host ec2 instance has access
+        '''
+        s3 = boto3.resource('s3')
+        bucket_name, obj_name = self.get_bucket_and_object_from_full_path(full_path)
+        obj = s3.Object(bucket_name, obj_name)
+        try:
+            logger.info(f'Checking for {full_path}')
+            t0 = datetime.datetime.now()
+            obj.wait_until_exists()
+        except botocore.exceptions.WaiterError as ex:
+            t1 = datetime.datetime.now()
+            logger.info(f'After waiting {t1-t0}, still could not find'
+                f' an object at {full_path}')
+            raise FileNotFoundError
+
+    def delete_object(self, full_path):
+        s3 = boto3.client('s3')
+        bucket_name, obj_name = self.get_bucket_and_object_from_full_path(full_path)
+        s3.delete_object(Bucket=bucket_name, Key=obj_name)
+        
