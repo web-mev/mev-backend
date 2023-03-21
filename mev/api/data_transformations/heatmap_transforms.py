@@ -11,7 +11,7 @@ from constants import MATRIX_KEY, \
     FEATURE_TABLE_KEY
 from data_structures.attribute_types import PositiveIntegerAttribute
 
-from resource_types import get_resource_type_instance, get_contents
+from resource_types import get_resource_type_instance
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,11 @@ def perform_clustering(df, method, metric, resource_type_instance):
     in the scipy world, ROWS of a matrix are observations. Our convention (based
     on expression matrices) is to have observations in columns.
     '''
+
+    # if we only have a single item or empty dataframe, just return
+    if (len(df.shape) == 1) or (df.shape[0] < 2):
+        return resource_type_instance.to_json(df)
+
     try:
         row_linkage = linkage(df, method=method, metric=metric)
         col_linkage = linkage(df.T, method=method, metric=metric)
@@ -116,16 +121,31 @@ def heatmap_reduce(resource, query_params):
 
 
 def heatmap_cluster(resource, query_params):
+    '''
+    Returns a HCL-clustered version of the requested resource (if possible).
 
+    Clusters on both dimensions according to the metric and method query params.
+
+    Typically, this function is called on a subset of the entire file. We leverage
+    the filtering behavior of the resource type class to do perform row/feature subsetting.
+    '''
     # note that we pop the transform-specific keys so we can submit
-    # the remaining filters to the "general" dataframe filtering
+    # the remaining filters to the "general" dataframe filtering 
+    # (e.g. the ones that allow us to filter for desired genes/features)
+
+    # the original query_params is an immutable object, so we copy first
+    qp = query_params.copy()
+
+    # this key will always be there since the function would not be called otherwise
+    qp.pop('transform-name')
+
     try:
-        metric = query_params.pop('metric')
+        metric = qp.pop('metric')
     except KeyError:
         metric = 'euclidean'
 
     try:
-        method = query_params.pop('method')
+        method = qp.pop('method')
     except KeyError:
         method = 'ward'
 
@@ -143,6 +163,6 @@ def heatmap_cluster(resource, query_params):
     # Note that the following method returns a json-format data structure
     # since it's typically used by a view. However, we use it to populate
     # an attribute on the instance which has the underlying dataframe
-    get_resource_type_instance.get_contents(resource, query_params)
+    resource_type_instance.get_contents(resource, qp)
     df = resource_type_instance.table
     return perform_clustering(df, method, metric, resource_type_instance)
