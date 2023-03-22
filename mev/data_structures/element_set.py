@@ -155,8 +155,8 @@ class BaseElementSet(BaseAttributeType):
                     if d1[k] != d2[k]:
                         raise DataStructureValidationException('When'
                             ' performing an intersection of two sets,'
-                            ' encountered a conflict in the attributes.'
-                            f' The key "{k}" has differing values of'
+                            f' encountered a conflict in the attributes for {_id}.'
+                            f' The attribute "{k}" has differing values of'
                             f' {d1[k]} and {d2[k]}')
 
                 # we are eventually passing `return_list` back to the child
