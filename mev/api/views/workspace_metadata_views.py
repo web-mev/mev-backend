@@ -5,8 +5,9 @@ from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
+from rest_framework import status
 
-from exceptions import WebMeVException
+from exceptions import WebMeVException, DataStructureValidationException
 from constants import OBSERVATION_SET_KEY, FEATURE_SET_KEY
 
 from data_structures.observation_set import ObservationSet
@@ -143,7 +144,12 @@ class WorkspaceMetadataObservationsView(ListAPIView, WorkspaceMetadataBase):
     set_type = ObservationSet
 
     def list(self, request, *args, **kwargs):
-        obs_set = self.fetch_metadata(OBSERVATION_SET_KEY)
+        try:
+            obs_set = self.fetch_metadata(OBSERVATION_SET_KEY)
+        except DataStructureValidationException as ex:
+            return Response({
+                'error': str(ex)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return self._paginate_response(obs_set)
 
 
@@ -166,5 +172,10 @@ class WorkspaceMetadataFeaturesView(ListAPIView, WorkspaceMetadataBase):
     set_type = FeatureSet
 
     def list(self, request, *args, **kwargs):
-        feature_set = self.fetch_metadata(FEATURE_SET_KEY)
+        try:
+            feature_set = self.fetch_metadata(FEATURE_SET_KEY)
+        except DataStructureValidationException as ex:
+            return Response({
+                'error': str(ex)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return self._paginate_response(feature_set)

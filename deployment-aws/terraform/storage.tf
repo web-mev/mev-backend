@@ -10,6 +10,10 @@ resource "aws_s3_bucket" "logging" {
     bucket = "${local.stack}-webmev-backend-logs"
 }
 
+resource "aws_s3_bucket" "globus" {
+    bucket = "${local.stack}-webmev-globus"
+}
+
 resource "aws_s3_bucket_cors_configuration" "storage_bucket_cors" {
   bucket = aws_s3_bucket.api_storage_bucket.id
 

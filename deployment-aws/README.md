@@ -93,3 +93,7 @@ Note the following assumptions, based on the terraform plan:
 - As part of destroy, terraform creates a snapshot the database.
 
 If you wish to redeploy, we have the option of restoring state via `data_volume_snapshot_id` (for using a snapshot as our EBS "data volume") and `database_snapshot`. If those are not specified in your `tfvars`, they default to `null`, which means Terraform will create a new data volume and/or RDS instance.
+
+## Incorporating Globus
+
+If you wish to incorporate Globus into WebMeV, see the [Globus setup instructions](./globus_setup.md)

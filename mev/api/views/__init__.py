@@ -7,7 +7,7 @@ from .user_views import UserList, \
     UserActivateView, \
     ResendActivationView, \
     PasswordChangeView
-from .social_views import GoogleOauth2View
+from .social_views import get_auth_url
 from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, \
     ResourceDetail, \
@@ -52,6 +52,11 @@ from .public_dataset import PublicDatasetList, \
     PublicDatasetQuery, \
     PublicDatasetCreate
 from .feedback_views import SubmitFeedbackView
+from .globus_views import GlobusInitiate, \
+    GlobusUploadView, \
+    GlobusDownloadView, \
+    GlobusTransferList
+
 
 def sentry_debug(request):
     '''

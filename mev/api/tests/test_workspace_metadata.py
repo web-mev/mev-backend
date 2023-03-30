@@ -2,6 +2,8 @@ import json
 import os
 from io import BytesIO
 
+import pandas as pd
+
 from django.urls import reverse
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files import File
@@ -18,7 +20,7 @@ from constants import OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
     RESOURCE_KEY, \
     PARENT_OP_KEY
-from resource_types.table_types import Matrix, FeatureTable
+from resource_types.table_types import Matrix, FeatureTable, AnnotationTable
 from api.utilities.resource_utilities import add_metadata_to_resource
 
 from api.tests.base import BaseAPITestCase
@@ -353,6 +355,67 @@ class TestWorkspaceMetadata(BaseAPITestCase):
             returned_features.add(el['id'])
         self.assertEqual(expected_features, returned_features)
 
+    def test_metadata_conflict_is_reported(self):
+        '''
+        Here, there are two annotation files which have conflicting
+        information about a sample. Test that the conflict is reported.
+        '''
+
+        # the first annotation file has sampleB with condition 'A'
+        rows = ['sampleA', 'sampleB', 'sampleC']
+        conditions = ['A', 'A', 'A']
+        genotypes = ['wt', 'ko', 'wt']
+        df1 = pd.DataFrame(
+            {'condition': conditions, 'genotype': genotypes}, 
+            index=rows)
+
+        # the second annotation file has sampleB with condition 'X',
+        # which conflicts with the first file
+        rows = ['sampleA', 'sampleB', 'sampleC']
+        conditions = ['A', 'X', 'A']
+        df2 = pd.DataFrame(
+            {'condition': conditions},
+            index=rows)
+
+        path1 = '/tmp/test_ann1.tsv'
+        path2 = '/tmp/test_ann2.tsv'
+        df1.to_csv(path1, sep='\t')
+        df2.to_csv(path2, sep='\t')
+
+        # now associate that file with a resource
+        user_resources = Resource.objects.filter(owner=self.regular_user_1, is_active=True)
+        self.assertTrue(len(user_resources) > 1)
+        r1 = user_resources[0]
+        r2 = user_resources[1]
+        associate_file_with_resource(r1, path1)
+        associate_file_with_resource(r2, path2)
+
+        ann1 = AnnotationTable()
+        metadata1 = ann1.extract_metadata(r1)
+        add_metadata_to_resource(r1, metadata1)
+        ann2 = AnnotationTable()
+        metadata2 = ann2.extract_metadata(r2)
+        add_metadata_to_resource(r2, metadata2)
+
+        # add both resources to the workspace
+        r1.workspaces.add(self.workspace)
+        r2.workspaces.add(self.workspace)
+        r1.save()
+        r2.save()
+
+        url = reverse(
+            'workspace-observations-metadata',
+            kwargs={'workspace_pk': self.workspace.pk}
+        )
+        response = self.authenticated_regular_client.get(url)
+        response_json = response.json()
+        self.assertTrue(response.status_code == 500)
+        self.assertTrue('error' in response_json)
+        self.assertTrue('sampleB' in response_json['error'])
+
+        os.remove(path1)
+        os.remove(path2)
+        
     def test_metadata_pagination(self):
         '''
         Test that we can properly paginate the response. Needed for cases where

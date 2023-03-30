@@ -242,3 +242,7 @@ class ParserNotFoundException(WebMeVException):
     opening/validating resources
     '''
     pass
+
+
+class NonexistentGlobusTokenException(WebMeVException):
+    pass

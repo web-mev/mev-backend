@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.conf import settings
 
 
@@ -19,7 +19,9 @@ urlpatterns = [
     path('users/reset-password/confirm/', api.views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('users/reset-password/', api.views.PasswordResetView.as_view(), name='password-reset'),
     path('users/change-password/', api.views.PasswordChangeView.as_view(), name='password-change'),
-    path('users/social/google/', api.views.GoogleOauth2View.as_view(), name='google-social'),
+    path('users/social/<str:backend>/', api.views.get_auth_url, name='social-oauth2'),
+    # Used for social auth. This takes a response code and returns a JWT pair
+    path('login/', include('rest_social_auth.urls_jwt_pair')),
 
     ##################### Views for Workspaces ###############################
 
@@ -43,6 +45,12 @@ urlpatterns = [
     path('resources/dropbox-upload/', api.views.DropboxUpload.as_view(), name='dropbox-upload'),
     path('resources/download-url/<uuid:pk>/', api.views.ResourceDownloadUrl.as_view(), name='download-resource-url'),
     path('resources/download/<uuid:pk>/', api.views.ResourceDownload.as_view(), name='download-resource'),
+
+    # For globus 
+    path('globus/initiate/', api.views.GlobusInitiate.as_view(), name='globus-init'),
+    path('globus/transfer/upload/', api.views.GlobusUploadView.as_view(), name='globus-upload'),
+    path('globus/transfer/download/', api.views.GlobusDownloadView.as_view(), name='globus-download'),
+    path('globus/transfer/', api.views.GlobusTransferList.as_view(), name='globus-transfer-list'),
 
     # For querying the available types of Resources:
     path('resource-types/', api.views.ResourceTypeList.as_view(), name='resource-type-list'),

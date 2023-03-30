@@ -11,7 +11,7 @@ import pandas as pd
 
 from django.conf import settings
 
-from constants import TSV_FORMAT
+from constants import CSV_FORMAT
 from api.utilities.basic_utils import get_with_retry
 from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.rnaseq import RnaSeqMixin
@@ -29,6 +29,7 @@ class GDCDataSource(PublicDataSource):
     '''
     
     GDC_FILES_ENDPOINT = "https://api.gdc.cancer.gov/files"
+    GDC_ANNOTATIONS_ENDPOINT = "https://api.gdc.cancer.gov/annotations"
     GDC_DATA_ENDPOINT = "https://api.gdc.cancer.gov/data"
     GDC_PROJECTS_ENDPOINT = "https://api.gdc.cancer.gov/projects"
     GDC_DICTIONARY_ENDPOINT = 'https://api.gdc.cancer.gov/v0/submission/_dictionary/{attribute}?format=json'
@@ -542,6 +543,11 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
 
         logger.info('Completed looping through the batches for {ct}'.format(ct=project_id))
 
+        # there can be duplicate rows in the annotation dataframe
+        annotation_df = annotation_df.drop_duplicates()
+
+        annotation_df = self._append_gdc_annotations(annotation_df)
+
         # Merge and write the count files
         count_df = self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
         
@@ -610,12 +616,15 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
                 )
 
         # Write all the metadata to a file
+        # Note that we write to CSV since Solr indexers 
+        # will not work with tab-delimited files. However, when users
+        # create their own datasets, it will be in TSV-format.
         ann_output_path = os.path.join(
             self.ROOT_DIR,
             self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
                 tag = tag, 
                 date=self.date_str,
-                file_format = TSV_FORMAT
+                file_format = CSV_FORMAT
             )
         )
         total_annotation_df.to_csv(
@@ -730,3 +739,20 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         with open(fout, "wb") as output_file:
             output_file.write(download_response.content)
         return fout
+
+    def _append_gdc_annotations(self, ann_df):
+        '''
+        This method allows us to append "arbitrary" data to the
+        annotation dataframe, beyond what is already pulled from
+        the API in the _download_cohort method.
+
+        For instance, the _download_cohort method includes
+        patient attributes like demographics. It does not 
+        include experimental metadata like QC. Some protocols,
+        such as miRNA-seq can be challenging and having QC
+        data might be important for users when identifying
+        outliers. The GDC annotations endpoint can provide
+        some data about this, so this method allows each
+        derived class to implement, if necessary
+        '''
+        pass

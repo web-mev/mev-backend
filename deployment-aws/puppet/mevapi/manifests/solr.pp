@@ -24,5 +24,9 @@ class mevapi::solr () {
     schema_src_file     => "${mevapi::project_root}/solr/gtex-rnaseq/schema.xml",
     solrconfig_src_file => "${mevapi::project_root}/solr/gtex-rnaseq/solrconfig.xml",
   }
+  solr::core { 'tcga-micrornaseq':
+    schema_src_file     => "${mevapi::project_root}/solr/tcga-micrornaseq/schema.xml",
+    solrconfig_src_file => "${mevapi::project_root}/solr/tcga-micrornaseq/solrconfig.xml",
+  }
 
 }

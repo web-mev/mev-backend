@@ -369,7 +369,7 @@ class UnrestrictedStringAttribute(BaseAttributeType):
     # small file in which case it's impossible to differentiate
     # between a poorly parsed string and an intentionally long
     # string identifier)
-    MAX_LENGTH = 100
+    MAX_LENGTH = 1000
 
     def _value_validator(self, val):
         val = str(val)

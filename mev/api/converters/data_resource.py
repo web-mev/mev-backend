@@ -384,7 +384,8 @@ class CromwellResourceMixin(object):
                 executed_op.owner,
                 path
             )
-            r.workspaces.add(workspace)
+            if workspace is not None:
+                r.workspaces.add(workspace)
             return r
         except Exception as ex:
             logger.info('Caught exception when copying a Cromwell output'

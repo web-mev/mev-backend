@@ -1,7 +1,12 @@
+from operator import index
 import os
 import unittest.mock as mock
 import json
 from itertools import chain
+
+import pandas as pd
+
+from django.conf import settings
 
 from constants import MATRIX_KEY, \
     TSV_FORMAT, \
@@ -9,12 +14,18 @@ from constants import MATRIX_KEY, \
     JSON_FILE_KEY, \
     JSON_FORMAT
 
+from exceptions import ParseException
+
+from resource_types import get_resource_type_instance
+
 from api.models import Resource
 from api.tests.base import BaseAPITestCase
 from api.tests.test_helpers import associate_file_with_resource
 
 from api.data_transformations.network_transforms import subset_PANDA_net
-from api.data_transformations.heatmap_transforms import heatmap_reduce
+from api.data_transformations.heatmap_transforms import heatmap_reduce, \
+    heatmap_cluster, \
+    perform_clustering
 from api.data_transformations.volcano_plot_transforms import volcano_subset
 
 
@@ -29,7 +40,166 @@ class ResourceTransformTests(BaseAPITestCase):
         # get an example from the database:
         self.resource = Resource.objects.all()[0]
 
-    def test_heatmap_hcl_transform_case(self):
+    def test_clustering_function(self):
+        '''
+        Tests the clustering function on the entire matrix
+        '''
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        df = pd.read_table(fp, index_col=0)
+        resource_type_instance = get_resource_type_instance(MATRIX_KEY)
+        result = perform_clustering(df, 'ward', 'euclidean', resource_type_instance)
+        expected_row_ordering = ['g5','g1','g3','g6','g2','g4']
+        self.assertEqual(expected_row_ordering, [x['rowname'] for x in result])
+        expected_col_ordering = ['s1','s3','s5','s2','s4','s6']
+        self.assertEqual(expected_col_ordering, [x for x in result[0]['values']])
+
+    def test_clustering_function_on_empty(self):
+        '''
+        Tests the clustering function on a rowname filter that
+        returns no records
+        '''
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        df = pd.read_table(fp, index_col=0)
+        resource_type_instance = get_resource_type_instance(MATRIX_KEY)
+
+        query_params = {
+            # This will cause an empty dataframe since there are no rows
+            # with that gene symbol
+            settings.ROWNAME_FILTER: '[in]:ABC'
+        }
+        # note that we don't do df.loc['g1'] since that creates a pd.Series.
+        # instead, we rely on the actual function that filters the dataframe
+        # which returns a single-row dataframe instead:
+        resource_type_instance.get_contents(self.resource, query_params)
+        df = resource_type_instance.table
+        # create an empty dataframe to see how it handles that
+        result = perform_clustering(df, 'ward', 'euclidean', resource_type_instance)
+        self.assertTrue(result == [])
+
+    def test_clustering_function_single_record(self):
+        '''
+        Tests the clustering function on a single gene
+        '''
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        df = pd.read_table(fp, index_col=0)
+        resource_type_instance = get_resource_type_instance(MATRIX_KEY)
+
+        query_params = {
+            settings.ROWNAME_FILTER: f'[in]:g1'
+        }
+        # note that we don't do df.loc['g1'] since that creates a pd.Series.
+        # instead, we rely on the actual function that filters the dataframe
+        # which returns a single-row dataframe instead:
+        resource_type_instance.get_contents(self.resource, query_params)
+        df = resource_type_instance.table
+        result = perform_clustering(df, 'ward', 'euclidean', resource_type_instance)
+        self.assertTrue(len(result) == 1)
+        self.assertTrue(result[0]['rowname'] == 'g1')
+
+    @mock.patch('api.data_transformations.heatmap_transforms.perform_clustering')
+    def test_heatmap_cluster_transform_case1(self, mock_perform_clustering):
+        '''
+        Note that we don't test the clustering function itself-- 
+        only the call TO that function
+        '''
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        df = pd.read_table(fp, index_col=0)
+        keep_genes = 'g1,g2,g3,g4,g6'
+        df = df.loc[keep_genes.split(',')]
+
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'metric': 'euclidean',
+            'transform-name': 'blah',
+            settings.ROWNAME_FILTER: f'[in]:{keep_genes}' # leaves out g5
+        }
+        heatmap_cluster(self.resource, query_params)
+        args, kwargs = mock_perform_clustering.call_args
+        passed_df = args[0]
+        passed_method = args[1]
+        passed_metric = args[2]
+        self.assertTrue((passed_df == df).all().all())
+        self.assertTrue(passed_method == 'ward')
+        self.assertTrue(passed_metric == 'euclidean')
+        self.assertTrue(kwargs == {})
+
+    @mock.patch('api.data_transformations.heatmap_transforms.perform_clustering')
+    def test_heatmap_cluster_transform_case2(self, mock_perform_clustering):
+        '''
+        Here, we pass an extra query param which should cause a problem
+        '''
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        df = pd.read_table(fp, index_col=0)
+        keep_genes = 'g1,g2,g3,g4,g6'
+        df = df.loc[keep_genes.split(',')]
+
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'metric': 'euclidean',
+            'EXTRA': 'foo', # <-- BAD
+            'transform-name': 'blah',
+            settings.ROWNAME_FILTER: f'[in]:{keep_genes}' # leaves out g5
+        }
+        with self.assertRaisesRegex(ParseException, 'EXTRA'):
+            heatmap_cluster(self.resource, query_params)
+
+    @mock.patch('api.data_transformations.heatmap_transforms.perform_clustering')
+    def test_heatmap_cluster_transform_case3(self, mock_perform_clustering):
+        '''
+        Here, we pass a gene/feature filter that has no items
+        '''
+        fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
+        empty_df = pd.DataFrame(columns=['s1','s2','s3','s4','s5','s6'])
+
+        self.resource.resource_type = MATRIX_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {
+            'metric': 'euclidean',
+            'transform-name': 'blah',
+            settings.ROWNAME_FILTER: f'[in]:'
+        }
+        heatmap_cluster(self.resource, query_params)
+        args, kwargs = mock_perform_clustering.call_args
+        passed_df = args[0]
+        passed_method = args[1]
+        passed_metric = args[2]
+        self.assertTrue((passed_df == empty_df).all().all())
+        self.assertTrue(passed_method == 'ward')
+        self.assertTrue(passed_metric == 'euclidean')
+        self.assertTrue(kwargs == {})
+
+    def test_heatmap_cluster_bad_resource_type(self):
+        '''
+        Test that we appropriately warn if the heatmap clustering function
+        is called for an unacceptable resource type
+        '''
+        # test that it works for an all-numeric FT:
+        fp = os.path.join(self.TESTDIR, 'json_array_file.json')
+        self.resource.resource_type = JSON_FILE_KEY
+        self.resource.file_format = JSON_FORMAT
+        self.resource.save()
+        associate_file_with_resource(self.resource, fp)
+        query_params = {'transform-name': 'foo'}
+        with self.assertRaisesRegex(Exception, 'Not an acceptable resource type'):
+            heatmap_cluster(self.resource, query_params)
+
+    def test_heatmap_reduce_transform_case(self):
         fp = os.path.join(self.TESTDIR, 'heatmap_hcl_test.tsv')
         self.resource.resource_type = MATRIX_KEY
         self.resource.file_format = TSV_FORMAT
@@ -44,9 +214,9 @@ class ResourceTransformTests(BaseAPITestCase):
         expected_col_ordering = ['s1','s3','s5','s2','s4','s6']
         self.assertEqual(expected_col_ordering, [x for x in result[0]['values']])
 
-    def test_heatmap_hcl_bad_resource_type(self):
+    def test_heatmap_reduce_bad_resource_type(self):
         '''
-        Test that we appropriately warn if the heatmap clustering function
+        Test that we appropriately warn if the heatmap reduce function
         is called for an unacceptable resource type
         '''
         # test that it works for an all-numeric FT:
@@ -61,9 +231,9 @@ class ResourceTransformTests(BaseAPITestCase):
         with self.assertRaisesRegex(Exception, 'Not an acceptable resource type'):
             heatmap_reduce(self.resource, query_params)
 
-    def test_heatmap_hcl_warns_non_numeric(self):
+    def test_heatmap_reduce_warns_non_numeric(self):
         '''
-        Test that we appropriately warn if the heatmap clustering function
+        Test that we appropriately warn if the heatmap reduce function
         can't work due to a non-numeric entry in the table. Since we can
         technically have feature tables that are all numeric, they CAN
         work on some types. However, we need to catch and warn attempts
