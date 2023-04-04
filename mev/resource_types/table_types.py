@@ -1,5 +1,6 @@
 # This file contains information about the different table-
 # based file types and methods for validating them
+from ftplib import error_reply
 import logging
 import re
 import uuid
@@ -1280,9 +1281,10 @@ class FeatureTable(ElementTable):
         return self.metadata
 
 
-class BED3File(TableResource):
+class BaseBEDFile(TableResource):
     '''
-    A file format that corresponds to the BED3 format.  This is
+    A "base" BED file format that handles common elements of all BED
+    (and extended BED) formats; corresponds to the BED3 format.  This is
     the minimal BED format, which has:
 
     - chromosome
@@ -1296,12 +1298,7 @@ class BED3File(TableResource):
 
     ACCEPTABLE_FORMATS = [TSV_FORMAT,]
 
-    DESCRIPTION = 'A three-column BED-format file. https://ensembl.org/info/website/upload/bed.html'\
-        ' BED files do NOT have column headers and are expected to be stored' \
-        ' in a tab-delimited format.'
-
-
-    def validate_type(self, resource_instance, file_format):
+    def _validate_type(self, resource_instance, file_format, names, column_numbers):
 
         # Note that we don't use the TableResource.read_resource since we have
         # a different way of parsing the table here.
@@ -1310,11 +1307,15 @@ class BED3File(TableResource):
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
         # the proper integer type.
-        table = reader(resource_instance.datafile.open(), 
-            names=['chrom','start','stop'],
-            usecols=[0,1,2])
-        start_col_int = re.match('int\d{0,2}', str(table['start'].dtype))
-        stop_col_int = re.match('int\d{0,2}', str(table['stop'].dtype))
+        try:
+            self.table = reader(resource_instance.datafile.open(), 
+                names=names,
+                usecols=column_numbers)
+        except pd.errors.ParserError as ex:
+            return (False, str(ex))
+
+        start_col_int = re.match('int\d{0,2}', str(self.table['start'].dtype))
+        stop_col_int = re.match('int\d{0,2}', str(self.table['stop'].dtype))
         if start_col_int and stop_col_int:
             return (True, None)
         else:
@@ -1331,3 +1332,89 @@ class BED3File(TableResource):
     def extract_metadata(self, resource_instance, parent_op_pk=None):
         super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         return self.metadata
+
+
+class BED3File(BaseBEDFile):
+    '''
+    A basic three-column BED file format (BED3):
+    - chromosome
+    - start position
+    - end position
+
+    Additional columns are ignored.
+    '''
+    DESCRIPTION = 'A three-column BED-format file (https://ensembl.org/info/website/upload/bed.html)'\
+        ' BED files do NOT have column headers and are expected to be stored' \
+        ' in a tab-delimited format.'
+
+    NAMES = ['chrom', 'start', 'stop']
+    COLUMN_NUMBERS = list(range(3))
+
+    def validate_type(self, resource_instance, file_format):
+        return super()._validate_type(resource_instance, file_format,
+                                    BED3File.NAMES, BED3File.COLUMN_NUMBERS)
+
+
+class BED6File(BaseBEDFile):
+    '''
+    An extended six-column BED file format:
+
+    - chromosome
+    - start position
+    - end position
+    - name
+    - score
+    - strand
+
+    Additional columns are ignored.
+
+    By default, BED files do NOT contain headers and we enforce that here.
+    '''
+    DESCRIPTION = 'A six-column BED-format file (columns 1 through 6 defined at'\
+        ' https://ensembl.org/info/website/upload/bed.html)'\
+        ' BED files do NOT have column headers and are expected to be stored' \
+        ' in a tab-delimited format.'
+
+    NAMES = ['chrom', 'start', 'stop', 'name', 'score', 'strand']
+    COLUMN_NUMBERS = list(range(6))
+    ACCEPTABLE_STRAND_VALUES = set(['.', '+', '-'])
+
+    def validate_type(self, resource_instance, file_format):
+        is_valid, error_message = super()._validate_type(
+            resource_instance, file_format,
+            BED6File.NAMES, BED6File.COLUMN_NUMBERS)
+
+        if is_valid:
+
+            # the score column needs to be integers between 0 and 1000
+            score_col_int = re.match('int\d{0,2}', str(self.table['score'].dtype))
+            if score_col_int:
+                min_score = self.table['score'].min()
+                max_score = self.table['score'].max()
+                if (min_score < 0) or (max_score > 1000):
+                    error_message = ('BED format requires that the 5th column'
+                    ' (score) has integer values between 0 and 1000. Your'
+                    f' range of [{min_score},{max_score}] exceeds this.')
+                    return (False, error_message)
+            else:
+                # score column was not an integer
+                error_message = ('Please check that the 5th column (score)'
+                ' has only integer values between 0 and 1000. We could not'
+                ' parse this column as only integers. If empty, simply fill'
+                ' with all zeroes.')
+                return (False, error_message)
+
+            # if we are here, the score column was fine. Now check strand
+            unique_strand_values = set(self.table['strand'].unique())
+            diff_set = unique_strand_values.difference(
+                BED6File.ACCEPTABLE_STRAND_VALUES)
+            if len(diff_set) > 0:
+                error_message = ('Your 6th column (strand) contained'
+                ' unexpected values. We accept only'
+                f' {",".join(BED6File.ACCEPTABLE_STRAND_VALUES)}'
+                f' and yours contained {",".join(diff_set)}.')
+                return (False, error_message)
+            return (True, '')
+        else:
+            # did not pass the check on the first 3 columns
+            return (is_valid, error_message)

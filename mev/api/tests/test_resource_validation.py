@@ -18,6 +18,7 @@ from resource_types.table_types import TableResource, \
     Network, \
     AnnotationTable, \
     BED3File, \
+    BED6File, \
     PARSE_ERROR, \
     PARSER_NOT_FOUND_ERROR, \
     NON_NUMERIC_ERROR, \
@@ -603,7 +604,7 @@ class TestBed3(BaseAPITestCase):
             datafile=File(BytesIO(), 'foo.tsv')
         )
 
-    def test_bed_without_header_fails(self):
+    def test_bed_with_header_fails(self):
         '''
         Technically, BED format does not allow a header.  
         Since BED files may feed into downstream processes, we 
@@ -626,6 +627,132 @@ class TestBed3(BaseAPITestCase):
             TESTDIR, 'five_column.bed'))
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)
         self.assertTrue(is_valid)
+
+
+class TestBed6(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+        self.r = Resource.objects.create(
+            owner=self.regular_user_1,
+            file_format='',
+            resource_type='',
+            datafile=File(BytesIO(), 'foo.tsv')
+        )
+
+    def test_bed3_fails(self):
+        '''
+        If we attempt to parse a BED3 file using a BED6 parser, we fail
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'example_bed.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('found 3' in err)
+
+    def test_bed6_with_format_error_fails_case1(self):
+        '''
+        In this test, there is an error in the first 3-columns
+        (a 'stop' value is a string). Ensure we report failure
+        properly
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case1.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('column(s): 3' in err)
+
+    def test_bed6_score_exceeds_max_fails(self):
+        '''
+        In this test, one of the scores exceeds the BED
+        max of 1000
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case2.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('[100,1002]' in err)
+
+    def test_bed6_score_below_min_fails(self):
+        '''
+        In this test, one of the scores is below the BED
+        min of 0
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case3.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('[-10,100]' in err)
+
+    def test_bed6_score_non_integer(self):
+        '''
+        In this test, one of the scores is not an int
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case4.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Please check that the 5th column ' in err)
+
+    def test_bed6_score_col_empty_fails(self):
+        '''
+        In this test, the score column is empty. Fail it.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case5.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Please check that the 5th column ' in err)
+
+    def test_bed6_invalid_strand_val_fails(self):
+        '''
+        In this test, the strand column contains an 
+        unacceptable value of 'x'. Fail it.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case6.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('6th column' in err)
+        self.assertTrue('x' in err)
+
+    def test_bed6_passes(self):
+        '''
+        In this test, everything should be fine.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+
+    def test_bed6_with_multiple_strand_values_passes(self):
+        '''
+        In this test, the strand column contains all the potential
+        acceptable values for strand. Should pass.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example2.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+
+    def test_bed6_metadata(self):
+        '''
+        Populates emtpy metadata dict
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example.bed'))
+        metadata = b.extract_metadata(self.r)
+        self.assertTrue(all([metadata[k] is None for k in metadata]))
 
 
 class TestNetworkStructure(BaseAPITestCase):

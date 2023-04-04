@@ -10,7 +10,8 @@ from constants import FASTQ_KEY, \
     RNASEQ_COUNT_MATRIX_KEY, \
     NETWORK_DESCRIPTOR_KEY, \
     ANNOTATION_TABLE_KEY, \
-    BED_FILE_KEY, \
+    BED3_FILE_KEY, \
+    BED6_FILE_KEY, \
     JSON_FILE_KEY, \
     GENERAL_FILE_KEY, \
     WILDCARD, \
@@ -30,7 +31,8 @@ from .table_types import Matrix, \
     Network, \
     AnnotationTable, \
     FeatureTable, \
-    BED3File
+    BED3File, \
+    BED6File
 
 from .general_types import GeneralResource
 from .json_types import JsonResource
@@ -50,7 +52,8 @@ RESOURCE_MAPPING = {
     RNASEQ_COUNT_MATRIX_KEY: IntegerMatrix,
     NETWORK_DESCRIPTOR_KEY: Network,
     ANNOTATION_TABLE_KEY: AnnotationTable,
-    BED_FILE_KEY: BED3File,
+    BED3_FILE_KEY: BED3File,
+    BED6_FILE_KEY: BED6File,
     JSON_FILE_KEY: JsonResource,
     WILDCARD: GeneralResource
 } 
