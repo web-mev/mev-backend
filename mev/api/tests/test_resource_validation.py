@@ -17,7 +17,7 @@ from resource_types.table_types import TableResource, \
     IntegerMatrix, \
     Network, \
     AnnotationTable, \
-    BEDFile, \
+    BED3File, \
     PARSE_ERROR, \
     PARSER_NOT_FOUND_ERROR, \
     NON_NUMERIC_ERROR, \
@@ -592,7 +592,7 @@ class TestAnnotationMatrix(BaseAPITestCase):
         self.assertIsNone(err)
         metadata = t.extract_metadata(self.r, TSV_FORMAT)
 
-class TestBed(BaseAPITestCase):
+class TestBed3(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()
@@ -609,7 +609,7 @@ class TestBed(BaseAPITestCase):
         Since BED files may feed into downstream processes, we 
         reject these malformatted BED files
         '''
-        b = BEDFile()
+        b = BED3File()
         associate_file_with_resource(self.r, os.path.join(
             TESTDIR, 'bed_with_header.bed'))
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)
@@ -621,7 +621,7 @@ class TestBed(BaseAPITestCase):
         '''
         This allows some of the extended BED formats.
         '''
-        b = BEDFile()
+        b = BED3File()
         associate_file_with_resource(self.r, os.path.join(
             TESTDIR, 'five_column.bed'))
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)

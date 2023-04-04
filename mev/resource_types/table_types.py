@@ -1280,9 +1280,9 @@ class FeatureTable(ElementTable):
         return self.metadata
 
 
-class BEDFile(TableResource):
+class BED3File(TableResource):
     '''
-    A file format that corresponds to the BED format.  This is
+    A file format that corresponds to the BED3 format.  This is
     the minimal BED format, which has:
 
     - chromosome

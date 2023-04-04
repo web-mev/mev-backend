@@ -32,7 +32,7 @@ from resource_types.table_types import TableResource, \
     IntegerMatrix, \
     AnnotationTable, \
     FeatureTable, \
-    BEDFile
+    BED3File
 from constants import PARENT_OP_KEY, \
     OBSERVATION_SET_KEY, \
     FEATURE_SET_KEY, \
@@ -675,7 +675,7 @@ class TestBedFileMetadata(BaseAPITestCase):
         resource_path = os.path.join(TESTDIR, 'example_bed.bed')
         r = Resource.objects.filter(owner=self.regular_user_1, is_active=True)[0]
         associate_file_with_resource(r, resource_path)
-        bf = BEDFile()
+        bf = BED3File()
         metadata = bf.extract_metadata(r)
         self.assertIsNone(metadata[FEATURE_SET_KEY])
         self.assertIsNone(metadata[OBSERVATION_SET_KEY])
