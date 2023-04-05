@@ -1373,10 +1373,13 @@ class BED3File(BaseBEDFile):
     NAMES = ['chrom', 'start', 'stop']
     COLUMN_NUMBERS = list(range(3))
 
+    def read_resource(self, resource_instance):
+        self._read_resource(resource_instance,
+            BED3File.NAMES, BED3File.COLUMN_NUMBERS)
+
     def validate_type(self, resource_instance, file_format):
         try:
-            self._read_resource(resource_instance,
-                BED3File.NAMES, BED3File.COLUMN_NUMBERS)
+            self.read_resource(resource_instance)
         except Exception as ex:
             return (False, str(ex))
 
@@ -1407,6 +1410,10 @@ class BED6File(BED3File):
     COLUMN_NUMBERS = list(range(6))
     ACCEPTABLE_STRAND_VALUES = set(['.', '+', '-'])
 
+    def read_resource(self, resource_instance):
+        self._read_resource(resource_instance,
+            BED6File.NAMES, BED6File.COLUMN_NUMBERS)
+
     def _validate(self):
         is_valid, error_message = super()._validate()
                 
@@ -1430,8 +1437,7 @@ class BED6File(BED3File):
 
     def validate_type(self, resource_instance, file_format):
         try:
-            self._read_resource(resource_instance,
-                BED6File.NAMES, BED6File.COLUMN_NUMBERS)
+            self.read_resource(resource_instance)
         except Exception as ex:
             return (False, str(ex))
         return self._validate()
@@ -1494,6 +1500,10 @@ class NarrowPeakFile(BED6File):
 
     NAMES = BED6File.NAMES + ['signal_value', 'pval', 'qval', 'peak']
     COLUMN_NUMBERS = list(range(10))
+
+    def read_resource(self, resource_instance):
+        self._read_resource(resource_instance,
+            NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS)
 
     def _check_signal_column(self):
         '''
@@ -1586,8 +1596,7 @@ class NarrowPeakFile(BED6File):
 
     def validate_type(self, resource_instance, file_format):
         try:
-            self._read_resource(resource_instance,
-                NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS)
+            self.read_resource(resource_instance)
         except Exception as ex:
             return (False, str(ex))
         return self._validate()
