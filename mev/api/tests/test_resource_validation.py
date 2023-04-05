@@ -629,6 +629,15 @@ class TestBed3(BaseAPITestCase):
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)
         self.assertTrue(is_valid)
 
+    def test_save_in_standard_format(self):
+        b = BED3File()
+        example_file_path = os.path.join(
+            TESTDIR, 'example_bed.bed')
+        associate_file_with_resource(self.r, example_file_path)
+        df1 = pd.read_table(self.r.datafile.open(), header=None)
+        df2 = pd.read_table(example_file_path, header=None)
+        self.assertTrue(df1.equals(df2))
+
 
 class TestBed6(BaseAPITestCase):
 
@@ -755,6 +764,14 @@ class TestBed6(BaseAPITestCase):
         metadata = b.extract_metadata(self.r)
         self.assertTrue(all([metadata[k] is None for k in metadata]))
 
+    def test_save_in_standard_format(self):
+        b = BED6File()
+        example_file_path = os.path.join(
+            TESTDIR, 'bed6_example.bed')
+        associate_file_with_resource(self.r, example_file_path)
+        df1 = pd.read_table(self.r.datafile.open(), header=None)
+        df2 = pd.read_table(example_file_path, header=None)
+        self.assertTrue(df1.equals(df2))
 
 class TestNarrowPeak(BaseAPITestCase):
 
@@ -892,6 +909,14 @@ class TestNarrowPeak(BaseAPITestCase):
         self.assertFalse(is_valid)
         self.assertTrue('one or more "NA" values' in err)
 
+    def test_save_in_standard_format(self):
+        b = NarrowPeakFile()
+        example_file_path = os.path.join(
+            TESTDIR, 'narrowpeak_example.bed')
+        associate_file_with_resource(self.r, example_file_path)
+        df1 = pd.read_table(self.r.datafile.open(), header=None)
+        df2 = pd.read_table(example_file_path, header=None)
+        self.assertTrue(df1.equals(df2))
 
 class TestNetworkStructure(BaseAPITestCase):
     '''

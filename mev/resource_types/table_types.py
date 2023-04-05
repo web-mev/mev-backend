@@ -1323,6 +1323,17 @@ class BaseBEDFile(TableResource):
                 ' often caused by blank table cells or using spaces instead'
                 ' of tabs to separate fields.')
 
+    def save_in_standardized_format(self, resource_instance, current_file_format):
+        '''
+        We override this method from TableResource since BED (and related) files
+        do NOT have headers.
+
+        Since the original file passed validation, we do nothing-- it was
+        already in the desired format.
+        '''
+        logger.info(f'Saving BED-like resource ({resource_instance.pk})'
+            ' to the standard TSV format. Nothing to do.')
+        pass
 
     def _validate(self):
 
