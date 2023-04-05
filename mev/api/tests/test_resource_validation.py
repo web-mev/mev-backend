@@ -19,6 +19,7 @@ from resource_types.table_types import TableResource, \
     AnnotationTable, \
     BED3File, \
     BED6File, \
+    NarrowPeakFile, \
     PARSE_ERROR, \
     PARSER_NOT_FOUND_ERROR, \
     NON_NUMERIC_ERROR, \
@@ -708,7 +709,7 @@ class TestBed6(BaseAPITestCase):
             TESTDIR, 'bed6_malformatted_case5.bed'))
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)
         self.assertFalse(is_valid)
-        self.assertTrue('Please check that the 5th column ' in err)
+        self.assertTrue('one or more "NA" values' in err)
 
     def test_bed6_invalid_strand_val_fails(self):
         '''
@@ -753,6 +754,143 @@ class TestBed6(BaseAPITestCase):
             TESTDIR, 'bed6_example.bed'))
         metadata = b.extract_metadata(self.r)
         self.assertTrue(all([metadata[k] is None for k in metadata]))
+
+
+class TestNarrowPeak(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+        self.r = Resource.objects.create(
+            owner=self.regular_user_1,
+            file_format='',
+            resource_type='',
+            datafile=File(BytesIO(), 'foo.tsv')
+        )
+
+    def test_bed3_fails(self):
+        '''
+        If we attempt to parse a BED3 file using a narrowpeak parser, we fail
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'example_bed.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('found 3' in err)
+
+    def test_bed6_fails(self):
+        '''
+        If we attempt to parse a BED6 file using a narrowpeak parser, we fail
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('found 6' in err)
+
+    def test_success(self):
+        '''
+        Test that we correctly parse a valid narrowpeak file.
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_example.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+
+    def test_narrowpeak_malformatted_fails_case1(self):
+        '''
+        Test problems with signal column (7) are raised when it's
+        not a number
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case1.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('only numbers' in err)
+
+    def test_narrowpeak_malformatted_fails_case2(self):
+        '''
+        Test problem with p/q-value column.
+
+        Specifically, a string is found
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case2.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Non-numerical values were found' in err)
+
+    def test_narrowpeak_malformatted_fails_case3(self):
+        '''
+        Test problem with p/q-value column.
+
+        Specifically, a negative value is found that is not
+        -1 (the 'null' value)
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case3.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('negative values other than -1' in err)
+
+    def test_narrowpeak_malformatted_fails_case4(self):
+        '''
+        Test problem with peak col (10).
+
+        Specifically, the column has floats, which does not make
+        sense since it's a 0-based offset (or -1)
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case4.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('permits only integers' in err)
+
+    def test_narrowpeak_malformatted_fails_case5(self):
+        '''
+        Test problem with peak col (10).
+
+        Specifically, the column has a single negative value other
+        than -1
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case5.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Found a value of -2' in err)
+
+    def test_narrowpeak_malformatted_fails_case6(self):
+        '''
+        Test problem with peak col (10).
+
+        Specifically, the column has negative values other
+        than -1
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case6.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Found values of -3,-1' in err)
+
+    def test_narrowpeak_malformatted_fails_case7(self):
+        '''
+        Here, one of the columns is delimted by a space instead of a tab.
+        Assert that we flag this as a problem
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case7.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('one or more "NA" values' in err)
 
 
 class TestNetworkStructure(BaseAPITestCase):

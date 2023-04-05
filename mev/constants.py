@@ -19,6 +19,7 @@ NETWORK_DESCRIPTOR_KEY = 'NS'
 ANNOTATION_TABLE_KEY = 'ANN'
 BED3_FILE_KEY = 'BED3'
 BED6_FILE_KEY = 'BED6'
+NARROWPEAK_FILE_KEY = 'NRWPK'
 JSON_FILE_KEY = 'JSON'
 GENERAL_FILE_KEY = WILDCARD 
 
@@ -37,6 +38,7 @@ DATABASE_RESOURCE_TYPES = [
     (ANNOTATION_TABLE_KEY,'Annotation table'),
     (BED3_FILE_KEY,'BED3-format file'),
     (BED6_FILE_KEY,'BED6-format file'),
+    (NARROWPEAK_FILE_KEY, 'NarrowPeak (BED6+4) format file'),
     (JSON_FILE_KEY,'JSON-format file'),
     (GENERAL_FILE_KEY, 'General file')
 ]

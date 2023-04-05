@@ -12,6 +12,7 @@ from constants import FASTQ_KEY, \
     ANNOTATION_TABLE_KEY, \
     BED3_FILE_KEY, \
     BED6_FILE_KEY, \
+    NARROWPEAK_FILE_KEY, \
     JSON_FILE_KEY, \
     GENERAL_FILE_KEY, \
     WILDCARD, \
@@ -32,7 +33,8 @@ from .table_types import Matrix, \
     AnnotationTable, \
     FeatureTable, \
     BED3File, \
-    BED6File
+    BED6File, \
+    NarrowPeakFile
 
 from .general_types import GeneralResource
 from .json_types import JsonResource
@@ -54,6 +56,7 @@ RESOURCE_MAPPING = {
     ANNOTATION_TABLE_KEY: AnnotationTable,
     BED3_FILE_KEY: BED3File,
     BED6_FILE_KEY: BED6File,
+    NARROWPEAK_FILE_KEY: NarrowPeakFile,
     JSON_FILE_KEY: JsonResource,
     WILDCARD: GeneralResource
 } 
