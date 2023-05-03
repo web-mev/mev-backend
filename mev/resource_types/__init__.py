@@ -13,6 +13,9 @@ from constants import FASTQ_KEY, \
     BED3_FILE_KEY, \
     BED6_FILE_KEY, \
     NARROWPEAK_FILE_KEY, \
+    WIG_FILE_KEY, \
+    BIGWIG_FILE_KEY, \
+    BEDGRAPH_FILE_KEY, \
     JSON_FILE_KEY, \
     GENERAL_FILE_KEY, \
     WILDCARD, \
@@ -38,6 +41,9 @@ from .table_types import Matrix, \
 
 from .general_types import GeneralResource
 from .json_types import JsonResource
+from .genomic_display_types import WigFileResource, \
+    BigWigFileResource, \
+    BedGraphFileResource
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +63,9 @@ RESOURCE_MAPPING = {
     BED3_FILE_KEY: BED3File,
     BED6_FILE_KEY: BED6File,
     NARROWPEAK_FILE_KEY: NarrowPeakFile,
+    WIG_FILE_KEY: WigFileResource,
+    BIGWIG_FILE_KEY: BigWigFileResource,
+    BEDGRAPH_FILE_KEY: BedGraphFileResource,
     JSON_FILE_KEY: JsonResource,
     WILDCARD: GeneralResource
 } 
@@ -80,6 +89,7 @@ RESOURCE_TYPES_WITHOUT_VALIDATION = set([
 # will not return resource previews. For instance, we do not want to 
 # produce the contents of a FASTQ file. 
 RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW = RESOURCE_TYPES_WITHOUT_VALIDATION
+
 
 def get_resource_type_instance(resource_type_str):
     '''
