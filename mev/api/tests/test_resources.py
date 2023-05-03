@@ -19,8 +19,10 @@ from constants import DATABASE_RESOURCE_TYPES, \
     TSV_FORMAT, \
     CSV_FORMAT, \
     JSON_FORMAT, \
+    NARROWPEAK_FILE_KEY, \
     NEGATIVE_INF_MARKER, \
     POSITIVE_INF_MARKER
+from resource_types.table_types import NarrowPeakFile
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
@@ -1963,6 +1965,35 @@ class ResourceContentTests(BaseAPITestCase):
         results = response.json()
         expected_ordering = ['A', 'C', 'B']
         self.assertEqual([x['rowname'] for x in results], expected_ordering)
+
+    @mock.patch('api.views.resource_views.check_resource_request')
+    def test_bed_like_files_return_contents_with_header(self, mock_check_resource_request):
+        '''
+        For testing that the JSON payload returned by this endpoint has column
+        headers so that the previews, etc. show up properly.
+        '''
+
+        f = os.path.join(self.TESTDIR, 'narrowpeak_example.bed')
+        associate_file_with_resource(self.resource, f)
+        self.resource.resource_type = NARROWPEAK_FILE_KEY
+        self.resource.file_format = TSV_FORMAT
+        self.resource.save()
+        mock_check_resource_request.return_value = (True, self.resource)
+
+        # the base url (no query params) should return all the records
+        base_url = reverse(
+            'resource-contents', 
+            kwargs={'pk':self.resource.pk}
+        )
+        response = self.authenticated_regular_client.get(
+            base_url, format='json'
+        )
+        self.assertEqual(response.status_code, 
+            status.HTTP_200_OK)
+        results = response.json()
+        col_headers = list(results[0]['values'].keys())
+        self.assertCountEqual(col_headers, NarrowPeakFile.NAMES)
+
 
 class ResourceDetailTests(BaseAPITestCase):
 

@@ -1,7 +1,9 @@
 import logging
 
 from constants import UNSPECIFIED_FORMAT, \
-    GENERAL_DESCRIPTION
+    GENERAL_DESCRIPTION, \
+    PARENT_OP_KEY
+
 from .base import DataResource
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ class GeneralResource(DataResource):
 
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
         return self.metadata
 
 

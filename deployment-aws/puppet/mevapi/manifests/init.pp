@@ -123,6 +123,8 @@ class mevapi (
     }
   }
 
+
+
   $mev_dependencies = [
     'build-essential',
     'apt-transport-https',
@@ -146,6 +148,27 @@ class mevapi (
     'default-jre'
   ]
   package { $mev_dependencies: }
+
+  file { '/usr/local/bin/wigToBigWig':
+    ensure => present,
+    source => 'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/wigToBigWig',
+    mode   => '0550',
+    owner  => $app_user
+  }
+
+  file { '/usr/local/bin/bedGraphToBigWig':
+    ensure => present,
+    source => 'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedGraphToBigWig',
+    mode   => '0550',
+    owner  => $app_user
+  }
+
+  file { '/usr/local/bin/bigWigToBedGraph':
+    ensure => present,
+    source => 'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph',
+    mode   => '0550',
+    owner  => $app_user
+  }
 
   class { 'rabbitmq':
     manage_python => false,

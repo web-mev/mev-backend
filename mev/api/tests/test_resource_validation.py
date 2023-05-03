@@ -17,7 +17,9 @@ from resource_types.table_types import TableResource, \
     IntegerMatrix, \
     Network, \
     AnnotationTable, \
-    BEDFile, \
+    BED3File, \
+    BED6File, \
+    NarrowPeakFile, \
     PARSE_ERROR, \
     PARSER_NOT_FOUND_ERROR, \
     NON_NUMERIC_ERROR, \
@@ -592,7 +594,7 @@ class TestAnnotationMatrix(BaseAPITestCase):
         self.assertIsNone(err)
         metadata = t.extract_metadata(self.r, TSV_FORMAT)
 
-class TestBed(BaseAPITestCase):
+class TestBed3(BaseAPITestCase):
 
     def setUp(self):
         self.establish_clients()
@@ -603,13 +605,13 @@ class TestBed(BaseAPITestCase):
             datafile=File(BytesIO(), 'foo.tsv')
         )
 
-    def test_bed_without_header_fails(self):
+    def test_bed_with_header_fails(self):
         '''
         Technically, BED format does not allow a header.  
         Since BED files may feed into downstream processes, we 
         reject these malformatted BED files
         '''
-        b = BEDFile()
+        b = BED3File()
         associate_file_with_resource(self.r, os.path.join(
             TESTDIR, 'bed_with_header.bed'))
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)
@@ -621,12 +623,300 @@ class TestBed(BaseAPITestCase):
         '''
         This allows some of the extended BED formats.
         '''
-        b = BEDFile()
+        b = BED3File()
         associate_file_with_resource(self.r, os.path.join(
             TESTDIR, 'five_column.bed'))
         is_valid, err = b.validate_type(self.r, TSV_FORMAT)
         self.assertTrue(is_valid)
 
+    def test_save_in_standard_format(self):
+        b = BED3File()
+        example_file_path = os.path.join(
+            TESTDIR, 'example_bed.bed')
+        associate_file_with_resource(self.r, example_file_path)
+        df1 = pd.read_table(self.r.datafile.open(), header=None)
+        df2 = pd.read_table(example_file_path, header=None)
+        self.assertTrue(df1.equals(df2))
+
+
+class TestBed6(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+        self.r = Resource.objects.create(
+            owner=self.regular_user_1,
+            file_format='',
+            resource_type='',
+            datafile=File(BytesIO(), 'foo.tsv')
+        )
+
+    def test_bed3_fails(self):
+        '''
+        If we attempt to parse a BED3 file using a BED6 parser, we fail
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'example_bed.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('found 3' in err)
+
+    def test_bed6_with_format_error_fails_case1(self):
+        '''
+        In this test, there is an error in the first 3-columns
+        (a 'stop' value is a string). Ensure we report failure
+        properly
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case1.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('column(s): 3' in err)
+
+    def test_bed6_score_exceeds_max_fails(self):
+        '''
+        In this test, one of the scores exceeds the BED
+        max of 1000
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case2.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('[100,1002]' in err)
+
+    def test_bed6_score_below_min_fails(self):
+        '''
+        In this test, one of the scores is below the BED
+        min of 0
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case3.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('[-10,100]' in err)
+
+    def test_bed6_score_non_integer(self):
+        '''
+        In this test, one of the scores is not an int
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case4.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Please check that the 5th column ' in err)
+
+    def test_bed6_score_col_empty_fails(self):
+        '''
+        In this test, the score column is empty. Fail it.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case5.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('one or more "NA" values' in err)
+
+    def test_bed6_invalid_strand_val_fails(self):
+        '''
+        In this test, the strand column contains an 
+        unacceptable value of 'x'. Fail it.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_malformatted_case6.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('6th column' in err)
+        self.assertTrue('x' in err)
+
+    def test_bed6_passes(self):
+        '''
+        In this test, everything should be fine.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+
+    def test_bed6_with_multiple_strand_values_passes(self):
+        '''
+        In this test, the strand column contains all the potential
+        acceptable values for strand. Should pass.
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example2.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+
+    def test_bed6_metadata(self):
+        '''
+        Populates emtpy metadata dict
+        '''
+        b = BED6File()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example.bed'))
+        metadata = b.extract_metadata(self.r)
+        self.assertTrue(all([metadata[k] is None for k in metadata]))
+
+    def test_save_in_standard_format(self):
+        b = BED6File()
+        example_file_path = os.path.join(
+            TESTDIR, 'bed6_example.bed')
+        associate_file_with_resource(self.r, example_file_path)
+        df1 = pd.read_table(self.r.datafile.open(), header=None)
+        df2 = pd.read_table(example_file_path, header=None)
+        self.assertTrue(df1.equals(df2))
+
+class TestNarrowPeak(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+        self.r = Resource.objects.create(
+            owner=self.regular_user_1,
+            file_format='',
+            resource_type='',
+            datafile=File(BytesIO(), 'foo.tsv')
+        )
+
+    def test_bed3_fails(self):
+        '''
+        If we attempt to parse a BED3 file using a narrowpeak parser, we fail
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'example_bed.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('found 3' in err)
+
+    def test_bed6_fails(self):
+        '''
+        If we attempt to parse a BED6 file using a narrowpeak parser, we fail
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'bed6_example.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('found 6' in err)
+
+    def test_success(self):
+        '''
+        Test that we correctly parse a valid narrowpeak file.
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_example.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertTrue(is_valid)
+
+    def test_narrowpeak_malformatted_fails_case1(self):
+        '''
+        Test problems with signal column (7) are raised when it's
+        not a number
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case1.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('only numbers' in err)
+
+    def test_narrowpeak_malformatted_fails_case2(self):
+        '''
+        Test problem with p/q-value column.
+
+        Specifically, a string is found
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case2.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Non-numerical values were found' in err)
+
+    def test_narrowpeak_malformatted_fails_case3(self):
+        '''
+        Test problem with p/q-value column.
+
+        Specifically, a negative value is found that is not
+        -1 (the 'null' value)
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case3.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('negative values other than -1' in err)
+
+    def test_narrowpeak_malformatted_fails_case4(self):
+        '''
+        Test problem with peak col (10).
+
+        Specifically, the column has floats, which does not make
+        sense since it's a 0-based offset (or -1)
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case4.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('permits only integers' in err)
+
+    def test_narrowpeak_malformatted_fails_case5(self):
+        '''
+        Test problem with peak col (10).
+
+        Specifically, the column has a single negative value other
+        than -1
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case5.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Found a value of -2' in err)
+
+    def test_narrowpeak_malformatted_fails_case6(self):
+        '''
+        Test problem with peak col (10).
+
+        Specifically, the column has negative values other
+        than -1
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case6.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('Found values of -3,-1' in err)
+
+    def test_narrowpeak_malformatted_fails_case7(self):
+        '''
+        Here, one of the columns is delimted by a space instead of a tab.
+        Assert that we flag this as a problem
+        '''
+        b = NarrowPeakFile()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'narrowpeak_malformatted_case7.bed'))
+        is_valid, err = b.validate_type(self.r, TSV_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('one or more "NA" values' in err)
+
+    def test_save_in_standard_format(self):
+        b = NarrowPeakFile()
+        example_file_path = os.path.join(
+            TESTDIR, 'narrowpeak_example.bed')
+        associate_file_with_resource(self.r, example_file_path)
+        df1 = pd.read_table(self.r.datafile.open(), header=None)
+        df2 = pd.read_table(example_file_path, header=None)
+        self.assertTrue(df1.equals(df2))
 
 class TestNetworkStructure(BaseAPITestCase):
     '''

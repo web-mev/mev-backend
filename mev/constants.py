@@ -17,7 +17,12 @@ EXPRESSION_MATRIX_KEY = 'EXP_MTX'
 RNASEQ_COUNT_MATRIX_KEY = 'RNASEQ_COUNT_MTX'
 NETWORK_DESCRIPTOR_KEY = 'NS'
 ANNOTATION_TABLE_KEY = 'ANN'
-BED_FILE_KEY = 'BED'
+BED3_FILE_KEY = 'BED3'
+BED6_FILE_KEY = 'BED6'
+NARROWPEAK_FILE_KEY = 'NRWPK'
+WIG_FILE_KEY = 'WIG'
+BIGWIG_FILE_KEY = 'BIGWIG'
+BEDGRAPH_FILE_KEY = 'BEDGRAPH'
 JSON_FILE_KEY = 'JSON'
 GENERAL_FILE_KEY = WILDCARD 
 
@@ -34,7 +39,12 @@ DATABASE_RESOURCE_TYPES = [
     (RNASEQ_COUNT_MATRIX_KEY,'RNA-seq count matrix'),
     (NETWORK_DESCRIPTOR_KEY, 'Network descriptor'),
     (ANNOTATION_TABLE_KEY,'Annotation table'),
-    (BED_FILE_KEY,'BED-format file'),
+    (BED3_FILE_KEY,'BED3-format file'),
+    (BED6_FILE_KEY,'BED6-format file'),
+    (NARROWPEAK_FILE_KEY, 'NarrowPeak (BED6+4) format file'),
+    (WIG_FILE_KEY, 'WIG (wiggle) format'),
+    (BIGWIG_FILE_KEY, 'BigWIG (compressed wiggle) format'),
+    (BEDGRAPH_FILE_KEY, 'BedGraph format'),
     (JSON_FILE_KEY,'JSON-format file'),
     (GENERAL_FILE_KEY, 'General file')
 ]
@@ -64,6 +74,9 @@ JSON_FORMAT = 'json'
 FASTA_FORMAT = 'fa'
 FASTQ_FORMAT = 'fq'
 BAM_FORMAT = 'bam'
+WIG_FORMAT = 'wig'
+BIGWIG_FORMAT = 'bw'
+BEDGRAPH_FORMAT = 'bg'
 UNSPECIFIED_FORMAT = WILDCARD
 
 # These are text descriptions for each of the formats. Used to assist
@@ -100,6 +113,20 @@ GENERAL_DESCRIPTION = ('A file of undetermined format. This is typically used'
     ' this in the tool\'s help fields.'
 )
 
+WIG_DESCRIPTION = ('A text file conforming to the WIG format. These files are'
+    ' often used for display of dense continuous data, such as coverage'
+    ' profiles or probability.'
+)
+
+BIGWIG_DESCRIPTION = ('A binary and indexed format often used for display'
+    ' of dense continuous data, such as coverage profiles or probability'
+)
+
+BEDGRAPH_DESCRIPTION = ('A four-column text based format often used for'
+    ' display of sparse and irregular data, such as for a ChIP-seq'
+    ' experiment.'
+)
+
 # Link the shorthand format ID to the description
 FORMATS_MAPPING = {
     CSV_FORMAT: CSV_DESCRIPTION,
@@ -110,6 +137,9 @@ FORMATS_MAPPING = {
     FASTA_FORMAT: FASTA_DESCRIPTION,
     FASTQ_FORMAT: FASTQ_DESCRIPTION,
     BAM_FORMAT: BAM_DESCRIPTION,
+    WIG_FORMAT: WIG_DESCRIPTION,
+    BIGWIG_FORMAT: BIGWIG_DESCRIPTION,
+    BEDGRAPH_FORMAT: BEDGRAPH_DESCRIPTION,
     UNSPECIFIED_FORMAT: GENERAL_DESCRIPTION
 }
 
