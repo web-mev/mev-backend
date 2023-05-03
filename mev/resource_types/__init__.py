@@ -82,6 +82,9 @@ RESOURCE_TYPES_WITHOUT_VALIDATION = set([
     FastAResource,
     FastQResource,
     AlignedSequenceResource,
+    WigFileResource,
+    BigWigFileResource,
+    BedGraphFileResource,
     GeneralResource
 ])
 

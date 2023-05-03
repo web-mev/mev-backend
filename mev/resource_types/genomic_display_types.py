@@ -1,4 +1,5 @@
-from constants import WIG_FORMAT, \
+from constants import PARENT_OP_KEY, \
+    WIG_FORMAT, \
     BIGWIG_FORMAT, \
     BEDGRAPH_FORMAT
 
@@ -24,7 +25,7 @@ class WigFileResource(DataResource):
 
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
         return self.metadata
 
 
@@ -47,7 +48,7 @@ class BigWigFileResource(DataResource):
 
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
         return self.metadata
 
 
@@ -70,5 +71,5 @@ class BedGraphFileResource(DataResource):
 
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
         return self.metadata

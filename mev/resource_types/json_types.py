@@ -9,7 +9,8 @@ from django.conf import settings
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from constants import JSON_FORMAT
+from constants import JSON_FORMAT, \
+    PARENT_OP_KEY
 
 from exceptions import NonIterableContentsException, \
     ParseException
@@ -134,7 +135,7 @@ class JsonResource(DataResource):
 
         # now add the information to self.metadata:
         if parent_op_pk:
-            self.metadata[DataResource.PARENT_OP] = parent_op_pk
+            self.metadata[PARENT_OP_KEY] = parent_op_pk
         return self.metadata
 
 
