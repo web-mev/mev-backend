@@ -21,7 +21,7 @@ from api.utilities.resource_utilities import check_resource_request_validity
 logger = logging.getLogger(__name__)
 
 
-class ResourceDownloadUrl(APIView):
+class ResourceSignedUrl(APIView):
     '''
     Request endpoint for obtaining a download URL.
 
