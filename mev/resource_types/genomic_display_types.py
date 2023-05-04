@@ -1,14 +1,12 @@
 from constants import PARENT_OP_KEY, \
-    WIG_FORMAT, \
-    BIGWIG_FORMAT, \
-    BEDGRAPH_FORMAT
+    UNSPECIFIED_FORMAT
 
 from .base import DataResource
 
 
 class WigFileResource(DataResource):
 
-    ACCEPTABLE_FORMATS = [WIG_FORMAT]
+    ACCEPTABLE_FORMATS = [UNSPECIFIED_FORMAT]
     DESCRIPTION = 'A WIG-format file.'
 
     def validate_type(self, resource_instance, file_format):
@@ -31,7 +29,7 @@ class WigFileResource(DataResource):
 
 class BigWigFileResource(DataResource):
 
-    ACCEPTABLE_FORMATS = [BIGWIG_FORMAT]
+    ACCEPTABLE_FORMATS = [UNSPECIFIED_FORMAT]
     DESCRIPTION = 'A BigWIG-format file.'
 
     def validate_type(self, resource_instance, file_format):
@@ -54,7 +52,7 @@ class BigWigFileResource(DataResource):
 
 class BedGraphFileResource(DataResource):
 
-    ACCEPTABLE_FORMATS = [BEDGRAPH_FORMAT]
+    ACCEPTABLE_FORMATS = [UNSPECIFIED_FORMAT]
     DESCRIPTION = 'A BedGraph-format file.'
 
     def validate_type(self, resource_instance, file_format):
