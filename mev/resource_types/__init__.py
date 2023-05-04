@@ -3,6 +3,7 @@ import logging
 from constants import FASTQ_KEY, \
     FASTA_KEY, \
     ALIGNMENTS_KEY, \
+    BAI_KEY, \
     FEATURE_TABLE_KEY, \
     MATRIX_KEY, \
     INTEGER_MATRIX_KEY, \
@@ -28,7 +29,8 @@ from .base import DataResource
 
 from .sequence_types import FastAResource, \
     FastQResource, \
-    AlignedSequenceResource
+    AlignedSequenceResource, \
+    BAMIndexResource
 
 from .table_types import Matrix, \
     IntegerMatrix, \
@@ -53,6 +55,7 @@ RESOURCE_MAPPING = {
     FASTQ_KEY: FastQResource, 
     FASTA_KEY: FastAResource,
     ALIGNMENTS_KEY: AlignedSequenceResource,
+    BAI_KEY: BAMIndexResource,
     FEATURE_TABLE_KEY: FeatureTable,
     MATRIX_KEY: Matrix,
     INTEGER_MATRIX_KEY: IntegerMatrix,
@@ -82,6 +85,7 @@ RESOURCE_TYPES_WITHOUT_VALIDATION = set([
     FastAResource,
     FastQResource,
     AlignedSequenceResource,
+    BAMIndexResource,
     WigFileResource,
     BigWigFileResource,
     BedGraphFileResource,

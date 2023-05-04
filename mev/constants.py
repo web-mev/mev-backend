@@ -10,6 +10,7 @@ WILDCARD = '*'
 FASTQ_KEY = 'FQ'
 FASTA_KEY = 'FA'
 ALIGNMENTS_KEY = 'ALN'
+BAI_KEY = 'BAI'
 FEATURE_TABLE_KEY = 'FT'
 MATRIX_KEY = 'MTX'
 INTEGER_MATRIX_KEY = 'I_MTX'
@@ -32,6 +33,7 @@ DATABASE_RESOURCE_TYPES = [
     (FASTQ_KEY, 'Fastq'),
     (FASTA_KEY,'Fasta'),
     (ALIGNMENTS_KEY,'Alignment (SAM/BAM)'),
+    (BAI_KEY, 'BAM Index'),
     (FEATURE_TABLE_KEY, 'Feature table'),
     (MATRIX_KEY,'Numeric table'),
     (INTEGER_MATRIX_KEY,'Integer table'),
@@ -107,8 +109,10 @@ FASTQ_DESCRIPTION = ('FASTQ-format sequence file, typically'
 BAM_DESCRIPTION = ('Binary alignment file. This a compressed version'
     ' of the standard SAM file format.'
 )
-GENERAL_DESCRIPTION = ('A file of undetermined format. This is typically used'
-    ' for proprietary formats (e.g. 10x Genomics CellRanger outputs).'
+GENERAL_DESCRIPTION = ('A file of undetermined or proprietary format.'
+    ' This can often be used for proprietary formats'
+    ' (e.g. 10x Genomics CellRanger outputs) or for files where the'
+    ' resource type strictly defines the format.'
     ' Certain WebMeV tools will require this resource type and will mention'
     ' this in the tool\'s help fields.'
 )
