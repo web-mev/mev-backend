@@ -40,6 +40,7 @@ def submit_job(executed_op, op, validated_inputs):
     try:
         runner.run(executed_op, op, validated_inputs)
     except Exception as ex:
+        logger.error(f'Caught a job submission exception:\n{ex}')
         raise JobSubmissionException(f'Failed to submit job {executed_op.pk}')
 
 
