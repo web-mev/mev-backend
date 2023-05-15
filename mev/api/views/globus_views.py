@@ -1,6 +1,7 @@
 import uuid
 import os
 import re
+import datetime
 import logging
 
 from rest_framework.views import APIView
@@ -92,6 +93,10 @@ class GlobusUploadView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
                             
         params = request.data['params']
+        
+        # Handle the case where a user does not submit a label:
+        if len(params['label']) == 0:
+            params['label'] = datetime.datetime.now().strftime('WebMeV.%y%m%d.%H%M%S')
 
         app_transfer_client = create_application_transfer_client()
         user_transfer_client = create_user_transfer_client(request.user)
