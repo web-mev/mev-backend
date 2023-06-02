@@ -192,6 +192,16 @@ def validate_operation_inputs(
 
         if op_input.is_data_resource_input() and (supplied_input is not None):
 
+            # this gets the instance, e.g. an instance of
+            # data_structures.data_resource_attributes.DataResourceAttribute
+            # (or one of the sibling classes)
+            data_resource_attr = op_input.spec.value
+
+            # whether we are dealing with an input that can accept
+            # a single or multiple inputs, we collect in a list
+            # so that we can handle in the same manner
+            resource_list = []
+
             # if the input resource is user-associated:
             if op_input.is_user_data_resource_input():
 
@@ -203,15 +213,28 @@ def validate_operation_inputs(
                 # - the file is in the workspace
                 # - the file has the proper resource type
 
-                # if this doens't raise an exception, then the user does own
-                # the file:
-                resource_instance = check_resource_request_validity(
-                    user, supplied_input)
+                # if we are dealing with a single resource
+                # (spec dictates many=False), then put in a list.
+                # This allows us to handle both situations in the
+                # same way:
+                if not data_resource_attr.many:
+                    uuid_list = [supplied_input]
+                else:
+                    uuid_list = supplied_input
 
-                if not workspace in resource_instance.workspaces.all():
-                    raise ExecutedOperationInputOutputException('The resource'
-                        f' ({supplied_input}) was not part of the workspace'
-                        ' where the analysis operation was requested.')
+                for u in uuid_list:
+                    # if this doens't raise an exception, then the user does own
+                    # the file.
+                    resource_instance = check_resource_request_validity(
+                        user, u)
+
+                    if not workspace in resource_instance.workspaces.all():
+                        raise ExecutedOperationInputOutputException(
+                            f'The resource ({supplied_input}) was not'
+                            f' part of the workspace where the'
+                            ' analysis operation was requested.')
+
+                    resource_list.append(resource_instance)
 
             else:
                 # if we are here, then we have a resource that is NOT
@@ -231,7 +254,7 @@ def validate_operation_inputs(
                     and (idx < len(resources_for_field)):
                     r = resources_for_field[idx]
                     if str(r.pk) == supplied_input:
-                        resource_instance = r
+                        resource_list.append(r)
                         matching_resource_found = True
                     idx += 1
                 if not matching_resource_found:
@@ -240,17 +263,12 @@ def validate_operation_inputs(
                         ' associated with the input field for this'
                         ' operation.')
 
-            # now need to check the resource type:
-            # this gets the instance, e.g. an instance of
-            # data_structures.data_resource_attributes.DataResourceAttribute
-            # (or one of the sibling classes)
-            data_resource_attr = op_input.spec.value
-
             # this method will raise an exception if the resource_type
             # of the requested resource does not match the requirements
             # of the specification
-            data_resource_attr.verify_resource_type(
-                resource_instance.resource_type)
+            for resource_instance in resource_list:
+                data_resource_attr.verify_resource_type(
+                    resource_instance.resource_type)
 
         final_inputs[key] = supplied_input
 

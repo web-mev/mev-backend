@@ -380,7 +380,7 @@ class UnrestrictedStringAttribute(BaseAttributeType):
         self._value = val
 
 
-class OptionStringAttribute(BaseAttributeType):
+class BaseOptionAttribute(BaseAttributeType):
     '''
     A String type that only admits one from a set of preset options
     (e.g. like a dropdown)
@@ -392,7 +392,6 @@ class OptionStringAttribute(BaseAttributeType):
     }
     ```
     '''
-    typename = 'OptionString'
     OPTIONS_KEY = 'options'
     REQUIRED_PARAMS = [OPTIONS_KEY, ]
 
@@ -405,9 +404,9 @@ class OptionStringAttribute(BaseAttributeType):
             options = kwargs_dict.pop(self.OPTIONS_KEY)
             if type(options) == list:
                 for opt in options:
-                    if not type(opt) == str:
+                    if not type(opt) == self.BASE_TYPE:
                         raise InvalidAttributeKeywordError('The options need to be'
-                            f' strings. Failed on validating: {opt}')
+                            f' {self.READABLE_TYPE}s. Failed on validating: {opt}')
                 self._options = options
             else:
                 raise InvalidAttributeKeywordError('Need to supply a list with'
@@ -427,6 +426,60 @@ class OptionStringAttribute(BaseAttributeType):
         d = super().to_dict()
         d[self.OPTIONS_KEY] = self._options
         return d
+
+
+class OptionStringAttribute(BaseOptionAttribute):
+
+    typename = 'OptionString'
+
+    # this dictates the type that is contained
+    # in the finite set of options
+    BASE_TYPE = str
+
+    # for a human-readable exception string
+    READABLE_TYPE = 'string'
+
+
+class IntegerOptionAttribute(BaseOptionAttribute):
+    '''
+    An integer type that only admits one from a set of preset values
+    (e.g. like a dropdown)
+    ```
+    {
+        "attribute_type": "IntegerOption",
+        "value": <int>,
+        "options": [<int>, <int>,...,<int/>]
+    }
+    ```
+    '''
+    typename = 'IntegerOption'
+    # this dictates the type that is contained
+    # in the finite set of options
+    BASE_TYPE = int
+
+    # for a human-readable exception string
+    READABLE_TYPE = 'integer'
+
+
+class FloatOptionAttribute(BaseOptionAttribute):
+    '''
+    An float type that only admits one from a set of preset values
+    (e.g. like a dropdown)
+    ```
+    {
+        "attribute_type": "FloatOption",
+        "value": <int>,
+        "options": [<int>, <int>,...,<int/>]
+    }
+    ```
+    '''
+    typename = 'FloatOption'
+    # this dictates the type that is contained
+    # in the finite set of options
+    BASE_TYPE = float
+
+    # for a human-readable exception string
+    READABLE_TYPE = 'float'
 
 
 class BooleanAttribute(BaseAttributeType):
