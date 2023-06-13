@@ -1,0 +1,46 @@
+{
+    "id": "76c9b2d7-5798-4d15-beb2-c172bbede013",
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "count_matrices": {
+            "description": "Some input files", 
+            "name": "Count matrices:", 
+            "required": true, 
+            "converter": "api.converters.data_resource.LocalDockerSingleDataResourceConverter",
+            "spec": {
+                "attribute_type": "VariableDataResource", 
+                "resource_types": ["I_MTX", "EXP_MTX"], 
+                "many": true
+            }
+        },
+        "p_val": {
+            "description": "The filtering threshold for the p-value", 
+            "name": "P-value threshold:", 
+            "required": false, 
+            "converter": "api.converters.basic_attributes.BoundedFloatAttributeConverter",         
+            "spec": {
+                "attribute_type": "BoundedFloat", 
+                "min": 0, 
+                "max": 1.0, 
+                "default": 0.05
+            }
+        }
+    }, 
+    "outputs": {
+        "norm_counts": {
+            "required": true,
+            "converter": "tmp",
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "EXP_MTX", 
+                "many": false
+            }
+        }
+    }, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/myorg/myrepo.git",
+    "repository_name": "github",
+    "git_hash": "abc123",
+    "workspace_operation": true
+}

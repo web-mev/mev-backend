@@ -279,6 +279,108 @@ class OperationUtilsTester(BaseAPITestCase):
 
     @mock.patch('api.utilities.operations.get_operation_instance')
     @mock.patch('api.utilities.operations.check_resource_request_validity')
+    def test_multiple_resource_input(self, 
+        mock_check_resource_request_validity, mock_get_operation_instance):
+        '''
+        Tests the cases where we have an input that is of type
+        VaribleDataResource with many=True, which permits a list
+        of resource UUIDs 
+        
+        In that case, we need to check that each of the passed
+        inputs (a UUID) is owned by the requesting user and associated
+        with the workspace. Also test we raise an exception when those 
+        checks fail
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'valid_op_with_multiple_resource_input.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+
+        # get two resources that are valid with the spec:
+        all_r = Resource.objects.filter(owner=self.regular_user_1)
+        r1 = all_r[0]
+        r2 = all_r[1]
+        r1.resource_type = 'I_MTX'
+        r2.resource_type = 'EXP_MTX'
+        r1.file_format = 'TSV'
+        r2.file_format = 'TSV'
+        r1.workspaces.add(self.workspace)
+        r2.workspaces.add(self.workspace)
+        r1.save()
+        r2.save()
+        mock_check_resource_request_validity.side_effect = [
+            r1,
+            r2
+        ]
+        sample_inputs = {
+            'p_val': 0.05,
+            'count_matrices': [str(r1.pk), str(r2.pk)]
+        }
+        final_inputs = validate_operation_inputs(self.regular_user_1, 
+            sample_inputs, self.db_op, self.workspace)
+        self.assertDictEqual(final_inputs, sample_inputs)
+        mock_check_resource_request_validity.assert_has_calls([
+            mock.call(self.regular_user_1, str(r1.pk)),
+            mock.call(self.regular_user_1, str(r2.pk))
+        ])
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    @mock.patch('api.utilities.operations.check_resource_request_validity')
+    def test_multiple_resource_input_with_bad_type(self, 
+        mock_check_resource_request_validity, mock_get_operation_instance):
+        '''
+        Tests the cases where we have an input that is of type
+        VaribleDataResource with many=True, which permits a list
+        of resource UUIDs 
+        
+        Here, we take one of the resource types to be invalid-
+        the spec says we only take certain types and somehow
+        we receive a uuid referencing a resource with an
+        invalid resource type
+        '''
+        f = os.path.join(
+            TESTDIR,
+            'valid_op_with_multiple_resource_input.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+
+        # get two resources that are valid with the spec:
+        all_r = Resource.objects.filter(owner=self.regular_user_1)
+        r1 = all_r[0]
+        r2 = all_r[1]
+        r1.resource_type = 'FT'
+        r2.resource_type = 'EXP_MTX'
+        r1.file_format = 'TSV'
+        r2.file_format = 'TSV'
+        r1.workspaces.add(self.workspace)
+        r2.workspaces.add(self.workspace)
+        r1.save()
+        r2.save()
+        mock_check_resource_request_validity.side_effect = [
+            r1,
+            r2
+        ]
+        sample_inputs = {
+            'p_val': 0.05,
+            'count_matrices': [str(r1.pk), str(r2.pk)]
+        }
+        with self.assertRaisesRegex(InvalidResourceTypeException, 'FT'):
+            validate_operation_inputs(self.regular_user_1, 
+                sample_inputs, self.db_op, self.workspace)
+
+        mock_check_resource_request_validity.assert_has_calls([
+            mock.call(self.regular_user_1, str(r1.pk)),
+            mock.call(self.regular_user_1, str(r2.pk))
+        ])
+     
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    @mock.patch('api.utilities.operations.check_resource_request_validity')
     def test_optional_resource_input(self, 
         mock_check_resource_request_validity, mock_get_operation_instance):
         '''

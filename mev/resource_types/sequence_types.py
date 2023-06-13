@@ -6,7 +6,8 @@ import logging
 from constants import FASTQ_FORMAT, \
     FASTA_FORMAT, \
     BAM_FORMAT, \
-    PARENT_OP_KEY
+    PARENT_OP_KEY, \
+    UNSPECIFIED_FORMAT
 
 from .base import DataResource
 
@@ -89,6 +90,18 @@ class AlignedSequenceResource(SequenceResource):
         BAM_FORMAT
     ]
     STANDARD_FORMAT = BAM_FORMAT
+
+    def validate_type(self, resource_instance, file_format):
+        pass
+
+
+class BAMIndexResource(SequenceResource):
+    '''
+    This is used to identify index files for BAMs. 
+    '''
+    DESCRIPTION = 'Index file corresponding to a BAM-format aligned sequence file.'
+
+    ACCEPTABLE_FORMATS = [UNSPECIFIED_FORMAT]
 
     def validate_type(self, resource_instance, file_format):
         pass

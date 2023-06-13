@@ -730,6 +730,16 @@ class TestDataResourceConverter(BaseAPITestCase):
             mock.call(u, mock_staging_dir) for u in mock_inputs
         ])
 
+        c = LocalDockerMultipleVariableDataResourceConverter()
+        mock_convert_resource_input.reset_mock()
+        mock_convert_resource_input.side_effect = mock_paths
+        c._convert_resource_input = mock_convert_resource_input
+        x = c.convert_input( mock_inputs, '', mock_staging_dir)
+        self.assertEqual(x,  mock_paths)
+        mock_convert_resource_input.assert_has_calls([
+            mock.call(u, mock_staging_dir) for u in mock_inputs
+        ])
+
         c = LocalDockerCsvResourceConverter()
         mock_convert_resource_input.reset_mock()
         mock_convert_resource_input.side_effect = mock_paths

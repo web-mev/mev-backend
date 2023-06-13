@@ -246,3 +246,12 @@ class ParserNotFoundException(WebMeVException):
 
 class NonexistentGlobusTokenException(WebMeVException):
     pass
+
+
+class GlobusTransferPermissionsError(WebMeVException):
+    '''
+    Used when we attempt to submit a transfer but catch a 403.
+    This will often be caused by users who may have multiple Globus
+    accounts.
+    '''
+    pass

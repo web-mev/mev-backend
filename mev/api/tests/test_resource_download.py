@@ -201,15 +201,15 @@ class ResourceUrlFetchTests(BaseAPITestCase):
         self.inactive_resource = inactive_resources[0]
 
         self.url_for_small_active_resource = reverse(
-            'download-resource-url', 
+            'signed-resource-url', 
             kwargs={'pk':self.small_active_resource.pk}
         )
         self.url_for_large_active_resource = reverse(
-            'download-resource-url', 
+            'signed-resource-url', 
             kwargs={'pk':self.large_active_resource.pk}
         )
         self.url_for_inactive_resource = reverse(
-            'download-resource-url', 
+            'signed-resource-url', 
             kwargs={'pk':self.inactive_resource.pk}
         )
 
@@ -242,7 +242,7 @@ class ResourceUrlFetchTests(BaseAPITestCase):
         associate_file_with_resource(r, f)
 
         url = reverse(
-            'download-resource-url', 
+            'signed-resource-url', 
             kwargs={'pk':r.pk}
         )
         mock_check_resource_request_validity.return_value = r
@@ -281,7 +281,7 @@ class ResourceUrlFetchTests(BaseAPITestCase):
         associate_file_with_resource(r, f)
 
         url = reverse(
-            'download-resource-url', 
+            'signed-resource-url', 
             kwargs={'pk':r.pk}
         )
         mock_check_resource_request_validity.return_value = r

@@ -43,7 +43,7 @@ urlpatterns = [
     path('resources/upload/', api.views.ResourceUploadView.as_view(), name='resource-upload'),
 
     path('resources/dropbox-upload/', api.views.DropboxUpload.as_view(), name='dropbox-upload'),
-    path('resources/download-url/<uuid:pk>/', api.views.ResourceDownloadUrl.as_view(), name='download-resource-url'),
+    path('resources/signed-url/<uuid:pk>/', api.views.ResourceSignedUrl.as_view(), name='signed-resource-url'),
     path('resources/download/<uuid:pk>/', api.views.ResourceDownload.as_view(), name='download-resource'),
 
     # For globus 

@@ -1,6 +1,7 @@
 import uuid
 import os
 import re
+import datetime
 import logging
 
 from rest_framework.views import APIView
@@ -14,13 +15,15 @@ import globus_sdk
 from globus_sdk import TransferAPIError, \
     GlobusAPIError
 
-from exceptions import NoResourceFoundException
+from exceptions import NoResourceFoundException, \
+    GlobusTransferPermissionsError
 
 from api.utilities.globus import random_string, \
     get_globus_client, \
     create_or_update_token, \
     get_globus_token_from_db, \
     get_globus_uuid, \
+    get_globus_username, \
     check_globus_tokens, \
     create_user_transfer_client, \
     create_application_transfer_client, \
@@ -90,6 +93,10 @@ class GlobusUploadView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
                             
         params = request.data['params']
+        
+        # Handle the case where a user does not submit a label:
+        if len(params['label']) == 0:
+            params['label'] = datetime.datetime.now().strftime('WebMeV.%y%m%d.%H%M%S')
 
         app_transfer_client = create_application_transfer_client()
         user_transfer_client = create_user_transfer_client(request.user)
@@ -136,18 +143,30 @@ class GlobusUploadView(APIView):
 
         user_transfer_client.endpoint_autoactivate(source_endpoint_id)
         user_transfer_client.endpoint_autoactivate(destination_endpoint_id)
-        task_id = submit_transfer(user_transfer_client, transfer_data)
-        if task_id:
-            task_data = user_transfer_client.get_task(task_id)
-            GlobusTask.objects.create(
-                user=request.user,
-                task_id=task_id,
-                rule_id=rule_id,
-                label=task_data['label']
+        try:
+            task_id = submit_transfer(user_transfer_client, transfer_data)
+            if task_id:
+                task_data = user_transfer_client.get_task(task_id)
+                GlobusTask.objects.create(
+                    user=request.user,
+                    task_id=task_id,
+                    rule_id=rule_id,
+                    label=task_data['label']
+                )
+                poll_globus_task.delay(task_id, GLOBUS_UPLOAD)
+            return Response({'transfer_id': task_id})
+        except GlobusTransferPermissionsError as ex:
+            globus_username = get_globus_username(request.user)
+            error_msg = ('When attempting to submit the transfer,'
+                ' we received an error response from Globus. Often,'
+                ' this is due to WebMeV users with multiple Globus'
+                ' accounts/identities. We have permissions for the'
+                f' Globus account with username {globus_username}.'
+                ' Please ensure your browser is logged into'
+                ' this account by visiting app.globus.org.')
+            return Response(
+                {'error': error_msg}
             )
-            poll_globus_task.delay(task_id, GLOBUS_UPLOAD)
-        return Response({'transfer_id': task_id})
-
 
 class GlobusDownloadView(APIView):
 

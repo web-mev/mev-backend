@@ -13,7 +13,9 @@ from data_structures.attribute_types import IntegerAttribute, \
     BoundedIntegerAttribute, \
     BoundedFloatAttribute, \
     BooleanAttribute, \
-    OptionStringAttribute
+    OptionStringAttribute, \
+    IntegerOptionAttribute, \
+    FloatOptionAttribute
 
 from exceptions import NullAttributeError, \
     AttributeValueError, \
@@ -459,3 +461,98 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 
             'need to be strings'):
             s = OptionStringAttribute('xyz', options=['xyz',1,'abc'])
+
+
+    def test_integer_option_attribute(self):
+
+        # test that leaving out the 'options' key causes a problem
+        with self.assertRaises(MissingAttributeKeywordError):
+            s = IntegerOptionAttribute(1)
+
+        # test that a valid spec works
+        s = IntegerOptionAttribute(10, options=[10,15])
+        self.assertEqual(s.value, 10)
+        expected_dict_representation = {
+            'attribute_type': 'IntegerOption', 
+            'value': 10, 
+            'options': [10, 15]
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
+
+        # test that float or int doesn't matter for supplied value:
+        s = IntegerOptionAttribute(10.0, options=[10,20])
+
+        # test that we don't accept a float if it can't be cast to an int
+        with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
+            s = IntegerOptionAttribute(10.5, options=[10,15])
+
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'integers'):
+            IntegerOptionAttribute(10, options=[10,10.5])
+
+        # test null value when allowed:
+        s = IntegerOptionAttribute(None, options=[10,20], allow_null=True)
+        self.assertIsNone(s.value)
+
+        # test that exception raised if value is not in the valid options
+        with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
+            s = IntegerOptionAttribute(-2, options=[10,15])
+
+        # test that exception raised if options are not a list
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
+            s = IntegerOptionAttribute(10, options=10)
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
+            s = IntegerOptionAttribute(10, options={})
+
+        # test that exception raised if value if one of the options is
+        # not a nunber. The value is valid against one of the options, but
+        # we require everything to be perfect.
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 
+            'need to be integers'):
+            s = IntegerOptionAttribute(10, options=[5,10,'abc'])
+
+    def test_float_option_attribute(self):
+
+        # test that leaving out the 'options' key causes a problem
+        with self.assertRaises(MissingAttributeKeywordError):
+            s = FloatOptionAttribute(1.0)
+
+        # test that a valid spec works
+        s = FloatOptionAttribute(10.2, options=[10.2,15.5])
+        self.assertEqual(s.value, 10.2)
+        expected_dict_representation = {
+            'attribute_type': 'FloatOption', 
+            'value': 10.2, 
+            'options': [10.2, 15.5]
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
+
+        # test that float or int doesn't matter for supplied value:
+        s = FloatOptionAttribute(10.0, options=[10.0,20.0])
+
+        # test that we don't accept a float if it can't be cast to an int
+        with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
+            s = FloatOptionAttribute(10.5, options=[10.0,15.0])
+
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'floats'):
+            FloatOptionAttribute(10, options=[10,10.5])
+
+        # test null value when allowed:
+        s = FloatOptionAttribute(None, options=[10.5,20.2], allow_null=True)
+        self.assertIsNone(s.value)
+
+        # test that exception raised if value is not in the valid options
+        with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
+            s = FloatOptionAttribute(2.2, options=[10.0,15.0])
+
+        # test that exception raised if options are not a list
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
+            s = FloatOptionAttribute(10.0, options=10.0)
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'list'):
+            s = FloatOptionAttribute(10.0, options={})
+
+        # test that exception raised if value if one of the options is
+        # not a nunber. The value is valid against one of the options, but
+        # we require everything to be perfect.
+        with self.assertRaisesRegex(InvalidAttributeKeywordError, 
+            'need to be floats'):
+            s = FloatOptionAttribute(10.5, options=[5.5,10.5,'abc'])

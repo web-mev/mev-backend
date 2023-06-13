@@ -15,7 +15,7 @@ from .resource_views import ResourceList, \
     AddBucketResourceView, \
     ResourceContentTransform
 from .resource_download import ResourceDownload, \
-    ResourceDownloadUrl
+    ResourceSignedUrl
 from .operation_resource_views import OperationResourceList, \
     OperationResourceFieldList
 from .workspace_resource_views import WorkspaceResourceList, \

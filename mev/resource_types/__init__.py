@@ -3,6 +3,7 @@ import logging
 from constants import FASTQ_KEY, \
     FASTA_KEY, \
     ALIGNMENTS_KEY, \
+    BAI_KEY, \
     FEATURE_TABLE_KEY, \
     MATRIX_KEY, \
     INTEGER_MATRIX_KEY, \
@@ -10,7 +11,12 @@ from constants import FASTQ_KEY, \
     RNASEQ_COUNT_MATRIX_KEY, \
     NETWORK_DESCRIPTOR_KEY, \
     ANNOTATION_TABLE_KEY, \
-    BED_FILE_KEY, \
+    BED3_FILE_KEY, \
+    BED6_FILE_KEY, \
+    NARROWPEAK_FILE_KEY, \
+    WIG_FILE_KEY, \
+    BIGWIG_FILE_KEY, \
+    BEDGRAPH_FILE_KEY, \
     JSON_FILE_KEY, \
     GENERAL_FILE_KEY, \
     WILDCARD, \
@@ -23,17 +29,23 @@ from .base import DataResource
 
 from .sequence_types import FastAResource, \
     FastQResource, \
-    AlignedSequenceResource
+    AlignedSequenceResource, \
+    BAMIndexResource
 
 from .table_types import Matrix, \
     IntegerMatrix, \
     Network, \
     AnnotationTable, \
     FeatureTable, \
-    BEDFile
+    BED3File, \
+    BED6File, \
+    NarrowPeakFile
 
 from .general_types import GeneralResource
 from .json_types import JsonResource
+from .genomic_display_types import WigFileResource, \
+    BigWigFileResource, \
+    BedGraphFileResource
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +55,7 @@ RESOURCE_MAPPING = {
     FASTQ_KEY: FastQResource, 
     FASTA_KEY: FastAResource,
     ALIGNMENTS_KEY: AlignedSequenceResource,
+    BAI_KEY: BAMIndexResource,
     FEATURE_TABLE_KEY: FeatureTable,
     MATRIX_KEY: Matrix,
     INTEGER_MATRIX_KEY: IntegerMatrix,
@@ -50,7 +63,12 @@ RESOURCE_MAPPING = {
     RNASEQ_COUNT_MATRIX_KEY: IntegerMatrix,
     NETWORK_DESCRIPTOR_KEY: Network,
     ANNOTATION_TABLE_KEY: AnnotationTable,
-    BED_FILE_KEY: BEDFile,
+    BED3_FILE_KEY: BED3File,
+    BED6_FILE_KEY: BED6File,
+    NARROWPEAK_FILE_KEY: NarrowPeakFile,
+    WIG_FILE_KEY: WigFileResource,
+    BIGWIG_FILE_KEY: BigWigFileResource,
+    BEDGRAPH_FILE_KEY: BedGraphFileResource,
     JSON_FILE_KEY: JsonResource,
     WILDCARD: GeneralResource
 } 
@@ -67,6 +85,10 @@ RESOURCE_TYPES_WITHOUT_VALIDATION = set([
     FastAResource,
     FastQResource,
     AlignedSequenceResource,
+    BAMIndexResource,
+    WigFileResource,
+    BigWigFileResource,
+    BedGraphFileResource,
     GeneralResource
 ])
 
@@ -74,6 +96,7 @@ RESOURCE_TYPES_WITHOUT_VALIDATION = set([
 # will not return resource previews. For instance, we do not want to 
 # produce the contents of a FASTQ file. 
 RESOURCE_TYPES_WITHOUT_CONTENTS_VIEW = RESOURCE_TYPES_WITHOUT_VALIDATION
+
 
 def get_resource_type_instance(resource_type_str):
     '''

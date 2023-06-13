@@ -12,7 +12,8 @@ from globus_sdk import TransferAPIError, \
 from django.conf import settings
 from django.core.files.storage import default_storage
 
-from exceptions import NonexistentGlobusTokenException
+from exceptions import NonexistentGlobusTokenException, \
+    GlobusTransferPermissionsError
 from api.models import GlobusTokens, GlobusTask
 from api.utilities.admin_utils import alert_admins
 from api.storage import S3_PREFIX
@@ -129,6 +130,17 @@ def get_globus_uuid(user):
     client = get_globus_client()
     introspection_data = perform_token_introspection(client, auth_tokens)
     return introspection_data['sub']
+
+
+def get_globus_username(user):
+    '''
+    Returns the Globus username for the given
+    WebMeV user
+    '''
+    auth_tokens = get_globus_tokens(user, key='auth.globus.org')
+    client = get_globus_client()
+    introspection_data = perform_token_introspection(client, auth_tokens)
+    return introspection_data['username']
 
 
 def create_application_transfer_client():
@@ -419,6 +431,9 @@ def submit_transfer(transfer_client, transfer_data):
         else:
             err_msg = f'Error with initiating Globus transfer. Got auth params: {authz_params}'
         logger.info(err_msg)
+        logger.info(f'Exception caught: {ex}')
+        if ex.http_status == 403:
+            raise GlobusTransferPermissionsError()
         alert_admins(err_msg)
     except GlobusAPIError as ex:
         err_msg = f'Caught a general GlobusAPIError. Exception was {ex}'

@@ -1280,9 +1280,10 @@ class FeatureTable(ElementTable):
         return self.metadata
 
 
-class BEDFile(TableResource):
+class BaseBEDFile(TableResource):
     '''
-    A file format that corresponds to the BED format.  This is
+    A "base" BED file format that handles common elements of all BED
+    (and extended BED) formats; corresponds to the BED3 format.  This is
     the minimal BED format, which has:
 
     - chromosome
@@ -1296,25 +1297,48 @@ class BEDFile(TableResource):
 
     ACCEPTABLE_FORMATS = [TSV_FORMAT,]
 
-    DESCRIPTION = 'A three-column BED-format file. https://ensembl.org/info/website/upload/bed.html'\
-        ' BED files do NOT have column headers and are expected to be stored' \
-        ' in a tab-delimited format.'
-
-
-    def validate_type(self, resource_instance, file_format):
+    def _read_resource(self, resource_instance, names, column_numbers):
 
         # Note that we don't use the TableResource.read_resource since we have
         # a different way of parsing the table here.
-        reader = TableResource.get_reader(file_format)
+        reader = TableResource.get_reader(TSV_FORMAT)
 
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
         # the proper integer type.
-        table = reader(resource_instance.datafile.open(), 
-            names=['chrom','start','stop'],
-            usecols=[0,1,2])
-        start_col_int = re.match('int\d{0,2}', str(table['start'].dtype))
-        stop_col_int = re.match('int\d{0,2}', str(table['stop'].dtype))
+        try:
+            self.table = reader(resource_instance.datafile.open(), 
+                names=names,
+                usecols=column_numbers)
+        except pd.errors.ParserError as ex:
+            logger.info(f'Failed to parse. Exception: {ex}')
+            raise ex
+
+        # check if any NAs- not permissible.
+        # TODO: can change this awkward double sum application
+        #       to sum(axis=None) if pandas==v2.0.0
+        if self.table.isna().sum().sum() > 0:
+            logger.info(f'Encountered a "NA" value. Table was {self.table}')
+            raise Exception('Encountered one or more "NA" values. This is'
+                ' often caused by blank table cells or using spaces instead'
+                ' of tabs to separate fields.')
+
+    def save_in_standardized_format(self, resource_instance, current_file_format):
+        '''
+        We override this method from TableResource since BED (and related) files
+        do NOT have headers.
+
+        Since the original file passed validation, we do nothing-- it was
+        already in the desired format.
+        '''
+        logger.info(f'Saving BED-like resource ({resource_instance.pk})'
+            ' to the standard TSV format. Nothing to do.')
+        pass
+
+    def _validate(self):
+
+        start_col_int = re.match('int\d{0,2}', str(self.table['start'].dtype))
+        stop_col_int = re.match('int\d{0,2}', str(self.table['stop'].dtype))
         if start_col_int and stop_col_int:
             return (True, None)
         else:
@@ -1331,3 +1355,250 @@ class BEDFile(TableResource):
     def extract_metadata(self, resource_instance, parent_op_pk=None):
         super().extract_metadata(resource_instance, parent_op_pk=parent_op_pk)
         return self.metadata
+
+
+class BED3File(BaseBEDFile):
+    '''
+    A basic three-column BED file format (BED3):
+    - chromosome
+    - start position
+    - end position
+
+    Additional columns are ignored.
+    '''
+    DESCRIPTION = 'A three-column BED-format file (https://ensembl.org/info/website/upload/bed.html)'\
+        ' BED files do NOT have column headers and are expected to be stored' \
+        ' in a tab-delimited format.'
+
+    NAMES = ['chrom', 'start', 'stop']
+    COLUMN_NUMBERS = list(range(3))
+
+    def read_resource(self, resource_instance):
+        self._read_resource(resource_instance,
+            BED3File.NAMES, BED3File.COLUMN_NUMBERS)
+
+    def validate_type(self, resource_instance, file_format):
+        try:
+            self.read_resource(resource_instance)
+        except Exception as ex:
+            return (False, str(ex))
+
+        return super()._validate()
+
+
+class BED6File(BED3File):
+    '''
+    An extended six-column BED file format:
+
+    - chromosome
+    - start position
+    - end position
+    - name
+    - score
+    - strand
+
+    Additional columns are ignored.
+
+    By default, BED files do NOT contain headers and we enforce that here.
+    '''
+    DESCRIPTION = 'A six-column BED-format file (columns 1 through 6 defined at'\
+        ' https://ensembl.org/info/website/upload/bed.html)'\
+        ' BED files do NOT have column headers and are expected to be stored' \
+        ' in a tab-delimited format.'
+
+    NAMES = ['chrom', 'start', 'stop', 'name', 'score', 'strand']
+    COLUMN_NUMBERS = list(range(6))
+    ACCEPTABLE_STRAND_VALUES = set(['.', '+', '-'])
+
+    def read_resource(self, resource_instance):
+        self._read_resource(resource_instance,
+            BED6File.NAMES, BED6File.COLUMN_NUMBERS)
+
+    def _validate(self):
+        is_valid, error_message = super()._validate()
+                
+        if is_valid: #passes BED3
+            error_message = ''
+
+            # ensure the score and strand columns are OK.
+            score_valid, err = self._check_score_column()
+            error_message += err
+
+            strand_valid, err = self._check_strand_column()
+            error_message += '.' + err
+
+            if score_valid and strand_valid:
+                return (True, '')
+            else:
+                return (False, error_message)
+        else:
+            # did not pass the check on the first 3 columns
+            return (is_valid, error_message)
+
+    def validate_type(self, resource_instance, file_format):
+        try:
+            self.read_resource(resource_instance)
+        except Exception as ex:
+            return (False, str(ex))
+        return self._validate()
+
+    def _check_strand_column(self):
+        unique_strand_values = set(self.table['strand'].unique())
+        diff_set = unique_strand_values.difference(
+            BED6File.ACCEPTABLE_STRAND_VALUES)
+        if len(diff_set) > 0:
+            error_message = ('Your 6th column (strand) contained'
+            ' unexpected values. We accept only'
+            f' {",".join(BED6File.ACCEPTABLE_STRAND_VALUES)}'
+            f' and yours contained {",".join(diff_set)}.')
+            return (False, error_message)
+        return (True, '') 
+
+    def _check_score_column(self):
+        # the score column needs to be integers between 0 and 1000
+        score_col_int = re.match('int\d{0,2}', str(self.table['score'].dtype))
+        if score_col_int:
+            min_score = self.table['score'].min()
+            max_score = self.table['score'].max()
+            if (min_score < 0) or (max_score > 1000):
+                error_message = ('BED format requires that the 5th column'
+                ' (score) has integer values between 0 and 1000. Your'
+                f' range of [{min_score},{max_score}] exceeds this.')
+                return (False, error_message)
+            return (True, '')
+        else:
+            # score column was not an integer
+            error_message = ('Please check that the 5th column (score)'
+            ' has only integer values between 0 and 1000. We could not'
+            ' parse this column as only integers. If empty, simply fill'
+            ' with all zeroes.')
+            return (False, error_message)
+
+
+class NarrowPeakFile(BED6File):
+    '''
+    An extended ten-column BED file format:
+    http://genome.ucsc.edu/FAQ/FAQformat.html#format12
+    - chromosome
+    - start position
+    - end position
+    - name
+    - score
+    - strand
+    - signalValue (number)
+    - p_value (float or -1)
+    - q_value (float or -1)
+    - peak (0-based offset, or -1)
+
+    Note that the p and q values are transformed 
+    via -log10, so their range is [0,+inf)
+    '''
+    DESCRIPTION = 'A 10-column BED-format file (columns 1 through 6 defined at'\
+        ' http://genome.ucsc.edu/FAQ/FAQformat.html#format12.'\
+        ' BED files do NOT have column headers and are expected to be stored' \
+        ' in a tab-delimited format.'
+
+    NAMES = BED6File.NAMES + ['signal_value', 'pval', 'qval', 'peak']
+    COLUMN_NUMBERS = list(range(10))
+
+    def read_resource(self, resource_instance):
+        self._read_resource(resource_instance,
+            NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS)
+
+    def _check_signal_column(self):
+        '''
+        Signal column is simply a number. No constraints specified in the spec.
+        '''
+        if re.match('(int|float)\d{0,2}', 
+            str(self.table['signal_value'].dtype)):
+            return (True, '')
+        else:
+            error_message = ('The 7th column needs to have only numbers.')
+            return (False, error_message)
+
+    def _check_peak_column(self):
+        '''
+        The 10th column is supposed to be a 0-based offset or -1. Thus,
+        we only permit the union of positive integers and -1
+        '''
+        error_message = ('The 10th is a either 0-based offset (relative to'
+                ' chromosome start) or -1. This permits only integers. Please'
+                ' check your 10th column.')
+
+        if re.match('int\d{0,2}', 
+            str(self.table['peak'].dtype)):
+            values = self.table['peak']
+            negative_values = values[values < 0].unique()
+            if len(negative_values) == 1:
+                if negative_values[0] != -1:
+                    error_message += f' Found a value of {negative_values[0]}'
+                    return (False, error_message)
+                return (True, '')
+            elif len(negative_values) > 1:
+                negative_values.sort()
+                error_message += (' Found values of'
+                    f' {",".join([str(x) for x in negative_values])}')
+                return (False, error_message)
+            else:
+                # if here, there were no negative values
+                return  (True, '')
+        else:
+            return (False, error_message)
+
+    def _check_p_or_q_column(self, col_name):
+        '''
+        This handles validating the p and q-value columns 
+        (8th or 9th col in 1-based index).
+        These can be floats on [0,+inf] or -1 if not provided.
+        `col_num` should be the zero-based index
+        '''
+        col_num = 7 if col_name == 'p-value' else 8
+
+        # needs to at least by numerical, marked by either int or float dtypes
+        if re.match('(float|int)\d{0,2}', str(self.table[col_name].dtype)):
+            values = self.table[col_name]
+            negative_values = values[values < 0]
+            if not np.allclose(negative_values, -1.0):
+                error_message = ('The significance values in column'
+                    f' {col_num + 1} ({col_name}) should be positive or -1.'
+                    ' Found negative values other than -1.')
+                return (False, error_message)
+            return (True, '')
+        else:
+            error_message = (f'The {col_num + 1}th column ({col_name})'
+                ' needs to be a number. Non-numerical values were found.')
+            return (False, error_message)
+
+    def _validate(self):
+        is_valid, error_message = super()._validate()
+        if is_valid: # passes BED6 format (and, by transitive property, BED3)
+            error_message = ''
+
+            # ensure the score and strand columns are OK.
+            signal_valid, err = self._check_signal_column()
+            error_message += err
+
+            pval_valid, err = self._check_p_or_q_column('pval')
+            error_message += '. ' + err
+
+            qval_valid, err = self._check_p_or_q_column('qval')
+            error_message += '. ' + err
+
+            peak_valid, err = self._check_peak_column()
+            error_message += '. ' + err
+
+            if all([signal_valid, pval_valid, qval_valid, peak_valid]):
+                return (True, '')
+            else:
+                return (False, error_message)
+        else:
+            return (False, error_message)
+
+    def validate_type(self, resource_instance, file_format):
+        try:
+            self.read_resource(resource_instance)
+        except Exception as ex:
+            return (False, str(ex))
+        return self._validate()
+
+    
