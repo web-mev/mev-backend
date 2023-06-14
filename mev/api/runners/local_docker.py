@@ -129,6 +129,10 @@ class LocalDockerRunner(OperationRunner):
                 executed_op.job_failed = False
                 executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
 
+                # if everything went well, including conversion of outputs,
+                # we can delete the execution directory.
+                self._clean_following_success(job_id)
+
             except Exception as ex:
                 # if the outputs file was not found or if some
                 # other exception was raised, mark the job failed.

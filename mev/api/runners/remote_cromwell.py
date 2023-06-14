@@ -401,6 +401,8 @@ class RemoteCromwellRunner(OperationRunner):
         `op` is an instance of data_structures.operation.Operation
         '''
 
+        # note that job_id is the ID assigned by Cromwell. Our database
+        # has its own primary key for this executed operation.
         job_id = executed_op.job_id
         job_metadata = self.query_for_metadata(job_id)
         try:
@@ -421,7 +423,7 @@ class RemoteCromwellRunner(OperationRunner):
         except KeyError as ex:
             outputs_dict = {}
             error_msg = ('The job metadata payload received from'
-                f' executed op ({executed_op.job_id})'
+                f' executed op ({executed_op.pk})'
                 f' with Cromwell ID {job_id} did not contain the'
                 ' "outputs" key in the payload')
             logger.info(error_msg)
@@ -433,6 +435,11 @@ class RemoteCromwellRunner(OperationRunner):
             executed_op.execution_stop_datetime = end_time
             executed_op.job_failed = False
             executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
+
+            # if everything went well, including conversion of outputs,
+            # we can delete the execution directory.
+            self._clean_following_success(str(executed_op.pk))
+
         except OutputConversionException as ex:
             executed_op.execution_stop_datetime = end_time
             executed_op.job_failed = True

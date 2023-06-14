@@ -395,6 +395,8 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         # we "convert" by turning '1' into 2
         mock_convert_outputs.return_value = {'a':2}
         rcr._convert_outputs = mock_convert_outputs
+        mock_clean_following_success = mock.MagicMock()
+        rcr._clean_following_success = mock_clean_following_success
         rcr.finalize(self.executed_op, mock_op)
 
         # query again to see changes were made to the db
@@ -410,6 +412,8 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
             mock_op,
             mock_job_outputs
         )
+        mock_clean_following_success.assert_called_once_with(str(exec_op_id))
+
 
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
     @mock.patch('api.runners.remote_cromwell.alert_admins')
@@ -452,6 +456,9 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         # the outputs in the Cromwell job metadata
         mock_op.outputs = {'a': 1}
 
+        mock_clean_following_success = mock.MagicMock()
+        rcr._clean_following_success = mock_clean_following_success
+
         # call the tested function. Note that while the 
         # _convert_outputs method raises an OutputConversionException,
         # we catch that in handle_job_success, marking the 
@@ -467,6 +474,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         self.assertEqual(dt_wout_tzinfo, expected_end_datetime)
         self.assertEqual(exec_op.status, ExecutedOperation.FINALIZING_ERROR)
         mock_alert_admins.assert_called()
+        mock_clean_following_success.assert_not_called()
 
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_metadata')
     @mock.patch('api.runners.remote_cromwell.RemoteCromwellRunner.query_for_status')
@@ -515,7 +523,11 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         # call the tested func.
         rcr = RemoteCromwellRunner()
         mock_op = mock.MagicMock()
+        mock_clean_following_success = mock.MagicMock()
+        rcr._clean_following_success = mock_clean_following_success
         rcr.finalize(self.executed_op, mock_op)
+
+        mock_clean_following_success.assert_not_called()
 
         # query again to see changes were made to the db
         exec_op = ExecutedOperation.objects.get(id=exec_op_id)
@@ -610,6 +622,8 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
         mock_convert_outputs = mock.MagicMock()
         mock_convert_outputs.side_effect = [OutputConversionException('!!!')]
         rcr._convert_outputs = mock_convert_outputs
+        mock_clean_following_success = mock.MagicMock()
+        rcr._clean_following_success = mock_clean_following_success
         mock_op = mock.MagicMock()
         rcr.handle_job_success(exec_op, mock_op)
 
@@ -622,6 +636,7 @@ class RemoteCromwellRunnerTester(BaseAPITestCase):
             mock_op,
             mock_job_outputs
         )
+        mock_clean_following_success.assert_not_called()
 
     @override_settings(CROMWELL_SERVER_URL='http://mock-cromwell-server:8080')
     @override_settings(OPERATION_LIBRARY_DIR='/data/op_dir')
