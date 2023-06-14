@@ -191,11 +191,11 @@ resource "aws_batch_compute_environment" "cromwell" {
   }
   compute_resources {
     instance_role      = aws_iam_instance_profile.batch_instance.arn
-    instance_type      = ["optimal"]
+    instance_type      = ["c5","m5","r5"]
     max_vcpus          = 64
     min_vcpus          = 0
     security_group_ids = [aws_security_group.batch_service.id]
-    subnets            = [aws_subnet.public.id]
+    subnets            = [aws_subnet.public.id, aws_subnet.extra.id]
     type               = "EC2"
     tags               = local.common_tags
     launch_template {
