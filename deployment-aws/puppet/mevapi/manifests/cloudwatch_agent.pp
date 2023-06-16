@@ -8,14 +8,14 @@ class mevapi::cloudwatch_agent () {
         ensure => present,
         source => 'https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb',
         mode   => '0550',
-        owner  => $app_user
+        owner  => $mevapi::app_user
     }
 
     file { '/tmp/amazon-cloudwatch-agent.deb.sig':
         ensure => present,
         source => 'https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb.sig',
         mode   => '0550',
-        owner  => $app_user
+        owner  => $mevapi::app_user
     }
 
     package { 'amazon-cloudwatch-agent':
@@ -23,17 +23,17 @@ class mevapi::cloudwatch_agent () {
         source => '/tmp/amazon-cloudwatch-agent.deb'
     }
     ->
-    file { "${cloudwatch_agent_dir}/etc/cloudwatch_config.json":
+    file { "${cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json":
         ensure  => file,
         content => epp('mevapi/cloudwatch_config.json.epp'),
-        owner   => $app_user,
-        group   => $app_user,
+        owner   => $mevapi::app_user,
+        group   => $mevapi::app_user,
     }
     ~>
     exec { 'cloudwatch_agent':
         command => "${cloudwatch_agent_dir}/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
-        -c file:${cloudwatch_agent_dir}/etc/cloudwatch_config.json",
-        creates => "${cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.d/file_cloudwatch_config.json"
+        -c file:${cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json",
+        creates => "${cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json"
     }
     ->
     service { 'amazon-cloudwatch-agent':
@@ -42,7 +42,7 @@ class mevapi::cloudwatch_agent () {
     }
   }
   else {
-      
+
   }
 
 }

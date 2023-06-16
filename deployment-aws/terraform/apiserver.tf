@@ -60,6 +60,28 @@ resource "aws_iam_role_policy_attachment" "api_server_cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/AWSOpsWorksCloudWatchLogs"
 }
 
+resource "aws_iam_role_policy_attachment" "api_server_cloudwatch_agent" {
+  role       = aws_iam_role.api_server_role.id
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "aws_iam_role_policy" "log_retention" {
+  name   = "AllowCLoudWatchLogRetention"
+  role   = aws_iam_role.api_server_role.id
+  policy = jsonencode(
+    {
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Effect   = "Allow",
+          Action   = ["logs:PutRetentionPolicy"],
+          Resource = "*"
+        }
+      ]
+    }
+  )
+}
+
 resource "aws_iam_instance_profile" "api_server_instance_profile" {
   name = "${local.common_tags.Name}-api"
   role = aws_iam_role.api_server_role.name
