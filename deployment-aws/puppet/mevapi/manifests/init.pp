@@ -184,7 +184,9 @@ class mevapi (
   contain mevapi::postgresql
   contain mevapi::solr
   contain mevapi::supervisor
+  contain mevapi::cloudwatch_agent
 
+  Class['mevapi::cloudwatch_agent']
   Class['mevapi::postgresql']
   ->
   Class['mevapi::django']
