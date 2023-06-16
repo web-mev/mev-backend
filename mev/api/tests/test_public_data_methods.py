@@ -215,6 +215,7 @@ class TestPublicDatasets(BaseAPITestCase):
         self.assertEqual('foo', p.public_name)
         self.assertEqual('desc', p.description)
 
+    @mock.patch('api.public_data.delete_local_file')
     @mock.patch('api.public_data.validate_resource')
     @mock.patch('api.public_data.get_implementing_class')
     @mock.patch('api.public_data.check_if_valid_public_dataset_name')
@@ -225,7 +226,8 @@ class TestPublicDatasets(BaseAPITestCase):
             mock_create_resource,
             mock_check_if_valid_public_dataset_name, 
             mock_get_implementing_class,
-            mock_validate_resource
+            mock_validate_resource,
+            mock_delete_local_file
         ):
         '''
         Tests the proper methods are called for the process of creating a 
@@ -277,6 +279,8 @@ class TestPublicDatasets(BaseAPITestCase):
         )
 
         self.assertEqual(resource_list[0].name, mock_name)
+
+        mock_delete_local_file.assert_called_with(self.demo_filepath)
 
     @mock.patch('api.public_data.validate_resource')
     @mock.patch('api.public_data.get_implementing_class')
