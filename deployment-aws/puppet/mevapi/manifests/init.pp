@@ -179,12 +179,12 @@ class mevapi (
     root_dir     => "${data_root}/docker"
   }
 
+  contain mevapi::cloudwatch_agent
   contain mevapi::django
   contain mevapi::nginx
   contain mevapi::postgresql
   contain mevapi::solr
   contain mevapi::supervisor
-  contain mevapi::cloudwatch_agent
 
   Class['mevapi::postgresql']
   ->
