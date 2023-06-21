@@ -21,6 +21,9 @@ class mevapi::cloudwatch_agent () {
     }
     ~>
     exec { 'cloudwatch_agent':
+        # Note that the config file (amazon-cloudwatch-agent.json) controls which log files
+        # and machine metrics are monitored. Metrics are kept for 15 days on a rolling basis
+        # https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#Metric
         command => "${cloudwatch_agent_dir}/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
         -c file:${cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json",
         creates => "${cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json"
