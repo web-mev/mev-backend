@@ -23,6 +23,7 @@
 		}
 	},
 	"metrics": {
+		"namespace": "/WebMeV/<%= $mevapi::deployment_stack %>",
 		"aggregation_dimensions": [
 			[
 				"InstanceId"

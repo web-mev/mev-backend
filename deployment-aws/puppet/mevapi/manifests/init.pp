@@ -20,6 +20,7 @@ class mevapi (
   String                  $database_user_password,
   String                  $data_root = '/data',
   String                  $data_volume_device_name,
+  String                  $deployment_stack,
   String                  $django_cors_origins,
   Optional[String]        $django_settings_module,
   String                  $django_superuser_email,
