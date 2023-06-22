@@ -96,7 +96,7 @@ class GlobusUploadView(APIView):
         
         # Handle the case where a user does not submit a label:
         if len(params['label']) == 0:
-            params['label'] = datetime.datetime.now().strftime('WebMeV.%y%m%d.%H%M%S')
+            params['label'] = datetime.datetime.now().strftime('WebMeV_upload.%y%m%d.%H%M%S')
 
         app_transfer_client = create_application_transfer_client()
         user_transfer_client = create_user_transfer_client(request.user)
@@ -189,6 +189,10 @@ class GlobusDownloadView(APIView):
             except NoResourceFoundException:
                 return Response(f'Could not locate resource with pk={pk}', 
                     status=status.HTTP_404_NOT_FOUND)        
+
+        # Handle the case where a user does not submit a label for the transfer:
+        if len(request.data['params']['label']) == 0:
+            request.data['params']['label'] = datetime.datetime.now().strftime('WebMeV_download.%y%m%d.%H%M%S')
 
         perform_globus_download.delay(requested_pks,
             request.user.pk, request.data['params'])
