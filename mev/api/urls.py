@@ -97,6 +97,9 @@ urlpatterns = [
 
     ################### Misc. views #####################################
     path('feedback/', api.views.SubmitFeedbackView.as_view(), name='feedback'),
+    path('message-add/', api.views.MessageCreate.as_view(), name='message-add'),
+    path('messages/', api.views.MessageList.as_view(), name='messages'),
+    path('latest-message/', api.views.LatestMessage.as_view(), name='latest-message'),
 
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]

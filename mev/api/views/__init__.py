@@ -56,6 +56,9 @@ from .globus_views import GlobusInitiate, \
     GlobusUploadView, \
     GlobusDownloadView, \
     GlobusTransferList
+from .message_views import MessageList, \
+    MessageCreate, \
+    LatestMessage
 
 
 def sentry_debug(request):
