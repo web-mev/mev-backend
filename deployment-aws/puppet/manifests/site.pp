@@ -12,6 +12,7 @@ node /api/ {
     database_superuser_password    => $facts['database_superuser_password'],
     database_user_password         => $facts['database_user_password'],
     data_volume_device_name        => $facts['data_volume_device_name'],
+    deployment_stack               => $facts['deployment_stack'],
     django_cors_origins            => $facts['django_cors_origins'],
     django_settings_module         => $facts['django_settings_module'],
     django_superuser_email         => $facts['django_superuser_email'],
