@@ -10,13 +10,13 @@
 						"file_path": "<%= $mevapi::log_dir %>/gunicorn.log",
 						"log_group_name": "<%= $mevapi::cloudwatch_log_group %>",
 						"log_stream_name": "{instance_id}",
-						"retention_in_days": 14
+						"retention_in_days": 15
 					},
 					{
 						"file_path": "<%= $mevapi::log_dir %>/celery_worker.log",
 						"log_group_name": "<%= $mevapi::cloudwatch_log_group %>",
 						"log_stream_name": "{instance_id}",
-						"retention_in_days": 14
+						"retention_in_days": 15
 					}
 				]
 			}
