@@ -687,6 +687,40 @@ class PasswordChangeTests(BaseAPITestCase):
         logged_in = self.regular_client.login(email=self.test_user.email, password=new_pwd)
         self.assertTrue(logged_in)
 
+    def test_reject_change_when_inactive_password(self):
+        '''
+        If a user first registers via social and then tries to change their
+        password, then we let them know
+        '''
+        # when a social user is created, it involves creating a 
+        # 'password-free' user and a social auth user:
+        email = 'some_email@gmail.com'
+        new_user = User.objects.create_user(email)
+        self.assertFalse(new_user.has_usable_password())
+        new_user.is_active = True
+        new_user.save()
+
+        # now, create the social auth association. This is what
+        # would happen if a user initially employed a social auth
+        # strategy (e.g. google) to register
+        UserSocialAuth.objects.create(user=new_user)
+        u = User.objects.get(email=email)
+        self.assertTrue(len(u.social_auth.all()) > 0)
+
+        new_pwd = 'some_new_password123!'
+        payload = {
+            'current_password': 'something',
+            'password': new_pwd,
+            'confirm_password': new_pwd
+        }
+        authenticated_client = APIClient()
+        authenticated_client.force_authenticate(user=u)
+        response = authenticated_client.post(
+            self.url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        j = response.json()
+        self.assertTrue('third-party identity provider' in j['current_password'][0])
+
 
 class TestTokenViews(BaseAPITestCase):
 
