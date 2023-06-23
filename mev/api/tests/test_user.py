@@ -7,7 +7,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import status
 from rest_framework.test import APIClient
-
+from social_django.models import UserSocialAuth
 
 from api.tests.base import BaseAPITestCase
 from api.tests import test_settings
@@ -686,3 +686,89 @@ class PasswordChangeTests(BaseAPITestCase):
 
         logged_in = self.regular_client.login(email=self.test_user.email, password=new_pwd)
         self.assertTrue(logged_in)
+
+
+class TestTokenViews(BaseAPITestCase):
+
+    def setUp(self):
+        self.establish_clients()
+
+    def test_login_mixup_is_indicated(self):
+        '''
+        If a user has previously registered via social auth and then tries to
+        login with a username/password, we should let them know. If we simply
+        forward the request details to the jwt package, it just rejects the
+        request as having an incorrect username/password
+        '''
+        # first test the 'proper' case where a user who has registered
+        # via email/pwd correctly receives back a token pair
+        passwd = 'some!dummy!pswd@'
+        email = 'some_email@gmail.com'
+        new_user = User.objects.create_user(
+            email,
+            passwd
+        )
+        new_user.is_active = True
+        new_user.save()
+
+        url = reverse('token_obtain_pair')
+        payload = {
+            'email': email,
+            'password': passwd
+        }
+        response = self.regular_client.post(
+            url, data=payload, format='json')
+        j = response.json()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue('refresh' in j.keys())
+        self.assertTrue('access' in j.keys())
+
+        # now, create the social auth association. This is what
+        # would happen if a user initially employed a social auth
+        # strategy (e.g. google) to register
+        UserSocialAuth.objects.create(user=new_user)
+        u = User.objects.get(email=email)
+        self.assertTrue(len(u.social_auth.all()) > 0)
+
+        # Given that the user has a social auth association,
+        # a request to authenticate with email/pwd should be
+        # rejected with a helpful message
+        response = self.regular_client.post(
+            url, data=payload, format='json')
+        j = response.json()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('already been registered' in j['non_field_errors'])
+
+    def test_login_mixup_is_indicated_case2(self):
+        '''
+        If a user first registers via social and then tries to login via
+        email, confirm that we let them know
+        '''
+        # when a social user is created, it involves creating a 
+        # 'password-free' user and a social auth user:
+        email = 'some_email@gmail.com'
+        new_user = User.objects.create_user(email)
+        self.assertFalse(new_user.has_usable_password())
+        new_user.is_active = True
+        new_user.save()
+
+        # now, create the social auth association. This is what
+        # would happen if a user initially employed a social auth
+        # strategy (e.g. google) to register
+        UserSocialAuth.objects.create(user=new_user)
+        u = User.objects.get(email=email)
+        self.assertTrue(len(u.social_auth.all()) > 0)
+
+        # Given that the user has a social auth association,
+        # a request to authenticate with email/pwd should be
+        # rejected with a helpful message
+        url = reverse('token_obtain_pair')
+        payload = {
+            'email': email,
+            'password': 'some random guess'
+        }
+        response = self.regular_client.post(
+            url, data=payload, format='json')
+        j = response.json()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('already been registered' in j['non_field_errors'])
