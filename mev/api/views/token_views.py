@@ -33,6 +33,12 @@ class TokenObtainView(TokenObtainPairView):
             return None
 
         if len(u.social_auth.all()) > 0:
+            # if the user initially had a email/pwd and
+            # subsequently used the social auth mechanism
+            # for the same email, we can permit both
+            # login methods. This 'if' statement allows that.
+            if u.has_usable_password():
+                return None
             raise ExistingSocialAuthException()
         else:
             return None

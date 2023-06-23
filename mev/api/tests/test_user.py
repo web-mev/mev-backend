@@ -693,12 +693,11 @@ class TestTokenViews(BaseAPITestCase):
     def setUp(self):
         self.establish_clients()
 
-    def test_login_mixup_is_indicated(self):
+    def test_both_logins_permitted(self):
         '''
-        If a user has previously registered via social auth and then tries to
-        login with a username/password, we should let them know. If we simply
-        forward the request details to the jwt package, it just rejects the
-        request as having an incorrect username/password
+        If a user first establishes an account with email/pass and subsequently
+        uses the social mechanism for the same email, assert that we can still
+        log them in via email/password.
         '''
         # first test the 'proper' case where a user who has registered
         # via email/pwd correctly receives back a token pair
@@ -724,8 +723,9 @@ class TestTokenViews(BaseAPITestCase):
         self.assertTrue('access' in j.keys())
 
         # now, create the social auth association. This is what
-        # would happen if a user initially employed a social auth
-        # strategy (e.g. google) to register
+        # would happen if a user subsequently employed a social auth
+        # strategy (e.g. google) to login AFTER they created the
+        # account via email/password
         UserSocialAuth.objects.create(user=new_user)
         u = User.objects.get(email=email)
         self.assertTrue(len(u.social_auth.all()) > 0)
@@ -736,10 +736,11 @@ class TestTokenViews(BaseAPITestCase):
         response = self.regular_client.post(
             url, data=payload, format='json')
         j = response.json()
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue('already been registered' in j['non_field_errors'])
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue('refresh' in j.keys())
+        self.assertTrue('access' in j.keys())
 
-    def test_login_mixup_is_indicated_case2(self):
+    def test_login_mixup_is_indicated(self):
         '''
         If a user first registers via social and then tries to login via
         email, confirm that we let them know
