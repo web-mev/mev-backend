@@ -155,7 +155,9 @@ class PasswordResetSerializer(serializers.Serializer):
             if self.user.has_usable_password():
                 return validated_data
             else:
-                raise ValidationError({'email': 'Cannot reset password for this user.'})
+                raise ValidationError({'email': 'Cannot reset password for this user.'
+                    ' This can happen if you have used an alternative registration method'
+                    ' that did not require an email/password.'})
         except User.DoesNotExist:
             raise ValidationError({'email': 'Unknown user.'})
 
