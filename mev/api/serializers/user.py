@@ -157,7 +157,8 @@ class PasswordResetSerializer(serializers.Serializer):
             else:
                 raise ValidationError({'email': 'Cannot reset password for this user.'
                     ' This can happen if you have used an alternative registration method'
-                    ' that did not require an email/password.'})
+                    ' (such as a Google-associated email) that did not require'
+                    ' an email/password with WebMeV.'})
         except User.DoesNotExist:
             raise ValidationError({'email': 'Unknown user.'})
 
