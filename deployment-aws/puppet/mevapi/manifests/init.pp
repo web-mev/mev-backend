@@ -194,6 +194,4 @@ class mevapi (
   Class['mevapi::supervisor']
   ->
   Class['mevapi::nginx']
-  ->
-  Class['mevapi::cloudwatch_agent']
 }
