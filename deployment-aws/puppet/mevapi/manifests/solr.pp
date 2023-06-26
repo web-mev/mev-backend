@@ -19,11 +19,8 @@ class mevapi::solr () {
   # are not owned by the correct user.
   # TODO: once data volume recovery scripts are prepared, this can likely
   #       be removed.
-  file { "${solr_home}":
-    ensure  => directory,
-    owner   => $::solr::solr_user,
-    group   => $::solr::solr_user,
-    recurse => true
+  exec { 'change_owner':
+    command  => 'chown -R solr:solr /data/solr'
   }
 
   solr::core { 'tcga-rnaseq':
