@@ -57,12 +57,24 @@ class ResourceSignedUrl(APIView):
             download_url = request.build_absolute_uri(reverse('download-resource', kwargs={'pk': resource_pk}))
             download_type = 'local'
         else:
-            # If we are using remote/bucket storage, then django-storage 
-            # will generate a signed URL
-            url = r.datafile.url
+            # If we are using remote/bucket storage, then django-storage
+            # will generate a signed URL.
+            # Note that r.datafile.url uses a
+            # read-only property on the django.db.models.fields.files.FieldFile
+            # class and therefore does not give access to the various
+            # parameters one can use in the
+            # django-storages storages.backends.s3boto3.S3Boto3Storage.url
+            # method. By accessing the `storage` member below, we can add
+            # params which allow us to set the downloaded filename.
+            # Otherwise, the user gets a file named with UUIDs which
+            # is rather cryptic.
+            given_name = r.name
+            # this adds query params which set the filename on the download
+            params = {'ResponseContentDisposition': f'filename="{given_name}"'}
+            url = r.datafile.storage.url(r.datafile.name, parameters=params)
             if not url:
-                logger.error('Encountered a problem when preparing download for resource'
-                    f' with pk={resource_pk}')
+                logger.error('Encountered a problem when preparing download'
+                    f' for resource with pk={resource_pk}')
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             download_url = url
