@@ -12,7 +12,6 @@ class mevapi::solr () {
     owner  => $::solr::solr_user,
     group  => $::solr::solr_user,
   }
-
   solr::core { 'tcga-rnaseq':
     schema_src_file     => "${mevapi::project_root}/solr/tcga-rnaseq/schema.xml",
     solrconfig_src_file => "${mevapi::project_root}/solr/tcga-rnaseq/solrconfig.xml",
