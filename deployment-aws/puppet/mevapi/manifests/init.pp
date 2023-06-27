@@ -194,4 +194,18 @@ class mevapi (
   Class['mevapi::supervisor']
   ->
   Class['mevapi::nginx']
+  ->
+  # Ensures that everything under the solr dir is owned by the solr user.
+  # Depending on the ordering of solr and cloudwatch agent, there can be 
+  # situations where UIDs on different systems can result in files which
+  # are not owned by the correct user.
+  # TODO: once data volume recovery scripts are prepared, this can likely
+  #       be removed.
+  exec { 'change_owner':
+    command  => '/usr/bin/chown -R solr:solr /data/solr'
+  }
+  ->
+  exec { 'restart_solr':
+    command => '/usr/sbin/service solr restart'
+  }
 }
