@@ -20,7 +20,7 @@ class mevapi::solr () {
   # TODO: once data volume recovery scripts are prepared, this can likely
   #       be removed.
   exec { 'change_owner':
-    command  => 'chown -R solr:solr /data/solr'
+    command  => '/usr/bin/chown -R solr:solr /data/solr'
   }
 
   solr::core { 'tcga-rnaseq':
