@@ -206,6 +206,6 @@ class mevapi (
   }
   ->
   exec { 'restart_solr':
-    command => 'service solr restart'
+    command => '/usr/sbin/service solr restart'
   }
 }
