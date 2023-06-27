@@ -204,4 +204,8 @@ class mevapi (
   exec { 'change_owner':
     command  => '/usr/bin/chown -R solr:solr /data/solr'
   }
+  ->
+  exec { 'restart_solr':
+    command => 'service solr restart'
+  }
 }
