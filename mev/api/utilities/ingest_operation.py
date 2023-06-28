@@ -361,6 +361,8 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
         o.active = True
         o.successful_ingestion = True
         o.workspace_operation = op_data['workspace_operation']
+        o.git_commit = git_hash
+        o.repository_url = repository_url
         o.save()
     except OperationDbModel.DoesNotExist:
         logger.error('Could not find the Operation corresponding to'
