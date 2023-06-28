@@ -601,7 +601,7 @@ class GlobusUploadTests(BaseAPITestCase):
         headers = {'HTTP_ORIGIN': 'foo'}
         r = self.authenticated_regular_client.post(
             self.globus_upload_url, 
-            data={'params': None}, 
+            data={'params': {'label': ''}}, 
             format='json', 
             **headers)
         mock_alert_admins.assert_called()

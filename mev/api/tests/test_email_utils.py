@@ -65,7 +65,7 @@ class EmailTests(BaseAPITestCase):
         mock_encode_uid.return_value = mock_uid
         message = ActivationEmail(self.request, self.regular_user_1)
         expected_context = {
-            'activation_url': f'#/activate/{mock_uid}/{mock_token_str}',
+            'activation_url': f'activate/{mock_uid}/{mock_token_str}',
             'site_name': 'WEBMEV',
             'protocol': 'https',
             'frontend_domain': 'something.com'
@@ -100,7 +100,7 @@ class EmailTests(BaseAPITestCase):
         mock_encode_uid.return_value = mock_uid
         message = PasswordResetEmail(self.request, self.regular_user_1)
         expected_context = {
-            'reset_url': f'#/reset-password/{mock_uid}/{mock_token_str}',
+            'reset_url': f'reset-password/{mock_uid}/{mock_token_str}',
             'site_name': 'WEBMEV',
             'protocol': 'https',
             'frontend_domain': 'something.com'

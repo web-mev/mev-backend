@@ -255,3 +255,12 @@ class GlobusTransferPermissionsError(WebMeVException):
     accounts.
     '''
     pass
+
+
+class ExistingSocialAuthException(WebMeVException):
+    '''
+    Used for signaling that a user is attempting to login
+    via email/password when they already have previously
+    authenticated with a social mechanism
+    '''
+    pass

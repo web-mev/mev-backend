@@ -54,12 +54,16 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_check_container_exit_code.return_value = 1
         mock_get_logs.return_value = 'foo'
 
+        mock_clean_following_success = mock.MagicMock()
+        runner._clean_following_success = mock_clean_following_success
+
         runner.finalize(mock_executed_op, {})
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
         self.assertFalse(mock_executed_op.is_finalizing)
         mock_alert_admins.assert_called()
+        mock_clean_following_success.assert_not_called()
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
@@ -84,6 +88,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         runner.load_outputs_file = mock_load_outputs_file
         runner._convert_outputs = mock_convert_outputs
 
+        mock_clean_following_success = mock.MagicMock()
+        runner._clean_following_success = mock_clean_following_success
+
         mock_executed_op = mock.MagicMock()
         u = str(uuid.uuid4())
         mock_executed_op.job_id = u
@@ -96,6 +103,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_remove_container.assert_called()
         self.assertTrue(mock_executed_op.job_failed)
         mock_alert_admins.assert_called()
+        mock_clean_following_success.assert_not_called()
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
     @mock.patch('api.runners.local_docker.get_finish_datetime')
@@ -117,6 +125,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         u = str(uuid.uuid4())
         mock_executed_op.job_id = u
 
+        mock_clean_following_success = mock.MagicMock()
+        runner._clean_following_success = mock_clean_following_success
+
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 137
         mock_get_logs.return_value = 'foo'
@@ -129,6 +140,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         self.assertTrue(mock_messages[0] == 'foo')
         self.assertTrue('out of memory' in mock_messages[1])
         mock_alert_admins.assert_called()
+        mock_clean_following_success.assert_not_called()
 
 
     @mock.patch('api.runners.local_docker.check_container_exit_code')
@@ -171,6 +183,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
             job_id = workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
+    
+        mock_clean_following_success = mock.MagicMock()
+        runner._clean_following_success = mock_clean_following_success
 
         mock_get_finish_datetime.return_value = datetime.datetime.now()
         mock_check_container_exit_code.return_value = 1
@@ -178,6 +193,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
 
         runner.finalize(workspace_exec_op, {})
         mock_remove_container.assert_called()
+        mock_clean_following_success.assert_not_called()
         # query the db:
         workspace_exec_op = WorkspaceExecutedOperation.objects.get(pk=workspace_exec_op_uuid)
         self.assertTrue(workspace_exec_op.job_failed)
@@ -257,6 +273,9 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         }
         runner._convert_outputs = mock_convert_outputs
 
+        mock_clean_following_success = mock.MagicMock()
+        runner._clean_following_success = mock_clean_following_success
+
         mock_op = mock.MagicMock()
 
         mock_executed_op = mock.MagicMock()
@@ -273,6 +292,7 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_convert_outputs.assert_called_once_with(
             mock_executed_op, mock_op, mock_outputs
         )
+        mock_clean_following_success.assert_called_once_with(u)
         mock_executed_op.save.assert_called()
         mock_remove_container.assert_called()
         self.assertFalse(mock_executed_op.job_failed)

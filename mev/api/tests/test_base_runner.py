@@ -4,6 +4,8 @@ import os
 import json
 import uuid
 
+from django.test import override_settings
+
 from data_structures.operation import Operation
 
 from exceptions import OutputConversionException
@@ -407,3 +409,17 @@ class BaseRunnerTester(BaseAPITestCase):
             mock.call(u1),
             mock.call(u2)
         ])    
+
+    @override_settings(OPERATION_EXECUTION_DIR='/some/fake/dir')
+    @mock.patch('api.runners.base.rmtree')
+    def test_cleanup_call(self, mock_rmtree):
+        '''
+        If a job completes successfully, we can delete the execution
+        directory since no debugging will be required. 
+
+        Child classes of OperationRunner will call the method tested here
+        '''
+        runner = OperationRunner()
+        mock_job_id = str(uuid.uuid4())
+        runner._clean_following_success(mock_job_id)
+        mock_rmtree.assert_called_with(f'/some/fake/dir/{mock_job_id}')

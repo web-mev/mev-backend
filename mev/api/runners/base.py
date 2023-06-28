@@ -1,5 +1,6 @@
 import os
 import logging
+from shutil import rmtree
 
 from django.conf import settings
 from django.utils.module_loading import import_string
@@ -219,3 +220,13 @@ class OperationRunner(object):
                 
                 for resource_uuid in v:
                     delete_resource_by_pk(resource_uuid)
+
+    def _clean_following_success(self, job_id):
+        '''
+        If a job completed succesfully, we have no need to retain
+        the execution directory and its contents since there is no debugging
+        to perform.
+        '''
+        execution_dir = os.path.join(
+            settings.OPERATION_EXECUTION_DIR, job_id)
+        rmtree(execution_dir)

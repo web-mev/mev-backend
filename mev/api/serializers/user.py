@@ -155,7 +155,10 @@ class PasswordResetSerializer(serializers.Serializer):
             if self.user.has_usable_password():
                 return validated_data
             else:
-                raise ValidationError({'email': 'Cannot reset password for this user.'})
+                raise ValidationError({'email': 'Cannot reset password for this user.'
+                    ' This can happen if you have used an alternative registration method'
+                    ' (such as a Google-associated email) that did not require'
+                    ' an email/password with WebMeV.'})
         except User.DoesNotExist:
             raise ValidationError({'email': 'Unknown user.'})
 
@@ -178,7 +181,12 @@ class PasswordChangeSerializer(PasswordSerializer):
     current_password = serializers.CharField(write_only=True) 
 
     def validate(self, data):
-
+        user = self.context['request'].user
+        if not user.has_usable_password():
+            raise ValidationError({'current_password': 'You most likely have'
+                ' authenticated using a third-party identity provider.'
+                ' Therefore, your WebMeV account does not have an'
+                ' associated password.'})
         # the user is authenticated, so the request had some authentication token
         is_password_valid = self.context['request'].user.check_password(data['current_password'])
         if not is_password_valid:

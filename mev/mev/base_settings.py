@@ -233,8 +233,8 @@ SITE_NAME = 'WebMeV'
 
 # Note that the leading "#" is used for setting up the route
 # in the front-end correctly.
-ACTIVATION_URL = '#/activate/{uid}/{token}'
-RESET_PASSWORD_URL = '#/reset-password/{uid}/{token}'
+ACTIVATION_URL = 'activate/{uid}/{token}'
+RESET_PASSWORD_URL = 'reset-password/{uid}/{token}'
 
 
 ###############################################################################

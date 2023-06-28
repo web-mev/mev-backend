@@ -20,6 +20,7 @@ class mevapi (
   String                  $database_user_password,
   String                  $data_root = '/data',
   String                  $data_volume_device_name,
+  String                  $deployment_stack,
   String                  $django_cors_origins,
   Optional[String]        $django_settings_module,
   String                  $django_superuser_email,
@@ -179,6 +180,7 @@ class mevapi (
     root_dir     => "${data_root}/docker"
   }
 
+  contain mevapi::cloudwatch_agent
   contain mevapi::django
   contain mevapi::nginx
   contain mevapi::postgresql
@@ -192,4 +194,8 @@ class mevapi (
   Class['mevapi::supervisor']
   ->
   Class['mevapi::nginx']
+  ->
+  # Note that we put cloudwatch agent last since
+  # installing/configuring earlier can lead to UID conflicts
+  Class['mevapi::cloudwatch_agent']
 }

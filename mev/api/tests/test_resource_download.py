@@ -302,7 +302,7 @@ class ResourceUrlFetchTests(BaseAPITestCase):
 
         mock_resource = mock.MagicMock()
         remote_url = 'https://some-remote-url/object.txt'
-        mock_resource.datafile.url = remote_url
+        mock_resource.datafile.storage.url.return_value = remote_url
         mock_check_resource_request_validity.return_value = mock_resource
 
         response = self.authenticated_regular_client.get(self.url_for_small_active_resource)

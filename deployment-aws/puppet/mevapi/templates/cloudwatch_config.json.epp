@@ -1,0 +1,95 @@
+{
+	"agent": {
+		"metrics_collection_interval": 60
+	},
+	"logs": {
+		"logs_collected": {
+			"files": {
+				"collect_list": [
+					{
+						"file_path": "<%= $mevapi::log_dir %>/gunicorn.log",
+						"log_group_name": "<%= $mevapi::cloudwatch_log_group %>",
+						"log_stream_name": "{instance_id}",
+						"retention_in_days": 14
+					},
+					{
+						"file_path": "<%= $mevapi::log_dir %>/celery_worker.log",
+						"log_group_name": "<%= $mevapi::cloudwatch_log_group %>",
+						"log_stream_name": "{instance_id}",
+						"retention_in_days": 14
+					}
+				]
+			}
+		}
+	},
+	"metrics": {
+		"namespace": "/WebMeV/<%= $mevapi::deployment_stack %>",
+		"aggregation_dimensions": [
+			[
+				"InstanceId"
+			]
+		],
+		"metrics_collected": {
+			"cpu": {
+				"measurement": [
+					"cpu_usage_idle",
+					"cpu_usage_iowait",
+					"cpu_usage_user",
+					"cpu_usage_system"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				],
+				"totalcpu": false
+			},
+			"disk": {
+				"measurement": [
+					"used_percent",
+					"inodes_free"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				]
+			},
+			"diskio": {
+				"measurement": [
+					"io_time",
+					"write_bytes",
+					"read_bytes",
+					"writes",
+					"reads"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				]
+			},
+			"mem": {
+				"measurement": [
+					"mem_used_percent"
+				],
+				"metrics_collection_interval": 60
+			},
+			"netstat": {
+				"measurement": [
+					"tcp_established",
+					"tcp_time_wait"
+				],
+				"metrics_collection_interval": 60
+			},
+			"statsd": {
+				"metrics_aggregation_interval": 60,
+				"metrics_collection_interval": 10,
+				"service_address": ":8125"
+			},
+			"swap": {
+				"measurement": [
+					"swap_used_percent"
+				],
+				"metrics_collection_interval": 60
+			}
+		}
+	}
+}

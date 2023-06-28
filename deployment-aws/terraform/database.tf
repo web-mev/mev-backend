@@ -17,4 +17,6 @@ resource "aws_db_instance" "default" {
   vpc_security_group_ids     = [aws_security_group.database.id]
   snapshot_identifier        = var.database_snapshot
   storage_encrypted          = true
+  backup_retention_period    = 7
+  copy_tags_to_snapshot      = true
 }

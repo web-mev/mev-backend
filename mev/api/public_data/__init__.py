@@ -7,6 +7,7 @@ from django.core.files import File
 from api.models import PublicDataset, Resource
 from api.async_tasks.async_resource_tasks import validate_resource
 from api.utilities.resource_utilities import create_resource
+from api.utilities.basic_utils import delete_local_file
 from .sources.gdc.tcga import TCGARnaSeqDataSource, \
     TCGAMicroRnaSeqDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
@@ -192,5 +193,9 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
         )
 
         resource_list.append(r)
+
+        # if the file validated and a resource was created, then it's safe
+        # in the permanent storage. Delete the tmp file:
+        delete_local_file(path)
 
     return resource_list
