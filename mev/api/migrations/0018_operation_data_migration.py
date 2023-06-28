@@ -21,10 +21,13 @@ def extract_commit_and_repo(apps, schema_editor):
     '''
     Operation = apps.get_model('api', 'Operation')
     for op in Operation.objects.all():
-        op_data = get_operation_instance_data(op)
-        op.git_commit = op_data['git_hash']
-        op.repository_url = op_data['repository_url']
-        op.save()
+        try:
+            op_data = get_operation_instance_data(op)
+            op.git_commit = op_data['git_hash']
+            op.repository_url = op_data['repository_url']
+            op.save()
+        except Exception as ex:
+            print(f'Error when modifying Operation: {op}. Error was {ex}.')
 
 
 class Migration(migrations.Migration):
