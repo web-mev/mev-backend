@@ -12,14 +12,15 @@ from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(name='delete_file')
-def delete_file(resource_pk):
+def delete_file(resource_path):
     '''
     Deletes a file.  Can be a local or remote resource.
     '''
-    logger.info(f'Requesting deletion of resource {resource_pk}')
-    resource = resource_utilities.get_resource_by_pk(resource_pk)
-    default_storage.delete(resource.datafile.name)
+    logger.info(f'Requesting deletion of resource at path {resource_path}')
+    default_storage.delete(resource_path)
+
 
 @shared_task(name='validate_resource')
 def validate_resource(resource_pk, requested_resource_type, file_format):
