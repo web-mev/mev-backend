@@ -223,7 +223,7 @@ def check_for_repo(repository_url):
                         ' at {r} or it was not public'.format(r=repository_url))
 
 
-def perform_operation_ingestion(repository_url, op_uuid, commit_id):
+def perform_operation_ingestion(repository_url, op_uuid, commit_id, overwrite=False):
     '''
     This function is the main entrypoint for the ingestion of a new `Operation`
     '''
@@ -243,7 +243,12 @@ def perform_operation_ingestion(repository_url, op_uuid, commit_id):
 
     repo_name = retrieve_repo_name(staging_dir)
     try:
-        ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url)
+        ingest_dir(staging_dir,
+            op_uuid,
+            git_hash,
+            repo_name,
+            repository_url,
+            overwrite=overwrite)
     except Exception as ex:
         logger.info('Failed to ingest directory. See logs.'
                     ' Exception was: {ex}'.format(ex=ex)
@@ -361,6 +366,8 @@ def ingest_dir(staging_dir, op_uuid, git_hash, repo_name, repository_url, overwr
         o.active = True
         o.successful_ingestion = True
         o.workspace_operation = op_data['workspace_operation']
+        o.git_commit = git_hash
+        o.repository_url = repository_url
         o.save()
     except OperationDbModel.DoesNotExist:
         logger.error('Could not find the Operation corresponding to'

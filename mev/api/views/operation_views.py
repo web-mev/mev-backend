@@ -121,8 +121,13 @@ class OperationCreate(APIView):
             # Create an Operation (database instance, not data structure) and set it to pending
             # while the ingestion happens.
             op_uuid = uuid.uuid4()
-            # We don't need the object itself, so we don't assign:
-            OperationDbModel.objects.create(id=op_uuid, active=False)
+            # We don't need the object itself, so we don't assign it to anything.
+            # Note that we need git_commit to be non-null, so it gets assigned
+            # an empty string (if the commit hash was not passed in the payload)
+            OperationDbModel.objects.create(id=op_uuid,
+                active=False,
+                repository_url=url,
+                git_commit=commit_id if commit_id else '')
 
             async_ingest_new_operation.delay(str(op_uuid), url, commit_id)
             return Response(
