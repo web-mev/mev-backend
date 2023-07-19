@@ -22,8 +22,10 @@ from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.gdc.gdc import GDCDataSource, \
     GDCRnaSeqDataSourceMixin
 from api.public_data.sources.rnaseq import RnaSeqMixin
+from api.public_data.sources.methylation import MethylationMixin
 from api.public_data.sources.gdc.tcga import TCGADataSource, \
-    TCGAMicroRnaSeqDataSource
+    TCGAMicroRnaSeqDataSource, \
+    TCGAMethylationDataSource
 from api.public_data.sources.gdc.target import TargetDataSource
 from api.public_data.sources.gtex_rnaseq import GtexRnaseqDataSource
 from api.public_data.indexers.solr import SolrIndexer
@@ -827,7 +829,7 @@ class TestTCGAMirnaSeq(BaseAPITestCase):
             }
         self.assertDictEqual(d, expected_query_filters)      
 
-    @mock.patch('api.public_data.sources.rnaseq.RnaSeqMixin.COUNT_OUTPUT_FILE_TEMPLATE', '__TEST__counts.{tag}.{ds}.tsv')
+    @mock.patch('api.public_data.sources.rnaseq.RnaSeqMixin.COUNT_OUTPUT_FILE_TEMPLATE', '__TEST__counts.{tag}.{date}.hd5')
     def test_counts_merged_correctly(self):
         file_to_aliquot_mapping = {
             's1': 'x1',
@@ -1060,3 +1062,308 @@ class TestTCGAMirnaSeq(BaseAPITestCase):
 
         with self.assertRaisesRegex(Exception, 'SOMETHING UNEXPECTED'):
             data_src._append_gdc_annotations(ann_df)
+
+
+class TestMethylationMixin(BaseAPITestCase): 
+
+    def test_indexes_only_annotation_file(self):
+        '''
+        An methylation dataset consists of a metadata file and a beta matrix.
+        This verifies that the `get_indexable_files`  method only returns
+        the annotation file
+        '''
+
+        data_src = MethylationMixin()
+
+        fd = {
+            MethylationMixin.ANNOTATION_FILE_KEY: ['/path/to/A.txt'],
+            MethylationMixin.BETAS_FILE_KEY:['/path/to/betas.tsv'] 
+        }
+        result = data_src.get_indexable_files(fd)
+        self.assertCountEqual(result, fd[MethylationMixin.ANNOTATION_FILE_KEY])
+
+    @mock.patch('api.public_data.sources.methylation.uuid')
+    def test_filters_hdf_correctly(self, mock_uuid_mod):
+        '''
+        Tests that we filter properly for a 
+        dummy dataset stored in HDF5 format.
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+
+        ann_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation_ann.csv'
+        )
+
+        # create 5 mock UUIDs. The first two are used in the 
+        # first call to the tested method. The final 3 are used in the second
+        # call to the tested method. The reason for that is we auto-generate
+        # the output filename when the calling function has not provided an 
+        # `output_name` arg to the method. In the first call to the tested
+        # method, we provide that name, so only two calls are made to the 
+        # uuid.uuid4 function. In the second call, we omit that arg and we 
+        # hence make an extra call to the uuid4 func.
+        mock_uuids = [uuid.uuid4() for i in range(5)]
+        mock_uuid_mod.uuid4.side_effect = mock_uuids
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            MethylationMixin.ANNOTATION_FILE_KEY: [ann_path],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            'TCGA-ABC': ['s1', 's3'],
+            'TCGA-DEF': ['s5']
+        }
+        data_src = MethylationMixin()
+        # the children classes will have a TAG attribute. Since we are
+        # testing this mixin here, we simply patch it
+        tag = 'foo'
+        data_src.TAG = tag
+        output_name = 'abc'
+        paths, filenames, resource_types, file_formats = data_src.create_from_query(mock_db_record, query, output_name)
+
+        # The order of these doesn't matter in practice, but to check the file contents,
+        # we need to be sure we're looking at the correct files for this test.
+        self.assertTrue(resource_types[0] == 'MTX')
+        self.assertTrue(resource_types[1] == 'ANN')
+        self.assertCountEqual(file_formats, [TSV_FORMAT, TSV_FORMAT])
+        expected_df = pd.DataFrame(
+            [[0.64, 0.99, 0.67],[0.29, 0.18,0.29],[0.94,0.41,0.37]],
+            index = ['cg1', 'cg2', 'cg3'],
+            columns = ['s1','s3','s5']
+        )
+        actual_df = pd.read_table(paths[0], index_col=0)
+        self.assertTrue(actual_df.equals(expected_df))
+
+        ann_df = pd.DataFrame(
+            [['TCGA-ABC', 1990],['TCGA-ABC', 1992], ['TCGA-DEF', 1994]],
+            index = ['s1','s3','s5'],
+            columns = ['cancer_type', 'year_of_birth']
+        )
+        actual_df = pd.read_table(paths[1], index_col=0)
+        self.assertTrue(actual_df.equals(ann_df))
+
+        self.assertEqual(filenames[0], '{x}_beta_values.{t}.tsv'.format(x=output_name, t=tag))
+        self.assertEqual(filenames[1], '{x}_ann.{t}.tsv'.format(x=output_name, t=tag))
+
+        # use index 4 below as 2 uuid.uuid4 calls were 'consumed' by the first call to `create_from_query`
+        # while the second call  (the one we are testing now) uses 3 calls to the mock UUID method
+        # since there the `output_name` arg was not supplied
+        paths, filenames, resource_types, file_formats = data_src.create_from_query(mock_db_record, query)
+        self.assertEqual(filenames[0], '{t}_beta_values.{u}.tsv'.format(u=mock_uuids[4], t=tag))
+        self.assertEqual(filenames[1], '{t}_ann.{u}.tsv'.format(u=mock_uuids[4], t=tag))
+        self.assertCountEqual(file_formats, [TSV_FORMAT, TSV_FORMAT])
+
+    def test_rejects_whole_dataset_with_null_filter(self):
+        '''
+        Tests that we reject the request (raise an exception)
+        if a filter of None is applied. This would be too large 
+        for us to handle.
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            MethylationMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        data_src = MethylationMixin()
+        data_src.PUBLIC_NAME = 'foo' # the actual implementing class would define this attr typically
+        with self.assertRaisesRegex(Exception, 'too large'):
+            path, resource_type = data_src.create_from_query(mock_db_record, None)
+
+    def test_filters_with_cancer_type(self):
+        '''
+        Tests that we handle a bad group ID appropriately
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            MethylationMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # the only datasets in the hdf5 file are for TCGA-ABC
+            # and TCGA-DEF. Below, we ask for a non-existant one
+            'TCGA-ABC': ['s1', 's3'],
+            'TCGA-XYZ': ['s5']
+        }
+        data_src = MethylationMixin()
+        with self.assertRaisesRegex(Exception, 'TCGA-XYZ'):
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
+
+    def test_filters_with_bad_sample_id(self):
+        '''
+        Tests that we handle missing samples appropriately
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            MethylationMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # add a bad sample ID to the TCGA-ABC set:
+            'TCGA-ABC': ['s1111', 's3'],
+            'TCGA-DEF': ['s5']
+        }
+        data_src = MethylationMixin()
+        with self.assertRaisesRegex(Exception, 's1111'):
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
+
+    def test_empty_filters(self):
+        '''
+        Tests that we reject if the filtering list is empty
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            MethylationMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # This should have some strings:
+            'TCGA-DEF': []
+        }
+        data_src = MethylationMixin()
+        with self.assertRaisesRegex(Exception, 'empty'):
+            paths, names, resource_types = data_src.create_from_query(mock_db_record, query)
+
+    def test_malformatted_filter_dict(self):
+        '''
+        Tests that we reject if the cancer type refers to something
+        that is NOT a list
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            MethylationMixin.ANNOTATION_FILE_KEY: ['/dummy.tsv'],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            # This should be a list:
+            'TCGA-DEF':'abc'
+        }
+        data_src = MethylationMixin()
+        # again, the children will provide an EXAMPLE_PAYLOAD attribute
+        # which we patch into this mixin class here
+        data_src.EXAMPLE_PAYLOAD = {
+        'TCGA-UVM': ["<UUID>","<UUID>"],
+        'TCGA-MESO': ["<UUID>","<UUID>", "<UUID>"]
+        }
+        with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
+
+
+class TestTCGAMethylation(BaseAPITestCase): 
+    '''
+    Tests the specialized methods of the class which handles
+    TCGA methylation datasets
+    '''
+
+    def test_proper_filters_created(self):
+        '''
+        Tests that the json payload for a metadata
+        query is created as expected
+        '''
+        ds = TCGAMethylationDataSource()
+        d = ds._create_methylation_query_params('TCGA-FOO')
+        expected_query_filters = {
+            "fields": "file_id,file_name,cases.project.program.name,cases.case_id,cases.aliquot_ids,cases.samples.portions.analytes.aliquots.aliquot_id",
+            "format": "JSON",
+            "size": "100",
+            "expand": "cases.demographic,cases.diagnoses,cases.exposures,cases.tissue_source_site,cases.project",
+            "filters": "{\"op\": \"and\", \"content\": [{\"op\": \"in\", \"content\": {\"field\": \"files.cases.project.project_id\", \"value\": [\"TCGA-FOO\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.analysis.workflow_type\", \"value\": [\"SeSAMe Methylation Beta Estimation\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.experimental_strategy\", \"value\": [\"Methylation Array\"]}}, {\"op\": \"in\", \"content\": {\"field\": \"files.data_type\", \"value\": [\"Methylation Beta Value\"]}}]}"
+            }
+        self.assertDictEqual(d, expected_query_filters)      
+
+    @mock.patch('api.public_data.sources.methylation.MethylationMixin.BETAS_OUTPUT_FILE_TEMPLATE', '__TEST__betas.{tag}.{date}.hd5')
+    def test_counts_merged_correctly(self):
+        file_to_aliquot_mapping = {
+            '1c973626-74ac-4bac-b206-f4e1c2242464': 'x1',
+            'e373b043-d716-48cb-b3f1-2afca582b510': 'x2',
+            '061de903-e715-485c-9314-fb4794d71bdc': 'x3'
+        }
+        expected_matrix = pd.DataFrame(
+            [[0.2, 0.11, 0.5],[0.3,0.21,0.51],[0.4, 0.31, 0.52]],
+            index=['cg1','cg2','cg3'],
+            columns = ['x1', 'x2', 'x3']
+        )
+        expected_matrix.index.name = 'cpg_site'
+
+        archives = [
+            os.path.join(THIS_DIR, 'public_data_test_files', 'methylation_archive1.tar.gz'),
+            os.path.join(THIS_DIR, 'public_data_test_files', 'methylation_archive2.tar.gz')
+        ]
+
+        data_src = TCGAMethylationDataSource()
+        # The derived classes will have a ROOT_DIR attribute, but
+        # this mixin class doesn't. Patch it here
+        data_src.ROOT_DIR = '/tmp'
+        actual_df = data_src._merge_downloaded_archives(archives, file_to_aliquot_mapping)
+        self.assertTrue(expected_matrix.equals(actual_df))

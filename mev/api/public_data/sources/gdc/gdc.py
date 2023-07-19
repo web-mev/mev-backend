@@ -15,6 +15,7 @@ from constants import CSV_FORMAT
 from api.utilities.basic_utils import get_with_retry
 from api.public_data.sources.base import PublicDataSource
 from api.public_data.sources.rnaseq import RnaSeqMixin
+from api.public_data.sources.methylation import MethylationMixin
 
 logger = logging.getLogger(__name__)
 
@@ -295,6 +296,23 @@ class GDCDataSource(PublicDataSource):
                 })
             d[attr] = property_list
         return d
+
+    def _append_gdc_annotations(self, ann_df):
+        '''
+        This method allows us to append "arbitrary" data to the
+        annotation dataframe, beyond what is already pulled from
+        the API in the _download_cohort method.
+
+        For instance, the _download_cohort method includes
+        patient attributes like demographics. It does not 
+        include experimental metadata like QC. Some protocols,
+        such as miRNA-seq can be challenging and having QC
+        data might be important for users when identifying
+        outliers. The GDC annotations endpoint can provide
+        some data about this, so this method allows each
+        derived class to implement, if necessary
+        '''
+        pass
 
 
 class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
@@ -720,7 +738,6 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
         )
         return final_query_params
 
-
     def _download_expression_archives(self, file_uuid_list):
         '''
         Given a list of file UUIDs, download those to the local disk.
@@ -740,19 +757,415 @@ class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
             output_file.write(download_response.content)
         return fout
 
-    def _append_gdc_annotations(self, ann_df):
-        '''
-        This method allows us to append "arbitrary" data to the
-        annotation dataframe, beyond what is already pulled from
-        the API in the _download_cohort method.
 
-        For instance, the _download_cohort method includes
-        patient attributes like demographics. It does not 
-        include experimental metadata like QC. Some protocols,
-        such as miRNA-seq can be challenging and having QC
-        data might be important for users when identifying
-        outliers. The GDC annotations endpoint can provide
-        some data about this, so this method allows each
-        derived class to implement, if necessary
+class GDCMethylationDataSourceMixin(MethylationMixin):
+    
+    # the files of interest end with this and have the format of
+    # <UUID>.methylation_array.sesame.level3betas.txt
+    SESAME_BETAS_SUFFIX = 'methylation_array.sesame.level3betas.txt'
+    
+    # This list defines further filters which are specific to this class where
+    # we are getting data regarding SeSAMe-based methylation beta values.
+    # 
+    # This list is in addition to any other FILTER_LIST class attributes
+    # defined in parent classes. We will ultimately combine them using a
+    # logical AND to create the final filter for our query
+    # to the GDC API.
+    METHYLATION_FILTERS = [
+        {
+            "op": "in",
+            "content":{
+                "field": "files.analysis.workflow_type",
+                "value": ["SeSAMe Methylation Beta Estimation"]
+                }
+        },
+        {
+            "op": "in",
+            "content":{
+                "field": "files.experimental_strategy",
+                "value": ["Methylation Array"]
+                }
+        },
+        {
+            "op": "in",
+            "content":{
+                "field": "files.data_type",
+                "value": ["Methylation Beta Value"]
+                }
+        }
+    ]
+
+    def _pull_data(self, program_id, tag):
         '''
-        pass
+        Method for downloading and munging an methylation dataset
+        to a HDF5 file
+
+        We organize the methylation data
+        hierarchically by splitting into the individual projects (e.g.
+        TCGA cancer types).
+        Each of those is assigned to a "dataset" in the HDF5 file. Therefore,
+        instead of a giant matrix we have to load each time, we can directly
+        go to cancer-specific methylation matrices for much better performance.
+        '''
+
+        # first get all the cancer types so we can split the downloads
+        # and HDFS file
+        project_dict = GDCDataSource.query_for_project_names_within_program(program_id)
+
+        # Get the data dictionary, which will tell us the universe of available
+        # fields and how to interpret them:
+        data_fields = self.get_data_dictionary()
+
+        total_annotation_df = pd.DataFrame()
+        betas_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.BETAS_OUTPUT_FILE_TEMPLATE.format(tag=tag, date=self.date_str)
+        )
+        with pd.HDFStore(betas_output_path) as hdf_out:
+            for project_id in project_dict.keys():
+                logger.info('Pull data for %s' % project_id)
+                ann_df, betas_df = self._download_cohort(project_id, data_fields)
+
+                # In some cases there can be duplicate IDs in the columns. In principle, this should NOT
+                # happen (since aliquots are supposed to be unique), but some TARGET datasets contain
+                # duplicates.
+                logger.info(f'Betas matrix size: {betas_df.shape[0]}')
+                logger.info(f'Unique aliquots: {len(betas_df.columns.unique())}')
+                logger.info(f'Duplicated: {betas_df.columns[betas_df.columns.duplicated()]}')
+
+                betas_df = betas_df.iloc[:,~betas_df.columns.duplicated()]
+                logger.info(f'Betas matrix size (after duplicate removal): {betas_df.shape[0]}')
+
+                total_annotation_df = pd.concat([total_annotation_df, ann_df], axis=0)
+
+                # save the counts to a cancer-specific dataset. Store each
+                # dataset in a cancer-specific group. On testing, this seemed
+                # to be a bit faster for recall than keeping all the dataframes
+                # as datasets in the root group
+                group_id = (
+                    MethylationMixin.create_python_compatible_id(project_id) + '/ds')
+                hdf_out.put(group_id, betas_df)
+                logger.info('Added the {ct} matrix to the HDF5'
+                    ' beta matrix'.format(ct=project_id)
+                )
+
+        # Write all the metadata to a file
+        # Note that we write to CSV since Solr indexers 
+        # will not work with tab-delimited files. However, when users
+        # create their own datasets, it will be in TSV-format.
+        ann_output_path = os.path.join(
+            self.ROOT_DIR,
+            self.ANNOTATION_OUTPUT_FILE_TEMPLATE.format(
+                tag = tag, 
+                date=self.date_str,
+                file_format = CSV_FORMAT
+            )
+        )
+        total_annotation_df.to_csv(
+            ann_output_path, 
+            sep=',', 
+            index_label = 'id'
+        )
+        logger.info('The metadata/annnotation file for your {program}'
+            'methylation data is available at {p}'.format(
+                p=ann_output_path, program=program_id))
+
+    def _create_methylation_query_params(self, project_id):
+        '''
+        Internal method to create the GDC-compatible parameter syntax.
+
+        The parameter payload will dictate which data to get, which filters 
+        to apply, etc.
+
+        Returns a dict
+        '''
+        final_filter_list = []
+
+        # a filter for this specific project (e.g. TCGA-LUAD)
+        final_filter_list.append(GDCDataSource.create_project_specific_filter(project_id))
+
+        # and for the specific methylation data
+        final_filter_list.extend(self.METHYLATION_FILTERS)
+
+        final_filter = {
+            'op': 'and',
+            'content': final_filter_list
+        }
+
+        basic_fields = GDCDataSource.CASE_FIELDS
+        expanded_fields = ','.join(GDCDataSource.CASE_EXPANDABLE_FIELDS)
+        final_query_params = GDCDataSource.create_query_params(
+            basic_fields,
+            expand = expanded_fields,
+            filters = json.dumps(final_filter)
+        )
+        return final_query_params
+
+    def _download_cohort(self, project_id, data_fields):
+        '''
+        Handles the download of metadata and actual data for a single
+        GDC project (e.g. TCGA-LUAD). Will return a tuple of:
+        - dataframe giving the metadata (i.e. patient info)
+        - beta matrix 
+        '''
+        final_query_params = self._create_methylation_query_params(project_id)
+        
+        # prepare some temporary loop variables
+        finished = False
+        i = 0
+        downloaded_archives = []
+
+        # We have to keep a map of the fileId to the aliquot so we can properly 
+        # concatenate the files later
+        file_to_aliquot_mapping = {}
+        annotation_df = pd.DataFrame()
+        while not finished:
+            logger.info('Downloading batch %d for %s...' % (i, project_id))
+
+            # the records are paginated, so we have to keep track of which page we are currently requesting
+            start_index = i*GDCDataSource.PAGE_SIZE
+            end_index = (i+1)*GDCDataSource.PAGE_SIZE
+            final_query_params.update(
+                {
+                    'from': start_index
+                }
+            )
+
+            try:
+                response = get_with_retry(
+                    GDCDataSource.GDC_FILES_ENDPOINT, 
+                    params = final_query_params
+                )
+            except Exception as ex:
+                logger.info('An exception was raised when querying the GDC for'
+                    ' metadata. The exception reads: {ex}'.format(ex=ex)
+                )
+                return
+
+            if response.status_code == 200:
+                response_json = json.loads(response.content.decode("utf-8"))
+            else:
+                logger.error('The response code was NOT 200, but the request'
+                    ' exception was not handled.'
+                )
+                return
+
+            # If the first request, we can get the total records by examining
+            # the pagination data
+            if i == 0:
+                pagination_response = response_json['data']['pagination']
+                total_records = int(pagination_response['total'])
+
+            # now collect the file UUIDs and download
+            file_uuid_list = []
+            case_id_list = []
+            exposures = []
+            diagnoses = []
+            demographics = []
+            projects = []
+            aliquot_ids = []
+
+            for hit in response_json['data']['hits']:
+
+                # hit['cases'] is a list. To date, have only seen length of 1, 
+                # and it's not clear what a greater length would mean.
+                # Hence, catch this and issue an error so we can investigate
+                if len(hit['cases']) > 1:
+                    logger.info('Encountered an unexpected issue when iterating through the returned hits'
+                        ' of a GDC methylation query. We expect the "cases" key for a hit to be of length 1,'
+                        ' but this was greater. Returned data was: {k}'.format(k=json.dumps(response_json))
+                    )
+                    continue
+
+                file_uuid_list.append(hit['file_id'])
+
+                case_item = hit['cases'][0]
+                case_id_list.append(case_item['case_id'])
+
+                try:
+                    exposures.append(case_item['exposures'][0])
+                except KeyError as ex:
+                    exposures.append({})
+
+                try:
+                    diagnoses.append(case_item['diagnoses'][0])
+                except KeyError as ex:
+                    diagnoses.append({})
+
+                try:
+                    demographics.append(case_item['demographic'])
+                except KeyError as ex:
+                    demographics.append({})
+
+                try:
+                    projects.append(case_item['project'])
+                except KeyError as ex:
+                    projects.append({})
+
+                try:
+                    aliquot_ids.append(case_item['samples'][0]['portions'][0]['analytes'][0]['aliquots'][0]['aliquot_id'])
+                except KeyError as ex:
+                    # Need an aliquot ID to uniquely identify the column. Fail out
+                    logger.error('Encountered an unexpected issue when'
+                        ' iterating through the returned hits of a GDC'
+                        ' methylation query. We expect that we should be able'
+                        ' to drill-down to find a unique aliquot ID.'
+                        f' The returned data was: {json.dumps(response_json)}')
+                    return
+
+            logger.info('Adding {n} aliquots'.format(n=len(aliquot_ids)))
+            file_to_aliquot_mapping.update(dict(zip(file_uuid_list, aliquot_ids)))
+
+            exposure_df = GDCDataSource.merge_with_full_record(
+                data_fields['exposure'], 
+                exposures, 
+                aliquot_ids
+            )
+
+            demographic_df = GDCDataSource.merge_with_full_record(
+                data_fields['demographic'], 
+                demographics, 
+                aliquot_ids
+            )
+
+            diagnoses_df = GDCDataSource.merge_with_full_record(
+                data_fields['diagnosis'], 
+                diagnoses, 
+                aliquot_ids
+            )
+
+            # note that we keep the extra 'project_id' field in this method call. 
+            # That gives us the cancer type such as "TCGA-BRCA", etc.
+            project_df = GDCDataSource.merge_with_full_record(
+                data_fields['project'], 
+                projects, 
+                aliquot_ids,
+                extra_fields = ['project_id']
+            )
+
+            # Remove the extra project_id column from the exposure, demo, and diagnoses dataframes. Otherwise we get duplicated
+            # columns that we have to carry around:
+            exposure_df = exposure_df.drop('project_id', axis=1)
+            diagnoses_df = diagnoses_df.drop('project_id', axis=1)
+            demographic_df = demographic_df.drop('project_id', axis=1)
+
+            # there can be multiple files associated with a single aliquot. Hence, these lines
+            # perform a 'aliquot-aware' de-duplication of the table. If we don't include the aliquot ID
+            # as a real column (which we do via the reset_index method), it will drop more rows than
+            # we want since they are often quite sparse and rows will 'match' despite corresponding
+            # to different aliquots.
+            exposure_df = exposure_df.reset_index().drop_duplicates().set_index('index', drop=True)
+            diagnoses_df = diagnoses_df.reset_index().drop_duplicates().set_index('index', drop=True)
+            demographic_df = demographic_df.reset_index().drop_duplicates().set_index('index', drop=True)
+            project_df = project_df.reset_index().drop_duplicates().set_index('index', drop=True)
+
+            # Now merge all the dataframes (concatenate horizontally)
+            # to get the full metadata/annotations
+            ann_df = pd.concat([
+                exposure_df,
+                demographic_df,
+                diagnoses_df,
+                project_df
+            ], axis=1)
+
+            # Create another series which maps the aliquot IDs to the case ID.
+            # That will then be added to the annotation dataframe so we know which 
+            # metadata is mapped to each case
+            s = pd.Series(dict(zip(aliquot_ids, case_id_list)), name='case_id')
+
+            ann_df = pd.concat([ann_df, s], axis=1)
+
+            # Add to the master dataframe for this cancer type
+            annotation_df = pd.concat([annotation_df, ann_df], axis=0)
+
+            # Go get the actual beta-values for this batch.
+            downloaded_archives.append(
+                self._download_methylation_archives(file_uuid_list)
+            )
+
+            i += 1
+
+            # are we done yet???
+            if end_index >= total_records:
+                finished = True
+
+        logger.info('Completed looping through the batches for {ct}'.format(ct=project_id))
+
+        # there can be duplicate rows in the annotation dataframe
+        annotation_df = annotation_df.drop_duplicates()
+
+        annotation_df = self._append_gdc_annotations(annotation_df)
+
+        # Merge and write the count files
+        beta_df = self._merge_downloaded_archives(downloaded_archives, file_to_aliquot_mapping)
+        
+        logger.info(f'For {project_id}, created a methylation'
+            f' beta matrix with {beta_df.shape[1]} aliquots.')
+
+        # Cleanup the downloads
+        [os.remove(x) for x in downloaded_archives]
+
+        return annotation_df, beta_df
+
+    def _download_methylation_archives(self, file_uuid_list):
+        '''
+        Given a list of file UUIDs, download those to the local disk.
+        Return the path to the downloaded archive.
+        '''
+        # Download the actual methylation data corresponding to the
+        # aliquot metadata we've been collecting
+        download_params = {"ids": file_uuid_list}
+        download_response = requests.post(GDCDataSource.GDC_DATA_ENDPOINT,
+            data = json.dumps(download_params), 
+            headers = {"Content-Type": "application/json"}
+        )
+        response_head_cd = download_response.headers["Content-Disposition"]
+        file_name = re.findall("filename=(.+)", response_head_cd)[0]
+        fout = os.path.join(settings.TMP_DIR, file_name)
+        with open(fout, "wb") as output_file:
+            output_file.write(download_response.content)
+        return fout
+
+    def _merge_downloaded_archives(self, downloaded_archives, file_to_aliquot_mapping):
+        '''
+        Given a list of the downloaded archives, extract and merge them into
+        a single beta matrix
+        '''
+        logger.info('Begin merging the individual beta matrix archives'
+            ' into a single beta matrix')
+        betas_df = pd.DataFrame()
+        tmpdir = os.path.join(self.ROOT_DIR, 'tmparchive')
+        for f in downloaded_archives:
+            with tarfile.open(f, 'r:gz') as tf:
+                tf.extractall(path=tmpdir)
+                for t in tf.getmembers():
+                    if t.isfile():
+                        if t.name.endswith(self.SESAME_BETAS_SUFFIX):
+                            # the folder has the name of the file.
+                            # The prefix UUID on the basename is not useful to us.
+                            file_id = t.name.split('/')[0]
+                            df = pd.read_table(
+                                os.path.join(tmpdir, t.path), 
+                                index_col=0, 
+                                sep = '\t',
+                                names=['cpg_site', file_to_aliquot_mapping[file_id]])
+                            betas_df = pd.concat([betas_df, df], axis=1)
+                        else:
+                            logger.info('Found file named: {x}'.format(x=t.name))
+                            if t.name != 'MANIFEST.txt':
+                                print(t.name)
+                                raise Exception('Found an unexpected file ({x}) '
+                                    'that did not match our expectations.'.format(x=t.name))
+
+        # Clean up:
+        shutil.rmtree(tmpdir)
+        return betas_df
+
+    def verify_files(self, file_dict):
+        '''
+        A method to verify that all the necessary files are present
+        to properly index this dataset.
+        '''
+        # use the base class to verify that all the necessary files
+        # are there
+        self.check_file_dict(file_dict)
