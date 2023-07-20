@@ -1152,7 +1152,9 @@ class GDCMethylationDataSourceMixin(MethylationMixin):
                             betas_df = pd.concat([betas_df, df], axis=1)
                         else:
                             logger.info('Found file named: {x}'.format(x=t.name))
-                            if t.name != 'MANIFEST.txt':
+                            if re.fullmatch('superseded_files_.*\.txt', t.name):
+                                logger.info('Found a supercede file, which we ignore...')
+                            elif t.name != 'MANIFEST.txt':
                                 print(t.name)
                                 raise Exception('Found an unexpected file ({x}) '
                                     'that did not match our expectations.'.format(x=t.name))
