@@ -312,7 +312,7 @@ class GDCDataSource(PublicDataSource):
         some data about this, so this method allows each
         derived class to implement, if necessary
         '''
-        pass
+        return ann_df
 
 
 class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
