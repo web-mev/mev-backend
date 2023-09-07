@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'api.apps.ApiConfig',
     'corsheaders',
     'social_django',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
