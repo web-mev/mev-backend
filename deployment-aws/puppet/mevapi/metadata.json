@@ -8,15 +8,15 @@
   "dependencies": [
     {
       "name": "landcareresearch-solr",
-      "version_requirement": "7.0.0"
+      "version_requirement": "7.0.2"
     },
     {
       "name": "puppet-nginx",
-      "version_requirement": "3.3.0"
+      "version_requirement": "5.0.0"
     },
     {
       "name": "puppet-python",
-      "version_requirement": "6.2.1"
+      "version_requirement": "7.0.0"
     },
     {
       "name": "puppet-rabbitmq",
@@ -28,7 +28,7 @@
     },
     {
       "name": "puppetlabs-postgresql",
-      "version_requirement": "8.1.0"
+      "version_requirement": "8.2.1"
     },
     {
       "name": "puppetlabs-stdlib",
@@ -47,7 +47,7 @@
     {
       "operatingsystem": "Ubuntu",
       "operatingsystemrelease": [
-        "20.04"
+        "22.04"
       ]
     }
   ],
