@@ -36,7 +36,7 @@ FORGE
     puppetlabs-lvm (1.4.0)
       puppetlabs-mount_core (>= 1.0.0, < 2.0.0)
       puppetlabs-stdlib (>= 4.13.1, < 7.0.0)
-    puppetlabs-mount_core (1.1.0)
+    puppetlabs-mount_core (1.2.0)
     puppetlabs-postgresql (8.2.1)
       puppetlabs-apt (>= 2.0.0, < 10.0.0)
       puppetlabs-concat (>= 4.1.0, < 8.0.0)
@@ -64,7 +64,7 @@ PATH
       puppet-rabbitmq (= 13.0.0)
       puppetlabs-docker (= 5.1.0)
       puppetlabs-lvm (= 1.4.0)
-      puppetlabs-mount_core (= 1.1.0)
+      puppetlabs-mount_core (= 1.2.0)
       puppetlabs-postgresql (= 8.2.1)
       puppetlabs-stdlib (= 6.6.0)
 
