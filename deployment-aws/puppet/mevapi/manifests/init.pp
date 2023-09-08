@@ -114,16 +114,6 @@ class mevapi (
     }
   }
 
-  if $platform == 'virtualbox' {
-    # JSON file containing the credentials to authenticate with the Google storage API
-    # no actual need this for local dev but it needs to be populated for the app to startup properly
-    file { "${project_root}/storage_credentials.json":
-      ensure => file,
-      owner  => $app_user,
-      group  => $app_group,
-    }
-  }
-
   $mev_dependencies = [
     'build-essential',
     'apt-transport-https',
