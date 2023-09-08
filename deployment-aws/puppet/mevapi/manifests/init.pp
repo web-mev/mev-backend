@@ -47,7 +47,7 @@ class mevapi (
   if $facts['virtual'] == 'kvm' {
     $platform = 'aws'
   } else {
-    # gce or virtualbox
+    # VirtualBox
     $platform = $facts['virtual']
   }
 

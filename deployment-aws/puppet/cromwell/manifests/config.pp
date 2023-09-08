@@ -24,16 +24,18 @@ class cromwell::config () {
     password => $cromwell::db_password,
   }
 
-  file { "${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json":
-    ensure  => file,
-    content => epp('cromwell/amazon-cloudwatch-agent.json.epp'),
-    owner   => $cromwell::user,
-    group   => $cromwell::user,
-  }
-  ~>
-  exec { 'cloudwatch_agent':
-    command => "${cromwell::cloudwatch_agent_dir}/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
-    -c file:${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json",
-    creates => "${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json"
+  if $cromwell::platform == 'aws' {
+    file { "${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json":
+      ensure  => file,
+      content => epp('cromwell/amazon-cloudwatch-agent.json.epp'),
+      owner   => $cromwell::user,
+      group   => $cromwell::user,
+    }
+    ~>
+    exec { 'cloudwatch_agent':
+      command => "${cromwell::cloudwatch_agent_dir}/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
+        -c file:${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.json",
+      creates => "${cromwell::cloudwatch_agent_dir}/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json"
+    }
   }
 }
