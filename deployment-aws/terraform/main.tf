@@ -52,3 +52,18 @@ data "aws_caller_identity" "current" {}
 data "external" "git" {
   program = ["/bin/bash", "-c", "echo '{\"branch\": \"'$(git branch --show-current)'\"}'"]
 }
+
+module "globus" {
+  count                  = var.globus == null ? 0 : 1
+  source                 = "./modules/globus"
+  app_client_secret      = var.globus.app_client_secret
+  app_client_uuid        = var.globus.app_client_uuid
+  endpoint_client_secret = var.globus.endpoint_client_secret
+  endpoint_client_uuid   = var.globus.endpoint_client_uuid
+  endpoint_id            = var.globus.endpoint_id
+  name_prefix            = local.common_tags.Name
+  secrets_bucket         = "webmev-tf"
+  secrets_prefix         = "secrets/${local.stack}"
+  subnet_id              = aws_subnet.public.id
+  vpc_id                 = aws_vpc.main.id
+}
