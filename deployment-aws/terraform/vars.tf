@@ -83,34 +83,16 @@ variable "git_commit" {
   default     = ""
 }
 
-variable "globus_app_client_secret" {
-  description = "The corresponding secret for the Globus application"
-  type        = string
-  default     = "sample_secret"
-}
-
-variable "globus_app_client_uuid" {
-  description = "The UUID for the Globus application client"
-  type        = string
-  default     = "sample_uuid"
-}
-
-variable "globus_endpoint_client_secret" {
-  description = "The corresponding secret for the Globus endpoint client"
-  type        = string
-  default     = "sample_secret"
-}
-
-variable "globus_endpoint_client_uuid" {
-  description = "The UUID for the Globus endpoint client"
-  type        = string
-  default     = "sample_uuid"
-}
-
-variable "globus_endpoint_id" {
-  description = "The endpoint UUID for the Globus shared collection."
-  type        = string
-  default     = "sample_id"
+variable "globus" {
+  description = "Globus application configuration"
+  default     = null
+  type        = object({
+    app_client_uuid        = string
+    app_client_secret      = string
+    endpoint_client_uuid   = string
+    endpoint_client_secret = string
+    endpoint_id            = string
+  })
 }
 
 variable "google_oauth2_client_id" {
