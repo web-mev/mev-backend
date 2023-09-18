@@ -89,7 +89,7 @@ resource "aws_iam_instance_profile" "api_server_instance_profile" {
 
 resource "aws_ebs_volume" "data_volume" {
   availability_zone = "${data.aws_region.current.name}a"
-  size              = 100
+  size              = 300
   type              = "gp3"
   final_snapshot    = true
   snapshot_id       = var.data_volume_snapshot_id
@@ -111,8 +111,8 @@ resource "aws_volume_attachment" "data_ebs_attachment" {
 }
 
 resource "aws_instance" "api" {
-  # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
-  ami                    = "ami-0ff39345bd62c82a5"
+  # Ubuntu 22.04 LTS x86-64 LTS https://cloud-images.ubuntu.com/locator/ec2/
+  ami                    = "ami-00d5c4dd05b5467c4"
   instance_type          = "t3.xlarge"
   monitoring             = true
   subnet_id              = aws_subnet.public.id

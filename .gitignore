@@ -7,14 +7,11 @@ __pycache__
 .env
 
 .librarian/
+
 .terraform/
 .terraform.tfstate*
 terraform.tfstate*
 terraform.tfvars
-
-/storage_credentials.json
-/vagrant/env.txt
-/.env
 
 /api/docs/site
 /example_data/

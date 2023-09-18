@@ -20,15 +20,13 @@ Vagrant.configure("2") do |config|
     /usr/bin/apt-get -qq -y install puppet-agent
 
     # install and configure librarian-puppet
-    /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+    /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 5.0.0 --no-document
     /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
     /opt/puppetlabs/puppet/bin/librarian-puppet config tmp /tmp --global
     PATH="${PATH}:/opt/puppetlabs/bin" && cd /vagrant/deployment-aws/puppet && /opt/puppetlabs/puppet/bin/librarian-puppet install
   SHELL
 
   config.vm.provision :puppet do |puppet|
-
-
     # Users can specify optional args in the local environment
     # These ENV vars must be sourced prior to `vagrant up`
     if ENV['DJANGO_SETTINGS_MODULE']
@@ -58,7 +56,6 @@ Vagrant.configure("2") do |config|
 
     puppet.manifests_path = "deployment-aws/puppet/manifests"
     puppet.manifest_file  = "site.pp"
-    
   end
 
   config.vm.define "api", primary: true do |api|
@@ -72,7 +69,6 @@ Vagrant.configure("2") do |config|
       vb.memory = 4096
       vb.cpus = 2
     end
-
   end
 
   config.vm.define "cromwell", autostart: false do |cromwell|
