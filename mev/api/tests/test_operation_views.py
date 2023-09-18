@@ -139,8 +139,14 @@ class ExecutedOperationListTests(BaseAPITestCase):
         j = response.json()
         self.assertTrue(len(j)==len(all_workspace_exec_ops))
 
+        # test that it has the expected content.
+        # Most fields are just direct, but we want to ensure
+        # we are also passing information about the Operation itself:
+        j = j[0]
+        self.assertTrue('inputs' in j['operation'].keys())
 
-    def test_exec_ops_returns_inactive_ops(self):
+    @mock.patch('api.serializers.workspace_executed_operation.get_operation_instance_data')
+    def test_exec_ops_returns_inactive_ops(self, mock_get_operation_instance_data):
         '''
         As operations are updated, we will encounter situations where
         certain Operation instances are marked as 'inactive'. That inactive
@@ -172,6 +178,11 @@ class ExecutedOperationListTests(BaseAPITestCase):
             job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
+
+        mock_get_operation_instance_data.return_value = {
+            'abc': 'something', 
+            'inputs': {'inputA': 'foo'}
+        }
 
         all_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(owner=self.regular_user_1)
         all_active_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(
