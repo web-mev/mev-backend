@@ -142,8 +142,8 @@ resource "aws_security_group" "cromwell" {
 }
 
 resource "aws_instance" "cromwell" {
-  # Ubuntu 20.04 LTS https://cloud-images.ubuntu.com/locator/ec2/
-  ami                    = "ami-07f84a50d2dec2fa4"
+  # Ubuntu 22.04 LTS x86-64 https://cloud-images.ubuntu.com/locator/ec2/
+  ami                    = "ami-00d5c4dd05b5467c4"
   instance_type          = "t3.medium"
   monitoring             = true
   subnet_id              = aws_subnet.public.id
