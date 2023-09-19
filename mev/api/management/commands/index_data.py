@@ -12,13 +12,11 @@ from api.public_data import check_if_valid_public_dataset_name, \
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = ('Downloads and prepares a specific public dataset.'
-    ' Does not create indexes or anything further')
+    help = ('Indexes a public dataset and associates the required'
+            ' files in the database.')
 
     def add_arguments(self, parser):
 
-        # argument to control whether we push to github.  Note that it is
-        # "paired" with the one below to create a more conventional "switch flag"
         parser.add_argument(
             '-d',
             '--dataset_id',
