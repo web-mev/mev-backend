@@ -99,7 +99,7 @@ class Command(BaseCommand):
                 perform_operation_ingestion(repo_url,
                     str(op.pk), git_commit, overwrite=options['force'])
             else:
-                sys.stdout.write(f'\n\n\nWARNING: Operation {op.pk} did not have'
+                print(f'\n\n\nWARNING: Operation {op.pk} did not have'
                     ' a repository url. This can be the case for "static"'
                     ' operations that are distributed with WebMeV\n\n\n')
 
@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 for val in vals:
                     p = Path(val)
                     if not p.exists():
-                        sys.stdout.write('The database included a public'
+                        print('The database included a public'
                             f' dataset expecting a file at {p},'
                             ' but this was not found. Try to download.')
                         try:
@@ -154,5 +154,6 @@ class Command(BaseCommand):
                     ' and has not been corrupted.')
                 sys.exit(1)
 
-        sys.stdout.write('\n\n' + '*'*100 + '\n' + 'WARNINGS:\n')
-        sys.stdout.write('\n'.join(warning_messages))
+        if len(warning_messages) > 0L
+            print('\n\n' + '*'*100 + '\n' + 'WARNINGS:\n')
+            print('\n'.join(warning_messages))
