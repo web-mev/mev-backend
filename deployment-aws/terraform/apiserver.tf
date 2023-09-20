@@ -37,6 +37,13 @@ resource "aws_iam_role_policy" "server_s3_access" {
         },
         {
           Effect   = "Allow",
+          Action   = ["s3:GetObject"],
+          Resource = [
+            "arn:aws:s3:::${var.public_data_bucket_name}/*",
+          ]
+        },
+        {
+          Effect   = "Allow",
           Action   = ["s3:ListBucket"],
           Resource = [
             "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}",
@@ -198,6 +205,7 @@ resource "aws_instance" "api" {
   export FACTER_GLOBUS_ENDPOINT_ID='${var.globus_endpoint_id}'
   export FACTER_GOOGLE_OAUTH2_CLIENT_ID='${var.google_oauth2_client_id}'
   export FACTER_GOOGLE_OAUTH2_CLIENT_SECRET='${var.google_oauth2_client_secret}'
+  export FACTER_PUBLIC_DATA_BUCKET_NAME='${var.public_data_bucket_name}'
   export FACTER_SENTRY_URL='${var.sentry_url}'
   export FACTER_STORAGE_LOCATION='${var.storage_location}'
   export FACTER_STORAGE_BUCKET_NAME='${aws_s3_bucket.api_storage_bucket.id}'
