@@ -8,6 +8,11 @@ variable "app_client_uuid" {
   type        = string
 }
 
+variable "data_bucket" {
+  description = "Name of the S3 bucket used for data transfers"
+  type        = string
+}
+
 variable "endpoint_client_secret" {
   description = "The corresponding secret for the Globus endpoint client"
   type        = string

@@ -29,9 +29,10 @@ terraform {
 }
 
 locals {
-  stack       = lower(terraform.workspace)
-  commit_id   = var.git_commit == "" ? data.external.git.result["branch"] : var.git_commit
-  common_tags = {
+  stack         = lower(terraform.workspace)
+  commit_id     = var.git_commit == "" ? data.external.git.result["branch"] : var.git_commit
+  globus_bucket = "${local.stack}-webmev-globus"
+  common_tags   = {
     Name      = "${local.stack}-mev"
     Project   = "WebMEV"
     Terraform = "True"
@@ -58,6 +59,7 @@ module "globus" {
   source                 = "./modules/globus"
   app_client_secret      = var.globus.app_client_secret
   app_client_uuid        = var.globus.app_client_uuid
+  data_bucket            = local.globus_bucket
   endpoint_client_secret = var.globus.endpoint_client_secret
   endpoint_client_uuid   = var.globus.endpoint_client_uuid
   endpoint_id            = var.globus.endpoint_id
