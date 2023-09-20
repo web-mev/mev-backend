@@ -40,6 +40,7 @@ class mevapi (
   Optional[String]        $google_oauth2_client_id='',
   Optional[String]        $google_oauth2_client_secret='',
   Optional[String]        $project_root,
+  Optional[String]        $public_data_bucket_name='',
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,
   String                  $storage_bucket_name,
@@ -47,7 +48,7 @@ class mevapi (
   if $facts['virtual'] == 'kvm' {
     $platform = 'aws'
   } else {
-    # gce or virtualbox
+    # VirtualBox
     $platform = $facts['virtual']
   }
 
@@ -113,18 +114,6 @@ class mevapi (
       require => Mount[$data_root]
     }
   }
-
-  if $platform == 'virtualbox' {
-    # JSON file containing the credentials to authenticate with the Google storage API
-    # no actual need this for local dev but it needs to be populated for the app to startup properly
-    file { "${project_root}/storage_credentials.json":
-      ensure => file,
-      owner  => $app_user,
-      group  => $app_group,
-    }
-  }
-
-
 
   $mev_dependencies = [
     'build-essential',

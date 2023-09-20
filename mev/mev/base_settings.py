@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'api.apps.ApiConfig',
     'corsheaders',
     'social_django',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -504,6 +505,9 @@ if not os.path.exists(PUBLIC_DATA_DIR):
             d = PUBLIC_DATA_DIR
         )
     )
+
+# name of a bucket from which we can pull public datasets
+PUBLIC_DATA_BUCKET_NAME = get_env('PUBLIC_DATA_BUCKET_NAME')
 
 ###############################################################################
 # END Settings for public datasets

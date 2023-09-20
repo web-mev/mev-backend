@@ -131,6 +131,12 @@ variable "https_certificate_id" {
   default     = null
 }
 
+variable "public_data_bucket_name" {
+  description = "Name of the bucket holding data for public datasets"
+  type        = string
+  default     = "webmev-public"
+}
+
 variable "route53_managed_zone" {
   description = "Name of the Route53 managed zone"
   type        = string

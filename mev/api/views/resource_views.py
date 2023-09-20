@@ -85,7 +85,9 @@ class ResourceList(generics.ListAPIView):
 
         This method dictates that behavior.
         '''
-        return Resource.objects.filter(owner=self.request.user)
+        return Resource.objects.select_related('owner').\
+            prefetch_related('workspaces').\
+            filter(owner=self.request.user)
 
 
 class ResourceDetail(generics.RetrieveUpdateDestroyAPIView):
