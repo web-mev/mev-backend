@@ -158,7 +158,7 @@ If that works, your GCS endpoint is ready. However, the work is not done-- we st
 
 At this point, we have a GCS that can communicate and place files in our bucket. We now need to get it to work with the web application. The web application will manage third-party access to a shared Globus collection. We first create the web application since we will need to assign the application client privileges on the "guest collection" we create later.
 
-First go to [developers.globus.org](developers.globus.org) site and click "Register your app with Globus"):
+First go to [developers.globus.org](https://developers.globus.org) site and click "Register your app with Globus"):
 ![](imgs/p1.png)
 
 This will take you to a page where you can view your Globus projects; add it to the project you used/created when setting up the endpoint. Click the "Add" driopdown and select "Add new app":
