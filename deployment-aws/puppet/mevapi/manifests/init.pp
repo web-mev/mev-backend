@@ -40,6 +40,7 @@ class mevapi (
   Optional[String]        $google_oauth2_client_id='',
   Optional[String]        $google_oauth2_client_secret='',
   Optional[String]        $project_root,
+  Optional[String]        $public_data_bucket_name='',
   Optional[String]        $sentry_url = '',
   Enum['local', 'remote'] $storage_location,
   String                  $storage_bucket_name,
