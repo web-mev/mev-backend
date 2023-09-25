@@ -119,11 +119,7 @@ resource "aws_instance" "gcs" {
     /usr/local/bin/aws s3 cp s3://${var.secrets_bucket}/${var.secrets_prefix}/deployment-key.json /root/deployment-key.json
     /usr/local/bin/aws s3 cp s3://${var.secrets_bucket}/${var.secrets_prefix}/node_config.json /root/node_config.json
 
-    /usr/sbin/globus-connect-server node setup \
-    --deployment-key /root/deployment-key.json \
-    --client-id ${var.endpoint_client_uuid} \
-    --import-node /root/node_config.json \
-    --secret ${var.endpoint_client_secret}
+    /usr/sbin/globus-connect-server node setup --deployment-key /root/deployment-key.json --import-node /root/node_config.json
 
     /usr/bin/systemctl restart apache2
   EOF
