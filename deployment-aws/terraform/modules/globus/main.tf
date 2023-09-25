@@ -1,11 +1,9 @@
-# TODO: replace string gcs with globus
-
 resource "aws_s3_bucket" "data" {
   bucket = var.data_bucket
 }
 
-resource "aws_iam_role" "gcs_server" {
-  name               = "${var.name_prefix}-gcs-role"
+resource "aws_iam_role" "gcs" {
+  name               = "${var.name_prefix}-gcs"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
@@ -22,8 +20,8 @@ resource "aws_iam_role" "gcs_server" {
 }
 
 resource "aws_iam_role_policy" "gcs_s3_access" {
-  name   = "${var.name_prefix}-gcs-config-bucket-access"
-  role   = aws_iam_role.gcs_server.id
+  name   = "${var.name_prefix}-gcs-secrets-bucket-access"
+  role   = aws_iam_role.gcs.id
   policy = jsonencode(
     {
       Version   = "2012-10-17",
@@ -40,17 +38,17 @@ resource "aws_iam_role_policy" "gcs_s3_access" {
 
 # For adding SSM to the instance:
 resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.gcs_server.id
+  role       = aws_iam_role.gcs.id
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-resource "aws_iam_instance_profile" "gcs_server" {
-  name = "${var.name_prefix}-gcs-profile"
-  role = aws_iam_role.gcs_server.name
+resource "aws_iam_instance_profile" "gcs" {
+  name = "${var.name_prefix}-gcs"
+  role = aws_iam_role.gcs.name
 }
 
-resource "aws_security_group" "globus_connect_server" {
-  name        = "${var.name_prefix}-globus"
+resource "aws_security_group" "gcs" {
+  name        = "${var.name_prefix}-gcs"
   description = "Allow inbound HTTPS and Globus-specific ports"
   vpc_id      = var.vpc_id
   ingress {
@@ -85,9 +83,9 @@ resource "aws_instance" "gcs" {
   ami                    = "ami-00d5c4dd05b5467c4"
   instance_type          = "t2.micro"
   monitoring             = true
-  vpc_security_group_ids = [aws_security_group.globus_connect_server.id]
+  vpc_security_group_ids = [aws_security_group.gcs.id]
   subnet_id              = var.subnet_id
-  iam_instance_profile   = aws_iam_instance_profile.gcs_server.name
+  iam_instance_profile   = aws_iam_instance_profile.gcs.name
   tags                   = {
     Name = "${var.name_prefix}-gcs"
   }
