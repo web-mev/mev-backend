@@ -107,8 +107,8 @@ resource "aws_instance" "gcs" {
     /usr/bin/curl --output-dir /tmp -O -s https://downloads.globus.org/globus-connect-server/stable/installers/repo/deb/globus-repo_latest_all.deb
     /usr/bin/dpkg -i /tmp/globus-repo_latest_all.deb
     /usr/bin/apt-key add /usr/share/globus-repo/RPM-GPG-KEY-Globus
-    /usr/bin/apt -q update
-    /usr/bin/apt -q install -y globus-connect-server54=5.4.67-1+gcs5.jammy ntp ntpstat unzip
+    /usr/bin/apt-get -q update
+    /usr/bin/apt-get -q install -y globus-connect-server54=5.4.67-1+gcs5.jammy ntp ntpstat unzip
     /usr/bin/systemctl start ntp
 
     # install AWS CLI to download the config files
