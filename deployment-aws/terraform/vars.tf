@@ -87,10 +87,17 @@ variable "globus" {
   description = "Globus application configuration"
   default     = null
   type        = object({
+    # app_client credentials are those related to OAuth2
+    # flow for client-side applicatio
     app_client_uuid        = string
     app_client_secret      = string
+ 
+    # endpoint_client credentials are those related to
+    # setup/config of the Globus Connect Server
     endpoint_client_uuid   = string
     endpoint_client_secret = string
+
+    # the UUID of the shared collection
     endpoint_id            = string
   })
 }
