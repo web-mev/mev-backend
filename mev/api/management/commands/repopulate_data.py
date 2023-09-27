@@ -154,6 +154,6 @@ class Command(BaseCommand):
                     ' and has not been corrupted.')
                 sys.exit(1)
 
-        if len(warning_messages) > 0L
+        if len(warning_messages) > 0:
             print('\n\n' + '*'*100 + '\n' + 'WARNINGS:\n')
             print('\n'.join(warning_messages))
