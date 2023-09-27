@@ -32,7 +32,7 @@ resource "aws_iam_role_policy" "server_s3_access" {
           Resource = [
             "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*",
             "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}/*",
-            "arn:aws:s3:::${aws_s3_bucket.globus.id}/*"
+            "arn:aws:s3:::${local.globus_bucket}/*"
           ]
         },
         {
@@ -48,7 +48,7 @@ resource "aws_iam_role_policy" "server_s3_access" {
           Resource = [
             "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}",
             "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}",
-            "arn:aws:s3:::${aws_s3_bucket.globus.id}"
+            "arn:aws:s3:::${local.globus_bucket}"
           ]
         }
       ]
@@ -197,12 +197,12 @@ resource "aws_instance" "api" {
   export FACTER_EMAIL_HOST_PASSWORD="${aws_iam_access_key.ses_user.ses_smtp_password_v4}"
   export FACTER_FROM_EMAIL='${var.from_email}'
   export FACTER_FRONTEND_DOMAIN='${var.frontend_domain}'
-  export FACTER_GLOBUS_APP_CLIENT_ID='${var.globus_app_client_uuid}'
-  export FACTER_GLOBUS_APP_CLIENT_SECRET='${var.globus_app_client_secret}'
-  export FACTER_GLOBUS_BUCKET_NAME='${aws_s3_bucket.globus.id}'
-  export FACTER_GLOBUS_ENDPOINT_CLIENT_SECRET='${var.globus_endpoint_client_secret}'
-  export FACTER_GLOBUS_ENDPOINT_CLIENT_UUID='${var.globus_endpoint_client_uuid}'
-  export FACTER_GLOBUS_ENDPOINT_ID='${var.globus_endpoint_id}'
+  export FACTER_GLOBUS_APP_CLIENT_ID='${var.globus == null ? "" : var.globus.app_client_uuid}'
+  export FACTER_GLOBUS_APP_CLIENT_SECRET='${var.globus == null ? "" : var.globus.app_client_secret}'
+  export FACTER_GLOBUS_BUCKET_NAME='${local.globus_bucket}'
+  export FACTER_GLOBUS_ENDPOINT_CLIENT_SECRET='${var.globus == null ? "" : var.globus.endpoint_client_secret}'
+  export FACTER_GLOBUS_ENDPOINT_CLIENT_UUID='${var.globus == null ? "" : var.globus.endpoint_client_uuid}'
+  export FACTER_GLOBUS_ENDPOINT_ID='${var.globus == null ? "" : var.globus.endpoint_id}'
   export FACTER_GOOGLE_OAUTH2_CLIENT_ID='${var.google_oauth2_client_id}'
   export FACTER_GOOGLE_OAUTH2_CLIENT_SECRET='${var.google_oauth2_client_secret}'
   export FACTER_PUBLIC_DATA_BUCKET_NAME='${var.public_data_bucket_name}'

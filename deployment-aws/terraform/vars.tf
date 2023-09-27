@@ -83,52 +83,40 @@ variable "git_commit" {
   default     = ""
 }
 
-variable "globus_app_client_secret" {
-  description = "The corresponding secret for the Globus application"
-  type        = string
+variable "globus" {
+  description = "Globus application configuration"
   default     = null
-}
+  type        = object({
+    # app_client credentials are those related to OAuth2
+    # flow for client-side applicatio
+    app_client_uuid        = string
+    app_client_secret      = string
+ 
+    # endpoint_client credentials are those related to
+    # setup/config of the Globus Connect Server
+    endpoint_client_uuid   = string
+    endpoint_client_secret = string
 
-variable "globus_app_client_uuid" {
-  description = "The UUID for the Globus application client"
-  type        = string
-  default     = null
-}
-
-variable "globus_endpoint_client_secret" {
-  description = "The corresponding secret for the Globus endpoint client"
-  type        = string
-  default     = null
-}
-
-variable "globus_endpoint_client_uuid" {
-  description = "The UUID for the Globus endpoint client"
-  type        = string
-  default     = null
-}
-
-variable "globus_endpoint_id" {
-  description = "The endpoint UUID for the Globus shared collection."
-  type        = string
-  default     = null
+    # the UUID of the shared collection
+    endpoint_id            = string
+  })
 }
 
 variable "google_oauth2_client_id" {
   description = "The client ID for OAuth2 sign-in"
   type        = string
-  default     = null
+  default     = "sample_id"
 }
 
 variable "google_oauth2_client_secret" {
   description = "The client secret for OAuth2 sign-in"
   type        = string
-  default     = null
+  default     = "sample_secret"
 }
 
 variable "https_certificate_id" {
   description = "ID of the HTTPS certificate"
   type        = string
-  default     = null
 }
 
 variable "public_data_bucket_name" {
