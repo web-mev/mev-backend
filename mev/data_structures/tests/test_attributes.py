@@ -437,6 +437,42 @@ class TestSimpleAttributes(unittest.TestCase):
         }
         self.assertDictEqual(expected_dict_representation, s.to_dict())
 
+        # valid spec, but also passing many=False explicitly
+        s = OptionStringAttribute('abc', options=['xyz','abc'], many=False)
+        self.assertEqual(s.value, 'abc')
+        expected_dict_representation = {
+            'attribute_type': 'OptionString', 
+            'value': 'abc', 
+            'options': ['xyz', 'abc']
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
+
+        # test that a valid spec works when passing the 'many' key
+        # which is optional
+        # First, try a single value:
+        s = OptionStringAttribute('abc', options=['xyz','abc'], many=True)
+        self.assertEqual(s.value, 'abc')
+        expected_dict_representation = {
+            'attribute_type': 'OptionString', 
+            'value': 'abc', 
+            'options': ['xyz', 'abc'],
+            'many': True
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
+
+        # now try multiple valid values
+        s = OptionStringAttribute(['abc','xyz'],
+                                  options=['xyz','abc', 'qqq'],
+                                  many=True)
+        self.assertEqual(s.value, ['abc', 'xyz'])
+        expected_dict_representation = {
+            'attribute_type': 'OptionString', 
+            'value': ['abc', 'xyz'], 
+            'options': ['xyz', 'abc', 'qqq'],
+            'many': True
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
+
         # test that case matters
         with self.assertRaises(AttributeValueError):
             s = OptionStringAttribute('Abc', options=['xyz','abc'])
@@ -461,6 +497,27 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 
             'need to be strings'):
             s = OptionStringAttribute('xyz', options=['xyz',1,'abc'])
+
+        # if many=False (default) and we pass multiple values, we should fail:
+        with self.assertRaisesRegex(AttributeValueError, 
+            'Multiple values were passed'):
+            s = OptionStringAttribute(
+                ['xyz', 'abc'],
+                options=['xyz','abc'])
+
+        with self.assertRaisesRegex(AttributeValueError, 
+            'Multiple values were passed'):
+            s = OptionStringAttribute(
+                ['xyz', 'abc'],
+                options=['xyz','abc'],
+                many=False)
+
+        # many=True, but one of the values is invalid:
+        with self.assertRaisesRegex(AttributeValueError, 
+            'not among the valid options'):
+            s = OptionStringAttribute(
+                ['xyz', 'qqq'],
+                options=['xyz','abc'], many=True)
 
 
     def test_integer_option_attribute(self):

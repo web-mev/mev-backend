@@ -8,7 +8,8 @@ from rest_framework.exceptions import ValidationError
 
 from exceptions import ExecutedOperationInputOutputException, \
     InvalidResourceTypeException, \
-    InactiveResourceException
+    InactiveResourceException, \
+    AttributeValueError
 
 from data_structures.operation import Operation
 
@@ -687,3 +688,55 @@ class OperationUtilsTester(BaseAPITestCase):
         expected_default = d['inputs']['some_boolean']['spec']['default']
         self.assertEqual(
             final_inputs['some_boolean'], expected_default)
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_string_options_with_many(self, mock_get_operation_instance):
+        '''
+        Test the case where one of the inputs is an OptionString but 
+        multiple inputs are permitted
+        '''
+        # first test one where we expect an empty list-- no resources
+        # are used or created:
+        f = os.path.join(
+            TESTDIR,
+            'valid_op_with_multiple_optionstring.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+        l = ['abc', 'xyz']
+        inputs = {
+            'many_choices': l,
+            'single_choice': 'abc'
+        }
+        ops = OperationDbModel.objects.all()
+        op = ops[0]
+        result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
+        self.assertCountEqual(result['many_choices'], l)
+        self.assertCountEqual(result['single_choice'], 'abc')
+
+        # you are allowed to pass a single choice even though
+        # many=True
+        l = 'abc'
+        inputs = {
+            'many_choices': l,
+            'single_choice': 'abc'
+        }
+        ops = OperationDbModel.objects.all()
+        op = ops[0]
+        result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
+        self.assertCountEqual(result['many_choices'], l)
+        self.assertCountEqual(result['single_choice'], 'abc')
+
+        # make it fail by passing multiple choices to the second arg:
+        inputs = {
+            'many_choices': 'abc',
+            'single_choice': ['abc', 'xyz']
+        }
+        ops = OperationDbModel.objects.all()
+        op = ops[0]
+        with self.assertRaisesRegex(AttributeValueError, 'Multiple values'):
+            result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
