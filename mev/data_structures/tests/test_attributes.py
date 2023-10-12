@@ -449,12 +449,13 @@ class TestSimpleAttributes(unittest.TestCase):
 
         # test that a valid spec works when passing the 'many' key
         # which is optional
-        # First, try a single value:
+        # First, try a single value. Even though we pass a single string,
+        # we return a single-item list
         s = OptionStringAttribute('abc', options=['xyz','abc'], many=True)
-        self.assertEqual(s.value, 'abc')
+        self.assertEqual(s.value, ['abc'])
         expected_dict_representation = {
             'attribute_type': 'OptionString', 
-            'value': 'abc', 
+            'value': ['abc'], 
             'options': ['xyz', 'abc'],
             'many': True
         }
