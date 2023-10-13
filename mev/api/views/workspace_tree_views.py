@@ -2,7 +2,7 @@ import logging
 import datetime
 import os
 import json
-from io import StringIO
+from io import BytesIO
 
 from django.core.files.base import File
 
@@ -138,7 +138,7 @@ class WorkspaceTreeSave(APIView, WorkspaceTreeBase):
         timestamp_str = datetime.datetime.now().strftime('%m-%d-%Y-%H-%M-%S')
         output_filename = f'workspace_export.{kwargs["workspace_pk"]}.{timestamp_str}.json'
         dag = self.get_tree(request, *args, **kwargs)
-        fh =File(StringIO(json.dumps(dag)), output_filename)
+        fh = File(BytesIO(json.dumps(dag).encode('utf-8')), name=output_filename)
         try:
             workspace = Workspace.objects.get(pk=kwargs['workspace_pk'])
             resource_instance = create_resource(
