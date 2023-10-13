@@ -448,11 +448,16 @@ class BaseOptionAttribute(BaseAttributeType):
                 raise AttributeValueError(f'Multiple values were passed'
                     ' but only a single value is permitted unless explicitly'
                     ' permitted in the specification.')
-        else:
-            _vals_to_check = [val,]
+        else: # not a list
             if self._many:
-                val = [val,]
+                raise AttributeValueError('When an option field permits many'
+                    ' values, we require the values to be passed inside'
+                    ' a list.')
 
+            # we put inside a list to make the value checking easier below
+            # for both single and multiple values
+            _vals_to_check = [val,]
+            
         for v in _vals_to_check:
             if not v in self._options:
                 raise AttributeValueError(f'The value "{v}" was not among'

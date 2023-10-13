@@ -717,8 +717,8 @@ class OperationUtilsTester(BaseAPITestCase):
         self.assertCountEqual(result['single_choice'], 'abc')
 
         # you are allowed to pass a single choice even though
-        # many=True
-        l = 'abc'
+        # If many=True, you still need to pass inside a list
+        l = ['abc']
         inputs = {
             'many_choices': l,
             'single_choice': 'abc'
@@ -732,11 +732,22 @@ class OperationUtilsTester(BaseAPITestCase):
 
         # make it fail by passing multiple choices to the second arg:
         inputs = {
-            'many_choices': 'abc',
+            'many_choices': ['abc'],
             'single_choice': ['abc', 'xyz']
         }
         ops = OperationDbModel.objects.all()
         op = ops[0]
         with self.assertRaisesRegex(AttributeValueError, 'Multiple values'):
+            result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
+
+        # make it fail by passing a string to the first arg:
+        inputs = {
+            'many_choices': 'abc',
+            'single_choice': ['abc', 'xyz']
+        }
+        ops = OperationDbModel.objects.all()
+        op = ops[0]
+        with self.assertRaisesRegex(AttributeValueError, 'a list'):
             result = validate_operation_inputs(self.regular_user_1,
                 inputs, op, None)

@@ -449,9 +449,7 @@ class TestSimpleAttributes(unittest.TestCase):
 
         # test that a valid spec works when passing the 'many' key
         # which is optional
-        # First, try a single value. Even though we pass a single string,
-        # we return a single-item list
-        s = OptionStringAttribute('abc', options=['xyz','abc'], many=True)
+        s = OptionStringAttribute(['abc'], options=['xyz','abc'], many=True)
         self.assertEqual(s.value, ['abc'])
         expected_dict_representation = {
             'attribute_type': 'OptionString', 
@@ -506,6 +504,7 @@ class TestSimpleAttributes(unittest.TestCase):
                 ['xyz', 'abc'],
                 options=['xyz','abc'])
 
+        # test multiple values when many=False is explicit
         with self.assertRaisesRegex(AttributeValueError, 
             'Multiple values were passed'):
             s = OptionStringAttribute(
@@ -520,6 +519,13 @@ class TestSimpleAttributes(unittest.TestCase):
                 ['xyz', 'qqq'],
                 options=['xyz','abc'], many=True)
 
+        # many=True, but pass a single string (which should
+        # be in a list):
+        with self.assertRaisesRegex(AttributeValueError, 
+            'inside a list'):
+            s = OptionStringAttribute(
+                'xyz',
+                options=['xyz','abc'], many=True)
 
     def test_integer_option_attribute(self):
 
