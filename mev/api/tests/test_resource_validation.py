@@ -214,6 +214,18 @@ class TestBasicTable(BaseAPITestCase):
         is_valid, err = t.validate_type(self.r, TSV_FORMAT)
         self.assertFalse(is_valid)
 
+    def test_handles_excel_with_date(self):
+        '''
+        This test covers the case where someone has an Excel table
+        which has converted MAR1, etc. to dates. Warn appropriately
+        '''
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'xlsx_with_date_error.xlsx'))
+        is_valid, err = t.validate_type(self.r, XLSX_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('datetime' in err)
+
 
 class TestMatrix(BaseAPITestCase):
     '''

@@ -101,6 +101,12 @@ NAMING_ERROR = ('The {idx}s of your table contained identifiers with'
     ' tools that may not support these characters, we only allow'
     ' letters A-Z, numbers 0-9, dots (.), dashes (-), and underscores (_).')
 
+EXCEL_DATETIME_ERROR = ('A datetime ({x}) was found when parsing your file.'
+                        ' This is a common issue for certain gene names'
+                        ' (such as MARCH1) when the file has been opened'
+                        ' or edited with Excel. Try exporting your file'
+                        ' as CSV to avoid this.')
+
 def col_str_formatter(x):
     '''
     x is a tuple with the column number
@@ -216,7 +222,13 @@ class TableResource(DataResource):
         try:
             # if this comprehension succeeds, then all the column headers
             # or row names were able to be parsed as numbers.
-            [float(x) for x in names]
+            for x in names:
+                try:
+                    float(x)
+                except TypeError as ex:
+                    if 'datetime.datetime' in str(ex):
+                        raise TypeError(EXCEL_DATETIME_ERROR.format(x=x))
+                    raise Exception(f'Unexpected TypeError raised {ex}')
             return True
         except ValueError:
             return False
@@ -300,18 +312,27 @@ class TableResource(DataResource):
             if self.table.shape[1] == 0:
                 return (False, TRIVIAL_TABLE_ERROR)
 
-            # check if all the column names are numbers-- which would USUALLY
-            # indicate a missing header
-            columns_all_numbers = TableResource.index_all_numbers(self.table.columns)
-            if columns_all_numbers:
-                return (False, NUMBERED_COLUMN_NAMES_ERROR)
-
-            # check if all the rownames are numbers, which would usually
-            # indicate missing row names (i.e. a column of data is read
-            # as the index)
-            rows_all_numbers = TableResource.index_all_numbers(self.table.index)
-            if rows_all_numbers:
-                return (False, NUMBERED_ROW_NAMES_ERROR)
+            # check if all the column or row names are numbers.
+            # For the columns, this would USUALLY
+            # indicate a missing header. For the rows, we 
+            #  assume it to be a data column or just a dummy index 
+            # which is not permitted.
+            index_dict = {
+                'col': self.table.columns,
+                'row': self.table.index
+            }
+            for key, values in index_dict.items():
+                try:
+                    all_numbers = TableResource.index_all_numbers(values)
+                    if all_numbers:
+                        if key == 'col':
+                            return (False, NUMBERED_COLUMN_NAMES_ERROR)
+                        else:
+                            return (False, NUMBERED_ROW_NAMES_ERROR)
+                except TypeError as ex:
+                    return  (False, str(ex))
+                except Exception:
+                    return  (False, PARSE_ERROR)
 
             # check that all the row names were valid (e.g. not NAs)
             if pd.isnull(self.table.index).any():
