@@ -403,7 +403,7 @@ class TCGAMethylationDataSource(TCGADataSource, GDCMethylationDataSourceMixin):
     DESCRIPTION = ('TCGA methylation data as processed by the'
         ' Genomic Data Commons'
         ' <a href="https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/Methylation_Pipeline/">'
-        ' methylation array harmonization workflow/a>. Methylation "beta" values for CpG sites are'
+        ' methylation array harmonization workflow</a>. Methylation "beta" values for CpG sites are'
         ' produced by SeSAMe software.'
     )
 
