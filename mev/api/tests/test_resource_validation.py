@@ -267,6 +267,32 @@ class TestBasicTable(BaseAPITestCase):
         self.assertFalse(is_valid)
         self.assertCountEqual(bad_names, long_list_of_invalids)
 
+    def test_catches_parse_exception(self):
+        '''
+        This tests that we appropriately handle issues like
+        "jagged" tables, which can occur with extra fields
+        in certain rows.
+
+        This can happen a lot of Excel files if the user
+        has an empty cell on the right side of the table-
+        the file is saved like it has some "empty data" there
+        but the parser believes it to be a jagged table.
+        '''
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'jagged_table_case1.csv'))
+        is_valid, err = t.validate_type(self.r, CSV_FORMAT)
+        self.assertFalse(is_valid)
+        expected_err = 'Expected 7 fields in line 3, saw 8'
+        self.assertTrue(expected_err in err)
+ 
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'jagged_table_case2.csv'))
+        is_valid, err = t.validate_type(self.r, CSV_FORMAT)
+        self.assertFalse(is_valid)
+        expected_err = 'Expected 7 fields in line 3, saw 8'
+        self.assertTrue(expected_err in err)
+
 class TestMatrix(BaseAPITestCase):
     '''
     Tests tables where all entries must be numeric
