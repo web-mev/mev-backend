@@ -11,6 +11,7 @@ from rest_framework import permissions as framework_permissions
 
 from exceptions import WebMeVException
 
+from api.data_transformations import get_transformation_function
 from api.serializers.executed_operation import ExecutedOperationSerializer
 from api.serializers.workspace_executed_operation import WorkspaceExecutedOperationSerializer
 from api.models import Operation as OperationDbModel
@@ -354,4 +355,36 @@ class OperationRun(APIView):
 
 
 class ExecutedOperationResultsQuery(APIView):
-    pass
+
+    def get(self, request, *args, **kwargs):
+
+        logger.info('Performing a results query for an ExecutedOperation.')
+
+        user = request.user
+
+        # the UUID of the ExecutedOperation
+        exec_op_uuid = str(kwargs['exec_op_uuid'])
+
+        matching_op = check_op(user, exec_op_uuid)
+        if matching_op is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+            
+        if matching_op.execution_stop_datetime is None:
+            # job is still running. Response code to be consistent
+            # with the "job status" api call above.
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            # We have a properly authenticated request from the job owner
+            # and the job has completed. Ready to do some work...
+            query_params = request.query_params
+            try:
+                transform_fn = get_transformation_function(query_params['transform-name'])
+                result = transform_fn(matching_op, query_params)
+                return Response(result)
+            except KeyError as ex:
+                return Response(
+                    {'error': f'The request must contain the {ex} parameter.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )   
+            except Exception as ex:
+                return Response({'error': str(ex)}, status=status.HTTP_400_BAD_REQUEST)
