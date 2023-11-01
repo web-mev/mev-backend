@@ -1,12 +1,17 @@
 import pandas as pd
 import numpy as np
-import networkx as nx
-from itertools import chain
+from networkx import Graph
+from itertools import chain, combinations
 from collections import defaultdict
 
+from exceptions import AttributeValueError
+from constants import POSITIVE_MARKER, NEGATIVE_MARKER
 from api.utilities.resource_utilities import check_resource_request_validity
 
-from data_structures.attribute_types import PositiveIntegerAttribute
+from data_structures.attribute_types import PositiveIntegerAttribute, \
+    BoundedFloatAttribute
+    
+
 
 def subset_PANDA_net(resource_instance, query_params):
     '''
@@ -175,18 +180,27 @@ def subset_full_network(executed_op_instance, query_params):
     `query_params` is a dict and has the following required keys:
     - sig_threshold: the p-value/FDR/etc. which will be used as a threshold
       to subset the final matrix
-    - scheme: this determines how we prioritize the network's info. See comments
-             below
+    - scheme: this determines how we prioritize the network's info.
+              See comments below
     - top_n: following prioritization of nodes or edges, this determines how
-             many 'hits' we keep. Positive, non-zero integer
-    - max_children: only relevant for the prioritization scheme where we rank
-                    by "input weighting
+             many 'hits' we keep. Positive, non-zero integer. Only relevant
+             for schemes where we do not explicitly specify the starting nodes
+    - max_neighbors: After determining the top starting nodes, how many
+                     neighboring nodes will we consider. If not set, defaults
+                     to zero meaning we do not look for neighbors.
+    - weights: the 'key' that addresses the file with the network weights.
+               Note that this should be one of the keys in the `outputs` dict
+               contained in the ExecutedOperation instance.
+    - pvals: the 'key' referencing the file of significance values. Should be
+             one of the keys in the `outputs` dict contained in the
+             ExecutedOperation instance.
+    - nodes: only used if the 'scheme' is specified as 'node_list' in which
+             case we need a list of nodes to start from.
 
     Additionally, one can start from a list of query genes to perform the subsequent
     walk down the network. That key is "initial_nodes"
 
-    Returns:
-        TODO
+    Returns a dictionary which has the graph structure
     '''
     # to keep this function as generic as possible, we need to know
     # which output keys from the executed operation contain the
@@ -205,18 +219,18 @@ def subset_full_network(executed_op_instance, query_params):
     # first determine the prioritization scheme.
     # - "max_edges": Finds the top edges in the graph. W can then obtain a
     #                node set corresponding to those `top_n` edges; call this
-    #                the root node set. If `max_children` is provided, we then
-    #                find the top `max_children` neighbors for each node in the
+    #                the root node set. If `max_neighbors` is provided, we then
+    #                find the top `max_neighbors` neighbors for each node in the
     #                root node set as given by the absolute value of the edge.
-    #                If `max_children` is not provided, we only show the root
+    #                If `max_neighbors` is not provided, we only show the root
     #                node set and any edges connecting those nodes.
     # - "max_weight": Finds the nodes that have the maximum weighting. This is
     #                 given by the sum of the absolute values of the edges 
     #                 incident on each node. We then take the `top_n` of those.
     #                 Just as above, we have the ability to walk out to the 
-    #                 to `max_children` nodes if the parameter is provided.
+    #                 to `max_neighbors` nodes if the parameter is provided.
     # - "node_list": The user explicitly provides a set of root nodes to start
-    #                from. Same as above with respect to `max_children` nodes.
+    #                from. Same as above with respect to `max_neighbors` nodes.
     try:
         scheme = query_params['scheme'].lower()
     except KeyError as ex:
@@ -234,26 +248,26 @@ def subset_full_network(executed_op_instance, query_params):
                         f' choose from {", ".join(available_schemes.keys())}')
 
     try:
-        p = PositiveIntegerAttribute(int(query_params['max_children']))
-        max_children = p.value
+        p = PositiveIntegerAttribute(int(query_params['max_neighbors']))
+        max_neighbors = p.value
     except ValueError:
-        raise Exception('The parameter "max_children" could not be parsed'
+        raise Exception('The parameter "max_neighbors" could not be parsed'
                         ' as a positive integer.')   
     except KeyError:
-        # the `max_children` key is optional- set to zero.
-        max_children = 0
+        # the `max_neighbors` key is optional- set to zero.
+        max_neighbors = 0
 
-    # note that below, we check for query params specific to the 
+    # Here we check for query params specific to the 
     # requested prioritization scheme. We handle the actual files
     # and function calls after. This way if there's an issue with
     # bad params, we return immediately rather than after a file
-    # read, etc.
+    # read, etc. which can take some time.
     if scheme == 'node_list':
         try:
             init_nodes = query_params['nodes'].lower()
         except KeyError as ex:
             raise Exception(f'Since the node ordering scheme requested expects'
-                ' a list of nodes, you must supply a "{ex}" parameter')
+                f' a list of nodes, you must supply a "{ex}" parameter')
     else:
         # we expect a parameter `top_n` in this case
         try:
@@ -261,19 +275,42 @@ def subset_full_network(executed_op_instance, query_params):
             top_n = p.value
         except ValueError:
             raise Exception('The parameter "top_n" could not be parsed'
-                            ' as a positive integer.')   
-        except KeyError:
+                            ' as a positive integer.')
+        except AttributeValueError as ex:
+            raise ex 
+        except KeyError as ex:
             raise Exception(f'Given the node ordering scheme requested,'
-                ' you must supply a "{ex}" parameter')
+                f' you must supply a "{ex}" parameter')
+
+    try:
+        f = BoundedFloatAttribute(float(query_params['sig_threshold']), min=0, max=1.0)
+        sig_threshold = f.value
+    except ValueError:
+        raise Exception('The parameter "sig_threshold" could not be parsed'
+                        ' as a number.')
+    except AttributeValueError as ex:
+        raise ex
+    except KeyError as ex:
+        raise Exception(f'You must supply a "{ex}" parameter')
 
     adj_mtx, pvals_mtx = get_result_matrices(executed_op_instance,
                                              weights_key,
                                              pvals_key)
-    if scheme == 'node_list':
-        G = subset_fn(adj_mtx, pvals_mtx, init_nodes, max_children)
-    else:
-        G = subset_fn(adj_mtx, pvals_mtx, top_n, max_children)
+    adj_mtx = filter_by_significance(adj_mtx, pvals_mtx, sig_threshold)
 
+    if scheme == 'node_list':
+        G = subset_fn(adj_mtx, pvals_mtx, init_nodes, max_neighbors)
+    else:
+        G = subset_fn(adj_mtx, pvals_mtx, top_n, max_neighbors)
+
+    return format_response_graph(G)
+
+
+def format_response_graph(G):
+    '''
+    Takes a networkx.Graph instance and returns a formatted
+    dictionary.
+    '''
     output_json_dict = {}
     node_list = []
     for node, data in G.nodes.items():
@@ -289,10 +326,16 @@ def subset_full_network(executed_op_instance, query_params):
             'weight': edge_data['weight'],
             'pval': edge_data['pval']
         })
+    output_json_dict['edges'] = edge_list
     return output_json_dict
 
 
 def get_result_matrices(executed_op_instance, weights_key, pvals_key):
+    '''
+    Finds the output files given the ExecutedOperation
+    instance and returns a weight/adj matrix and a 
+    significance/p-val matrix
+    '''
     outputs = executed_op_instance.outputs
     try:
         weights_uuid = outputs[weights_key]
@@ -342,8 +385,12 @@ def filter_by_significance(adj_mtx, pval_mtx, threshold):
     return pass_mtx.loc[~is_all_nan, ~is_all_nan]
 
 
-def max_edge_subsetting(adj_mtx, pval_mtx, top_n, max_children):
+def max_edge_subsetting(adj_mtx, pval_mtx, top_n, max_neighbors):
+    '''
+    Return a network that prioritizes the largest edge weights.
+    '''
     melted = adj_mtx.where(np.tril(np.ones_like(adj_mtx), k=-1).astype(bool))\
+                     .abs()\
                      .melt(ignore_index=False)\
                      .dropna()\
                      .sort_values('value', ascending=False)\
@@ -354,67 +401,83 @@ def max_edge_subsetting(adj_mtx, pval_mtx, top_n, max_children):
     # m5       m1  4.530018
     # m5       m0  4.148508
 
-    # create a graph of just the top edges
-    G = nx.Graph()
+    node_set = set()
     for i, row in melted.iterrows():
         j = row['variable']
-        v = row['value']
-        pval = pval_mtx.loc[i, j]
-        G.add_edge(i, j, weight=v, pval=pval)
-
-    if max_children > 0:
-        root_nodes = [x[0] for x in G.nodes.data()]
-        for node in root_nodes:
-            row = adj_mtx.loc[node]
-            pvals = pval_mtx.loc[node]
-            G = get_top_children(G, row, pvals, node, max_children)
-    return G
+        node_set = node_set.union([i,j])
+    return walk_for_neighbors(adj_mtx, pval_mtx, list(node_set), max_neighbors)
 
 
-def get_top_children(G, row, pvals, i, n):
+def max_weight_subsetting(adj_mtx, pval_mtx, top_n, max_neighbors):
+    '''
+    Return a network that prioritizes the sum of edge weights.
 
-    if n == 0:
-        return G
-
-    # note that we get the top children using abs value
-    row = row.dropna().abs().sort_values(ascending=False)[:n]
-    for j, val in row.items():
-        if i != j: # no self-link
-            G.add_edge(i, j, weight=val, pval=pvals[j])
-    return G
-
-
-def max_weight_subsetting(adj_mtx, pval_mtx, top_n, max_children):
-
+    Determines the root/starting nodes based on nodes which have the
+    largest incoming edge weight sum.
+    '''
     # note the absolute value since we have correlation values--
     # we don't want cancellation of +/- in sum!
-    row_sums = np.abs(adj_mtx).sum(axis=1)
-    sorter = np.argsort(row_sums)[::-1][:top_n]
-    adj_mtx = adj_mtx.iloc[sorter]
-    adj_mtx = adj_mtx.dropna(axis=1, how='all')
-
-    G = nx.Graph()
-    
-    if max_children > 0:
-        # go row-by-row and get the top children
-        for i, row in adj_mtx.iterrows():
-            pvals = pval_mtx.loc[i]
-            G = get_top_children(G, row, pvals, i, max_children)
-
-    return G
+    root_nodes = np.abs(adj_mtx).sum(axis=1).nlargest(top_n).index
+    return walk_for_neighbors(adj_mtx, pval_mtx, root_nodes, max_neighbors)
 
 
-def node_list_subsetting(adj_mtx, pval_mtx, root_node_list, max_children):
+def node_list_subsetting(adj_mtx, pval_mtx, root_node_list, max_neighbors):
+    '''
+    Return a network that starts from a set of given root nodes.
+    '''
     diff_set = set(root_node_list).difference(adj_mtx.index)
     if len(diff_set) > 0:
         raise Exception(f'The following items were not found'
-                        f' {", ".join(diff_set)}')
+                        f' in your filtered matrix: {", ".join(diff_set)}.'
+                        f' This can happen if your identifier is incorrect'
+                        f' or if your significance threshold is low and'
+                        f' there are zero significant edges associated'
+                        f' with your nodes.')
+    return walk_for_neighbors(adj_mtx, pval_mtx, root_node_list, max_neighbors)
 
-    adj_mtx = adj_mtx.loc[root_node_list, root_node_list]
-    if max_children > 0:
-        # go row-by-row and get the top children
-        for i, row in adj_mtx.iterrows():
-            pvals = pval_mtx.loc[i]
-            G = get_top_children(G, row, pvals, i, max_children)
 
+def add_edges(G, adj_mtx, pval_mtx):
+    '''
+    Given a networkx.Graph with a set of nodes, this function
+    will add all the significant edges corresponding to those nodes.
+    '''
+    node_set = [x for x in G.nodes()]
+    for i,j in combinations(node_set, 2):
+        edge_weight = adj_mtx.loc[i,j]
+        if not np.isnan(edge_weight):
+            direction = POSITIVE_MARKER if edge_weight > 0 else NEGATIVE_MARKER
+            G.add_edge(i, j, 
+                       weight=np.abs(edge_weight),
+                       pval=pval_mtx.loc[i,j],
+                       direction=direction)
+
+
+def walk_for_neighbors(adj_mtx, pval_mtx, root_nodes, max_neighbors):
+    '''
+    Starting from a set of root nodes (does not matter how those are
+    determined), add significantly connected neighbors based on 
+    `max_neighbors`
+    '''
+    G = Graph()
+    [G.add_node(x) for x in root_nodes]
+    if max_neighbors > 0:
+        for i in root_nodes:
+            row = adj_mtx.loc[i]
+            add_top_neighbor_nodes(G, row, i, max_neighbors)
+    add_edges(G, adj_mtx, pval_mtx)
     return G
+
+
+def add_top_neighbor_nodes(G, row, i, n):
+    '''
+    Given a row of the adjacency/weight matrix for node `i`, add the top `n`
+    neighboring nodes to the graph as determined by their edge weights.
+    '''
+    if n <= 0:
+        return
+
+    # note that we get the top neighbors using abs value
+    sorted_neighbors = row.dropna().abs().sort_values(ascending=False)[:n]
+    for j in sorted_neighbors.keys():
+        if i != j: # no self-link
+            G.add_node(j)

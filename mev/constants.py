@@ -152,3 +152,11 @@ FORMATS_MAPPING = {
 # are not permitted
 POSITIVE_INF_MARKER = '++inf++'
 NEGATIVE_INF_MARKER = '--inf--'
+
+# Used for consistent reference to "directions". For instance
+# if a correlation is -0.7 and we are sending a payload describing
+# a network, we want to show that this is a strongly, but negatively
+# correlated edge. Hence, we want to say the edge weight is 0.7 but
+# that it's "negative" (so that any vizualations, etc. can color accordingly)
+POSITIVE_MARKER = 'POS'
+NEGATIVE_MARKER = 'NEG'
