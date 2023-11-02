@@ -708,6 +708,15 @@ class NetworkSubsetTests(BaseAPITestCase):
         self.assertTrue(self.adj_mtx.equals(a))
         self.assertTrue(self.pval_mtx.equals(b))
 
+        # if the wrong key is given, assert that we are given a proper
+        # error message
+        with self.assertRaisesRegex(Exception, 'BAD_key'):
+            get_result_matrices(mock_op_instance, 'BAD_key', 'pvals_key')
+
+        # case matters!
+        with self.assertRaisesRegex(Exception, 'Weights_key'):
+            get_result_matrices(mock_op_instance, 'Weights_key', 'pvals_key')
+
     def test_full_call_integration(self):
         '''
         Although we test the individual components of the
@@ -1316,6 +1325,47 @@ class NetworkSubsetTests(BaseAPITestCase):
         mock_filter_by_significance.assert_called_once_with(mock_adj, mock_pvals, 0.2)
         mock_get_result_matrices.assert_called_once_with(mock_exec_op, 'wk', 'pvk')
         mock_max_edge_subsetting.assert_called_once_with(mock_filtered_adj_mtx, mock_pvals, 2, 0)
+        mock_format_response_graph.assert_called_once_with(mock_graph)
+
+    @mock.patch('api.data_transformations.network_transforms.format_response_graph')
+    @mock.patch('api.data_transformations.network_transforms.get_result_matrices')
+    @mock.patch('api.data_transformations.network_transforms.filter_by_significance')
+    @mock.patch('api.data_transformations.network_transforms.node_list_subsetting')
+    def test_missing_max_neighbors_default(self, mock_node_list_subsetting,
+        mock_filter_by_significance,
+        mock_get_result_matrices,
+        mock_format_response_graph):
+        '''
+        Tests that we properly handle the case where a user gives a
+        list of node names
+        '''
+        mock_adj = mock.MagicMock()
+        mock_pvals = mock.MagicMock()
+        mock_get_result_matrices.return_value = (
+            mock_adj,
+            mock_pvals
+        )
+        mock_filtered_adj_mtx = mock.MagicMock()
+        mock_filter_by_significance.return_value =  mock_filtered_adj_mtx
+
+        # first check that we call the proper functions if 
+        # the params are all OK
+        mock_exec_op = mock.MagicMock()
+        query_params = {
+            'sig_threshold': 0.2,
+            'scheme': 'node_list',
+            'max_neighbors': 2,
+            'nodes': 'a,b,c',
+            'weights': 'wk',
+            'pvals': 'pvk'
+        }
+        mock_graph = mock.MagicMock()
+        mock_node_list_subsetting.return_value = mock_graph
+        subset_full_network(mock_exec_op, query_params)
+        mock_filter_by_significance.assert_called_once_with(mock_adj, mock_pvals, 0.2)
+        mock_get_result_matrices.assert_called_once_with(mock_exec_op, 'wk', 'pvk')
+        mock_node_list_subsetting.assert_called_once_with(mock_filtered_adj_mtx,
+            mock_pvals, ['a','b','c'], 2)
         mock_format_response_graph.assert_called_once_with(mock_graph)
 
     @mock.patch('api.data_transformations.network_transforms.get_result_matrices')

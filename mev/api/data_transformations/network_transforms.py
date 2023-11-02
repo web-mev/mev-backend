@@ -206,12 +206,12 @@ def subset_full_network(executed_op_instance, query_params):
     # which output keys from the executed operation contain the
     # relevant data. These should match keys in the outputs.
     try:
-        weights_key = query_params['weights'].lower()
+        weights_key = query_params['weights']
     except KeyError as ex:
         raise Exception(f'You must supply a "{ex}" parameter')
 
     try:
-        pvals_key = query_params['pvals'].lower()
+        pvals_key = query_params['pvals']
     except KeyError as ex:
         raise Exception(f'You must supply a "{ex}" parameter')
 
@@ -264,7 +264,8 @@ def subset_full_network(executed_op_instance, query_params):
     # read, etc. which can take some time.
     if scheme == 'node_list':
         try:
-            init_nodes = query_params['nodes'].lower()
+            init_nodes = query_params['nodes']
+            init_nodes = [x.strip() for x in init_nodes.split(',')]
         except KeyError as ex:
             raise Exception(f'Since the node ordering scheme requested expects'
                 f' a list of nodes, you must supply a "{ex}" parameter')
