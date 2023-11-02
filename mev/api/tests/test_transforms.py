@@ -1050,8 +1050,8 @@ class NetworkSubsetTests(BaseAPITestCase):
                 {'id': 'c'}
             ], 
             'edges': [
-                {'source': 'a', 'target': 'b', 'weight': 0.2, 'pval': 0.01},
-                {'source': 'a', 'target': 'c', 'weight': 0.1, 'pval': 0.05}
+                {'source': 'a', 'target': 'b', 'weight': 0.2, 'pval': 0.01, 'direction': POSITIVE_MARKER},
+                {'source': 'a', 'target': 'c', 'weight': 0.1, 'pval': 0.05, 'direction': NEGATIVE_MARKER}
             ]
         }
         self.assertDictEqual(j, expected)

@@ -325,7 +325,8 @@ def format_response_graph(G):
             'source': edge_tuple[0],
             'target': edge_tuple[1],
             'weight': edge_data['weight'],
-            'pval': edge_data['pval']
+            'pval': edge_data['pval'],
+            'direction': edge_data['direction']
         })
     output_json_dict['edges'] = edge_list
     return output_json_dict
