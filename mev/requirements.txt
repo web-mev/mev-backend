@@ -12,6 +12,7 @@ gunicorn==20.1.0
 Markdown==3.3.7
 mkautodoc==0.2.0
 mkdocs==1.4.2
+networkx==3.2.1
 numpy==1.23.5
 openpyxl==3.0.10
 pandas==1.5.2

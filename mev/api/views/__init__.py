@@ -44,7 +44,8 @@ from .executed_operation_views import OperationRun, \
     ExecutedOperationCheck, \
     ExecutedOperationList, \
     NonWorkspaceExecutedOperationList, \
-    WorkspaceExecutedOperationList
+    WorkspaceExecutedOperationList, \
+    ExecutedOperationResultsQuery
 from .operation_category_views import OperationCategoryList, \
     OperationCategoryDetail, \
     OperationCategoryAdd
