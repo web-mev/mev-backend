@@ -28,7 +28,7 @@ class DataResource(object):
         return False
 
 
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
         raise NotImplementedError('You must'
         ' implement this method in the derived class')
 

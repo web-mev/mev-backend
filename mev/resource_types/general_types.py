@@ -34,6 +34,6 @@ class GeneralResource(DataResource):
         return self.metadata
 
 
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
         logger.info('Cannot use get_contents on an unknown type.')
         return None
