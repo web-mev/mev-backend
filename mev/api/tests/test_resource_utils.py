@@ -230,7 +230,7 @@ class TestResourceUtilities(BaseAPITestCase):
         expected_dict = {'a': 1, 'b':2}
 
         class mock_resource_type_class(object):
-            def get_contents(self, resource, query_params={}):
+            def get_contents(self, resource, query_params={}, preview=False):
                 return expected_dict
 
         mock_resource_mapping.__getitem__.return_value = mock_resource_type_class

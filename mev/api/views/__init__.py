@@ -12,6 +12,7 @@ from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, \
     ResourceDetail, \
     ResourceContents, \
+    ResourcePreview, \
     AddBucketResourceView, \
     ResourceContentTransform
 from .resource_download import ResourceDownload, \

@@ -34,6 +34,7 @@ urlpatterns = [
     path('resources/', api.views.ResourceList.as_view(), name='resource-list'),
     path('resources/<uuid:pk>/', api.views.ResourceDetail.as_view(), name='resource-detail'),
     path('resources/<uuid:pk>/contents/', api.views.ResourceContents.as_view(), name='resource-contents'),
+    path('resources/<uuid:pk>/contents/preview/', api.views.ResourcePreview.as_view(), name='resource-preview'),
     path('resources/<uuid:pk>/contents/transform/', api.views.ResourceContentTransform.as_view(), name='resource-contents-transform'),
     path('resources/add-bucket-resources/', api.views.AddBucketResourceView.as_view(), name='bucket-resource-add'),
     path('resources/<uuid:pk>/metadata/', api.views.ResourceMetadataView.as_view(), name='resource-metadata-detail'),

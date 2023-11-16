@@ -209,6 +209,48 @@ class ResourceContents(APIView):
             else:
                 return Response(contents)
 
+
+class ResourcePreview(APIView):
+    '''
+    Returns a preview of the data underlying a Resource.
+
+    Depending on the data, the format of the response may be different.
+    Additionally, some Resource types do not support a preview.
+    
+    This returns a JSON-format representation of the data.
+
+    This endpoint is only really sensible for certain types of 
+    Resources, such as those in table format.  Other types, such as 
+    sequence-based files do not have this functionality.
+    '''
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        resource_pk = kwargs['pk']
+
+        valid_request, r = check_resource_request(user, resource_pk)
+        if not valid_request:
+            # if the request was not valid, then `r` is a Response object.
+            return r
+
+        # requester can access, resource is active.  Go get contents
+        try:
+            contents = get_resource_view(r, {}, preview=True)
+        except Exception as ex:
+            return Response(
+                {'error': 'Experienced an issue when preparing'
+                          f' the resource preview: {ex}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )   
+        if contents is None:
+            return Response(
+                {'info': 'Contents not available for this resource.'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(contents)
+
+
 class AddBucketResourceView(APIView):
     '''
     This view is used to create a new user-associated resource given

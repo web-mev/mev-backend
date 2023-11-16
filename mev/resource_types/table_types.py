@@ -114,6 +114,9 @@ EXCEL_DATETIME_ERROR = ('A datetime ({x}) was found when parsing your file.'
                         ' or edited with Excel. Try exporting your file'
                         ' as CSV to avoid this.')
 
+# If requesting a preview of the table, how many lines do we return?
+PREVIEW_NUM_LINES = 5
+
 def col_str_formatter(x):
     '''
     x is a tuple with the column number
@@ -263,7 +266,7 @@ class TableResource(DataResource):
         else:
             return (False, bad_names)
 
-    def read_resource(self, resource_instance, requested_file_format=None):
+    def read_resource(self, resource_instance, requested_file_format=None, preview=False):
         '''
         One common spot to define how the file is read.
 
@@ -282,8 +285,13 @@ class TableResource(DataResource):
         else:
             try:
                 # read the table using the appropriate parser:
+                if preview:
+                    nrows = PREVIEW_NUM_LINES
+                else:
+                    nrows = None
                 self.table = reader(
-                    resource_instance.datafile.open(), index_col=0, comment='#')
+                    resource_instance.datafile.open(),
+                    index_col=0, comment='#', nrows=nrows)
 
                 # drop extra/empty cols and rows
                 self.table.dropna(axis=0, how='all', inplace=True)
@@ -613,7 +621,7 @@ class TableResource(DataResource):
         else:
             return []
 
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
         '''
         Returns a dataframe of the table contents
 
@@ -622,7 +630,7 @@ class TableResource(DataResource):
         '''
         try:
             logger.info(f'Read resource ({resource_instance.pk})')
-            self.read_resource(resource_instance)
+            self.read_resource(resource_instance, preview=preview)
             self.additional_exported_cols = []
 
             # if there were any filtering params requested, apply those
@@ -897,7 +905,7 @@ class Matrix(TableResource):
         elif len(filters) == 1:
             self.table = self.table.loc[filters[0]]            
 
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
         '''
         This method allows us to add on additional content that is
         allowable for matrix types, as they are all numeric.
@@ -915,7 +923,7 @@ class Matrix(TableResource):
 
         # additional filtering/behavior specific to a Matrix (if requested)
         # is handled in the _resource_specific_modifications method
-        return super().get_contents(resource_instance, query_params)
+        return super().get_contents(resource_instance, query_params, preview)
 
 
 class IntegerMatrix(Matrix):
@@ -1335,11 +1343,16 @@ class BaseBEDFile(TableResource):
 
     ACCEPTABLE_FORMATS = [TSV_FORMAT,]
 
-    def _read_resource(self, resource_instance, names, column_numbers):
+    def _read_resource(self, resource_instance, names, column_numbers, preview=False):
 
         # Note that we don't use the TableResource.read_resource since we have
         # a different way of parsing the table here.
         reader = TableResource.get_reader(TSV_FORMAT)
+
+        if preview:
+            nrows = PREVIEW_NUM_LINES
+        else:
+            nrows = None
 
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
@@ -1347,7 +1360,8 @@ class BaseBEDFile(TableResource):
         try:
             self.table = reader(resource_instance.datafile.open(), 
                 names=names,
-                usecols=column_numbers)
+                usecols=column_numbers,
+                nrows=nrows)
         except pd.errors.ParserError as ex:
             logger.info(f'Failed to parse. Exception: {ex}')
             raise ex
@@ -1411,9 +1425,9 @@ class BED3File(BaseBEDFile):
     NAMES = ['chrom', 'start', 'stop']
     COLUMN_NUMBERS = list(range(3))
 
-    def read_resource(self, resource_instance):
+    def read_resource(self, resource_instance, preview=False):
         self._read_resource(resource_instance,
-            BED3File.NAMES, BED3File.COLUMN_NUMBERS)
+            BED3File.NAMES, BED3File.COLUMN_NUMBERS, preview=preview)
 
     def validate_type(self, resource_instance, file_format):
         try:
@@ -1448,9 +1462,9 @@ class BED6File(BED3File):
     COLUMN_NUMBERS = list(range(6))
     ACCEPTABLE_STRAND_VALUES = set(['.', '+', '-'])
 
-    def read_resource(self, resource_instance):
+    def read_resource(self, resource_instance, preview=False):
         self._read_resource(resource_instance,
-            BED6File.NAMES, BED6File.COLUMN_NUMBERS)
+            BED6File.NAMES, BED6File.COLUMN_NUMBERS, preview=preview)
 
     def _validate(self):
         is_valid, error_message = super()._validate()
@@ -1539,9 +1553,10 @@ class NarrowPeakFile(BED6File):
     NAMES = BED6File.NAMES + ['signal_value', 'pval', 'qval', 'peak']
     COLUMN_NUMBERS = list(range(10))
 
-    def read_resource(self, resource_instance):
+    def read_resource(self, resource_instance, preview=False):
         self._read_resource(resource_instance,
-            NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS)
+            NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS,
+            preview=preview)
 
     def _check_signal_column(self):
         '''
