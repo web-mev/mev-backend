@@ -836,6 +836,9 @@ class GDCMethylationDataSourceMixin(MethylationMixin):
                 betas_df = betas_df.iloc[:,~betas_df.columns.duplicated()]
                 logger.info(f'Betas matrix size (after duplicate removal): {betas_df.shape[0]}')
 
+                # cast to float16 to save space. No need for float64 precision.
+                betas_df = betas_df.astype('float16')
+
                 total_annotation_df = pd.concat([total_annotation_df, ann_df], axis=0)
 
                 # save the counts to a cancer-specific dataset. Store each
