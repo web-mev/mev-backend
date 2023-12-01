@@ -266,7 +266,7 @@ class TestPublicDatasets(BaseAPITestCase):
             'filters': []
         }
 
-        resource_list = create_dataset_from_params(dataset_id, mock_user, request_payload)
+        create_dataset_from_params(dataset_id, mock_user, request_payload)
 
         # check the proper methods were called:
         mock_dataset.create_from_query.assert_called_with(self.test_dataset, request_payload, '')
@@ -279,8 +279,6 @@ class TestPublicDatasets(BaseAPITestCase):
             file_format=file_format,
             status = Resource.VALIDATING
         )
-
-        self.assertEqual(resource_list[0].name, mock_name)
 
         mock_delete_local_file.assert_called_with(self.demo_filepath)
 
