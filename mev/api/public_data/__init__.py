@@ -170,7 +170,6 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
         raise ex
 
     # create the Resource instances.
-    resource_list = []
     for path, name, resource_type, file_format in \
             zip(path_list, name_list, resource_type_list, file_format_list):
         fh = File(open(path, 'rb'), name)
@@ -194,10 +193,6 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
             file_format
         )
 
-        resource_list.append(r)
-
         # if the file validated and a resource was created, then it's safe
         # in the permanent storage. Delete the tmp file:
         delete_local_file(path)
-
-    return resource_list
