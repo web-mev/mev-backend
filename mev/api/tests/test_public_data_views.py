@@ -93,6 +93,7 @@ class PublicDataDetailsTests(BaseAPITestCase):
         response = self.authenticated_regular_client.get(url)
         self.assertTrue((response.status_code == status.HTTP_404_NOT_FOUND))
 
+
 class PublicDataQueryTests(BaseAPITestCase):
     '''
     Tests focused around the ability to query public datasets.
@@ -161,157 +162,81 @@ class PublicDataCreateTests(BaseAPITestCase):
         self.assertTrue((response.status_code == status.HTTP_401_UNAUTHORIZED) 
         | (response.status_code == status.HTTP_403_FORBIDDEN))
 
-
-    @mock.patch('api.views.public_dataset.create_dataset_from_params')
-    def test_error_to_add_resource_reported(self, mock_create_dataset_from_params):
+    @mock.patch('api.views.public_dataset.async_create_dataset_from_params')
+    def test_error_reported(self, mock_async_create_dataset_from_params):
         '''
-        If something goes wrong in the 
-        api.views.public_dataset.create_dataset_from_params function,
-        we return a 400 and report it.
+        If something goes wrong in the call to the async
+        public data function, we return a 400 and report it.
         '''
         # this is the payload we want passed to the function.
         # the full request will have this AND the workspace
         payload = {'samples': [1,2,3]}
 
         # mock the failure:
-        mock_create_dataset_from_params.side_effect = Exception('something bad!')
+        mock_async_create_dataset_from_params.delay.side_effect = Exception('something bad!')
 
         response = self.authenticated_regular_client.post(
             self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
 
-    @mock.patch('api.views.public_dataset.create_dataset_from_params')
-    def test_missing_filter_creates_null_filter(self, mock_create_dataset_from_params):
+    @mock.patch('api.views.public_dataset.async_create_dataset_from_params')
+    def test_async_call(self, mock_async_create_dataset_from_params):
         '''
-        Assume that the request payload was valid so that the 
-        api.views.public_dataset.create_dataset_from_params function
-        returns an api.models.Resource instance. 
-
-        Here, test that we add that resource to the workspace and return a 201
+        Test that we call the async function with the proper args
         '''
         payload = {}
 
-        # this is the new resource that is mock-created
-        new_resource = Resource.objects.create(
-            owner = self.regular_user_1,
-            datafile = File(BytesIO(), 'something.txt'),
-            name = 'foo.tsv'
-        )
-        mock_create_dataset_from_params.return_value = [new_resource,]
-
-        # finally, call the endpoint
         response = self.authenticated_regular_client.post(
             self.url, data=payload, format='json')
-        self.assertTrue(response.status_code == status.HTTP_201_CREATED)
+        self.assertTrue(response.status_code == status.HTTP_204_NO_CONTENT)
 
-        mock_create_dataset_from_params.assert_called_with(
+        mock_async_create_dataset_from_params.delay.assert_called_with(
             self.test_active_dataset.index_name,
-            self.regular_user_1,
+            self.regular_user_1.pk,
             None, 
             ''
         )
-        j = response.json()
-        self.assertTrue(j[0]['name'] == 'foo.tsv')
+        self.assertTrue(response.status_code == status.HTTP_204_NO_CONTENT)
 
-        # cleanup
-        new_resource.datafile.delete()
-        new_resource.delete()
+        # now test with actual filtering params
+        mock_async_create_dataset_from_params.reset_mock()
 
-    @mock.patch('api.views.public_dataset.create_dataset_from_params')
-    def test_adds_new_resource_to_workspace_case1(self, mock_create_dataset_from_params):
-        '''
-        Assume that the request payload was valid so that the 
-        api.views.public_dataset.create_dataset_from_params function
-        returns a list of api.models.Resource instances. 
-
-        Here, test that we add that resource to the workspace and return a 201.
-        No output name for the dataset is provided
-        '''
-        # this is the payload we want passed to the function.
-        # the full request will have this AND the workspace
         payload = {'filters': {'a':1}}
-
-        # below, we check that the workspace key gets stripped
-        # from the call to the creation method
-        new_resource = Resource.objects.create(
-            owner = self.regular_user_1,
-            datafile = File(BytesIO(), 'something.txt'),
-            name = 'foo.tsv'
-        )
-        mock_create_dataset_from_params.return_value = [new_resource,]
 
         # finally, call the endpoint
         response = self.authenticated_regular_client.post(
             self.url, data=payload, format='json')
-        self.assertTrue(response.status_code == status.HTTP_201_CREATED)
+        self.assertTrue(response.status_code == status.HTTP_204_NO_CONTENT)
 
         # below, we check that the workspace key gets stripped
         # from the call to the creation method
-        mock_create_dataset_from_params.assert_called_with(
+        mock_async_create_dataset_from_params.delay.assert_called_with(
             self.test_active_dataset.index_name,
-            self.regular_user_1,
+            self.regular_user_1.pk,
             payload['filters'],
             ''
         )
 
-        j = response.json()
-        # j is a list of resource instances. We expect only one:
-        self.assertTrue(j[0]['name'] == 'foo.tsv')
-
-        # cleanup
-        new_resource.datafile.delete()
-        new_resource.delete()
-
-
-    @mock.patch('api.views.public_dataset.create_dataset_from_params')
-    def test_adds_new_resource_to_workspace_case2(self, mock_create_dataset_from_params):
-        '''
-        Assume that the request payload was valid so that the 
-        api.views.public_dataset.create_dataset_from_params function
-        returns a list of api.models.Resource instances. 
-
-        Here, test that we add that resource to the workspace and return a 201.
-        Here, we pass a name for the dataset
-        '''
-        # this is the payload we want passed to the function.
-        # the full request will have this AND the workspace
+        mock_async_create_dataset_from_params.delay.reset_mock()
         output_name = 'foo'
         payload = {'filters': {'a':1}, 'output_name': output_name}
-
-        # below, we check that the workspace key gets stripped
-        # from the call to the creation method
-        new_resource = Resource.objects.create(
-            owner = self.regular_user_1,
-            datafile = File(BytesIO(), 'something.txt'),
-            name = 'foo.tsv'
-        )
-        mock_create_dataset_from_params.return_value = [new_resource,]
 
         # finally, call the endpoint
         response = self.authenticated_regular_client.post(
             self.url, data=payload, format='json')
-        self.assertTrue(response.status_code == status.HTTP_201_CREATED)
+        self.assertTrue(response.status_code == status.HTTP_204_NO_CONTENT)
 
         # below, we check that the workspace key gets stripped
         # from the call to the creation method
-        mock_create_dataset_from_params.assert_called_with(
+        mock_async_create_dataset_from_params.delay.assert_called_with(
             self.test_active_dataset.index_name,
-            self.regular_user_1,
+            self.regular_user_1.pk,
             payload['filters'],
             output_name
         )
 
-        j = response.json()
-        # j is a list of resource instances. We expect only one:
-        self.assertTrue(j[0]['name'] == 'foo.tsv')
-
-        # cleanup
-        new_resource.datafile.delete()
-        new_resource.delete()
-
-
-    @mock.patch('api.views.public_dataset.create_dataset_from_params')
-    def test_rejects_malformatted_filter(self, mock_create_dataset_from_params):
+    @mock.patch('api.views.public_dataset.async_create_dataset_from_params')
+    def test_rejects_malformatted_filter(self, mock_async_create_dataset_from_params):
         '''
         Test that if a 'filter' key is provided and it is not parsed 
         as a dict, then we reject
@@ -322,3 +247,4 @@ class PublicDataCreateTests(BaseAPITestCase):
         response = self.authenticated_regular_client.post(
             self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
+        mock_async_create_dataset_from_params.delay.assert_not_called()
