@@ -248,3 +248,28 @@ class PublicDataCreateTests(BaseAPITestCase):
             self.url, data=payload, format='json')
         self.assertTrue(response.status_code == status.HTTP_400_BAD_REQUEST)
         mock_async_create_dataset_from_params.delay.assert_not_called()
+
+
+    @mock.patch('api.views.public_dataset.async_create_dataset_from_params')
+    def test_handles_additional_filters(self, mock_async_create_dataset_from_params):
+        '''
+        In addition to the filters for subjects, users can supply additional arguments
+        such as the ability to use the case_id instead of the aliquot ID.
+
+        Here we test that those are passed on in the expected format
+        '''
+        payload = {
+            'filters': {
+                'selections': {'TCGA-ABC': ['a','b']},
+                'other_arg': 'abc'
+            },
+            'output_name': 'foo'
+        }
+        response = self.authenticated_regular_client.post(
+            self.url, data=payload, format='json')
+        mock_async_create_dataset_from_params.delay.assert_called_with(
+            self.test_active_dataset.index_name,
+            self.regular_user_1.pk,
+            payload['filters'],
+            'foo'
+        )

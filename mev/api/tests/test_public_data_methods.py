@@ -5,6 +5,7 @@ import unittest.mock as mock
 import os
 import datetime
 import pandas as pd
+import numpy as np
 import uuid
 
 from django.conf import settings
@@ -412,6 +413,86 @@ class TestTARGET(BaseAPITestCase):
 
         self.assertTrue(target_types['TARGET-NBL'] == 'Neuroblastoma')
 
+
+class TestGDCDataSource(BaseAPITestCase):
+
+    def test_apply_additional_filters(self):
+        
+        mock_ann = pd.DataFrame({
+            'a': [1,2,3],
+            'b': ['a','b','c'],
+            'case_id': ['c1','c2','c3']
+        }, index=['i1','i2','i3'])
+
+        X = np.random.randint(0,10, size=(2,3))
+        mock_counts = pd.DataFrame(
+            X,
+            index=['g1', 'g2'],
+            columns=['i1', 'i2', 'i3']
+        )
+        gdc_ds = GDCDataSource()
+
+        # by default, no arg means leave the dataframes as-is
+        updated_ann, updated_counts = gdc_ds.apply_additional_filters(
+            mock_ann, mock_counts, {})
+        self.assertTrue(mock_ann.equals(updated_ann))
+        self.assertTrue(mock_counts.equals(updated_counts))
+
+        # when explicitly passing False, also leave as-is
+        updated_ann, updated_counts = gdc_ds.apply_additional_filters(
+            mock_ann, mock_counts, {'use_case_id':False})
+        self.assertTrue(mock_ann.equals(updated_ann))
+        self.assertTrue(mock_counts.equals(updated_counts))
+
+        # if True is passed, we change the annotations and matrix
+        # to use the case ID as the identifier/row index
+        updated_ann, updated_counts = gdc_ds.apply_additional_filters(
+            mock_ann, mock_counts, {'use_case_id':True})
+        renamed_counts = pd.DataFrame(
+            X,
+            index=['g1', 'g2'],
+            columns=['c1', 'c2', 'c3']
+        )
+        renamed_ann = pd.DataFrame({
+            'a': [1,2,3],
+            'b': ['a','b','c']
+        }, index=['c1','c2','c3'])
+        self.assertTrue(updated_ann.equals(renamed_ann))
+        self.assertTrue(updated_counts.equals(renamed_counts))
+
+        # rename using the case ID as above, but this time we have
+        # a situation where there are >1 aliquot IDs. Per our requirements
+        # (subject to change), we drop any subjects where there were >1 aliquots
+        # to avoid unjustified/ambiguous/random logic on which aliquot is selected
+        # for a given subject
+
+        # Note the repeated subject/case ID of c1
+        mock_ann = pd.DataFrame({
+            'a': [1,2,3,4],
+            'b': ['a','b','c','d'],
+            'case_id': ['c1','c2','c3', 'c1']
+        }, index=['i1','i2','i3', 'i4'])
+        X = np.random.randint(0,10, size=(2,4))
+        mock_counts = pd.DataFrame(
+            X,
+            index=['g1', 'g2'],
+            columns=['i1', 'i2', 'i3', 'i4']
+        )
+        updated_ann, updated_counts = gdc_ds.apply_additional_filters(
+            mock_ann, mock_counts, {'use_case_id':True})
+        renamed_counts = pd.DataFrame(
+            X[:,1:3],
+            index=['g1', 'g2'],
+            columns=['c2', 'c3']
+        )
+        renamed_ann = pd.DataFrame({
+            'a': [2,3],
+            'b': ['b','c']
+        }, index=['c2','c3'])
+        self.assertTrue(updated_ann.equals(renamed_ann))
+        self.assertTrue(updated_counts.equals(renamed_counts))
+
+
 class TestGDCRnaSeqMixin(BaseAPITestCase): 
 
     def test_proper_filters_created(self):
@@ -583,6 +664,17 @@ class TestRnaSeqMixin(BaseAPITestCase):
             'tcga_rnaseq_ann.csv'
         )
 
+        expected_df = pd.DataFrame(
+            [[26,86,67],[54,59,29],[24,12,37]],
+            index = ['gA', 'gB', 'gC'],
+            columns = ['s1','s3','s5']
+        )
+        ann_df = pd.DataFrame(
+            [['TCGA-ABC', 1990],['TCGA-ABC', 1992], ['TCGA-DEF', 1994]],
+            index = ['s1','s3','s5'],
+            columns = ['cancer_type', 'year_of_birth']
+        )
+
         # create 5 mock UUIDs. The first two are used in the 
         # first call to the tested method. The final 3 are used in the second
         # call to the tested method. The reason for that is we auto-generate
@@ -605,35 +697,39 @@ class TestRnaSeqMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            'TCGA-ABC': ['s1', 's3'],
-            'TCGA-DEF': ['s5']
+            RnaSeqMixin.SELECTION_KEY: {
+                'TCGA-ABC': ['s1', 's3'],
+                'TCGA-DEF': ['s5']
+            }
         }
+
         data_src = RnaSeqMixin()
+
         # the children classes will have a TAG attribute. Since we are
         # testing this mixin here, we simply patch it
         tag = 'foo'
         data_src.TAG = tag
         output_name = 'abc'
+        
+        # also need to patch the mixin class with a method that would normally
+        # be part of the actual dataset class
+        mock_apply_additional_filters = mock.MagicMock()
+        mock_apply_additional_filters.return_value = (ann_df, expected_df)
+        data_src.apply_additional_filters = mock_apply_additional_filters
+
         paths, filenames, resource_types, file_formats = data_src.create_from_query(mock_db_record, query, output_name)
+
+        mock_apply_additional_filters.assert_called()
 
         # The order of these doesn't matter in practice, but to check the file contents,
         # we need to be sure we're looking at the correct files for this test.
         self.assertTrue(resource_types[0] == 'RNASEQ_COUNT_MTX')
         self.assertTrue(resource_types[1] == 'ANN')
         self.assertCountEqual(file_formats, [TSV_FORMAT, TSV_FORMAT])
-        expected_df = pd.DataFrame(
-            [[26,86,67],[54,59,29],[24,12,37]],
-            index = ['gA', 'gB', 'gC'],
-            columns = ['s1','s3','s5']
-        )
+
         actual_df = pd.read_table(paths[0], index_col=0)
         self.assertTrue(actual_df.equals(expected_df))
 
-        ann_df = pd.DataFrame(
-            [['TCGA-ABC', 1990],['TCGA-ABC', 1992], ['TCGA-DEF', 1994]],
-            index = ['s1','s3','s5'],
-            columns = ['cancer_type', 'year_of_birth']
-        )
         actual_df = pd.read_table(paths[1], index_col=0)
         self.assertTrue(actual_df.equals(ann_df))
 
@@ -699,10 +795,12 @@ class TestRnaSeqMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # the only datasets in the hdf5 file are for TCGA-ABC
-            # and TCGA-DEF. Below, we ask for a non-existant one
-            'TCGA-ABC': ['s1', 's3'],
-            'TCGA-XYZ': ['s5']
+            RnaSeqMixin.SELECTION_KEY: {
+                # the only datasets in the hdf5 file are for TCGA-ABC
+                # and TCGA-DEF. Below, we ask for a non-existant one
+                'TCGA-ABC': ['s1', 's3'],
+                'TCGA-XYZ': ['s5']
+            }
         }
         data_src = RnaSeqMixin()
         with self.assertRaisesRegex(Exception, 'TCGA-XYZ'):
@@ -730,9 +828,11 @@ class TestRnaSeqMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # add a bad sample ID to the TCGA-ABC set:
-            'TCGA-ABC': ['s1111', 's3'],
-            'TCGA-DEF': ['s5']
+            RnaSeqMixin.SELECTION_KEY: {
+                # add a bad sample ID to the TCGA-ABC set:
+                'TCGA-ABC': ['s1111', 's3'],
+                'TCGA-DEF': ['s5']
+            }
         }
         data_src = RnaSeqMixin()
         with self.assertRaisesRegex(Exception, 's1111'):
@@ -760,8 +860,10 @@ class TestRnaSeqMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # This should have some strings:
-            'TCGA-DEF': []
+            RnaSeqMixin.SELECTION_KEY:{
+                # This should have some strings:
+                'TCGA-DEF': []
+            }
         }
         data_src = RnaSeqMixin()
         with self.assertRaisesRegex(Exception, 'empty'):
@@ -791,8 +893,10 @@ class TestRnaSeqMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # This should be a list:
-            'TCGA-DEF':'abc'
+            RnaSeqMixin.SELECTION_KEY:{
+                # This should be a list:
+                'TCGA-DEF':'abc'
+            }
         }
         data_src = RnaSeqMixin()
         # again, the children will provide an EXAMPLE_PAYLOAD attribute
@@ -802,6 +906,46 @@ class TestRnaSeqMixin(BaseAPITestCase):
         'TCGA-MESO': ["<UUID>","<UUID>", "<UUID>"]
         }
         with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
+
+    def test_missing_selection_key(self):
+        '''
+        Tests that we properly warn if the format of the request was incorrect.
+        Here, we expect that the chosen samples are addressed by 
+        RnaSeqMixin.SELECTION_KEY. We leave that out here. So even though
+        the data structure itself is fine, the overall payload is malformatted
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq.hd5'
+        )
+        ann_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_rnaseq_ann.csv'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            RnaSeqMixin.ANNOTATION_FILE_KEY: [ann_path],
+            RnaSeqMixin.COUNTS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            'TCGA-ABC': ['s1', 's3'],
+            'TCGA-DEF': ['s5']
+        }
+        
+        data_src = RnaSeqMixin()
+
+        expected_err = 'please pass an object addressed by selections'
+        with self.assertRaisesRegex(Exception, expected_err):
             paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
 
@@ -1120,35 +1264,48 @@ class TestMethylationMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            'TCGA-ABC': ['s1', 's3'],
-            'TCGA-DEF': ['s5']
+            MethylationMixin.SELECTION_KEY:{
+                'TCGA-ABC': ['s1', 's3'],
+                'TCGA-DEF': ['s5']
+            }
         }
+
+        expected_df = pd.DataFrame(
+            [[0.64, 0.99, 0.67],[0.29, 0.18,0.29],[0.94,0.41,0.37]],
+            index = ['cg1', 'cg2', 'cg3'],
+            columns = ['s1','s3','s5']
+        )
+        ann_df = pd.DataFrame(
+            [['TCGA-ABC', 1990],['TCGA-ABC', 1992], ['TCGA-DEF', 1994]],
+            index = ['s1','s3','s5'],
+            columns = ['cancer_type', 'year_of_birth']
+        )
+
         data_src = MethylationMixin()
         # the children classes will have a TAG attribute. Since we are
         # testing this mixin here, we simply patch it
         tag = 'foo'
         data_src.TAG = tag
         output_name = 'abc'
+        # also need to patch the mixin class with a method that would normally
+        # be part of the actual dataset class
+        mock_apply_additional_filters = mock.MagicMock()
+        mock_apply_additional_filters.return_value = (ann_df, expected_df)
+        data_src.apply_additional_filters = mock_apply_additional_filters
         paths, filenames, resource_types, file_formats = data_src.create_from_query(mock_db_record, query, output_name)
+
+        mock_apply_additional_filters.assert_called()
 
         # The order of these doesn't matter in practice, but to check the file contents,
         # we need to be sure we're looking at the correct files for this test.
         self.assertTrue(resource_types[0] == 'MTX')
         self.assertTrue(resource_types[1] == 'ANN')
         self.assertCountEqual(file_formats, [TSV_FORMAT, TSV_FORMAT])
-        expected_df = pd.DataFrame(
-            [[0.64, 0.99, 0.67],[0.29, 0.18,0.29],[0.94,0.41,0.37]],
-            index = ['cg1', 'cg2', 'cg3'],
-            columns = ['s1','s3','s5']
-        )
+
         actual_df = pd.read_table(paths[0], index_col=0)
         self.assertTrue(actual_df.equals(expected_df))
 
-        ann_df = pd.DataFrame(
-            [['TCGA-ABC', 1990],['TCGA-ABC', 1992], ['TCGA-DEF', 1994]],
-            index = ['s1','s3','s5'],
-            columns = ['cancer_type', 'year_of_birth']
-        )
+
         actual_df = pd.read_table(paths[1], index_col=0)
         self.assertTrue(actual_df.equals(ann_df))
 
@@ -1213,10 +1370,12 @@ class TestMethylationMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # the only datasets in the hdf5 file are for TCGA-ABC
-            # and TCGA-DEF. Below, we ask for a non-existant one
-            'TCGA-ABC': ['s1', 's3'],
-            'TCGA-XYZ': ['s5']
+            MethylationMixin.SELECTION_KEY:{
+                # the only datasets in the hdf5 file are for TCGA-ABC
+                # and TCGA-DEF. Below, we ask for a non-existant one
+                'TCGA-ABC': ['s1', 's3'],
+                'TCGA-XYZ': ['s5']
+            }
         }
         data_src = MethylationMixin()
         with self.assertRaisesRegex(Exception, 'TCGA-XYZ'):
@@ -1244,9 +1403,11 @@ class TestMethylationMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # add a bad sample ID to the TCGA-ABC set:
-            'TCGA-ABC': ['s1111', 's3'],
-            'TCGA-DEF': ['s5']
+            MethylationMixin.SELECTION_KEY:{
+                # add a bad sample ID to the TCGA-ABC set:
+                'TCGA-ABC': ['s1111', 's3'],
+                'TCGA-DEF': ['s5']
+            }
         }
         data_src = MethylationMixin()
         with self.assertRaisesRegex(Exception, 's1111'):
@@ -1274,8 +1435,10 @@ class TestMethylationMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # This should have some strings:
-            'TCGA-DEF': []
+            MethylationMixin.SELECTION_KEY:{
+                # This should have some strings:
+                'TCGA-DEF': []
+            }
         }
         data_src = MethylationMixin()
         with self.assertRaisesRegex(Exception, 'empty'):
@@ -1304,8 +1467,10 @@ class TestMethylationMixin(BaseAPITestCase):
         mock_db_record = mock.MagicMock()
         mock_db_record.file_mapping = mock_mapping
         query = {
-            # This should be a list:
-            'TCGA-DEF':'abc'
+            MethylationMixin.SELECTION_KEY:{
+                # This should be a list:
+                'TCGA-DEF':'abc'
+            }
         }
         data_src = MethylationMixin()
         # again, the children will provide an EXAMPLE_PAYLOAD attribute
@@ -1315,6 +1480,46 @@ class TestMethylationMixin(BaseAPITestCase):
         'TCGA-MESO': ["<UUID>","<UUID>", "<UUID>"]
         }
         with self.assertRaisesRegex(Exception, 'a list of sample identifiers'):
+            paths, resource_types = data_src.create_from_query(mock_db_record, query)
+
+    def test_missing_selection_key(self):
+        '''
+        Tests that we properly warn if the format of the request was incorrect.
+        Here, we expect that the chosen samples are addressed by 
+        MethylationMixin.SELECTION_KEY. We leave that out here. So even though
+        the data structure itself is fine, the overall payload is malformatted
+        '''
+        hdf_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation.hd5'
+        )
+        ann_path = os.path.join(
+            THIS_DIR, 
+            'public_data_test_files', 
+            'tcga_methylation_ann.csv'
+        )
+
+        # this dict is what the database record is expected to contain
+        # in the file_mapping field
+        mock_mapping = {
+            # this key doesn't matter- we just include it as a correct
+            # representation of the database record
+            MethylationMixin.ANNOTATION_FILE_KEY: [ann_path],
+            MethylationMixin.BETAS_FILE_KEY:[hdf_path] 
+
+        }
+        mock_db_record = mock.MagicMock()
+        mock_db_record.file_mapping = mock_mapping
+        query = {
+            'TCGA-ABC': ['s1', 's3'],
+            'TCGA-DEF': ['s5']
+        }
+        
+        data_src = MethylationMixin()
+
+        expected_err = 'please pass an object addressed by selections'
+        with self.assertRaisesRegex(Exception, expected_err):
             paths, resource_types = data_src.create_from_query(mock_db_record, query)
 
 

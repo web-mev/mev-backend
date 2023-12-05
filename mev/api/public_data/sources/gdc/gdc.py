@@ -314,6 +314,57 @@ class GDCDataSource(PublicDataSource):
         '''
         return ann_df
 
+    def apply_additional_filters(self, annotations, values_df, query_filter):
+        '''
+        This method is used during dataset creation (e.g. a user has filtered
+        down to a cohort of interest and would like to save that data)
+        following filtering of the annotations and values
+        (e.g. rna-seq counts, etc.). It allows us to act on additional filters
+        which are provided by the `query_filter` arg.
+
+        An example is the choice to use the case_id/subject ID instead of the
+        aliquot ID. The user's request can include a boolean which specifies
+        which of these options they choose. Hence, we can implement this logic
+        uniformly across all GDC-based data.
+        '''
+        # The GDC data schema permits >1 aliquots for each patient
+        # (which they call a "case ID"). Most often, this is simply 1:1
+        # (e.g. only a single RNA-seq sample was collected/analyzed for each
+        # case ID).
+        # While both the aliquot and case ID are provided in the annotations,
+        # we allow users to request that we use the case ID as the identifier.
+        # This permits users to potentially combine multiple data types without
+        # having to manage this aliquot-to-case mapping. In cases with
+        # multiple aliquots, we drop the data to avoid any convoluated
+        # logic on which aliquot was selected to represent a particular
+        # case ID. Given that most GDC data is 1:1, we are only potentially
+        # dropping a small amount of cases.
+        # Unless the request is specific about using case IDs, we assume
+        # we will keep using aliquot IDs.
+        try:
+            use_case_id = query_filter['use_case_id']
+        except KeyError:
+            # the key was not explicitly provided, so we keep
+            # everything as-is
+            use_case_id = False
+
+        if use_case_id:
+            # in case there are multiple aliquots associated with a subject,
+            # drop any duplicates. This way there is no ambiguity about how
+            # one of the aliquots was selected since there could be multiple
+            # reasons that are difficult to choose based on set rules.
+            annotations = annotations.drop_duplicates(
+                subset='case_id', keep=False)
+
+            # change the names of the columns in the matrix:
+            col_mapping = annotations['case_id'].to_dict()
+            values_df = values_df[annotations.index].rename(columns=col_mapping)
+
+            annotations = annotations.set_index(
+                'case_id', drop=True, verify_integrity=False)
+            
+        return (annotations, values_df)
+
 
 class GDCRnaSeqDataSourceMixin(RnaSeqMixin):
     '''

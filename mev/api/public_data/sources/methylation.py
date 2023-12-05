@@ -32,6 +32,10 @@ class MethylationMixin(object):
     # A format-string for the count file
     BETAS_OUTPUT_FILE_TEMPLATE = 'beta_values.{tag}.{date}.hd5'
 
+    # This is a required filtering key-- basically identifies the 
+    # samples we are requesting be used in the dataset we are creating.
+    SELECTION_KEY = 'selections'
+
     @staticmethod
     def create_python_compatible_id(id):
         '''
@@ -83,10 +87,18 @@ class MethylationMixin(object):
         # The top level contains identifiers which we use to select
         # the groups within the HDF5 file. Then, we use the sample IDs to filter the
         # dataframes
+        # This data structure is addressed by the SELECTION_KEY variable
+        try:
+            selections = query_filter[MethylationMixin.SELECTION_KEY]
+        except KeyError:
+            msg = ('To select subjects/samples, please pass an object'
+                   f' addressed by {MethylationMixin.SELECTION_KEY}')
+            raise Exception(msg)
+
         final_df = pd.DataFrame()
         with pd.HDFStore(beta_matrix_path, 'r') as hdf:
-            for ct in query_filter.keys():
-                if not type(query_filter[ct]) is list:
+            for ct in selections.keys():
+                if not type(selections[ct]) is list:
                     raise Exception('Problem encountered with the filter'
                         ' provided. We expect each cancer type to address'
                         ' a list of sample identifiers, such as: {j}'.format(
@@ -101,7 +113,7 @@ class MethylationMixin(object):
                         f' {ct} was not found in the dataset. Ensure your'
                         ' request was correctly formatted.')
                 try:
-                    df = df[query_filter[ct]]
+                    df = df[selections[ct]]
                 except KeyError as ex:
                     message = ('The subset of the count matrix failed since'
                         f' one or more requested samples were missing: {ex}')
@@ -114,24 +126,9 @@ class MethylationMixin(object):
                 ' data was created.'
             )
 
-        # write the file to a temp location:
-        filename = '{u}.{file_format}'.format(
-            u=str(uuid.uuid4()),
-            file_format=TSV_FORMAT
-        )
-        dest_dir = settings.TMP_DIR
-        count_filepath = os.path.join(dest_dir, filename)
-        try:
-            final_df.to_csv(count_filepath, sep='\t')
-        except Exception as ex:
-            logger.info('Failed to write the subset of GDC RNA-seq'
-                ' Exception was: {ex}'.format(ex=ex)
-            )
-            raise Exception('Failed when writing the filtered data.')
-
         # now create the annotation file:
         full_uuid_list = []
-        [full_uuid_list.extend(query_filter[k]) for k in query_filter.keys()]
+        [full_uuid_list.extend(selections[k]) for k in selections.keys()]
         ann_path = file_mapping[self.ANNOTATION_FILE_KEY][0]
         if not os.path.exists(ann_path):
             #TODO: better error handling here.
@@ -140,11 +137,33 @@ class MethylationMixin(object):
                 ' request. An administrator has been notified'
             )
         ann_df = pd.read_csv(ann_path, index_col=0)
+
         subset_ann = ann_df.loc[full_uuid_list]
 
         # drop columns which are completely empty:
         subset_ann = subset_ann.dropna(axis=1, how='all')
 
+        # prior to writing the final file, we call a method which
+        # can perform additional manipulations on these files as needed.
+        subset_ann, final_df = self.apply_additional_filters(
+                                           subset_ann, final_df, query_filter)
+
+        # write the betas file to a temp location:
+        filename = '{u}.{file_format}'.format(
+            u=str(uuid.uuid4()),
+            file_format=TSV_FORMAT
+        )
+        dest_dir = settings.TMP_DIR
+        betas_filepath = os.path.join(dest_dir, filename)
+        try:
+            final_df.to_csv(betas_filepath, sep='\t')
+        except Exception as ex:
+            logger.info('Failed to write the subset of GDC RNA-seq'
+                ' Exception was: {ex}'.format(ex=ex)
+            )
+            raise Exception('Failed when writing the filtered data.')
+
+        # and write the annotations file
         filename = '{u}.{file_format}'.format(
             u=str(uuid.uuid4()),
             file_format=TSV_FORMAT
@@ -161,14 +180,14 @@ class MethylationMixin(object):
         # finally make some names for these files, which we return
         if output_name == '':
             u = str(uuid.uuid4())
-            count_matrix_name = self.TAG + '_beta_values.' \
+            betas_matrix_name = self.TAG + '_beta_values.' \
                 + u + '.' + TSV_FORMAT
             ann_name = self.TAG + '_ann.' + u + '.' + TSV_FORMAT
         else:
-            count_matrix_name = output_name + '_beta_values.' \
+            betas_matrix_name = output_name + '_beta_values.' \
                 + self.TAG + '.' + TSV_FORMAT
             ann_name = output_name + '_ann.' + self.TAG + '.' + TSV_FORMAT
-        return [count_filepath, ann_filepath], \
-                [count_matrix_name, ann_name], \
+        return [betas_filepath, ann_filepath], \
+                [betas_matrix_name, ann_name], \
                 [MATRIX_KEY, ANNOTATION_TABLE_KEY], \
                 [TSV_FORMAT,TSV_FORMAT]
