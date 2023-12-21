@@ -244,5 +244,12 @@ class GtexRnaseqDataSource(RnaSeqMixin, PublicDataSource):
         # specific information
         return {}
 
+    def apply_additional_filters(self, annotations, values_df, query_filter):
+        '''
+        Used for further manipulation of the annotations and counts.
+        '''
+        # we currently do not modify in any way, so trivially return
+        return (annotations, values_df)
+
     
 

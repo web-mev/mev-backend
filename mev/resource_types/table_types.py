@@ -96,10 +96,26 @@ EMPTY_TABLE_ERROR = ('The parsed table was empty. This can happen if you are'
     ' trying to import an Excel spreadsheet, please ensure that the data is'
     ' contained in the first sheet of the workbook.')
 
+# If a file has row/column identifiers that are invalid, we would like to let 
+# them know which ones need fixing. However, we don't want to report an
+# exceptionally long list of issues. This sets the maximum number before
+# the name checking gives up and reports the error
+NAME_ERROR_LIMIT = 5
+
 NAMING_ERROR = ('The {idx}s of your table contained identifiers with'
     ' characters that we do not permit. Since we depend on software'
     ' tools that may not support these characters, we only allow'
-    ' letters A-Z, numbers 0-9, dots (.), dashes (-), and underscores (_).')
+    ' letters A-Z, numbers 0-9, dots (.), dashes (-), and underscores (_).'
+    ' Problems include {bad_identifiers}{suffix}.')
+
+EXCEL_DATETIME_ERROR = ('A datetime ({x}) was found when parsing your file.'
+                        ' This is a common issue for certain gene names'
+                        ' (such as MARCH1) when the file has been opened'
+                        ' or edited with Excel. Try exporting your file'
+                        ' as CSV to avoid this.')
+
+# If requesting a preview of the table, how many lines do we return?
+PREVIEW_NUM_LINES = 5
 
 def col_str_formatter(x):
     '''
@@ -216,7 +232,13 @@ class TableResource(DataResource):
         try:
             # if this comprehension succeeds, then all the column headers
             # or row names were able to be parsed as numbers.
-            [float(x) for x in names]
+            for x in names:
+                try:
+                    float(x)
+                except TypeError as ex:
+                    if 'datetime.datetime' in str(ex):
+                        raise TypeError(EXCEL_DATETIME_ERROR.format(x=x))
+                    raise Exception(f'Unexpected TypeError raised {ex}')
             return True
         except ValueError:
             return False
@@ -232,13 +254,19 @@ class TableResource(DataResource):
         Works for both row and column indexes.  Returns
         True if all the index labels are valid. 
         '''
-        try:
-            [normalize_identifier(x) for x in names]
-            return True
-        except StringIdentifierException:
-            return False
+        bad_names = []
+        for x in names:
+            try:
+                normalize_identifier(x)
+            except StringIdentifierException:
+                bad_names.append(x)
 
-    def read_resource(self, resource_instance, requested_file_format=None):
+        if len(bad_names) == 0:
+            return (True, [])
+        else:
+            return (False, bad_names)
+
+    def read_resource(self, resource_instance, requested_file_format=None, preview=False):
         '''
         One common spot to define how the file is read.
 
@@ -257,8 +285,13 @@ class TableResource(DataResource):
         else:
             try:
                 # read the table using the appropriate parser:
+                if preview:
+                    nrows = PREVIEW_NUM_LINES
+                else:
+                    nrows = None
                 self.table = reader(
-                    resource_instance.datafile.open(), index_col=0, comment='#')
+                    resource_instance.datafile.open(),
+                    index_col=0, comment='#', nrows=nrows)
 
                 # drop extra/empty cols and rows
                 self.table.dropna(axis=0, how='all', inplace=True)
@@ -300,18 +333,27 @@ class TableResource(DataResource):
             if self.table.shape[1] == 0:
                 return (False, TRIVIAL_TABLE_ERROR)
 
-            # check if all the column names are numbers-- which would USUALLY
-            # indicate a missing header
-            columns_all_numbers = TableResource.index_all_numbers(self.table.columns)
-            if columns_all_numbers:
-                return (False, NUMBERED_COLUMN_NAMES_ERROR)
-
-            # check if all the rownames are numbers, which would usually
-            # indicate missing row names (i.e. a column of data is read
-            # as the index)
-            rows_all_numbers = TableResource.index_all_numbers(self.table.index)
-            if rows_all_numbers:
-                return (False, NUMBERED_ROW_NAMES_ERROR)
+            # check if all the column or row names are numbers.
+            # For the columns, this would USUALLY
+            # indicate a missing header. For the rows, we 
+            #  assume it to be a data column or just a dummy index 
+            # which is not permitted.
+            index_dict = {
+                'column': self.table.columns,
+                'row': self.table.index
+            }
+            for key, values in index_dict.items():
+                try:
+                    all_numbers = TableResource.index_all_numbers(values)
+                    if all_numbers:
+                        if key == 'column':
+                            return (False, NUMBERED_COLUMN_NAMES_ERROR)
+                        else:
+                            return (False, NUMBERED_ROW_NAMES_ERROR)
+                except TypeError as ex:
+                    return  (False, str(ex))
+                except Exception:
+                    return  (False, PARSE_ERROR)
 
             # check that all the row names were valid (e.g. not NAs)
             if pd.isnull(self.table.index).any():
@@ -321,14 +363,18 @@ class TableResource(DataResource):
             if self.table.index.has_duplicates:
                 return (False, NONUNIQUE_ROW_NAMES_ERROR)
 
-            # check that the column names are "valid" in that we don't allow unicode
-            columns_all_valid = TableResource.index_names_valid(self.table.columns)
-            rows_all_valid = TableResource.index_names_valid(self.table.index)
-            if not columns_all_valid:
-                return (False, NAMING_ERROR.format(idx='column'))
-
-            if not rows_all_valid:
-                return (False, NAMING_ERROR.format(idx='row'))
+            # check that the column names are "valid"
+            for key, values in index_dict.items():
+                all_valid, bad_names = TableResource.index_names_valid(values)
+                if not all_valid:
+                    if len(bad_names) > NAME_ERROR_LIMIT:
+                        suffix = f' and {len(bad_names) - NAME_ERROR_LIMIT} others'
+                    else:
+                        suffix = ''
+                    return (False, NAMING_ERROR.format(
+                        idx=key,
+                        bad_identifiers=', '.join(bad_names),
+                        suffix=suffix))
 
             # passed the basic checks-- looks good so far. Derived classes
             # can apply more specific checks.
@@ -575,7 +621,7 @@ class TableResource(DataResource):
         else:
             return []
 
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
         '''
         Returns a dataframe of the table contents
 
@@ -584,7 +630,7 @@ class TableResource(DataResource):
         '''
         try:
             logger.info(f'Read resource ({resource_instance.pk})')
-            self.read_resource(resource_instance)
+            self.read_resource(resource_instance, preview=preview)
             self.additional_exported_cols = []
 
             # if there were any filtering params requested, apply those
@@ -859,7 +905,7 @@ class Matrix(TableResource):
         elif len(filters) == 1:
             self.table = self.table.loc[filters[0]]            
 
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
         '''
         This method allows us to add on additional content that is
         allowable for matrix types, as they are all numeric.
@@ -877,7 +923,7 @@ class Matrix(TableResource):
 
         # additional filtering/behavior specific to a Matrix (if requested)
         # is handled in the _resource_specific_modifications method
-        return super().get_contents(resource_instance, query_params)
+        return super().get_contents(resource_instance, query_params, preview)
 
 
 class IntegerMatrix(Matrix):
@@ -1297,11 +1343,16 @@ class BaseBEDFile(TableResource):
 
     ACCEPTABLE_FORMATS = [TSV_FORMAT,]
 
-    def _read_resource(self, resource_instance, names, column_numbers):
+    def _read_resource(self, resource_instance, names, column_numbers, preview=False):
 
         # Note that we don't use the TableResource.read_resource since we have
         # a different way of parsing the table here.
         reader = TableResource.get_reader(TSV_FORMAT)
+
+        if preview:
+            nrows = PREVIEW_NUM_LINES
+        else:
+            nrows = None
 
         # if the BED file has a header, the reader below will incorporate
         # that into the columns and the 2nd and 3rd columns will no longer have
@@ -1309,7 +1360,8 @@ class BaseBEDFile(TableResource):
         try:
             self.table = reader(resource_instance.datafile.open(), 
                 names=names,
-                usecols=column_numbers)
+                usecols=column_numbers,
+                nrows=nrows)
         except pd.errors.ParserError as ex:
             logger.info(f'Failed to parse. Exception: {ex}')
             raise ex
@@ -1373,9 +1425,9 @@ class BED3File(BaseBEDFile):
     NAMES = ['chrom', 'start', 'stop']
     COLUMN_NUMBERS = list(range(3))
 
-    def read_resource(self, resource_instance):
+    def read_resource(self, resource_instance, preview=False):
         self._read_resource(resource_instance,
-            BED3File.NAMES, BED3File.COLUMN_NUMBERS)
+            BED3File.NAMES, BED3File.COLUMN_NUMBERS, preview=preview)
 
     def validate_type(self, resource_instance, file_format):
         try:
@@ -1410,9 +1462,9 @@ class BED6File(BED3File):
     COLUMN_NUMBERS = list(range(6))
     ACCEPTABLE_STRAND_VALUES = set(['.', '+', '-'])
 
-    def read_resource(self, resource_instance):
+    def read_resource(self, resource_instance, preview=False):
         self._read_resource(resource_instance,
-            BED6File.NAMES, BED6File.COLUMN_NUMBERS)
+            BED6File.NAMES, BED6File.COLUMN_NUMBERS, preview=preview)
 
     def _validate(self):
         is_valid, error_message = super()._validate()
@@ -1501,9 +1553,10 @@ class NarrowPeakFile(BED6File):
     NAMES = BED6File.NAMES + ['signal_value', 'pval', 'qval', 'peak']
     COLUMN_NUMBERS = list(range(10))
 
-    def read_resource(self, resource_instance):
+    def read_resource(self, resource_instance, preview=False):
         self._read_resource(resource_instance,
-            NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS)
+            NarrowPeakFile.NAMES, NarrowPeakFile.COLUMN_NUMBERS,
+            preview=preview)
 
     def _check_signal_column(self):
         '''

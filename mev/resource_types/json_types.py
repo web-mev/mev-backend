@@ -138,8 +138,7 @@ class JsonResource(DataResource):
             self.metadata[PARENT_OP_KEY] = parent_op_pk
         return self.metadata
 
-
-    def get_contents(self, resource_instance, query_params={}):
+    def get_contents(self, resource_instance, query_params={}, preview=False):
 
         # since the pagination query params are among the general query parameters, we DON'T
         # want to pass them to the filtering.

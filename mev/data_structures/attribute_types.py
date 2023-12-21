@@ -382,8 +382,8 @@ class UnrestrictedStringAttribute(BaseAttributeType):
 
 class BaseOptionAttribute(BaseAttributeType):
     '''
-    A String type that only admits one from a set of preset options
-    (e.g. like a dropdown)
+    A String type that only admits values from a set of preset options
+    (e.g. like a dropdown or multiselect)
     ```
     {
         "attribute_type": "OptionString",
@@ -393,10 +393,12 @@ class BaseOptionAttribute(BaseAttributeType):
     ```
     '''
     OPTIONS_KEY = 'options'
+    MANY_KEY = 'many'
     REQUIRED_PARAMS = [OPTIONS_KEY, ]
 
     def __init__(self, value, **kwargs):
         self._set_options(kwargs)
+        self._handle_many_key(kwargs)
         super().__init__(value, **kwargs)
 
     def _set_options(self, kwargs_dict):
@@ -415,16 +417,58 @@ class BaseOptionAttribute(BaseAttributeType):
             raise MissingAttributeKeywordError('Need a list of options given via'
                 f' the {ex} key.')
 
-    def _value_validator(self, val):
+    def _handle_many_key(self, kwargs):
+        '''
+        The 'many' key indicates whether we will accept multiple
+        inputs (a subset of self._options with size > 1). The specification
+        does not explicitly require the 'many' key, so it is False by default.
+        However, if the key is given, we handle it here
+        '''
+        try:
+            allow_many = kwargs.pop(self.MANY_KEY)
+                    
+            # use the BooleanAttribute to validate:
+            b = BooleanAttribute(allow_many)
+            self._many = b.value
+        except KeyError as ex:
+            self._many = False
 
-        if not val in self._options:
-            raise AttributeValueError(f'The value "{val}" was not among'
-                f' the valid options: {self._options}')
+    def _value_validator(self, val):
+        '''
+        Checks `val` against the available options.
+
+        Note that if we accept many (self._many=True),
+        then `val` can be a list, although that is not
+        required (many ALLOWS it, but does not REQUIRE it)
+        '''
+        if type(val) is list:
+            if self._many:
+                _vals_to_check = val
+            else:
+                raise AttributeValueError(f'Multiple values were passed'
+                    ' but only a single value is permitted unless explicitly'
+                    ' permitted in the specification.')
+        else: # not a list
+            if self._many:
+                raise AttributeValueError('When an option field permits many'
+                    ' values, we require the values to be passed inside'
+                    ' a list.')
+
+            # we put inside a list to make the value checking easier below
+            # for both single and multiple values
+            _vals_to_check = [val,]
+            
+        for v in _vals_to_check:
+            if not v in self._options:
+                raise AttributeValueError(f'The value "{v}" was not among'
+                    f' the valid options: {self._options}')
         self._value = val
 
     def to_dict(self):
         d = super().to_dict()
         d[self.OPTIONS_KEY] = self._options
+        if self._many:
+            d[self.MANY_KEY] = True
         return d
 
 

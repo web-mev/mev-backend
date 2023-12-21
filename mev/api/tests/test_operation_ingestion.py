@@ -206,6 +206,8 @@ class OperationIngestionTester(BaseAPITestCase):
 
         op = OperationDbModel.objects.get(id=op_uuid)
         self.assertFalse(op.workspace_operation)
+        self.assertTrue(op.git_commit == mock_commit_id)
+        self.assertTrue(op.repository_url == repo_url)
 
     @mock.patch('api.utilities.ingest_operation.prepare_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
@@ -241,11 +243,11 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_hash = 'abcd'
         mock_dir = '/some/mock/staging/dir'
         mock_clone_repository.return_value = mock_dir
-        mock_retrieve_commit_hash.return_value = 'abcd'
+        mock_commit_id = 'abcdefg1234'
+        mock_retrieve_commit_hash.return_value = mock_commit_id
         repo_url = 'http://github.com/some-repo/'
         repo_name = 'some-repo'
         mock_retrieve_repo_name.return_value = repo_name
-        mock_commit_id = 'abcdefg1234'
 
         n0 = len(OperationDbModel.objects.all())
 
@@ -273,6 +275,8 @@ class OperationIngestionTester(BaseAPITestCase):
 
         op = OperationDbModel.objects.get(id=op_uuid)
         self.assertTrue(op.workspace_operation)
+        self.assertTrue(op.git_commit == mock_commit_id)
+        self.assertTrue(op.repository_url == repo_url)
 
     @mock.patch('api.utilities.ingest_operation.prepare_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
@@ -308,7 +312,7 @@ class OperationIngestionTester(BaseAPITestCase):
         mock_hash = 'abcd'
         mock_dir = '/some/mock/staging/dir'
         mock_clone_repository.return_value = mock_dir
-        mock_retrieve_commit_hash.return_value = 'abcd'
+        mock_retrieve_commit_hash.return_value = mock_hash
         repo_url = 'http://github.com/some-repo/'
         repo_name = 'some-repo'
         mock_retrieve_repo_name.return_value = repo_name
@@ -340,7 +344,9 @@ class OperationIngestionTester(BaseAPITestCase):
 
         op = OperationDbModel.objects.get(id=op_uuid)
         self.assertTrue(op.workspace_operation)
-
+        self.assertTrue(op.git_commit == mock_commit_id)
+        self.assertTrue(op.repository_url == repo_url)
+        
     @mock.patch('api.utilities.ingest_operation.prepare_operation')
     @mock.patch('api.utilities.ingest_operation.retrieve_repo_name')
     @mock.patch('api.utilities.ingest_operation.check_required_files')

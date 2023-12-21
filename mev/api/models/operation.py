@@ -20,3 +20,5 @@ class Operation(models.Model):
     workspace_operation = models.BooleanField(default=False)
     addition_datetime = models.DateTimeField(
         default=timezone.now)
+    git_commit = models.CharField(max_length=50, null=False)
+    repository_url = models.URLField(max_length=500, null=False)

@@ -11,6 +11,7 @@ from rest_framework import permissions as framework_permissions
 
 from exceptions import WebMeVException
 
+from api.data_transformations import get_transformation_function
 from api.serializers.executed_operation import ExecutedOperationSerializer
 from api.serializers.workspace_executed_operation import WorkspaceExecutedOperationSerializer
 from api.models import Operation as OperationDbModel
@@ -20,6 +21,19 @@ from api.async_tasks.operation_tasks import submit_async_job
 import api.permissions as api_permissions
 
 logger = logging.getLogger(__name__)
+
+
+def check_op(user, exec_op_uuid):
+
+    try:
+        matching_op = ExecutedOperation.objects.get(id=exec_op_uuid)
+    except ExecutedOperation.DoesNotExist as ex:
+        return None
+
+    # check ownership. Users should only be able to query their own
+    # analyses:
+    if user == matching_op.owner:
+        return matching_op
 
 
 class ExecutedOperationList(APIView):
@@ -137,52 +151,42 @@ class ExecutedOperationCheck(APIView):
         # the UUID of the ExecutedOperation
         exec_op_uuid = str(kwargs['exec_op_uuid'])
 
-        try:
-            matching_op = ExecutedOperation.objects.get(id=exec_op_uuid)
-        except ExecutedOperation.DoesNotExist as ex:
+        matching_op = check_op(user, exec_op_uuid)
+        if matching_op is None:
             return Response(
                 {'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, 
                 status=status.HTTP_404_NOT_FOUND)
 
-        # check ownership. Users should only be able to query their own
-        # analyses:
-        owner = matching_op.owner
-        if user == owner:
-            if matching_op.execution_stop_datetime is None:
-                logger.info('The stop time has not been set'
-                    f' and job ({exec_op_uuid}) is still'
-                    ' running or is finalizing.')
+        if matching_op.execution_stop_datetime is None:
+            logger.info('The stop time has not been set'
+                f' and job ({exec_op_uuid}) is still'
+                ' running or is finalizing.')
 
-                # if the stop time has not been set, the job is either still running
-                # or it has completed, but not been "finalized"
+            # if the stop time has not been set, the job is either still running
+            # or it has completed, but not been "finalized"
 
-                # first check if the "finalization" process has already been started.
-                # The finalization can sometimes take some time, so there is a short
-                # period of time between the analysis completion and the data being ready.
-                if matching_op.is_finalizing:
-                        logger.info(f'Currently finalizing job ({exec_op_uuid})')
-                        return Response(status=status.HTTP_208_ALREADY_REPORTED)
-                else:
-                    logger.info('No finalization process reported. Job still running.')
-                    # not finalizing. The job is still running:
-                    return Response(status=status.HTTP_204_NO_CONTENT)
+            # first check if the "finalization" process has already been started.
+            # The finalization can sometimes take some time, so there is a short
+            # period of time between the analysis completion and the data being ready.
+            if matching_op.is_finalizing:
+                    logger.info(f'Currently finalizing job ({exec_op_uuid})')
+                    return Response(status=status.HTTP_208_ALREADY_REPORTED)
             else:
-                response_payload = ExecutedOperationSerializer(matching_op).data
-                
-                if matching_op.job_failed:
-                    logger.info(f'The requested job ({exec_op_uuid}) failed.')
-                else:
-                    logger.info('The executed job was registered as completed. Return outputs.')
-                    # analysis has completed and been finalized. return the outputs also
-
-                return Response(response_payload, 
-                    status=status.HTTP_200_OK
-                )
+                logger.info('No finalization process reported. Job still running.')
+                # not finalizing. The job is still running:
+                return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            # Return a 404 so that we don't reveal whether an `ExecutedOperation` with 
-            # this PK exists.
-            return Response({'message': self.NOT_FOUND_MESSAGE.format(id=exec_op_uuid)}, 
-                status=status.HTTP_404_NOT_FOUND)
+            response_payload = ExecutedOperationSerializer(matching_op).data
+            
+            if matching_op.job_failed:
+                logger.info(f'The requested job ({exec_op_uuid}) failed.')
+            else:
+                logger.info('The executed job was registered as completed. Return outputs.')
+                # analysis has completed and been finalized. return the outputs also
+
+            return Response(response_payload, 
+                status=status.HTTP_200_OK
+            )
 
 
 class OperationRun(APIView):
@@ -348,3 +352,39 @@ class OperationRun(APIView):
             )
         else:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ExecutedOperationResultsQuery(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        logger.info('Performing a results query for an ExecutedOperation.')
+
+        user = request.user
+
+        # the UUID of the ExecutedOperation
+        exec_op_uuid = str(kwargs['exec_op_uuid'])
+
+        matching_op = check_op(user, exec_op_uuid)
+        if matching_op is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+            
+        if matching_op.execution_stop_datetime is None:
+            # job is still running. Response code to be consistent
+            # with the "job status" api call above.
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            # We have a properly authenticated request from the job owner
+            # and the job has completed. Ready to do some work...
+            query_params = request.query_params
+            try:
+                transform_fn = get_transformation_function(query_params['transform-name'])
+                result = transform_fn(matching_op, query_params)
+                return Response(result)
+            except KeyError as ex:
+                return Response(
+                    {'error': f'The request must contain the {ex} parameter.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )   
+            except Exception as ex:
+                return Response({'error': str(ex)}, status=status.HTTP_400_BAD_REQUEST)

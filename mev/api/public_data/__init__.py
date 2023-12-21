@@ -9,7 +9,8 @@ from api.async_tasks.async_resource_tasks import validate_resource
 from api.utilities.resource_utilities import create_resource
 from api.utilities.basic_utils import delete_local_file
 from .sources.gdc.tcga import TCGARnaSeqDataSource, \
-    TCGAMicroRnaSeqDataSource
+    TCGAMicroRnaSeqDataSource, \
+    TCGAMethylationDataSource
 from .sources.gdc.target import TargetRnaSeqDataSource
 from .sources.gtex_rnaseq import GtexRnaseqDataSource
 from .indexers import get_indexer
@@ -28,7 +29,8 @@ IMPLEMENTING_CLASSES = [
     TCGARnaSeqDataSource,
     TargetRnaSeqDataSource,
     GtexRnaseqDataSource,
-    TCGAMicroRnaSeqDataSource
+    TCGAMicroRnaSeqDataSource,
+    TCGAMethylationDataSource
 ]
 
 DATASET_MAPPING = {x.TAG:x for x in IMPLEMENTING_CLASSES}
@@ -168,7 +170,6 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
         raise ex
 
     # create the Resource instances.
-    resource_list = []
     for path, name, resource_type, file_format in \
             zip(path_list, name_list, resource_type_list, file_format_list):
         fh = File(open(path, 'rb'), name)
@@ -192,10 +193,6 @@ def create_dataset_from_params(dataset_id, user, request_payload, output_name = 
             file_format
         )
 
-        resource_list.append(r)
-
         # if the file validated and a resource was created, then it's safe
         # in the permanent storage. Delete the tmp file:
         delete_local_file(path)
-
-    return resource_list

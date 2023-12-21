@@ -53,3 +53,17 @@ class PublicDataSource(object):
 
     def create_from_query(self, db_record, query_params):
         raise NotImplementedError('Must implement this method in a child class.')
+
+    def apply_additional_filters(self, *args, **kwargs):
+        '''
+        This method is used during dataset creation (e.g. a user has filtered
+        down to a cohort of interest and would like to save that data)
+        following filtering of the annotations and values
+        (e.g. rna-seq counts, etc.). It allows us to act on additional filters
+        which are provided by the `query_filter` arg.
+
+        Since each public dataset can have different implementations of this,
+        we leave that to the child classes. To ensure compliance with this spec
+        we raise the NotImplementedError exception in this base class.
+        '''
+        raise NotImplementedError('Must implement this method in a child class.')

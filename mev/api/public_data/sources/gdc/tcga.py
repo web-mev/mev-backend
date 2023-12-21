@@ -13,9 +13,12 @@ from django.conf import settings
 
 from api.utilities.basic_utils import get_with_retry, \
     make_local_directory
-from .gdc import GDCDataSource, GDCRnaSeqDataSourceMixin
+from .gdc import GDCDataSource, \
+    GDCRnaSeqDataSourceMixin, \
+    GDCMethylationDataSourceMixin
 
 logger = logging.getLogger(__name__)
+
 
 class TCGADataSource(GDCDataSource):
     '''
@@ -385,3 +388,64 @@ class TCGAMicroRnaSeqDataSource(TCGADataSource, GDCRnaSeqDataSourceMixin):
                 if end_index >= total_records:
                     finished = True
         return ann_df
+
+
+class TCGAMethylationDataSource(TCGADataSource, GDCMethylationDataSourceMixin):
+    '''
+    A specific implementation of the TCGA data source specific to
+    methylation data.
+    '''
+
+    # A short name (string) which can be used as a "title" for the dataset
+    PUBLIC_NAME = 'TCGA Methylation'
+
+    # A longer, more descriptive text explaining the datasource:
+    DESCRIPTION = ('TCGA methylation data as processed by the'
+        ' Genomic Data Commons'
+        ' <a href="https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/Methylation_Pipeline/">'
+        ' methylation array harmonization workflow</a>. Methylation "beta" values for CpG sites are'
+        ' produced by SeSAMe software.'
+    )
+
+    # a string which will make it obvious where the data has come from. For example, we can use
+    # this tag to name an output file produced by this class (e.g. the matrix of beta values).
+    # We also use this tag
+    TAG = 'tcga-methylation'
+
+    # An example of how one might query this dataset, so we can provide useful
+    # help for dataset creation errors:
+    EXAMPLE_PAYLOAD = {
+        'TCGA-UVM': ["<UUID>","<UUID>"],
+        'TCGA-MESO': ["<UUID>","<UUID>", "<UUID>"]
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.date_str = datetime.datetime.now().strftime('%m%d%Y')
+
+    def prepare(self):
+        '''
+        Entry method for downloading and munging the TCGA methylation dataset
+        to a HDF5 file
+        '''
+        self._pull_data('TCGA', self.TAG)
+
+    def create_from_query(self, dataset_db_instance, query_filter, output_name = ''):
+        return GDCMethylationDataSourceMixin.create_from_query(
+            self, dataset_db_instance, query_filter, output_name
+        )
+
+    def verify_files(self, file_dict):
+        return GDCMethylationDataSourceMixin.verify_files(self, file_dict)
+
+    def get_indexable_files(self, file_dict):
+        return GDCMethylationDataSourceMixin.get_indexable_files(self, file_dict)
+
+    def get_additional_metadata(self):
+        '''
+        This just uses the parent method which maps the TCGA IDs to
+        the name (e.g. TCGA-LUAD --> Lung adenocarcinoma)
+        '''
+        # uses the get_additional_metadata method of TCGADataSource
+        # per python's MRO
+        return super().get_additional_metadata()

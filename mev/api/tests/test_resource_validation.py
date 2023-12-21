@@ -1,7 +1,10 @@
 from io import BytesIO
+from re import L
 import unittest.mock as mock
 import os
 import uuid
+import random
+import string
 
 import pandas as pd
 
@@ -31,8 +34,11 @@ from resource_types.table_types import TableResource, \
     NONUNIQUE_ROW_NAMES_ERROR, \
     NA_ROW_NAMES_ERROR, \
     MISSING_HEADER_WARNING, \
-    EMPTY_TABLE_ERROR
+    EMPTY_TABLE_ERROR, \
+    NAME_ERROR_LIMIT
 
+from exceptions import StringIdentifierException
+from helpers import normalize_identifier
 from api.tests.base import BaseAPITestCase
 from api.tests.test_helpers import associate_file_with_resource
 
@@ -214,6 +220,78 @@ class TestBasicTable(BaseAPITestCase):
         is_valid, err = t.validate_type(self.r, TSV_FORMAT)
         self.assertFalse(is_valid)
 
+    def test_handles_excel_with_date(self):
+        '''
+        This test covers the case where someone has an Excel table
+        which has converted MAR1, etc. to dates. Warn appropriately
+        '''
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'xlsx_with_date_error.xlsx'))
+        is_valid, err = t.validate_type(self.r, XLSX_FORMAT)
+        self.assertFalse(is_valid)
+        self.assertTrue('datetime' in err)
+
+    def test_index_name_valid_func(self):
+        # create a couple lists, but also check that it's valid
+        # since the validating function could potentially change
+        valid_names = ['a','b','c','d','e']
+        invalid_names = valid_names + ['f', 'g/h', 'i']
+
+        [normalize_identifier(x) for x in valid_names]
+
+        with self.assertRaises(StringIdentifierException):
+            [normalize_identifier(x) for x in invalid_names]
+
+        t = TableResource()
+        is_valid, bad_names = t.index_names_valid(valid_names)
+        self.assertTrue(is_valid)
+        self.assertCountEqual(bad_names, [])
+        is_valid, bad_names = t.index_names_valid(invalid_names)
+        self.assertFalse(is_valid)
+        self.assertCountEqual(bad_names, ['g/h'])
+
+        # check that it with the expected number of hits if 
+        # a long list of invalid names is provided:
+        # we only report NAME_ERROR_LIMIT problems to not overwhelm
+        # the frontend application. Here, we create more problems
+        # and assert that we only report the first NAME_ERROR_LIMIT
+        n = NAME_ERROR_LIMIT + 1
+        long_list_of_invalids = [
+            random.choice(string.ascii_letters)+'/' for _ in range(n)] 
+        # check that this is actually invalid:  
+        with self.assertRaises(StringIdentifierException):
+            [normalize_identifier(x) for x in invalid_names]
+
+        is_valid, bad_names = t.index_names_valid(long_list_of_invalids)
+        self.assertFalse(is_valid)
+        self.assertCountEqual(bad_names, long_list_of_invalids)
+
+    def test_catches_parse_exception(self):
+        '''
+        This tests that we appropriately handle issues like
+        "jagged" tables, which can occur with extra fields
+        in certain rows.
+
+        This can happen a lot of Excel files if the user
+        has an empty cell on the right side of the table-
+        the file is saved like it has some "empty data" there
+        but the parser believes it to be a jagged table.
+        '''
+        t = TableResource()
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'jagged_table_case1.csv'))
+        is_valid, err = t.validate_type(self.r, CSV_FORMAT)
+        self.assertFalse(is_valid)
+        expected_err = 'Expected 7 fields in line 3, saw 8'
+        self.assertTrue(expected_err in err)
+ 
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'jagged_table_case2.csv'))
+        is_valid, err = t.validate_type(self.r, CSV_FORMAT)
+        self.assertFalse(is_valid)
+        expected_err = 'Expected 7 fields in line 3, saw 8'
+        self.assertTrue(expected_err in err)
 
 class TestMatrix(BaseAPITestCase):
     '''
@@ -328,6 +406,52 @@ class TestMatrix(BaseAPITestCase):
         self.assertFalse(is_valid)
         self.assertEqual(err, NA_ROW_NAMES_ERROR)
 
+    def test_table_with_invalid_rownames_fails(self):
+        '''
+        Tests that a table with invalid row names fails
+        '''
+        m = Matrix()
+
+        def _check_test_valid(r):
+            # need to check that the test is not trivially passing 
+            # by checking the row names for invalid entries
+            m.read_resource(r, CSV_FORMAT)
+            df = m.table
+            rownames = df.index
+            invalid_list = []
+            for x in rownames:
+                try:
+                    normalize_identifier(x)
+                except StringIdentifierException:
+                    invalid_list.append(x)
+            return invalid_list
+
+        # check a file that has many errors (more than we would print to the user)
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_matrix_with_invalid_rownames_case1.csv'))
+        invalid_list = _check_test_valid(self.r)
+        self.assertTrue(len(invalid_list) > NAME_ERROR_LIMIT)
+
+        # OK, now ready to run the test if we made it this far.
+        is_valid, err = m.validate_type(self.r, CSV_FORMAT)
+
+        self.assertFalse(is_valid)
+        expected_err = 'gk/vs, gu/uo, gu/ga, gr/ol, gf/ls, gn/tr and 1 other'
+        self.assertTrue(expected_err in err)
+
+        # now check a file that has only several errors 
+        # and we can reasonably print them all
+        associate_file_with_resource(self.r, os.path.join(
+            TESTDIR, 'test_matrix_with_invalid_rownames_case2.csv'))
+        invalid_list = _check_test_valid(self.r)
+        self.assertTrue(len(invalid_list) <= NAME_ERROR_LIMIT)
+
+        # OK, now ready to run the test if we made it this far.
+        is_valid, err = m.validate_type(self.r, CSV_FORMAT)
+
+        self.assertFalse(is_valid)
+        expected_err = 'gk/vs, gu/uo, gu/ga'
+        self.assertTrue(expected_err in err)
 
 class TestIntegerMatrix(BaseAPITestCase):
 

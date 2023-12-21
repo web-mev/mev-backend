@@ -34,6 +34,10 @@ class RnaSeqMixin(object):
     # A format-string for the count file
     COUNT_OUTPUT_FILE_TEMPLATE = 'counts.{tag}.{date}.hd5'
 
+    # This is a required filtering key-- basically identifies the 
+    # samples we are requesting be used in the dataset we are creating.
+    SELECTION_KEY = 'selections'
+
     @staticmethod
     def create_python_compatible_id(id):
         '''
@@ -84,10 +88,18 @@ class RnaSeqMixin(object):
         # The top level contains identifiers which we use to select
         # the groups within the HDF5 file. Then, we use the sample IDs to filter the
         # dataframes
+        # This data structure is addressed by the SELECTION_KEY variable
+        try:
+            selections = query_filter[RnaSeqMixin.SELECTION_KEY]
+        except KeyError:
+            msg = ('To select subjects/samples, please pass an object'
+                   f' addressed by {RnaSeqMixin.SELECTION_KEY}')
+            raise Exception(msg)
+
         final_df = pd.DataFrame()
         with pd.HDFStore(count_matrix_path, 'r') as hdf:
-            for ct in query_filter.keys():
-                if not type(query_filter[ct]) is list:
+            for ct in selections.keys():
+                if not type(selections[ct]) is list:
                     raise Exception('Problem encountered with the filter'
                         ' provided. We expect each cancer type to address'
                         ' a list of sample identifiers, such as: {j}'.format(
@@ -103,7 +115,7 @@ class RnaSeqMixin(object):
                         ' request was correctly formatted.'.format(ct=ct)
                     )
                 try:
-                    df = df[query_filter[ct]]
+                    df = df[selections[ct]]
                 except KeyError as ex:
                     message = ('The subset of the count matrix failed since'
                         ' one or more requested samples were missing: {s}'.format(
@@ -119,7 +131,28 @@ class RnaSeqMixin(object):
                 ' data was created.'
             )
 
-        # write the file to a temp location:
+        # now create the annotation file:
+        full_uuid_list = []
+        [full_uuid_list.extend(selections[k]) for k in selections.keys()]
+        ann_path = file_mapping[self.ANNOTATION_FILE_KEY][0]
+        if not os.path.exists(ann_path):
+            #TODO: better error handling here.
+            logger.info('Could not find the annotation matrix')
+            raise Exception('Failed to find the proper data for this'
+                ' request. An administrator has been notified'
+            )
+        ann_df = pd.read_csv(ann_path, index_col=0)
+        subset_ann = ann_df.loc[full_uuid_list]
+
+        # drop columns which are completely empty:
+        subset_ann = subset_ann.dropna(axis=1, how='all')
+
+        # prior to writing the final files, we call a method which
+        # can perform additional manipulations on these files as needed.
+        subset_ann, final_df = self.apply_additional_filters(
+                                          subset_ann, final_df, query_filter)
+
+        # write the counts to a temp location:
         filename = '{u}.{file_format}'.format(
             u=str(uuid.uuid4()),
             file_format=TSV_FORMAT
@@ -134,27 +167,11 @@ class RnaSeqMixin(object):
             )
             raise Exception('Failed when writing the filtered data.')
 
-        # now create the annotation file:
-        full_uuid_list = []
-        [full_uuid_list.extend(query_filter[k]) for k in query_filter.keys()]
-        ann_path = file_mapping[self.ANNOTATION_FILE_KEY][0]
-        if not os.path.exists(ann_path):
-            #TODO: better error handling here.
-            logger.info('Could not find the annotation matrix')
-            raise Exception('Failed to find the proper data for this'
-                ' request. An administrator has been notified'
-            )
-        ann_df = pd.read_csv(ann_path, index_col=0)
-        subset_ann = ann_df.loc[full_uuid_list]
-
-        # drop columns which are completely empty:
-        subset_ann = subset_ann.dropna(axis=1, how='all')
-
+        # write the annotations to a file
         filename = '{u}.{file_format}'.format(
             u=str(uuid.uuid4()),
             file_format=TSV_FORMAT
         )
-
         ann_filepath = os.path.join(dest_dir, filename)
         try:
             subset_ann.to_csv(ann_filepath, sep='\t')

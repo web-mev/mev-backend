@@ -7,10 +7,9 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from api.serializers.public_dataset import PublicDatasetSerializer
-from api.serializers.resource import ResourceSerializer
 from api.models import PublicDataset
-from api.public_data import query_dataset, \
-    create_dataset_from_params
+from api.public_data import query_dataset
+from api.async_tasks.public_data import async_create_dataset_from_params
 
 logger = logging.getLogger(__name__)
 
@@ -121,15 +120,13 @@ class PublicDatasetCreate(APIView):
         if not output_name:
             output_name = ''
         try:
-            resource_instance_list = create_dataset_from_params(
+            async_create_dataset_from_params.delay(
                 dataset_id, 
-                request.user, 
+                request.user.pk, 
                 request_filters,
                 output_name
             )
-            rs = ResourceSerializer(
-                resource_instance_list, many=True, context={'request': request})
-            return Response(rs.data, status=status.HTTP_201_CREATED)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as ex:
             message = ('The dataset could not be created.'

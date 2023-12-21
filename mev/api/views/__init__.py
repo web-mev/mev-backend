@@ -12,6 +12,7 @@ from .workspace_views import WorkspaceList, WorkspaceDetail
 from .resource_views import ResourceList, \
     ResourceDetail, \
     ResourceContents, \
+    ResourcePreview, \
     AddBucketResourceView, \
     ResourceContentTransform
 from .resource_download import ResourceDownload, \
@@ -43,7 +44,8 @@ from .executed_operation_views import OperationRun, \
     ExecutedOperationCheck, \
     ExecutedOperationList, \
     NonWorkspaceExecutedOperationList, \
-    WorkspaceExecutedOperationList
+    WorkspaceExecutedOperationList, \
+    ExecutedOperationResultsQuery
 from .operation_category_views import OperationCategoryList, \
     OperationCategoryDetail, \
     OperationCategoryAdd

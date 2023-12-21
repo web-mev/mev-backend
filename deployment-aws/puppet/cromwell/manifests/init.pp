@@ -11,6 +11,12 @@ class cromwell (
   Optional[String] $job_queue,
   Optional[String] $storage_bucket,
 ) {
+  if $facts['virtual'] == 'kvm' {
+    $platform = 'aws'
+  } else {
+    # VirtualBox
+    $platform = $facts['virtual']
+  }
   $user = 'ubuntu'
   $log_dir = '/var/log/cromwell'
   $db_password = fqdn_rand_string(6)

@@ -1,3 +1,4 @@
+from sys import is_finalizing
 import uuid
 import unittest.mock as mock
 import shutil
@@ -21,7 +22,8 @@ from api.tests.base import BaseAPITestCase
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.ingest_operation import perform_operation_ingestion
 from api.utilities.operations import read_operation_json
-from api.views.executed_operation_views import OperationRun
+from api.views.executed_operation_views import OperationRun, \
+    check_op
 
 
 TESTDIR = os.path.dirname(__file__)
@@ -139,8 +141,14 @@ class ExecutedOperationListTests(BaseAPITestCase):
         j = response.json()
         self.assertTrue(len(j)==len(all_workspace_exec_ops))
 
+        # test that it has the expected content.
+        # Most fields are just direct, but we want to ensure
+        # we are also passing information about the Operation itself:
+        j = j[0]
+        self.assertTrue('inputs' in j['operation'].keys())
 
-    def test_exec_ops_returns_inactive_ops(self):
+    @mock.patch('api.serializers.workspace_executed_operation.get_operation_instance_data')
+    def test_exec_ops_returns_inactive_ops(self, mock_get_operation_instance_data):
         '''
         As operations are updated, we will encounter situations where
         certain Operation instances are marked as 'inactive'. That inactive
@@ -172,6 +180,11 @@ class ExecutedOperationListTests(BaseAPITestCase):
             job_id = exec_op_uuid, # does not have to be the same as the pk, but is here
             mode = 'foo'
         )
+
+        mock_get_operation_instance_data.return_value = {
+            'abc': 'something', 
+            'inputs': {'inputA': 'foo'}
+        }
 
         all_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(owner=self.regular_user_1)
         all_active_workspace_exec_ops = WorkspaceExecutedOperation.objects.filter(
@@ -423,6 +436,22 @@ class ExecutedOperationTests(BaseAPITestCase):
         bad_url = '/'.join(split_url)
         response = self.authenticated_regular_client.get(bad_url)
         self.assertTrue(response.status_code == status.HTTP_404_NOT_FOUND)
+
+    def test_operation_ownership(self):
+        '''
+        Test the `api.views.executed_operation_views.check_op` function
+        '''
+        # works
+        result = check_op(self.regular_user_1, self.workspace_exec_op_uuid)
+        self.assertTrue(result is not None)
+
+        # fails since owner != requester
+        result = check_op(self.regular_user_2, self.workspace_exec_op_uuid)
+        self.assertIsNone(result)
+
+        # bad/invalidUUID
+        result = check_op(self.regular_user_1, str(uuid.uuid4()))
+        self.assertIsNone(result)
 
     def test_other_user_requests_valid_operation(self):
         '''
@@ -1490,3 +1519,149 @@ class OperationUpdateTests(BaseAPITestCase):
 
         # Check that the active field as NOT updated
         self.assertTrue(op.active)
+
+
+class ExecutedOperationResultsQueryTests(BaseAPITestCase):
+
+
+    def setUp(self):
+        self.opDb = setup_db_elements(self, 'valid_workspace_operation.json', 'workspace_op') # creates an Operation to use
+        self.non_workspace_opDb = setup_db_elements(self, 'valid_operation.json', 'non_workspace_op')
+        self.establish_clients()
+
+        # need a user's workspace to create an ExecutedOperation
+        user_workspaces = Workspace.objects.filter(owner=self.regular_user_1)
+        if len(user_workspaces) == 0:
+            msg = '''
+                Testing not setup correctly.  Please ensure that there is at least one
+                Workspace for user {user}.
+            '''.format(user=self.regular_user_1)
+            raise ImproperlyConfigured(msg)
+        self.workspace = user_workspaces[0]
+
+        # create a mock ExecutedOperation
+        self.incomplete_workspace_exec_op_uuid = uuid.uuid4()
+        self.workspace_exec_op = WorkspaceExecutedOperation.objects.create(
+            id = self.incomplete_workspace_exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            operation = self.opDb,
+            job_id = self.incomplete_workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        self.incomplete_exec_op_uuid = uuid.uuid4()
+        self.exec_op = ExecutedOperation.objects.create(
+            id = self.incomplete_exec_op_uuid,
+            owner = self.regular_user_1,
+            operation = self.non_workspace_opDb,
+            job_id = self.incomplete_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        self.incomplete_good_workspace_exec_op_url = reverse('operation-results-query',
+            kwargs={'exec_op_uuid': self.incomplete_workspace_exec_op_uuid}
+        )
+        self.incomplete_good_exec_op_url = reverse('operation-results-query',
+            kwargs={'exec_op_uuid': self.incomplete_exec_op_uuid}
+        )
+        
+        self.completed_workspace_exec_op_uuid = uuid.uuid4()
+        self.workspace_exec_op = WorkspaceExecutedOperation.objects.create(
+            id = self.completed_workspace_exec_op_uuid,
+            owner = self.regular_user_1,
+            workspace= self.workspace,
+            execution_stop_datetime = datetime.datetime.now(),
+            is_finalizing = False,
+            operation = self.opDb,
+            job_id = self.completed_workspace_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        self.completed_exec_op_uuid = uuid.uuid4()
+        self.exec_op = ExecutedOperation.objects.create(
+            id = self.completed_exec_op_uuid,
+            owner = self.regular_user_1,
+            execution_stop_datetime = datetime.datetime.now(),
+            is_finalizing = False,
+            operation = self.non_workspace_opDb,
+            job_id = self.completed_exec_op_uuid, # does not have to be the same as the pk, but is here
+            mode = 'foo'
+        )
+        self.completed_good_workspace_exec_op_url = reverse('operation-results-query',
+            kwargs={'exec_op_uuid': self.completed_workspace_exec_op_uuid}
+        )
+        self.completed_good_exec_op_url = reverse('operation-results-query',
+            kwargs={'exec_op_uuid': self.completed_exec_op_uuid}
+        )
+
+    def tearDown(self):
+        tear_down_db_elements(self)
+
+    def test_job_still_running(self):
+        '''
+        If a job is still running, we cannot query the results so
+        we should simply return 204 (no content)
+        '''
+        response = self.authenticated_regular_client.get(self.incomplete_good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 204)
+        response = self.authenticated_regular_client.get(self.incomplete_good_exec_op_url)
+        self.assertTrue(response.status_code == 204)
+
+    @mock.patch('api.views.executed_operation_views.check_op')
+    def test_op_not_found(self, mock_check_op):
+        '''
+        Tests that we get a 404 if the `check_op` function returns None
+        (that function is tested independently elsewhere)
+        '''
+        mock_check_op.return_value = None
+        # try making the request as another user and it should fail
+        # with a 404 not found
+        
+        response = self.authenticated_other_client.get(self.incomplete_good_workspace_exec_op_url)
+        self.assertTrue(response.status_code == 404)
+        response = self.authenticated_other_client.get(self.incomplete_good_exec_op_url)
+        self.assertTrue(response.status_code == 404)
+
+    @mock.patch('api.views.executed_operation_views.get_transformation_function')
+    def test_valid_query(self, mock_get_transformation_function):
+        '''
+        The "query" performed is generic as far as the endpoint is
+        concerned. Here, we mock the transform and return a dummy result
+        '''
+        mock_result = {'a':1}
+        mock_fn = mock.MagicMock()
+        mock_get_transformation_function.return_value = mock_fn
+        mock_fn.return_value = mock_result
+
+        suffix = '?transform-name=x&a=0'
+        url = self.completed_good_workspace_exec_op_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        j = response.json()
+        self.assertDictEqual(j, mock_result)
+
+    @mock.patch('api.views.executed_operation_views.get_transformation_function')
+    def test_invalid_query(self, mock_get_transformation_function):
+        '''
+        The "query" performed is generic as far as the endpoint is
+        concerned. However, if the query params do not make sense for the
+        requested data transformation, then we return a 400
+        '''
+  
+        mock_get_transformation_function.side_effect = KeyError('abc')
+        suffix = '?transform-name=x&a=0'
+        url = self.completed_good_workspace_exec_op_url + suffix
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        j = response.json()
+        self.assertTrue('abc' in j['error'])
+
+        mock_get_transformation_function.side_effect = Exception('query not found')
+        response = self.authenticated_regular_client.get(
+            url, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        j = response.json()
+        self.assertTrue('query not found' in j['error'])

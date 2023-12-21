@@ -28,5 +28,8 @@ class mevapi::solr () {
     schema_src_file     => "${mevapi::project_root}/solr/tcga-micrornaseq/schema.xml",
     solrconfig_src_file => "${mevapi::project_root}/solr/tcga-micrornaseq/solrconfig.xml",
   }
-
+  solr::core { 'tcga-methylation':
+    schema_src_file     => "${mevapi::project_root}/solr/tcga-methylation/schema.xml",
+    solrconfig_src_file => "${mevapi::project_root}/solr/tcga-methylation/solrconfig.xml",
+  }
 }

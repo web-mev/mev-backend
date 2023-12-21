@@ -56,18 +56,16 @@ To create the initial configuration, you will need to do the following:
 }
 ```
 - Create an EC2 instance to host the Globus Connect Server (GCS)
-    - The instance requires some specific configuration, such as opening of ports 443 and 50000-51000. Consult the [Globus documentation](https://docs.globus.org/globus-connect-server/v5.4/#globus_connect_server_prerequisites) for more details. You can also consult `globus.tf` for configuration details on instances that will match those of the WebMeV deployment. The instance type does not need to be large, so t2.small or similar should be fine.
+    - The instance requires some specific configuration, such as opening of ports 443 and 50000-51000. Consult the [Globus documentation](https://docs.globus.org/globus-connect-server/v5.4/#globus_connect_server_prerequisites) for more details. You can also consult `modules/globus/main.tf` for configuration details on instances that will match those of the WebMeV deployment. The instance type does not need to be large, so t2.small or similar should be fine.
 
 **As a reminder, you will need to keep the IAM user (+ keys) and associated policy**. The bucket and EC2 instance can be deleted following the setup process, once we have the configuration files copied to a safe location.
 
-
 ---
-
 ### Configuring the GCS Endpoint
 
 The official reference for setting up the GCS endpoint can be found at https://docs.globus.org/globus-connect-server/v5.4/
 
-- Go to [developers.globus.org](developers.globus.org) to register a new GCS instance. For this, you will need to login with some Globus-associated entity (for myself, it was using a Harvard-associated ID). After logging in, select your project (or create a new one) and choose "Add new Globus Connect Server" from the dropdown. Eventually, you will be presented with a screen where you can view the client ID and generate a client secret. Save these.
+- Go to [developers.globus.org](developers.globus.org) to register a new GCS instance. For this, you will need to log in with some Globus-associated entity (for myself, it was using a Harvard-associated ID). After logging in, select your project (or create a new one) and choose "Add new Globus Connect Server" from the dropdown. Eventually, you will be presented with a screen where you can view the client ID and generate a client secret. Save these.
 
 - Open a shell on the EC2 instance and elevate permissions (`sudo -s`)
 
@@ -160,7 +158,7 @@ If that works, your GCS endpoint is ready. However, the work is not done-- we st
 
 At this point, we have a GCS that can communicate and place files in our bucket. We now need to get it to work with the web application. The web application will manage third-party access to a shared Globus collection. We first create the web application since we will need to assign the application client privileges on the "guest collection" we create later.
 
-First go to [developers.globus.org](developers.globus.org) site and click "Register your app with Globus"):
+First go to [developers.globus.org](https://developers.globus.org) site and click "Register your app with Globus"):
 ![](imgs/p1.png)
 
 This will take you to a page where you can view your Globus projects; add it to the project you used/created when setting up the endpoint. Click the "Add" driopdown and select "Add new app":
@@ -173,14 +171,11 @@ TODO: ADD URLS ONCE IMPLEMENTED
 
 ![](imgs/p3.png)
 
-
 After this, you should see the following:
 
 ![](imgs/p4.png)
 
 **Save the application client ID/secret to your local machine. You will need this for the terraform variables.**
-
-
 
 ### Adding the guest collection
 
@@ -215,7 +210,6 @@ which will prompt for the client secret. The ID and secret here are the ones for
 ### Saving the files
 
 The Globus GCS host provisioning script expects the deployment key and node configuration files to be located at:
-
 ```
 s3://webmev-tf/secrets/<DEPLOYMENT>/deployment-key.json
 s3://webmev-tf/secrets/<DEPLOYMENT>/node_config.json
@@ -231,7 +225,6 @@ Before you remove the bucket and EC2 instance, ensure you have saved both:
 - node_config.json
 
 You can now delete both the bucket and the EC2 instance. Recall that you need to keep the IAM user and associated keys.
-
 
 ### Modifying the associated bucket
 
