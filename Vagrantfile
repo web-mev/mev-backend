@@ -13,9 +13,10 @@ Vagrant.configure("2") do |config|
     set -x
 
     # install Puppet
-    CODENAME=$(/usr/bin/lsb_release -sc)
-    /usr/bin/curl -sO "https://apt.puppetlabs.com/puppet7-release-$CODENAME.deb"
-    /usr/bin/dpkg -i "puppet7-release-$CODENAME.deb"
+    OS_CODENAME=$(/usr/bin/lsb_release -sc)
+    PUPPET_PACKAGE=puppet8-release-${OS_CODENAME}.deb
+    /usr/bin/curl -sO "https://apt.puppetlabs.com/${PUPPET_PACKAGE}"
+    /usr/bin/dpkg -i "$PUPPET_PACKAGE"
     /usr/bin/apt-get -qq update
     /usr/bin/apt-get -qq -y install puppet-agent
 
