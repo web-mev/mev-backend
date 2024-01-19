@@ -287,6 +287,11 @@ else:
 LOCAL = 'local'
 REMOTE = 'remote'
 
+# a directory (relative to the storage root) where we copy resources that fail
+# validation. This permits us to check files that failed validation in case
+# the user deletes the file before an admin can check
+DEBUG_DIR = 'debug'
+
 # map to the implementing classes. For the remote jobs, we have to reference
 # the cloud environment to get the implementing class.
 # For each cloud environment, we only allow certain storage backends. For example,

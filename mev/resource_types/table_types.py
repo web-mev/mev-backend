@@ -368,7 +368,7 @@ class TableResource(DataResource):
                 all_valid, bad_names = TableResource.index_names_valid(values)
                 if not all_valid:
                     if len(bad_names) > NAME_ERROR_LIMIT:
-                        suffix = f' and {len(bad_names) - NAME_ERROR_LIMIT} others'
+                        suffix = f', and {len(bad_names) - NAME_ERROR_LIMIT} other(s)'
                     else:
                         suffix = ''
                     return (False, NAMING_ERROR.format(

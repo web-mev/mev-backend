@@ -61,7 +61,6 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_utilities.initiate_resource_validation.side_effect = [
             ResourceValidationException('xyz!!')]
 
-
         validate_resource(r.pk, 'ABC', TSV_FORMAT)
         mock_alert_admins.assert_not_called()
         r = Resource.objects.get(pk=r.pk)
@@ -71,7 +70,9 @@ class TestValidateResource(BaseAPITestCase):
 
     @mock.patch('api.async_tasks.async_resource_tasks.resource_utilities')
     @mock.patch('api.async_tasks.async_resource_tasks.alert_admins')
+    @mock.patch('api.async_tasks.async_resource_tasks.default_storage')
     def test_validation_exception_handled(self, \
+        mock_default_storage, \
         mock_alert_admins, \
         mock_resource_utilities):
         '''
@@ -83,5 +84,6 @@ class TestValidateResource(BaseAPITestCase):
         mock_resource_utilities.initiate_resource_validation.side_effect = [Exception('ex!')]
 
         validate_resource(r.pk, 'ABC', TSV_FORMAT)
-        mock_alert_admins.assert_called_with('ex!')
+        mock_alert_admins.assert_called()
         self.assertTrue(r.status == Resource.UNEXPECTED_VALIDATION_ERROR)
+        mock_default_storage.copy_to_storage.assert_called()

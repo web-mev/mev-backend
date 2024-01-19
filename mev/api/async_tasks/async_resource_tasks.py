@@ -3,6 +3,7 @@ import logging
 from celery import shared_task
 
 from django.core.files.storage import default_storage
+from django.conf import settings
 
 from exceptions import ResourceValidationException
 
@@ -41,7 +42,17 @@ def validate_resource(resource_pk, requested_resource_type, file_format):
         resource.status = str(ex)
     except Exception as ex:
         logger.info('Caught an exception raised during resource validation.')
-        alert_admins(str(ex))
         resource.status = Resource.UNEXPECTED_VALIDATION_ERROR
+        # since this raised an unexpected error, we want to check what went wrong
+        # so we copy the file. Otherwise the user can delete the file and we will not
+        # be able to debug the issue.
+        dest_obj = f'{settings.DEBUG_DIR}/{resource.pk}'
+        default_storage.copy_to_storage(settings.MEDIA_ROOT,
+                                        resource.datafile.name,
+                                        dest_object=dest_obj)
+        alert_admins('Caught a file validation exception.'
+                     f' File is cached at {dest_obj}. User attempted to'
+                     f' validate as {requested_resource_type} with format'
+                     f' {file_format}.')
     resource.is_active = True
     resource.save()

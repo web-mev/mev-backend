@@ -436,7 +436,7 @@ class TestMatrix(BaseAPITestCase):
         is_valid, err = m.validate_type(self.r, CSV_FORMAT)
 
         self.assertFalse(is_valid)
-        expected_err = 'gk/vs, gu/uo, gu/ga, gr/ol, gf/ls, gn/tr and 1 other'
+        expected_err = 'gk/vs, gu/uo, gu/ga, gr/ol, gf/ls, and 1 other(s)'
         self.assertTrue(expected_err in err)
 
         # now check a file that has only several errors 
