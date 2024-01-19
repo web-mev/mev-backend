@@ -146,9 +146,10 @@ resource "aws_instance" "api" {
   /usr/bin/hostnamectl set-hostname ${local.backend_cname}
 
   # install Puppet
-  CODENAME=$(/usr/bin/lsb_release -sc)
-  /usr/bin/curl -sO "https://apt.puppetlabs.com/puppet7-release-$CODENAME.deb"
-  /usr/bin/dpkg -i "puppet7-release-$CODENAME.deb"
+  OS_CODENAME=$(/usr/bin/lsb_release -sc)
+  PUPPET_PACKAGE=puppet8-release-$${OS_CODENAME}.deb
+  /usr/bin/curl -sO "https://apt.puppetlabs.com/$${PUPPET_PACKAGE}"
+  /usr/bin/dpkg -i "$PUPPET_PACKAGE"
   /usr/bin/apt-get -qq update
   /usr/bin/apt-get -qq -y install puppet-agent nvme-cli
 
@@ -161,7 +162,7 @@ resource "aws_instance" "api" {
 
   # install and configure librarian-puppet
   export PUPPET_ROOT="$PROJECT_ROOT/deployment-aws/puppet"
-  /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+  /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 5.0.0 --no-document
   # need to set $HOME: https://github.com/rodjek/librarian-puppet/issues/258
   export HOME=/root
   /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
