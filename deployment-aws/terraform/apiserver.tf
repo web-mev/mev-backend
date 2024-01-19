@@ -162,7 +162,7 @@ resource "aws_instance" "api" {
 
   # install and configure librarian-puppet
   export PUPPET_ROOT="$PROJECT_ROOT/deployment-aws/puppet"
-  /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 3.0.1 --no-document
+  /opt/puppetlabs/puppet/bin/gem install librarian-puppet -v 5.0.0 --no-document
   # need to set $HOME: https://github.com/rodjek/librarian-puppet/issues/258
   export HOME=/root
   /opt/puppetlabs/puppet/bin/librarian-puppet config path /opt/puppetlabs/puppet/modules --global
