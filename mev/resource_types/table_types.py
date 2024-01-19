@@ -373,7 +373,7 @@ class TableResource(DataResource):
                         suffix = ''
                     return (False, NAMING_ERROR.format(
                         idx=key,
-                        bad_identifiers=', '.join(bad_names),
+                        bad_identifiers=', '.join([str(x) for x in bad_names[:NAME_ERROR_LIMIT]]),
                         suffix=suffix))
 
             # passed the basic checks-- looks good so far. Derived classes
