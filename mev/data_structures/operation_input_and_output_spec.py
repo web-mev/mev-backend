@@ -85,7 +85,7 @@ class InputOutputSpec(object):
             # this catches expected failures like missing keys,
             # or bad default values
             logger.info(f'Failed to validate an input/output spec.'
-                ' The error was {ex}')
+                f' The error was: {ex}')
             raise ex
         except Exception as ex:
             logger.error(f'Unexpected failure to validate input/output spec.'
