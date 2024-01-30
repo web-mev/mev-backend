@@ -326,7 +326,11 @@ class LocalDockerRunnerTester(BaseAPITestCase):
     @mock.patch('api.runners.local_docker.run_shell_command')
     @mock.patch('api.runners.local_docker.get_image_name_and_tag')
     @mock.patch('api.runners.local_docker.os.path.exists')
+    @mock.patch('api.runners.local_docker.os.getuid')
+    @mock.patch('api.runners.local_docker.os.getgid')
     def test_run_initiation(self, \
+        mock_getgid, \
+        mock_getuid, \
         mock_exists, \
         mock_get_image_name_and_tag, \
         mock_run_shell_command):
@@ -334,6 +338,10 @@ class LocalDockerRunnerTester(BaseAPITestCase):
         mock_exists.return_value = True
         mock_image_name = 'docker.io/foo:bar'
         mock_get_image_name_and_tag.return_value = mock_image_name
+        mock_uid = 1000
+        mock_gid = 1001
+        mock_getgid.return_value = mock_gid
+        mock_getuid.return_value = mock_uid
 
         mock_executed_op = mock.MagicMock()
         u = uuid.uuid4()
@@ -368,6 +376,8 @@ class LocalDockerRunnerTester(BaseAPITestCase):
             execution_mount = '/data/ex_dir',
             work_dir = '/data/ex_dir',
             job_dir = mock_ex_dir,
+            uid=mock_uid,
+            gid=mock_gid,
             docker_image = mock_image_name,
             cmd = mock_cmd
         )

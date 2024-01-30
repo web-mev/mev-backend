@@ -45,8 +45,9 @@ class LocalDockerRunner(OperationRunner):
     # the template docker command to be run:
     DOCKER_RUN_CMD = ('docker run -d --name {container_name}'
                       ' -v {execution_mount}:{work_dir}'
+                      ' -u {uid}:{gid}'
                       ' --env WORKDIR={job_dir}'
-                      ' --entrypoint="" {docker_image} {cmd}')
+                      ' {docker_image} {cmd}')
 
     def check_status(self, job_uuid):
         container_is_running = check_if_container_running(job_uuid)
@@ -236,6 +237,8 @@ class LocalDockerRunner(OperationRunner):
             container_name=execution_uuid,
             execution_mount=settings.OPERATION_EXECUTION_DIR,
             work_dir=settings.OPERATION_EXECUTION_DIR,
+            uid=os.getuid(),
+            gid=os.getgid(),
             job_dir=execution_dir,
             docker_image=image_str,
             cmd=entrypoint_cmd
