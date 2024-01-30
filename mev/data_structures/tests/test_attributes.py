@@ -15,7 +15,8 @@ from data_structures.attribute_types import IntegerAttribute, \
     BooleanAttribute, \
     OptionStringAttribute, \
     IntegerOptionAttribute, \
-    FloatOptionAttribute
+    FloatOptionAttribute, \
+    MixedOptionAttribute
 
 from exceptions import NullAttributeError, \
     AttributeValueError, \
@@ -623,3 +624,37 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 
             'must be one of'):
             s = FloatOptionAttribute(10.5, options=[5.5,10.5,'abc'])
+
+    def test_mixed_option_attribute(self):
+
+        # test that leaving out the 'options' key causes a problem
+        with self.assertRaises(MissingAttributeKeywordError):
+            s = MixedOptionAttribute(1.0)
+
+        # test that a valid spec works
+        s = MixedOptionAttribute(10.2, options=[10.2,15.5,10,'abc'])
+        self.assertEqual(s.value, 10.2)
+        expected_dict_representation = {
+            'attribute_type': 'MixedOption', 
+            'value': 10.2, 
+            'options': [10.2, 15.5, 10, 'abc']
+        }
+        self.assertDictEqual(expected_dict_representation, s.to_dict())
+
+        # test that float or int doesn't matter for supplied value:
+        s = MixedOptionAttribute(10.0, options=[10,20.0, 'abc'])
+
+        s = MixedOptionAttribute('abc', options=[10,20, 'abc'])
+
+        with self.assertRaisesRegex(AttributeValueError, 
+            '"abcd" was not among the valid'):
+            s = MixedOptionAttribute('abcd', options=[10,20, 'abc'])
+
+        # Need to respect the types- the integer 2 was an option 
+        # even if we could cast '2' (the string representation.)
+        with self.assertRaisesRegex(AttributeValueError, 
+            'was not among the valid'):
+            s = MixedOptionAttribute(2, options=['1','2','abc'])
+
+        # mixed options with only a single 'type' are just fine:
+        s = MixedOptionAttribute(10, options=[10,20,30])

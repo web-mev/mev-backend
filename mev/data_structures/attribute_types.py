@@ -529,6 +529,29 @@ class FloatOptionAttribute(BaseOptionAttribute):
     READABLE_TYPES = ['float', 'integer']
 
 
+
+class MixedOptionAttribute(BaseOptionAttribute):
+    '''
+    An type that only admits one from a set of preset values
+    (e.g. like a dropdown)
+    ```
+    {
+        "attribute_type": "MixedOption",
+        "value": <int>,
+        "options": [<int/float/str>, <int/float/str>,...,<int/float/str>]
+    }
+    ```
+    '''
+    typename = 'MixedOption'
+
+    # this dictates the types that are permitted
+    # in the finite set of options. 
+    BASE_TYPES = [float, int, str]
+
+    # for a human-readable exception string
+    READABLE_TYPES = ['float', 'integer', 'string']
+
+
 class BooleanAttribute(BaseAttributeType):
     '''
     Basic boolean
