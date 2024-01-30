@@ -1,0 +1,33 @@
+{
+    "id": "76c9b2d7-5798-4d15-beb2-c172bbede013",
+    "name": "Some name", 
+    "description": "Here is some description of the process", 
+    "inputs": {
+        "some_choice": {
+            "description": "A choice", 
+            "name": "Make a single choice:", 
+            "required": true, 
+            "converter": "api.converters.basic_attributes.StringConverter",         
+            "spec": {
+                "attribute_type": "MixedOption", 
+                "options": ["abc", 1, 2]
+            }
+        }
+    }, 
+    "outputs": {
+        "norm_counts": {
+            "required": true,
+            "converter": "tmp",
+            "spec": {
+                "attribute_type": "DataResource", 
+                "resource_type": "EXP_MTX", 
+                "many": false
+            }
+        }
+    }, 
+    "mode": "local_docker", 
+    "repository_url": "https://github.com/myorg/myrepo.git",
+    "repository_name": "github",
+    "git_hash": "abc123",
+    "workspace_operation": true
+}

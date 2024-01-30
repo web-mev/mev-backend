@@ -14,6 +14,7 @@ from data_structures.attribute_types import IntegerAttribute, \
     OptionStringAttribute, \
     IntegerOptionAttribute, \
     FloatOptionAttribute, \
+    MixedOptionAttribute, \
     BooleanAttribute
 from data_structures.list_attributes import StringListAttribute, \
     UnrestrictedStringListAttribute, \
@@ -37,6 +38,7 @@ simple_attribute_types = [
     OptionStringAttribute,
     IntegerOptionAttribute,
     FloatOptionAttribute,
+    MixedOptionAttribute,
     BooleanAttribute,
     DataResourceAttribute,
     OperationDataResourceAttribute,

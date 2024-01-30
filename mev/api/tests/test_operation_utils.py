@@ -751,3 +751,44 @@ class OperationUtilsTester(BaseAPITestCase):
         with self.assertRaisesRegex(AttributeValueError, 'a list'):
             result = validate_operation_inputs(self.regular_user_1,
                 inputs, op, None)
+
+    @mock.patch('api.utilities.operations.get_operation_instance')
+    def test_optionstring_with_mixed_types(self, mock_get_operation_instance):
+        '''
+        Test the case where one of the inputs is an OptionString but 
+        the available options are of mixed types. For instance, consider
+        a clustering algorithm where there is an "automatic" option or a user-defined
+        integer which defines the number of clusters.
+        '''
+        # first test one where we expect an empty list-- no resources
+        # are used or created:
+        f = os.path.join(
+            TESTDIR,
+            'optionstring_with_strings_and_ints.json'
+        )
+        d = read_operation_json(f)
+        op = Operation(d)
+        mock_get_operation_instance.return_value = op
+        inputs = {
+            'some_choice': 'abc'
+        }
+        ops = OperationDbModel.objects.all()
+        op = ops[0]
+        result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
+        self.assertEqual(result['some_choice'], 'abc')
+
+        inputs = {
+            'some_choice': 1
+        }
+        result = validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
+        self.assertEqual(result['some_choice'], 1)
+
+        inputs = {
+            'some_choice': '1' # 1 is valid as int, but NOT as str
+        }
+        with self.assertRaisesRegex(AttributeValueError,
+            'not among the valid options'):
+            validate_operation_inputs(self.regular_user_1,
+                inputs, op, None)
