@@ -406,9 +406,10 @@ class BaseOptionAttribute(BaseAttributeType):
             options = kwargs_dict.pop(self.OPTIONS_KEY)
             if type(options) == list:
                 for opt in options:
-                    if not type(opt) == self.BASE_TYPE:
-                        raise InvalidAttributeKeywordError('The options need to be'
-                            f' {self.READABLE_TYPE}s. Failed on validating: {opt}')
+                    if not type(opt) in self.BASE_TYPES:
+                        raise InvalidAttributeKeywordError('The options must'
+                            f' be one of ({", ".join(self.READABLE_TYPES)}).'
+                            f' Failed on validating: {opt}')
                 self._options = options
             else:
                 raise InvalidAttributeKeywordError('Need to supply a list with'
@@ -476,12 +477,12 @@ class OptionStringAttribute(BaseOptionAttribute):
 
     typename = 'OptionString'
 
-    # this dictates the type that is contained
+    # this dictates the types that are permitted
     # in the finite set of options
-    BASE_TYPE = str
+    BASE_TYPES = [str,]
 
     # for a human-readable exception string
-    READABLE_TYPE = 'string'
+    READABLE_TYPES = ['string']
 
 
 class IntegerOptionAttribute(BaseOptionAttribute):
@@ -497,12 +498,13 @@ class IntegerOptionAttribute(BaseOptionAttribute):
     ```
     '''
     typename = 'IntegerOption'
-    # this dictates the type that is contained
+
+    # this dictates the types that are permitted
     # in the finite set of options
-    BASE_TYPE = int
+    BASE_TYPES = [int]
 
     # for a human-readable exception string
-    READABLE_TYPE = 'integer'
+    READABLE_TYPES = ['integer']
 
 
 class FloatOptionAttribute(BaseOptionAttribute):
@@ -513,17 +515,18 @@ class FloatOptionAttribute(BaseOptionAttribute):
     {
         "attribute_type": "FloatOption",
         "value": <int>,
-        "options": [<int>, <int>,...,<int/>]
+        "options": [<int/float>, <int/float>,...,<int/float>]
     }
     ```
     '''
     typename = 'FloatOption'
-    # this dictates the type that is contained
+
+    # this dictates the types that are permitted
     # in the finite set of options
-    BASE_TYPE = float
+    BASE_TYPES = [float, int]
 
     # for a human-readable exception string
-    READABLE_TYPE = 'float'
+    READABLE_TYPES = ['float', 'integer']
 
 
 class BooleanAttribute(BaseAttributeType):

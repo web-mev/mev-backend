@@ -494,7 +494,7 @@ class TestSimpleAttributes(unittest.TestCase):
         # not a string. The value is valid against one of the options, but
         # we require everything to be perfect.
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 
-            'need to be strings'):
+            'must be one of \(string\)'):
             s = OptionStringAttribute('xyz', options=['xyz',1,'abc'])
 
         # if many=False (default) and we pass multiple values, we should fail:
@@ -550,7 +550,8 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
             s = IntegerOptionAttribute(10.5, options=[10,15])
 
-        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'integers'):
+        with self.assertRaisesRegex(InvalidAttributeKeywordError,
+            'must be one of \(integer\)'):
             IntegerOptionAttribute(10, options=[10,10.5])
 
         # test null value when allowed:
@@ -571,7 +572,7 @@ class TestSimpleAttributes(unittest.TestCase):
         # not a nunber. The value is valid against one of the options, but
         # we require everything to be perfect.
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 
-            'need to be integers'):
+            'must be one of \(integer\)'):
             s = IntegerOptionAttribute(10, options=[5,10,'abc'])
 
     def test_float_option_attribute(self):
@@ -597,8 +598,10 @@ class TestSimpleAttributes(unittest.TestCase):
         with self.assertRaisesRegex(AttributeValueError, 'not among the valid options'):
             s = FloatOptionAttribute(10.5, options=[10.0,15.0])
 
-        with self.assertRaisesRegex(InvalidAttributeKeywordError, 'floats'):
-            FloatOptionAttribute(10, options=[10,10.5])
+        # although it's an int, we accept 10 since it is an available option
+        FloatOptionAttribute(10, options=[10,10.5])
+        FloatOptionAttribute(10, options=[10.0,10.5])
+        FloatOptionAttribute(10.0, options=[10,10.5])
 
         # test null value when allowed:
         s = FloatOptionAttribute(None, options=[10.5,20.2], allow_null=True)
@@ -618,5 +621,5 @@ class TestSimpleAttributes(unittest.TestCase):
         # not a nunber. The value is valid against one of the options, but
         # we require everything to be perfect.
         with self.assertRaisesRegex(InvalidAttributeKeywordError, 
-            'need to be floats'):
+            'must be one of'):
             s = FloatOptionAttribute(10.5, options=[5.5,10.5,'abc'])
