@@ -56,6 +56,33 @@ resource "aws_iam_role_policy" "server_s3_access" {
   )
 }
 
+resource "aws_iam_role_policy" "server_batch_access" {
+  name   = "AllowAccessToBatch"
+  role   = aws_iam_role.api_server_role.id
+  policy = jsonencode(
+    {
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Effect   = "Allow",
+          Action   = [
+            "batch:DescribeJobQueues",
+            "batch:CancelJob",
+            "batch:SubmitJob",
+            "batch:ListJobs",
+            "batch:DescribeComputeEnvironments",
+            "batch:TerminateJob",
+            "batch:DescribeJobs",
+            "batch:RegisterJobDefinition",
+            "batch:DescribeJobDefinitions"
+          ],
+          Resource = ["*"]
+        }
+      ]
+    }
+  )
+}
+
 # For adding SSM to the instance:
 resource "aws_iam_role_policy_attachment" "api_server_ssm" {
   role       = aws_iam_role.api_server_role.id
