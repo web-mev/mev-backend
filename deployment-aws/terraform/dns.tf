@@ -4,7 +4,6 @@ data "aws_route53_zone" "main" {
 
 locals {
   backend_cname  = "${local.common_tags.Name}-api.${data.aws_route53_zone.main.name}"
-  cromwell_cname = "${local.common_tags.Name}-cromwell.${data.aws_route53_zone.main.name}"
 }
 
 resource "aws_route53_record" "web" {

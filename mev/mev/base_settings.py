@@ -268,10 +268,8 @@ if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
 if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
 
-    # ensure we have the proper variables to work with Cromwell
-    CROMWELL_BUCKET_NAME = get_env('CROMWELL_BUCKET_NAME')
-    CROMWELL_SERVER_IP = get_env('CROMWELL_SERVER_IP')
-    CROMWELL_SERVER_URL = f'http://{CROMWELL_SERVER_IP}:8000'
+    # ensure we have the proper variables to work with Nextflow
+    NEXTFLOW_BUCKET_NAME = get_env('NEXTFLOW_BUCKET_NAME')
 else:
     ENABLE_REMOTE_JOBS = False
 

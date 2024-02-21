@@ -71,13 +71,4 @@ Vagrant.configure("2") do |config|
       vb.cpus = 2
     end
   end
-
-  config.vm.define "cromwell", autostart: false do |cromwell|
-    cromwell.vm.hostname = "mev-cromwell"
-
-    cromwell.vm.provider "virtualbox" do |vb|
-      vb.memory = 1024
-      vb.cpus = 2
-    end
-  end
 end

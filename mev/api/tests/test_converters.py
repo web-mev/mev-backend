@@ -31,10 +31,10 @@ from api.converters.data_resource import \
     LocalDockerMultipleDataResourceConverter, \
     LocalDockerMultipleVariableDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
-    LocalDockerSpaceDelimResourceConverter, \
-    CromwellSingleDataResourceConverter, \
-    CromwellMultipleDataResourceConverter, \
-    CromwellResourceMixin
+    LocalDockerSpaceDelimResourceConverter
+    # CromwellSingleDataResourceConverter, \
+    # CromwellMultipleDataResourceConverter, \
+    # CromwellResourceMixin
 
 from api.converters.element_set import ObservationSetCsvConverter, \
     FeatureSetCsvConverter, \
@@ -287,48 +287,50 @@ class TestElementSetConverter(BaseAPITestCase):
 
 class TestDataResourceConverter(BaseAPITestCase):
 
-    @mock.patch('api.converters.data_resource.default_storage')
-    def test_workspace_op_conversion_adds_to_workspace(self, mock_default_storage):
-        '''
-        When converting resources for workspace ops, 
-        ensure that we add Resources to a workspace. 
-        '''
-        mock_resource = mock.MagicMock()
-        mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
-        mixin_obj = CromwellResourceMixin()
-        mock_owner = mock.MagicMock()
-        mock_executed_op = mock.MagicMock()
-        mock_executed_op.owner = mock_owner
-        mock_path = '/path/to/file.txt'
-        mock_workspace = mock.MagicMock()
-        mixin_obj._create_resource(mock_executed_op, 
-            mock_workspace, mock_path, 'some name')
-        mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
-            mock_owner,
-            mock_path
-        )
-        mock_resource.workspaces.add.assert_called_with(mock_workspace)
+    # TODO: re-enable once Nextflow runner is ready
+    # @mock.patch('api.converters.data_resource.default_storage')
+    # def test_workspace_op_conversion_adds_to_workspace(self, mock_default_storage):
+    #     '''
+    #     When converting resources for workspace ops, 
+    #     ensure that we add Resources to a workspace. 
+    #     '''
+    #     mock_resource = mock.MagicMock()
+    #     mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
+    #     mixin_obj = CromwellResourceMixin()
+    #     mock_owner = mock.MagicMock()
+    #     mock_executed_op = mock.MagicMock()
+    #     mock_executed_op.owner = mock_owner
+    #     mock_path = '/path/to/file.txt'
+    #     mock_workspace = mock.MagicMock()
+    #     mixin_obj._create_resource(mock_executed_op, 
+    #         mock_workspace, mock_path, 'some name')
+    #     mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
+    #         mock_owner,
+    #         mock_path
+    #     )
+    #     mock_resource.workspaces.add.assert_called_with(mock_workspace)
 
-    @mock.patch('api.converters.data_resource.default_storage')
-    def test_non_workspace_op_conversion_avoids_add_to_workspace(self, mock_default_storage):
-        '''
-        When converting resources for non-workspace ops, 
-        ensure that we DO NOT add Resources to a workspace. 
-        '''
-        mock_resource = mock.MagicMock()
-        mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
-        mixin_obj = CromwellResourceMixin()
-        mock_owner = mock.MagicMock()
-        mock_executed_op = mock.MagicMock()
-        mock_executed_op.owner = mock_owner
-        mock_path = '/path/to/file.txt'
-        mixin_obj._create_resource(mock_executed_op, 
-            None, mock_path, 'some name')
-        mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
-            mock_owner,
-            mock_path
-        )
-        mock_resource.workspaces.add.assert_not_called()
+    # TODO: re-enable once Nextflow runner is ready
+    # @mock.patch('api.converters.data_resource.default_storage')
+    # def test_non_workspace_op_conversion_avoids_add_to_workspace(self, mock_default_storage):
+    #     '''
+    #     When converting resources for non-workspace ops, 
+    #     ensure that we DO NOT add Resources to a workspace. 
+    #     '''
+    #     mock_resource = mock.MagicMock()
+    #     mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
+    #     mixin_obj = CromwellResourceMixin()
+    #     mock_owner = mock.MagicMock()
+    #     mock_executed_op = mock.MagicMock()
+    #     mock_executed_op.owner = mock_owner
+    #     mock_path = '/path/to/file.txt'
+    #     mixin_obj._create_resource(mock_executed_op, 
+    #         None, mock_path, 'some name')
+    #     mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
+    #         mock_owner,
+    #         mock_path
+    #     )
+    #     mock_resource.workspaces.add.assert_not_called()
 
     def test_single_local_input_converter(self):
         '''
@@ -530,8 +532,10 @@ class TestDataResourceConverter(BaseAPITestCase):
         o = OperationOutput(d)
 
         c1 = LocalDockerSingleDataResourceConverter()
-        c2 = CromwellSingleDataResourceConverter()
-        for c in [c1, c2]:
+        # TODO: re-enable once Nextflow runner is ready
+        #c2 = CromwellSingleDataResourceConverter()
+        #for c in [c1, c2]:
+        for c in [c1,]:
 
             # mock out the actual creation of the Resource
             mock_create_resource = mock.MagicMock()
@@ -593,8 +597,10 @@ class TestDataResourceConverter(BaseAPITestCase):
         o = OperationOutput(d)
 
         c1 = LocalDockerSingleDataResourceConverter()
-        c2 = CromwellSingleDataResourceConverter()
-        for c in [c1, c2]:
+        # TODO: re-enable once Nextflow runner is ready
+        # c2 = CromwellSingleDataResourceConverter()
+        # for c in [c1, c2]:
+        for c in [c1,]:
 
             # mock out the actual creation of the Resource
             resource_pk = uuid.uuid4()
@@ -663,49 +669,51 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_convert_resource_input.assert_called_once_with(
             user_input, mock_staging_dir)
 
-    def test_single_cromwell_input_converter(self):
-        '''
-        Tests that the converter can take a single Resource instance
-        and return the path to a bucket-based file
-        '''
-        mock_input = str(uuid.uuid4())
-        mock_path = '/path/to/file.txt'
-        mock_staging_dir = '/some/staging_dir/'
+    # TODO: re-enable once Nextflow runner is ready
+    # def test_single_cromwell_input_converter(self):
+    #     '''
+    #     Tests that the converter can take a single Resource instance
+    #     and return the path to a bucket-based file
+    #     '''
+    #     mock_input = str(uuid.uuid4())
+    #     mock_path = '/path/to/file.txt'
+    #     mock_staging_dir = '/some/staging_dir/'
 
-        c = CromwellSingleDataResourceConverter()
-        mock_convert_resource_input = mock.MagicMock()
-        mock_convert_resource_input.return_value = mock_path
-        c._convert_resource_input = mock_convert_resource_input
+    #     c = CromwellSingleDataResourceConverter()
+    #     mock_convert_resource_input = mock.MagicMock()
+    #     mock_convert_resource_input.return_value = mock_path
+    #     c._convert_resource_input = mock_convert_resource_input
 
-        x = c.convert_input( mock_input, '', mock_staging_dir)
-        self.assertEqual(x,  mock_path)
-        mock_convert_resource_input.assert_called_with(mock_input, mock_staging_dir)
+    #     x = c.convert_input( mock_input, '', mock_staging_dir)
+    #     self.assertEqual(x,  mock_path)
+    #     mock_convert_resource_input.assert_called_with(mock_input, mock_staging_dir)
 
-    def test_cromwell_converters_case1(self):
-        '''
-        Tests that the CromwellMultipleDataResourceConverter
-        converter can take a list of Resource instances
-        and return a properly formatted response. The response
-        depends on the actual implementing class.
+    # TODO: re-enable once Nextflow runner is ready
+    # def test_cromwell_converters_case1(self):
+    #     '''
+    #     Tests that the CromwellMultipleDataResourceConverter
+    #     converter can take a list of Resource instances
+    #     and return a properly formatted response. The response
+    #     depends on the actual implementing class.
 
-        Here we test with multiple input resource UUIDs
-        '''
-        uuid_list = [str(uuid.uuid4()) for i in range(3)]
+    #     Here we test with multiple input resource UUIDs
+    #     '''
+    #     uuid_list = [str(uuid.uuid4()) for i in range(3)]
 
-        c = CromwellMultipleDataResourceConverter()
-        mock_path_list = [
-            '/path/to/a.txt',
-            '/path/to/b.txt',
-            '/path/to/c.txt',
-        ]
-        # patch a method on that class. This method is the
-        # one which gets the Resource and gets the fully
-        # resolved path in our storage system.
-        c._convert_resource_input = mock.MagicMock()
-        c._convert_resource_input.side_effect = mock_path_list
+    #     c = CromwellMultipleDataResourceConverter()
+    #     mock_path_list = [
+    #         '/path/to/a.txt',
+    #         '/path/to/b.txt',
+    #         '/path/to/c.txt',
+    #     ]
+    #     # patch a method on that class. This method is the
+    #     # one which gets the Resource and gets the fully
+    #     # resolved path in our storage system.
+    #     c._convert_resource_input = mock.MagicMock()
+    #     c._convert_resource_input.side_effect = mock_path_list
         
-        x = c.convert_input( uuid_list, '', '/some/staging_dir/')
-        self.assertEqual(x, mock_path_list)
+    #     x = c.convert_input( uuid_list, '', '/some/staging_dir/')
+    #     self.assertEqual(x, mock_path_list)
 
     def test_multiple_resource_local_converter_case1(self):
         '''
@@ -829,9 +837,10 @@ class TestDataResourceConverter(BaseAPITestCase):
         o = OperationOutput(d)
 
         c1 = LocalDockerMultipleDataResourceConverter()
-        c2 = CromwellMultipleDataResourceConverter()
-        for c in [c1, c2]:
-
+        # TODO: re-enable once Nextflow runner is ready
+        # c2 = CromwellMultipleDataResourceConverter()
+        # for c in [c1, c2]:
+        for c in [c1,]:
             # mock there being two resources to create
             all_resource_pk = [
                 uuid.uuid4(),
@@ -927,8 +936,10 @@ class TestDataResourceConverter(BaseAPITestCase):
         }
         o = OperationOutput(d)
         c1 = LocalDockerMultipleDataResourceConverter()
-        c2 = CromwellMultipleDataResourceConverter()
-        for c in [c1, c2]:
+        # TODO: re-enable once Nextflow runner is ready
+        # c2 = CromwellMultipleDataResourceConverter()
+        # for c in [c1, c2]:
+        for c in [c1,]:
 
             # mock there being two resources to create
             all_resource_pk = [
@@ -1021,8 +1032,9 @@ class TestDataResourceConverter(BaseAPITestCase):
         }
         o = OperationOutput(d)
         c1 = LocalDockerMultipleDataResourceConverter()
-        c2 = CromwellMultipleDataResourceConverter()
-        for c in [c1, c2]:
+        # c2 = CromwellMultipleDataResourceConverter()
+        # for c in [c1, c2]:
+        for c in [c1,]:
 
             # mock there being two resources to create
             all_resource_pk = [
@@ -1084,37 +1096,37 @@ class TestDataResourceConverter(BaseAPITestCase):
             mock_resource1.save.assert_called()
             mock_clean.assert_not_called()
 
+    # TODO: re-enable once Nextflow runner is ready
+    # def test_cromwell_converters_case2(self):
+    #     '''
+    #     Tests that the multiple DataResource converters 
+    #     can take a list of Resource instances
+    #     and return a properly formatted response (which depends
+    #     on the converter class)
 
-    def test_cromwell_converters_case2(self):
-        '''
-        Tests that the multiple DataResource converters 
-        can take a list of Resource instances
-        and return a properly formatted response (which depends
-        on the converter class)
+    #     Here, we pass only a single resource UUID. 
+    #     For example, we may have a WDL workflow which can accept >=1 
+    #     inputs as an array. Here we test that passing a single input
+    #     results in a list of paths of length 1.
+    #     '''
 
-        Here, we pass only a single resource UUID. 
-        For example, we may have a WDL workflow which can accept >=1 
-        inputs as an array. Here we test that passing a single input
-        results in a list of paths of length 1.
-        '''
+    #     all_resources = Resource.objects.all()
+    #     r = all_resources[0]
 
-        all_resources = Resource.objects.all()
-        r = all_resources[0]
-
-        mock_path = '/path/to/a.txt'
-        # instantiate and patch a method on that class:
-        c = CromwellMultipleDataResourceConverter()
-        mock_convert_resource_input = mock.MagicMock()
-        mock_convert_resource_input.return_value = mock_path
-        c._convert_resource_input = mock_convert_resource_input
-        mock_staging_dir = '/some/staging_dir/'
-        x = c.convert_input(str(r.pk), '', mock_staging_dir)
-        # response should be a LIST of paths.
-        self.assertEqual(x, [mock_path])
-        mock_convert_resource_input.assert_called_once_with(
-            str(r.pk),
-            mock_staging_dir
-        )
+    #     mock_path = '/path/to/a.txt'
+    #     # instantiate and patch a method on that class:
+    #     c = CromwellMultipleDataResourceConverter()
+    #     mock_convert_resource_input = mock.MagicMock()
+    #     mock_convert_resource_input.return_value = mock_path
+    #     c._convert_resource_input = mock_convert_resource_input
+    #     mock_staging_dir = '/some/staging_dir/'
+    #     x = c.convert_input(str(r.pk), '', mock_staging_dir)
+    #     # response should be a LIST of paths.
+    #     self.assertEqual(x, [mock_path])
+    #     mock_convert_resource_input.assert_called_once_with(
+    #         str(r.pk),
+    #         mock_staging_dir
+    #     )
 
 class TestJsonConverter(BaseAPITestCase):
 

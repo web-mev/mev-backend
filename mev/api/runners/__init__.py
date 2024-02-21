@@ -3,13 +3,12 @@ import logging
 from exceptions import JobSubmissionException
 
 from .local_docker import LocalDockerRunner
-from .remote_cromwell import RemoteCromwellRunner
+
 
 logger = logging.getLogger(__name__)
 
 RUNNER_MAPPING = {
     LocalDockerRunner.NAME: LocalDockerRunner,
-    RemoteCromwellRunner.NAME: RemoteCromwellRunner
 }
 AVAILABLE_RUNNERS = list(RUNNER_MAPPING.keys())
 

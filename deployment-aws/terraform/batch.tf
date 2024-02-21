@@ -39,8 +39,8 @@ resource "aws_iam_role_policy" "batch_instance_s3_access" {
         {
           Effect   = "Allow",
           Resource = [
-            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}",
-            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}/*"
+            "arn:aws:s3:::${aws_s3_bucket.nextflow_storage_bucket.id}",
+            "arn:aws:s3:::${aws_s3_bucket.nextflow_storage_bucket.id}/*"
           ],
           Action = "s3:*"
         },
@@ -57,7 +57,7 @@ resource "aws_iam_role_policy" "batch_instance_s3_access" {
         },
         {
           Effect   = "Deny",
-          Resource = "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}",
+          Resource = "arn:aws:s3:::${aws_s3_bucket.nextflow_storage_bucket.id}",
           Action   = [
             "s3:DeleteBucket*",
             "s3:CreateBucket",
@@ -153,16 +153,13 @@ data "cloudinit_config" "batch_instance" {
     # install aws-cli v2 and copy the static binary in an easy to find location for bind-mounts into containers
     - curl -s -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
     - unzip -q /tmp/awscliv2.zip -d /run
-    - /run/aws/install -b /usr/bin
-    # add fetch and run batch helper script
-    - curl -s --output-dir /run -O https://aws-genomics-workflows.s3.amazonaws.com/latest/artifacts/aws-ecs-additions.zip
-    - unzip -q /run/aws-ecs-additions.zip -d /usr/local/bin
-    - chmod +x /usr/local/bin/fetch_and_run.sh
+    - /run/aws/install --install-dir /opt/aws-cli --bin-dir /opt/aws-cli/bin
     EOT
   }
 }
 
 resource "aws_launch_template" "batch_instance" {
+  image_id = var.batch_instance_ami
   ebs_optimized = true
   # based on https://github.com/aws-samples/aws-genomics-workflows/blob/master/src/templates/gwfcore/gwfcore-launch-template.template.yaml
   user_data     = data.cloudinit_config.batch_instance.rendered
@@ -178,7 +175,7 @@ resource "aws_launch_template" "batch_instance" {
   }
 }
 
-resource "aws_batch_compute_environment" "cromwell" {
+resource "aws_batch_compute_environment" "nextflow" {
   type                            = "MANAGED"
   service_role                    = aws_iam_role.batch_service.arn
   depends_on                      = [aws_iam_role_policy_attachment.batch_service]
@@ -204,9 +201,9 @@ resource "aws_batch_compute_environment" "cromwell" {
   }
 }
 
-resource "aws_batch_job_queue" "cromwell" {
+resource "aws_batch_job_queue" "nextflow" {
   name                 = local.common_tags.Name
-  compute_environments = [aws_batch_compute_environment.cromwell.arn]
+  compute_environments = [aws_batch_compute_environment.nextflow.arn]
   priority             = 1
   state                = "ENABLED"
 }

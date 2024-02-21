@@ -14,6 +14,12 @@ variable "backend_domain" {
   type        = string
 }
 
+variable "batch_instance_ami" {
+  description = "The AMI of the images used for ephemeral Batch instances"
+  type        = string
+  default     = "ami-02202da28664660ac"
+}
+
 variable "container_registry" {
   description = "The Docker container registry you wish to use."
   type        = string

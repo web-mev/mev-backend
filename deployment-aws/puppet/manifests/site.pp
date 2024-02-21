@@ -5,8 +5,7 @@ node /api/ {
     backend_domain                 => $facts['backend_domain'],
     cloudwatch_log_group           => $facts['cloudwatch_log_group'],
     container_registry             => $facts['container_registry'],
-    cromwell_bucket_name           => $facts['cromwell_bucket_name'],
-    cromwell_server_ip             => $facts['cromwell_server_ip'],
+    nextflow_bucket_name           => $facts['nextflow_bucket_name'],
     database_host                  => $facts['database_host'],
     database_superuser             => $facts['database_superuser'],
     database_superuser_password    => $facts['database_superuser_password'],
@@ -33,15 +32,5 @@ node /api/ {
     public_data_bucket_name        => $facts['public_data_bucket_name'], 
     storage_location               => $facts['storage_location'],
     storage_bucket_name            => $facts['storage_bucket_name'],
-  }
-}
-
-node /cromwell/ {
-  class { 'cromwell':
-    api_storage_bucket   => $facts['api_storage_bucket'],
-    aws_region           => $facts['aws_region'],
-    cloudwatch_log_group => $facts['cloudwatch_log_group'],
-    job_queue            => $facts['cromwell_job_queue'],
-    storage_bucket       => $facts['cromwell_storage_bucket'],
   }
 }

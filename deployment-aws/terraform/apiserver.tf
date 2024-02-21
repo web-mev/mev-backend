@@ -31,7 +31,7 @@ resource "aws_iam_role_policy" "server_s3_access" {
           Action   = ["s3:GetObject", "s3:PutObject", "s3:PutObjectAcl", "s3:DeleteObject"],
           Resource = [
             "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}/*",
-            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}/*",
+            "arn:aws:s3:::${aws_s3_bucket.nextflow_storage_bucket.id}/*",
             "arn:aws:s3:::${local.globus_bucket}/*"
           ]
         },
@@ -47,7 +47,7 @@ resource "aws_iam_role_policy" "server_s3_access" {
           Action   = ["s3:ListBucket"],
           Resource = [
             "arn:aws:s3:::${aws_s3_bucket.api_storage_bucket.id}",
-            "arn:aws:s3:::${aws_s3_bucket.cromwell_storage_bucket.id}",
+            "arn:aws:s3:::${aws_s3_bucket.nextflow_storage_bucket.id}",
             "arn:aws:s3:::${local.globus_bucket}"
           ]
         }
@@ -181,8 +181,7 @@ resource "aws_instance" "api" {
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
   export FACTER_CLOUDWATCH_LOG_GROUP='${aws_cloudwatch_log_group.default.name}'
   export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
-  export FACTER_CROMWELL_BUCKET_NAME='${aws_s3_bucket.cromwell_storage_bucket.id}'
-  export FACTER_CROMWELL_SERVER_IP='${aws_instance.cromwell.private_ip}'
+  export FACTER_NEXTFLOW_BUCKET_NAME='${aws_s3_bucket.nextflow_storage_bucket.id}'
   export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${var.database_superuser_password}'
