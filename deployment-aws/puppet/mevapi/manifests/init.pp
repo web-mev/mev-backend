@@ -170,6 +170,7 @@ class mevapi (
 
   contain mevapi::cloudwatch_agent
   contain mevapi::django
+  contain mevapi::nextflow
   contain mevapi::nginx
   contain mevapi::postgresql
   contain mevapi::solr
