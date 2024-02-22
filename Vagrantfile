@@ -59,16 +59,13 @@ Vagrant.configure("2") do |config|
     puppet.manifest_file  = "site.pp"
   end
 
-  config.vm.define "api", primary: true do |api|
-    api.vm.hostname = "mev-api"
+  config.vm.hostname = "mev-api"
+  config.vm.network "forwarded_port", guest: 80, host: 8080  # Gunicorn
+  config.vm.network "forwarded_port", guest: 8000, host: 8000  # Django dev server
+  config.vm.network "forwarded_port", guest: 8983, host: 8983  # Solr
 
-    api.vm.network "forwarded_port", guest: 80, host: 8080  # Gunicorn
-    api.vm.network "forwarded_port", guest: 8000, host: 8000  # Django dev server
-    api.vm.network "forwarded_port", guest: 8983, host: 8983  # Solr
-
-    api.vm.provider "virtualbox" do |vb|
-      vb.memory = 4096
-      vb.cpus = 2
-    end
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 4096
+    vb.cpus = 2
   end
 end

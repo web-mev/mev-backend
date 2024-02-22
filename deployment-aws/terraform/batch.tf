@@ -159,7 +159,7 @@ data "cloudinit_config" "batch_instance" {
 }
 
 resource "aws_launch_template" "batch_instance" {
-  image_id = var.batch_instance_ami
+  image_id      = var.batch_instance_ami
   ebs_optimized = true
   # based on https://github.com/aws-samples/aws-genomics-workflows/blob/master/src/templates/gwfcore/gwfcore-launch-template.template.yaml
   user_data     = data.cloudinit_config.batch_instance.rendered
