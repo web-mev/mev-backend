@@ -59,7 +59,7 @@ class mevapi::nginx () {
   }
   nginx::resource::server { '127.0.0.1':
     listen_port          => 8080,
-    server_name          => ['localhost']
+    server_name          => ['localhost'],
     locations            => {
       'nf-status-update'   => {
         location         => '/api/nextflow/status-update/',
