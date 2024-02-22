@@ -51,7 +51,7 @@ class mevapi::nginx () {
         location_alias => "${mevapi::django::static_root}/",
         index_files    => [],
       },
-      'nf-status-update' => {
+      'nf-status-update-deny' => {
         location       => '/api/nextflow/status-update/',
         location_deny => ['all'],
       },
