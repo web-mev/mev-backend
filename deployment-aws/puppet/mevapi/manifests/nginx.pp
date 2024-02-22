@@ -51,6 +51,20 @@ class mevapi::nginx () {
         location_alias => "${mevapi::django::static_root}/",
         index_files    => [],
       },
+      'nf-status-update' => {
+        location       => '/api/nextflow/status-update/',
+        location_deny => ['all'],
+      },
+    },
+  }
+  nginx::resource::server { '127.0.0.1':
+    listen_port          => 8080,
+    server_name          => ['localhost']
+    locations            => {
+      'nf-status-update'   => {
+        location         => '/api/nextflow/status-update/',
+        proxy            => 'http://mev_app',
+      },
     },
   }
   nginx::resource::server { 'default':

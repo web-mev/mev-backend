@@ -1,4 +1,5 @@
 from .api_root import ApiRoot
+from .nextflow_views import NextflowStatusView
 from .user_views import UserList, \
     UserDetail, \
     UserRegisterView, \

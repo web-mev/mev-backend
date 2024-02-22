@@ -41,6 +41,7 @@ DATABASES = {
 }
 
 ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if len(x) > 0]
+ALLOWED_HOSTS.append('127.0.0.1')
 
 # Necessary for use of the DRF pages and django 4.0+
 CSRF_TRUSTED_ORIGINS = ['https://' + x for x in ALLOWED_HOSTS]
