@@ -153,6 +153,12 @@ data "cloudinit_config" "batch_instance" {
     # install aws-cli v2 and copy the static binary in an easy to find location for bind-mounts into containers
     - curl -s -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
     - unzip -q /tmp/awscliv2.zip -d /run
+    # the alternative install location is chosen so that we do not accidentally shadow
+    # tools that might exist in canonical locations in the Docker container that executes
+    # the workflow. For nextflow to move files, it mounts the directory containing
+    # the AWS cli in the container; if that were /usr/local/bin/aws, then the volume
+    # mount can shadow/block executables in the /usr/local/bin directory of the 
+    # Docker image.
     - /run/aws/install --install-dir /opt/aws-cli --bin-dir /opt/aws-cli/bin
     EOT
   }
