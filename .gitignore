@@ -5,6 +5,7 @@ __pycache__
 .vagrant/
 .idea/
 .env
+.nextflow
 
 .librarian/
 
