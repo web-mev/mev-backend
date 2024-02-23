@@ -54,12 +54,14 @@ class mevapi::nginx () {
       'nf-status-update-deny' => {
         location       => '/api/nextflow/status-update/',
         location_deny => ['all'],
+        index_files    => [],
       },
     },
   }
   nginx::resource::server { '127.0.0.1':
     listen_port          => 8080,
     server_name          => ['localhost'],
+    index_files          => [],
     locations            => {
       'nf-status-update'   => {
         location         => '/api/nextflow/status-update/',
