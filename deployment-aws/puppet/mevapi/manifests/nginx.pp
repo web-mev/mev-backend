@@ -1,4 +1,13 @@
 class mevapi::nginx () {
+
+  # This url is available only to be called from 'within'
+  # the server since it's a way for nextflow to communicate
+  # its application state so we can update users on their jobs.
+  # At the time of writing, having nextflow POST to this url
+  # is the best/easiest way to get these updates without implementing
+  # custom log parsing solutions
+  $nextflow_update_url = "/api/nextflow/status-update/"
+
   class { 'nginx':
     confd_purge => true,  # remove default config
   }
@@ -52,7 +61,7 @@ class mevapi::nginx () {
         index_files    => [],
       },
       'nf-status-update-deny' => {
-        location       => '/api/nextflow/status-update/',
+        location       => "${nextflow_update_url}",
         location_deny => ['all'],
         index_files    => [],
       },
@@ -64,7 +73,7 @@ class mevapi::nginx () {
     index_files          => [],
     locations            => {
       'nf-status-update'   => {
-        location         => '/api/nextflow/status-update/',
+        location         => '${nextflow_update_url}',
         proxy            => 'http://mev_app',
       },
     },
