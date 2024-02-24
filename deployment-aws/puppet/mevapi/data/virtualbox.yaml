@@ -1,6 +1,7 @@
 ---
 mevapi::admin_email_csv: "root@localhost"
 mevapi::app_user: "vagrant"
+mevapi::aws_batch_queue: ""
 mevapi::aws_region: ""
 mevapi::backend_domain: "localhost"
 mevapi::cloudwatch_log_group: ""

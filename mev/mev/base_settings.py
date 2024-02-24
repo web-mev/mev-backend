@@ -271,6 +271,7 @@ if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
 
     # ensure we have the proper variables to work with Nextflow
     NEXTFLOW_BUCKET_NAME = get_env('NEXTFLOW_BUCKET_NAME')
+    AWS_BATCH_QUEUE = get_env('AWS_BATCH_QUEUE')
 else:
     ENABLE_REMOTE_JOBS = False
 

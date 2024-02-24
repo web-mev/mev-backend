@@ -204,11 +204,11 @@ resource "aws_instance" "api" {
 
   # configure and run Puppet
   export FACTER_ADMIN_EMAIL_CSV='${var.admin_email_csv}'
+  export FACTER_AWS_BATCH_QUEUE='${aws_batch_job_queue.nextflow.name}'
   export FACTER_AWS_REGION='${data.aws_region.current.name}'
   export FACTER_BACKEND_DOMAIN='${var.backend_domain}'
   export FACTER_CLOUDWATCH_LOG_GROUP='${aws_cloudwatch_log_group.default.name}'
   export FACTER_CONTAINER_REGISTRY='${var.container_registry}'
-  export FACTER_NEXTFLOW_BUCKET_NAME='${aws_s3_bucket.nextflow_storage_bucket.id}'
   export FACTER_DATABASE_HOST='${aws_db_instance.default.address}'
   export FACTER_DATABASE_SUPERUSER='${aws_db_instance.default.username}'
   export FACTER_DATABASE_SUPERUSER_PASSWORD='${var.database_superuser_password}'
@@ -232,6 +232,7 @@ resource "aws_instance" "api" {
   export FACTER_GLOBUS_ENDPOINT_ID='${var.globus == null ? "" : var.globus.endpoint_id}'
   export FACTER_GOOGLE_OAUTH2_CLIENT_ID='${var.google_oauth2_client_id}'
   export FACTER_GOOGLE_OAUTH2_CLIENT_SECRET='${var.google_oauth2_client_secret}'
+  export FACTER_NEXTFLOW_BUCKET_NAME='${aws_s3_bucket.nextflow_storage_bucket.id}'
   export FACTER_PUBLIC_DATA_BUCKET_NAME='${var.public_data_bucket_name}'
   export FACTER_SENTRY_URL='${var.sentry_url}'
   export FACTER_STORAGE_LOCATION='${var.storage_location}'
