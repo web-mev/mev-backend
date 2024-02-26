@@ -3,12 +3,16 @@ import logging
 from exceptions import JobSubmissionException
 
 from .local_docker import LocalDockerRunner
+from .nextflow import LocalNextflowRunner, \
+    AWSBatchNextflowRunner
 
 
 logger = logging.getLogger(__name__)
 
 RUNNER_MAPPING = {
     LocalDockerRunner.NAME: LocalDockerRunner,
+    AWSBatchNextflowRunner.NAME: AWSBatchNextflowRunner,
+    LocalNextflowRunner.Name: LocalNextflowRunner
 }
 AVAILABLE_RUNNERS = list(RUNNER_MAPPING.keys())
 

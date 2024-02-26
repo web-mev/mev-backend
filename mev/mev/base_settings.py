@@ -272,6 +272,10 @@ if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     # ensure we have the proper variables to work with Nextflow
     NEXTFLOW_BUCKET_NAME = get_env('NEXTFLOW_BUCKET_NAME')
     AWS_BATCH_QUEUE = get_env('AWS_BATCH_QUEUE')
+
+    # TODO: make these variable:
+    NEXTFLOW_EXE = '/opt/nextflow'
+    NEXTFLOW_STATUS_UPDATE_URL = 'http://127.0.0.1/api/nextflow/status-update/'
 else:
     ENABLE_REMOTE_JOBS = False
 

@@ -95,7 +95,6 @@ class OperationRunner(object):
             logger.error(message)
             raise Exception(message) 
 
-
     def _convert_inputs(self, op, op_dir, validated_inputs, staging_dir):
         '''
         Takes the inputs (which are MEV-native data structures)
