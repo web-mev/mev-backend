@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 RUNNER_MAPPING = {
     LocalDockerRunner.NAME: LocalDockerRunner,
     AWSBatchNextflowRunner.NAME: AWSBatchNextflowRunner,
-    LocalNextflowRunner.Name: LocalNextflowRunner
+    LocalNextflowRunner.NAME: LocalNextflowRunner
 }
 AVAILABLE_RUNNERS = list(RUNNER_MAPPING.keys())
 
