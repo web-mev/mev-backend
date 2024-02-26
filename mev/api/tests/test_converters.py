@@ -31,10 +31,11 @@ from api.converters.data_resource import \
     LocalDockerMultipleDataResourceConverter, \
     LocalDockerMultipleVariableDataResourceConverter, \
     LocalDockerCsvResourceConverter, \
-    LocalDockerSpaceDelimResourceConverter
-    # CromwellSingleDataResourceConverter, \
-    # CromwellMultipleDataResourceConverter, \
-    # CromwellResourceMixin
+    LocalDockerSpaceDelimResourceConverter, \
+    RemoteNextflowSingleDataResourceConverter, \
+    RemoteNextflowResourceMixin
+    # RemoteNextflowMultipleDataResourceConverter, \
+
 
 from api.converters.element_set import ObservationSetCsvConverter, \
     FeatureSetCsvConverter, \
@@ -287,50 +288,48 @@ class TestElementSetConverter(BaseAPITestCase):
 
 class TestDataResourceConverter(BaseAPITestCase):
 
-    # TODO: re-enable once Nextflow runner is ready
-    # @mock.patch('api.converters.data_resource.default_storage')
-    # def test_workspace_op_conversion_adds_to_workspace(self, mock_default_storage):
-    #     '''
-    #     When converting resources for workspace ops, 
-    #     ensure that we add Resources to a workspace. 
-    #     '''
-    #     mock_resource = mock.MagicMock()
-    #     mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
-    #     mixin_obj = CromwellResourceMixin()
-    #     mock_owner = mock.MagicMock()
-    #     mock_executed_op = mock.MagicMock()
-    #     mock_executed_op.owner = mock_owner
-    #     mock_path = '/path/to/file.txt'
-    #     mock_workspace = mock.MagicMock()
-    #     mixin_obj._create_resource(mock_executed_op, 
-    #         mock_workspace, mock_path, 'some name')
-    #     mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
-    #         mock_owner,
-    #         mock_path
-    #     )
-    #     mock_resource.workspaces.add.assert_called_with(mock_workspace)
+    @mock.patch('api.converters.data_resource.default_storage')
+    def test_workspace_op_conversion_adds_to_workspace(self, mock_default_storage):
+        '''
+        When converting resources for workspace ops, 
+        ensure that we add Resources to a workspace. 
+        '''
+        mock_resource = mock.MagicMock()
+        mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
+        mixin_obj = RemoteNextflowResourceMixin()
+        mock_owner = mock.MagicMock()
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.owner = mock_owner
+        mock_path = '/path/to/file.txt'
+        mock_workspace = mock.MagicMock()
+        mixin_obj._create_resource(mock_executed_op, 
+            mock_workspace, mock_path, 'some name')
+        mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
+            mock_owner,
+            mock_path
+        )
+        mock_resource.workspaces.add.assert_called_with(mock_workspace)
 
-    # TODO: re-enable once Nextflow runner is ready
-    # @mock.patch('api.converters.data_resource.default_storage')
-    # def test_non_workspace_op_conversion_avoids_add_to_workspace(self, mock_default_storage):
-    #     '''
-    #     When converting resources for non-workspace ops, 
-    #     ensure that we DO NOT add Resources to a workspace. 
-    #     '''
-    #     mock_resource = mock.MagicMock()
-    #     mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
-    #     mixin_obj = CromwellResourceMixin()
-    #     mock_owner = mock.MagicMock()
-    #     mock_executed_op = mock.MagicMock()
-    #     mock_executed_op.owner = mock_owner
-    #     mock_path = '/path/to/file.txt'
-    #     mixin_obj._create_resource(mock_executed_op, 
-    #         None, mock_path, 'some name')
-    #     mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
-    #         mock_owner,
-    #         mock_path
-    #     )
-    #     mock_resource.workspaces.add.assert_not_called()
+    @mock.patch('api.converters.data_resource.default_storage')
+    def test_non_workspace_op_conversion_avoids_add_to_workspace(self, mock_default_storage):
+        '''
+        When converting resources for non-workspace ops, 
+        ensure that we DO NOT add Resources to a workspace. 
+        '''
+        mock_resource = mock.MagicMock()
+        mock_default_storage.create_resource_from_interbucket_copy.return_value = mock_resource
+        mixin_obj = RemoteNextflowResourceMixin()
+        mock_owner = mock.MagicMock()
+        mock_executed_op = mock.MagicMock()
+        mock_executed_op.owner = mock_owner
+        mock_path = '/path/to/file.txt'
+        mixin_obj._create_resource(mock_executed_op, 
+            None, mock_path, 'some name')
+        mock_default_storage.create_resource_from_interbucket_copy.assert_called_with(
+            mock_owner,
+            mock_path
+        )
+        mock_resource.workspaces.add.assert_not_called()
 
     def test_single_local_input_converter(self):
         '''
@@ -532,10 +531,8 @@ class TestDataResourceConverter(BaseAPITestCase):
         o = OperationOutput(d)
 
         c1 = LocalDockerSingleDataResourceConverter()
-        # TODO: re-enable once Nextflow runner is ready
-        #c2 = CromwellSingleDataResourceConverter()
-        #for c in [c1, c2]:
-        for c in [c1,]:
+        c2 = RemoteNextflowSingleDataResourceConverter()
+        for c in [c1, c2]:
 
             # mock out the actual creation of the Resource
             mock_create_resource = mock.MagicMock()
@@ -597,10 +594,8 @@ class TestDataResourceConverter(BaseAPITestCase):
         o = OperationOutput(d)
 
         c1 = LocalDockerSingleDataResourceConverter()
-        # TODO: re-enable once Nextflow runner is ready
-        # c2 = CromwellSingleDataResourceConverter()
-        # for c in [c1, c2]:
-        for c in [c1,]:
+        c2 = RemoteNextflowSingleDataResourceConverter()
+        for c in [c1, c2]:
 
             # mock out the actual creation of the Resource
             resource_pk = uuid.uuid4()
@@ -669,24 +664,23 @@ class TestDataResourceConverter(BaseAPITestCase):
         mock_convert_resource_input.assert_called_once_with(
             user_input, mock_staging_dir)
 
-    # TODO: re-enable once Nextflow runner is ready
-    # def test_single_cromwell_input_converter(self):
-    #     '''
-    #     Tests that the converter can take a single Resource instance
-    #     and return the path to a bucket-based file
-    #     '''
-    #     mock_input = str(uuid.uuid4())
-    #     mock_path = '/path/to/file.txt'
-    #     mock_staging_dir = '/some/staging_dir/'
+    def test_single_cromwell_input_converter(self):
+        '''
+        Tests that the converter can take a single Resource instance
+        and return the path to a bucket-based file
+        '''
+        mock_input = str(uuid.uuid4())
+        mock_path = '/path/to/file.txt'
+        mock_staging_dir = '/some/staging_dir/'
 
-    #     c = CromwellSingleDataResourceConverter()
-    #     mock_convert_resource_input = mock.MagicMock()
-    #     mock_convert_resource_input.return_value = mock_path
-    #     c._convert_resource_input = mock_convert_resource_input
+        c = RemoteNextflowSingleDataResourceConverter()
+        mock_convert_resource_input = mock.MagicMock()
+        mock_convert_resource_input.return_value = mock_path
+        c._convert_resource_input = mock_convert_resource_input
 
-    #     x = c.convert_input( mock_input, '', mock_staging_dir)
-    #     self.assertEqual(x,  mock_path)
-    #     mock_convert_resource_input.assert_called_with(mock_input, mock_staging_dir)
+        x = c.convert_input( mock_input, '', mock_staging_dir)
+        self.assertEqual(x,  mock_path)
+        mock_convert_resource_input.assert_called_with(mock_input, mock_staging_dir)
 
     # TODO: re-enable once Nextflow runner is ready
     # def test_cromwell_converters_case1(self):

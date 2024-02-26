@@ -353,46 +353,46 @@ class LocalResourceMixin(object):
         )
 
 
-# class CromwellResourceMixin(object):
-#     '''
-#     Contains behavior for DataResource conversion related to
-#     the Cromwell runner.
-#     '''
+class RemoteNextflowResourceMixin(object):
+    '''
+    Contains behavior for DataResource conversion related to
+    the remote Nextflow runner.
+    '''
 
-#     def _convert_resource_input(self, resource_uuid, staging_dir):
-#         '''
-#         Handles the conversion of a UUID referencing an instance that
-#         is a child of api.models.AbstractResource 
+    def _convert_resource_input(self, resource_uuid, staging_dir):
+        '''
+        Handles the conversion of a UUID referencing an instance that
+        is a child of api.models.AbstractResource 
 
-#         Returns the full path to the file, e.g.
-#         s3://<mev storage bucket>/<object path>
-#         '''
-#         r = get_resource_by_pk(resource_uuid)
-#         return default_storage.get_absolute_path(r.datafile.name)
+        Returns the full path to the file, e.g.
+        s3://<mev storage bucket>/<object path>
+        '''
+        r = get_resource_by_pk(resource_uuid)
+        return default_storage.get_absolute_path(r.datafile.name)
 
-#     def _create_resource(self, executed_op, workspace, path, name):
-#         '''
-#         Returns an instance of api.models.Resource based on the 
-#         passed parameters.
+    def _create_resource(self, executed_op, workspace, path, name):
+        '''
+        Returns an instance of api.models.Resource based on the 
+        passed parameters.
 
-#         Note that `path` is the path in the Cromwell bucket and 
-#         we have to move the file into WebMeV storage.
-#         '''
-#         logger.info('From executed operation outputs based on a Cromwell-based'
-#                     f' job, create a resource with name {name}')
-#         try:
-#             r = default_storage.create_resource_from_interbucket_copy(
-#                 executed_op.owner,
-#                 path
-#             )
-#             if workspace is not None:
-#                 r.workspaces.add(workspace)
-#             return r
-#         except Exception as ex:
-#             logger.info('Caught exception when copying a Cromwell output'
-#                         ' to our storage. Removing the dummy Resource'
-#                         ' and re-raising.')
-#             raise ex
+        Note that `path` is the path in the Nextflow bucket and 
+        we have to move the file into WebMeV storage.
+        '''
+        logger.info('From executed operation outputs based on a remote Nextflow'
+                    f'-based job, create a resource with name {name}')
+        try:
+            r = default_storage.create_resource_from_interbucket_copy(
+                executed_op.owner,
+                path
+            )
+            if workspace is not None:
+                r.workspaces.add(workspace)
+            return r
+        except Exception as ex:
+            logger.info('Caught exception when copying a Cromwell output'
+                        ' to our storage. Removing the dummy Resource'
+                        ' and re-raising.')
+            raise ex
 
 
 class LocalDockerSingleDataResourceConverter(
@@ -613,60 +613,58 @@ class LocalDockerSpaceDelimResourceConverter(
     pass
 
 
-# TODO: re-enable once Nextflow runner is ready
-# class CromwellSingleDataResourceConverter(
-#     BaseResourceConverter,
-#     CromwellResourceMixin,
-#     SingleDataResourceMixin,
-#     DataResourceMixin
-# ):
-#     '''
-#     This converter takes a DataResource instance (for a single file,
-#     which is simply a UUID) and returns the path to 
-#     the file in cloud storage.
+class RemoteNextflowSingleDataResourceConverter(
+    BaseResourceConverter,
+    RemoteNextflowResourceMixin,
+    SingleDataResourceMixin,
+    DataResourceMixin
+):
+    '''
+    This converter takes a DataResource instance (for a single file,
+    which is simply a UUID) and returns the path to 
+    the file in cloud storage.
 
-#     Note that if Cromwell is enabled, we do not allow local storage, 
-#     so we do not need to handle cases where we might have to push a 
-#     local file into cloud-based storage.
-#     '''
+    Note that if remote execution is enabled, we do not allow local storage, 
+    so we do not need to handle cases where we might have to push a 
+    local file into cloud-based storage.
+    '''
 
-#     def convert_input(self, user_input, op_dir, staging_dir):
-#         return self._convert_resource_input(user_input, staging_dir)
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self._convert_resource_input(user_input, staging_dir)
 
-#     def convert_output(
-#             self, executed_op, workspace, output_definition, output_val):
-#         '''
-#         This converts a single output resource (a path) to a Resource instance
-#         and returns the pk/UUID for that newly created database resource.
-#         '''
-#         return self._convert_output(
-#             executed_op, workspace, output_definition, output_val)
+    def convert_output(
+            self, executed_op, workspace, output_definition, output_val):
+        '''
+        This converts a single output resource (a path) to a Resource instance
+        and returns the pk/UUID for that newly created database resource.
+        '''
+        return self._convert_output(
+            executed_op, workspace, output_definition, output_val)
 
 
-# TODO: re-enable once Nextflow runner is ready
-# class CromwellSingleVariableDataResourceConverter(
-#     BaseResourceConverter,
-#     CromwellResourceMixin,
-#     SingleDataResourceMixin,
-#     VariableDataResourceMixin
-# ):
-#     '''
-#     This converter takes a VariableDataResource instance 
-#     (for a single file,which is simply a UUID) and returns 
-#     the path to the file in cloud storage.
-#     '''
+class RemoteNextflowSingleVariableDataResourceConverter(
+    BaseResourceConverter,
+    RemoteNextflowResourceMixin,
+    SingleDataResourceMixin,
+    VariableDataResourceMixin
+):
+    '''
+    This converter takes a VariableDataResource instance 
+    (for a single file,which is simply a UUID) and returns 
+    the path to the file in cloud storage.
+    '''
 
-#     def convert_input(self, user_input, op_dir, staging_dir):
-#         return self._convert_resource_input(user_input, staging_dir)
+    def convert_input(self, user_input, op_dir, staging_dir):
+        return self._convert_resource_input(user_input, staging_dir)
 
-#     def convert_output(
-#             self, executed_op, workspace, output_definition, output_val):
-#         '''
-#         This converts a single output resource (a path) to a Resource instance
-#         and returns the pk/UUID for that newly created database resource.
-#         '''
-#         return self._convert_output(
-#             executed_op, workspace, output_definition, output_val)
+    def convert_output(
+            self, executed_op, workspace, output_definition, output_val):
+        '''
+        This converts a single output resource (a path) to a Resource instance
+        and returns the pk/UUID for that newly created database resource.
+        '''
+        return self._convert_output(
+            executed_op, workspace, output_definition, output_val)
 
 
 # TODO: re-enable once Nextflow runner is ready
