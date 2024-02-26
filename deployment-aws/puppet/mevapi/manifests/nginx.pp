@@ -73,7 +73,7 @@ class mevapi::nginx () {
     index_files          => [],
     locations            => {
       'nf-status-update'   => {
-        location         => '${nextflow_update_url}',
+        location         => "${nextflow_update_url}",
         proxy            => 'http://mev_app',
       },
     },
