@@ -98,16 +98,9 @@ class NextflowRunner(OperationRunner):
         nf_files = glob.glob(
             os.path.join(op_dir, '*' + NF_SUFFIX)
         )
-        print(f'{nf_files=}')
         for f in nf_files:
             dest = os.path.join(staging_dir, os.path.basename(f))
             copy_local_resource(f, dest)
-
-        # copy over the inputs JSON file.
-        copy_local_resource(
-            os.path.join(op_dir, self.NF_INPUTS),
-            os.path.join(staging_dir, self.NF_INPUTS)
-        )
 
     def run(self, executed_op, op, validated_inputs):
         logger.info(f'Executing job using Nextflow runner.')
@@ -172,6 +165,20 @@ class NextflowRunner(OperationRunner):
             executed_op.save()
             alert_admins(str(ex))
 
+    def check_status(self, job_uuid):
+        '''
+        The runner interface is created such that we have a periodic task that
+        calls this function. Nextflow will use a special localhost url to 
+        update our status. Once the job is complete, the view backing that 
+        localhost url will set the appropriate field. Then the periodic task
+        will "finalize" the run (moving files around, etc.)
+        '''
+        executed_op = ExecutedOperation.objects.get(pk=job_uuid)
+        if executed_op.execution_stop_datetime is None:
+            return False
+        else:
+            return True
+
 
 class LocalNextflowRunner(NextflowRunner):
     '''
@@ -228,4 +235,4 @@ class AWSBatchNextflowRunner(NextflowRunner):
         Since this is a remote runner, we send them to a bucket
         associated with the job execution
         '''
-        return os.path.join(settings.NEXTFLOW_BUCKET_NAME, executed_op_pk)
+        return os.path.join(settings.NEXTFLOW_BUCKET_NAME, str(executed_op_pk))

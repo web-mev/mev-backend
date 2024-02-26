@@ -100,17 +100,12 @@ class NextflowRunnerTester(BaseAPITestCase):
         '''
         nf_runner = NextflowRunner()
         nf_path = os.path.join(DEMO_TESTDIR, 'main.nf')
-        inputs_path = os.path.join(DEMO_TESTDIR, 'params.json')
         with TemporaryDirectory() as tmp:
             nf_runner._copy_workflow_contents(DEMO_TESTDIR, tmp)
             mock_copy_local_resource.assert_has_calls([
                 mock.call(
                     nf_path,
                     os.path.join(tmp, 'main.nf')
-                ),
-                mock.call(
-                    inputs_path,
-                    os.path.join(tmp, 'params.json')
                 )
             ])
 

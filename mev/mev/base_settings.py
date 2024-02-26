@@ -270,12 +270,14 @@ if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
 
     # ensure we have the proper variables to work with Nextflow
+    # TODO: clean these up with respect to cloud environments- generalize.
     NEXTFLOW_BUCKET_NAME = get_env('NEXTFLOW_BUCKET_NAME')
     AWS_BATCH_QUEUE = get_env('AWS_BATCH_QUEUE')
+    AWS_REGION = get_env('AWS_REGION')
 
     # TODO: make these variable:
     NEXTFLOW_EXE = '/opt/nextflow'
-    NEXTFLOW_STATUS_UPDATE_URL = 'http://127.0.0.1/api/nextflow/status-update/'
+    NEXTFLOW_STATUS_UPDATE_URL = 'http://127.0.0.1:8080/api/nextflow/status-update/'
 else:
     ENABLE_REMOTE_JOBS = False
 
@@ -342,6 +344,7 @@ MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
 if STORAGE_LOCATION == REMOTE:
     if CLOUD_PLATFORM == AMAZON:
         DEFAULT_FILE_STORAGE = 'api.storage.S3ResourceStorage'
+        # note that django storages makes use of these settings:
         AWS_S3_SIGNATURE_VERSION = 's3v4'
         AWS_S3_REGION_NAME = get_env('AWS_REGION')
     else:
