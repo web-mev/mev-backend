@@ -6,6 +6,7 @@ import datetime
 
 from django.conf import settings
 
+from api.storage import S3_PREFIX
 from api.runners.base import OperationRunner
 from api.utilities.nextflow_utils import NF_SUFFIX, \
     NEXTFLOW_COMPLETED, \
@@ -277,4 +278,5 @@ class AWSBatchNextflowRunner(NextflowRunner):
         Since this is a remote runner, we send them to a bucket
         associated with the job execution
         '''
-        return os.path.join(settings.NEXTFLOW_BUCKET_NAME, str(executed_op_pk))
+        return S3_PREFIX + \
+            os.path.join(settings.NEXTFLOW_BUCKET_NAME, str(executed_op_pk))
