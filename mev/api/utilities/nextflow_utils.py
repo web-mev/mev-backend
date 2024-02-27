@@ -1,11 +1,49 @@
 import glob
 import os
 import re
+import json
 import logging
+
+from api.utilities.executed_op_utilities import get_execution_directory_path
+
 
 NF_SUFFIX = '.nf'
 
 logger = logging.getLogger(__name__)
+
+# when the nextflow tool communicates back via POST request,
+# it includes an 'event' field which describes the current state
+# of the submission. We use these keywords to mark the states
+# of the run.
+NEXTFLOW_STARTED = 'started'
+NEXTFLOW_PROCESS_SUBMITTED = 'process_submitted'
+NEXTFLOW_PROCESS_STARTED = 'process_started'
+NEXTFLOW_PROCESS_COMPLETED = 'process_completed'
+NEXTFLOW_COMPLETED = 'completed'
+
+# a list of the job status options:
+JOB_STATES = [
+    NEXTFLOW_STARTED,
+    NEXTFLOW_PROCESS_SUBMITTED,
+    NEXTFLOW_PROCESS_STARTED,
+    NEXTFLOW_PROCESS_COMPLETED,
+    NEXTFLOW_COMPLETED
+]
+
+# Used for more readable messages on the frontend
+READABLE_STATES = {
+    NEXTFLOW_STARTED: 'Job has been started',
+    NEXTFLOW_PROCESS_SUBMITTED: 'Submitted job to queue',
+    NEXTFLOW_PROCESS_STARTED: 'Job is running',
+    NEXTFLOW_PROCESS_COMPLETED: 'Job is completing',
+    NEXTFLOW_COMPLETED: 'Job has finished.'
+} 
+
+# when a nextflow job completes, it sends a POST
+# request with job metadata to a view. We save
+# this metadata to a file for later use. This sets
+# the canonical name for this file
+FINAL_METADATA_FILENAME = 'job_metadata.json'
 
 
 def get_container_names(operation_dir):
@@ -74,3 +112,37 @@ def edit_nf_containers(operation_dir, name_mapping):
             nf_text = re.sub(orig_image_str, new_image_str, nf_text)
         with open(os.path.join(operation_dir, nf_file), 'w') as fout:
             fout.write(nf_text)
+
+
+def write_final_nextflow_metadata(data, executed_operation_pk):
+    '''
+    When a nextflow job completes, it will POST a payload containing
+    full job metadata. This function writes this to a file in the execution
+    directory so that we can later refer to it for job state, metrics, etc.
+    '''
+    executed_op_dir = get_execution_directory_path(executed_operation_pk)
+    with open(os.path.join(executed_op_dir, FINAL_METADATA_FILENAME), 'w') as fout:
+        fout.write(json.dumps(data))
+
+
+def read_final_nextflow_metadata(executed_operation_pk):
+    '''
+    Returns a dict containing the final job metadata from a nextflow-based
+    execution
+    '''
+    executed_op_dir = get_execution_directory_path(executed_operation_pk)
+    return json.loads(
+        open(
+            os.path.join(executed_op_dir, FINAL_METADATA_FILENAME),
+            'r'
+        ).read()
+    )
+
+
+def job_succeeded(job_metadata):
+    '''
+    Returns the job success state as a boolean 
+    (True if job succeeded, else False)
+    '''
+    return job_metadata['metadata']['workflow']['success']
+

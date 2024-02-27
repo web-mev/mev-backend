@@ -8,8 +8,11 @@ from django.conf import settings
 
 from api.runners.base import OperationRunner
 from api.utilities.nextflow_utils import NF_SUFFIX, \
+    NEXTFLOW_COMPLETED, \
     get_container_names, \
-    edit_nf_containers
+    edit_nf_containers, \
+    read_final_nextflow_metadata, \
+    job_succeeded
 from api.utilities.docker import check_image_exists, \
     check_image_name_validity
 from api.utilities.basic_utils import copy_local_resource, \
@@ -184,10 +187,34 @@ class NextflowRunner(OperationRunner):
         will "finalize" the run (moving files around, etc.)
         '''
         executed_op = ExecutedOperation.objects.get(pk=job_uuid)
-        if executed_op.execution_stop_datetime is None:
-            return False
-        else:
+        if executed_op.status == NEXTFLOW_COMPLETED:
             return True
+        else:
+            return False
+
+    def finalize(self, executed_op, op):
+        '''
+        Finishes up an ExecutedOperation. Does things like registering files 
+        with a user, cleanup, etc.
+
+        `executed_op` is an instance of api.models.ExecutedOperation
+        `op` is an instance of data_structures.operation.Operation
+        '''
+        job_metadata = read_final_nextflow_metadata(executed_op.pk)
+        if job_succeeded(job_metadata):
+            executed_op.job_failed = False
+            # TODO fetch/organize outputs
+            executed_op.outputs = {}
+            executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
+
+            # TODO cleanup
+        else:
+            executed_op.job_failed = True
+            #TODO get error logs, messages, etc.
+            alert_admins('Nextflow job failed.')
+
+        executed_op.execution_stop_datetime = datetime.datetime.now()
+        executed_op.save()
 
 
 class LocalNextflowRunner(NextflowRunner):

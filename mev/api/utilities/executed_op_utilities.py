@@ -1,10 +1,21 @@
 import logging
+import os
+
+from django.conf import settings
 
 from api.models import WorkspaceExecutedOperation
 from api.utilities.operations import get_operation_instance_data
 from data_structures.data_resource_attributes import get_all_data_resource_typenames
 
 logger = logging.getLogger(__name__)
+
+
+def get_execution_directory_path(execution_uuid):
+    '''
+    Convenience function for retrieving the directory where a job is executed.
+    Note that it does not actually create the directory.
+    '''
+    return os.path.join(settings.OPERATION_EXECUTION_DIR, str(execution_uuid))
 
 
 def collect_resource_uuids(op_input_or_output, exec_op_input_or_output):

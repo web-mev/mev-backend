@@ -1,17 +1,19 @@
 import unittest.mock as mock
 import os
 import shutil
+import json
 
 from api.tests.base import BaseAPITestCase
 
 from api.utilities.nextflow_utils import get_container_names, \
     extract_process_containers, \
     edit_nf_containers, \
-    get_nextflow_file_contents
+    get_nextflow_file_contents, \
+    job_succeeded
 
 # the api/tests dir
-TESTDIR = os.path.join(os.path.dirname(__file__), 'operation_test_files')
-DEMO_TESTDIR = os.path.join(TESTDIR, 'demo_nextflow_workflow')
+TESTDIR = os.path.dirname(__file__)
+DEMO_TESTDIR = os.path.join(TESTDIR, 'operation_test_files', 'demo_nextflow_workflow')
 
 
 class NextflowUtilsTester(BaseAPITestCase):
@@ -88,3 +90,7 @@ class NextflowUtilsTester(BaseAPITestCase):
         ])        
         self.assertTrue(set(images) == expected_set)
         shutil.rmtree(tmpdir)
+
+    def test_nextflow_job_succeeded_parse(self):
+        j = json.load(open(os.path.join(TESTDIR, 'nextflow_job_complete_metadata.json')))
+        self.assertTrue(job_succeeded(j))

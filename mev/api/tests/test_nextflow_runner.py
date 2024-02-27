@@ -8,6 +8,7 @@ from django.test import override_settings
 
 
 from api.tests.base import BaseAPITestCase
+from api.models import ExecutedOperation
 from api.runners.nextflow import NextflowRunner, \
     LocalNextflowRunner, \
     AWSBatchNextflowRunner
@@ -168,6 +169,40 @@ class NextflowRunnerTester(BaseAPITestCase):
               f' >{os.path.join(staging_dir, NextflowRunner.STDOUT_FILE_NAME)}' \
               F' 2>{os.path.join(staging_dir, NextflowRunner.STDERR_FILE_NAME)}'
         mock_run_shell_command.assert_called_with(expected_cmd)
+
+    @mock.patch('api.runners.nextflow.alert_admins')
+    @mock.patch('api.runners.nextflow.read_final_nextflow_metadata')
+    @mock.patch('api.runners.nextflow.job_succeeded')
+    def test_finalization(self, 
+                          mock_job_succeeded,
+                          mock_read_final_nextflow_metadata,
+                          mock_alert_admins):
+
+        mock_metadata = {'some_key': 0}
+        mock_read_final_nextflow_metadata.return_value = mock_metadata
+        
+        nf_runner = NextflowRunner()
+        mock_executed_op = mock.MagicMock()
+        mock_uuid = 'abc123'
+        mock_executed_op.pk = mock_uuid
+        mock_op = mock.MagicMock()
+
+        # test a success:
+        mock_job_succeeded.return_value = True
+        nf_runner.finalize(mock_executed_op, mock_op)
+        mock_executed_op.save.assert_called()
+        mock_job_succeeded.assert_called_once_with(mock_metadata)
+        mock_alert_admins.assert_not_called()
+        self.assertTrue(mock_executed_op.status == ExecutedOperation.COMPLETION_SUCCESS)
+
+        # test a failure:
+        mock_job_succeeded.reset_mock()
+        mock_alert_admins.reset_mock()
+        mock_job_succeeded.return_value = False
+        nf_runner.finalize(mock_executed_op, mock_op)
+        mock_executed_op.save.assert_called()
+        mock_job_succeeded.assert_called_once_with(mock_metadata)
+        mock_alert_admins.assert_called()
 
 
 class AWSBatchNextflowRunnerTester(BaseAPITestCase):

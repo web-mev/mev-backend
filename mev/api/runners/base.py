@@ -14,6 +14,7 @@ from data_structures.data_resource_attributes import \
 from api.utilities.admin_utils import alert_admins
 from api.utilities.basic_utils import make_local_directory
 from api.utilities.resource_utilities import delete_resource_by_pk
+from api.utilities.executed_op_utilities import get_execution_directory_path
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class OperationRunner(object):
     def _create_execution_dir(self, execution_uuid):
         # To avoid conflicts or corruption of user data, we run each operation in its
         # own sandbox directory.
-        execution_dir = os.path.join(settings.OPERATION_EXECUTION_DIR, execution_uuid)
+        execution_dir = get_execution_directory_path(execution_uuid)
         make_local_directory(execution_dir)
         return execution_dir
 
