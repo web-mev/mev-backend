@@ -34,6 +34,7 @@ class NextflowRunner(OperationRunner):
     STDOUT_FILE_NAME = 'nf_stdout.txt'
     STDERR_FILE_NAME = 'nf_stderr.txt'
     RUN_CMD = '{nextflow_exe} -bg run {main_nf} -c {config}' \
+              ' -name {job_name}' \
               ' -params-file {params} --output_dir {output_dir}' \
               ' -with-weblog {status_update_url} >{stdout} 2>{stderr}'
 
@@ -141,6 +142,7 @@ class NextflowRunner(OperationRunner):
         cmd = self.RUN_CMD.format(
             nextflow_exe=settings.NEXTFLOW_EXE,
             main_nf=os.path.join(staging_dir, self.MAIN_NF),
+            job_name=str(execution_uuid),
             config=runtime_config_path,
             params=inputs_path,
             output_dir=nf_outputs_dir,
