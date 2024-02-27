@@ -161,7 +161,7 @@ class NextflowRunnerTester(BaseAPITestCase):
         expected_cmd = f'{NEXTFLOW_EXE_OVERRIDE} -bg run' \
               f' {os.path.join(staging_dir, "main.nf")}' \
               f' -c {os.path.join(staging_dir, NextflowRunner.CONFIG_FILE_NAME)}' \
-              f' -name {mock_uuid}' \
+              f' -name {nf_runner.JOB_PREFIX}{mock_uuid}' \
               f' -params-file {os.path.join(staging_dir, NextflowRunner.NF_INPUTS)}' \
               f' --output_dir {output_dir}' \
               f' -with-weblog {NEXTFLOW_STATUS_UPDATE_OVERRIDE}' \

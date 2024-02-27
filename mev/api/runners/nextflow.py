@@ -46,6 +46,8 @@ class NextflowRunner(OperationRunner):
         NF_INPUTS
     ]
 
+    JOB_PREFIX = 'job_'
+
     def prepare_operation(self, operation_dir, repo_name, git_hash):
 
         container_image_names = get_container_names(operation_dir)
@@ -139,10 +141,16 @@ class NextflowRunner(OperationRunner):
         # on the process executor- child classes will dictate this
         nf_outputs_dir = self._get_outputs_dir(staging_dir, executed_op.id)
 
+        # Nextflow jobs need to match the following regex:
+        # ^[a-z](?:[a-z\d]|[-_](?=[a-z\d])){0,79}$
+        # so a generic UUID (which can start with a digit)
+        # does not work
+        job_id = f'{self.JOB_PREFIX}{str(execution_uuid)}'
+
         cmd = self.RUN_CMD.format(
             nextflow_exe=settings.NEXTFLOW_EXE,
             main_nf=os.path.join(staging_dir, self.MAIN_NF),
-            job_name=str(execution_uuid),
+            job_name=job_id,
             config=runtime_config_path,
             params=inputs_path,
             output_dir=nf_outputs_dir,
@@ -152,7 +160,7 @@ class NextflowRunner(OperationRunner):
         )
         try:
             run_shell_command(cmd)
-            executed_op.job_id = execution_uuid
+            executed_op.job_id = job_id
             executed_op.save()
         except Exception as ex:
             logger.info(f'Failed when running shell command: {cmd}')
