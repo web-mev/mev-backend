@@ -161,10 +161,14 @@ class NextflowRunner(OperationRunner):
             stdout=os.path.join(staging_dir, self.STDOUT_FILE_NAME),
             stderr=os.path.join(staging_dir, self.STDERR_FILE_NAME)
         )
+        # set and save prior to calling `run_shell_command` since
+        # we can end up with a race condition otherwise (nextflow
+        # immediately POSTS to say "started" but the database cannot
+        # find the job ID since it hasn't been committed)
+        executed_op.job_id = job_id
+        executed_op.save()
         try:
             run_shell_command(cmd)
-            executed_op.job_id = job_id
-            executed_op.save()
         except Exception as ex:
             logger.info(f'Failed when running shell command: {cmd}')
             logger.info(f'Exception was: {ex}')
@@ -178,7 +182,7 @@ class NextflowRunner(OperationRunner):
             executed_op.save()
             alert_admins(str(ex))
 
-    def check_status(self, job_uuid):
+    def check_status(self, job_id):
         '''
         The runner interface is created such that we have a periodic task that
         calls this function. Nextflow will use a special localhost url to 
@@ -186,7 +190,8 @@ class NextflowRunner(OperationRunner):
         localhost url will set the appropriate field. Then the periodic task
         will "finalize" the run (moving files around, etc.)
         '''
-        executed_op = ExecutedOperation.objects.get(pk=job_uuid)
+        executed_op = ExecutedOperation.objects.get(job_id=job_id)
+        logger.info(f'Checking status for Nextflow-based job {job_id}')
         if executed_op.status == NEXTFLOW_COMPLETED:
             return True
         else:
