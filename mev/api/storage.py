@@ -15,6 +15,7 @@ from exceptions import StorageException
 
 from api.utilities.basic_utils import copy_local_resource
 from api.utilities.resource_utilities import create_resource
+from api.utilities.admin_utils import alert_admins
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,15 @@ logger = logging.getLogger(__name__)
 S3_PREFIX = 's3://'
 
 class LocalResourceStorage(FileSystemStorage):
+
+    def check_if_exists(self, full_path):
+        '''
+        Trivial in the case of local storage, but
+        implemented to keep a consistent interface
+        with the remote storage classes which 
+        implement this method.
+        '''
+        return os.path.exists(full_path)
 
     def get_absolute_path(self, path_relative_to_storage_root):
         return os.path.join(settings.MEDIA_ROOT, path_relative_to_storage_root)
@@ -58,6 +68,53 @@ class S3ResourceStorage(S3Boto3Storage):
     # This will append random chars to the end of the object name
     # so that files are not overwritten
     file_overwite = False
+
+    def check_if_exists(self, full_path):
+        '''
+        This is a semi-override of the `exists` method which returns a 
+        boolean indicating whether a S3-based file exists.
+
+        Note that we do NOT override the `exists` method itself to avoid
+        unintended effects of shadowing the default S3Boto3Storage API.
+        Instead, we extend the capabilities to check for object existence
+        in buckets BEYOND the single bucket that is tied to this class.
+        Recall that the default use-case of django storages is to
+        provide a storage mechanism that is associated with a single bucket.
+        WebMeV has additional buckets it interacts with and this
+        permits that interaction without having various boto3 library calls
+        scattered in the codebase.
+        '''
+        b, obj = self.get_bucket_and_object_from_full_path(full_path)
+
+        # if we're dealing with something in our "default" storage
+        # bucket, we can simply call the parent method
+        if b == self.bucket_name:
+            return super().exists(obj)
+        else:
+            # This `else` handles situations where we want to look
+            # into other buckets (e.g. one that stores nextflow scratch
+            # files, etc.)
+            s3 = boto3.resource('s3')
+            try:
+                # does a HEAD request so it's quick:
+                s3.Object(b, obj).load()
+            except botocore.exceptions.ClientError as ex:
+                if (ex.response['Error']['Code'] == '404') \
+                    or (ex.response['Error']['Code'] == 404):
+                    return False
+                else:
+                    err = 'Received an unexpected response' \
+                        f' when querying object existence: {ex.response}'
+                    logger.error(err)
+                    alert_admins(err)
+                    return False
+            except Exception as ex:
+                err = 'Unexpected exception when' \
+                    f' querying object existence: {ex}'
+                logger.error(err)
+                alert_admins(err)
+                return False
+            return True
 
     def get_absolute_path(self, path_relative_to_storage_root):
         '''
