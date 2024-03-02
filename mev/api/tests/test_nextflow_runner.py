@@ -170,42 +170,106 @@ class NextflowRunnerTester(BaseAPITestCase):
               F' 2>{os.path.join(staging_dir, NextflowRunner.STDERR_FILE_NAME)}'
         mock_run_shell_command.assert_called_with(expected_cmd)
 
-    @mock.patch('api.runners.nextflow.alert_admins')
-    @mock.patch('api.runners.nextflow.read_final_nextflow_metadata')
-    @mock.patch('api.runners.nextflow.job_succeeded')
-    def test_finalization(self, 
-                          mock_job_succeeded,
-                          mock_read_final_nextflow_metadata,
-                          mock_alert_admins):
+    @mock.patch('api.runners.nextflow.default_storage')
+    @mock.patch('api.runners.nextflow.get_execution_directory_path')
+    def test_remote_find_outputs_case1(self, 
+                          mock_get_execution_directory_path,
+                          mock_default_storage):
 
-        mock_metadata = {'some_key': 0}
-        mock_read_final_nextflow_metadata.return_value = mock_metadata
+        staging_dir = '/some/execution_dir'
+        mock_get_execution_directory_path.return_value = staging_dir
+
+        mock_get_outputs_dir = mock.MagicMock()
+        nf_output_dir = '/some/execution_dir/nf'
+        mock_get_outputs_dir.return_value = nf_output_dir
+
+        mock_op = mock.MagicMock()
+        mock_op.outputs = {
+            'output_a': 1,
+            'output_b': 2
+        }
+
+        mock_check_if_exists = mock.MagicMock()
+        mock_get_files = mock.MagicMock()
+        mock_check_if_exists.side_effect = [True, True]
+        mock_get_files.side_effect = [
+            ['abc.txt'],
+            ['xyz.txt']
+        ]
+        mock_default_storage.check_if_exists = mock_check_if_exists
+        mock_default_storage.get_files = mock_get_files
         
         nf_runner = NextflowRunner()
+        nf_runner._get_outputs_dir = mock_get_outputs_dir
         mock_executed_op = mock.MagicMock()
         mock_uuid = 'abc123'
-        mock_executed_op.pk = mock_uuid
+        mock_executed_op.id = mock_uuid
+        result = nf_runner._find_outputs(mock_executed_op, mock_op)
+        self.assertEqual(result, {
+            'output_a': ['abc.txt'],
+            'output_b': ['xyz.txt'],
+        })
+        mock_get_execution_directory_path.assert_called_once_with(mock_uuid)
+        mock_get_outputs_dir.assert_called_once_with(staging_dir, mock_uuid)
+        mock_check_if_exists.assert_has_calls([
+            mock.call(f'{nf_output_dir}/output_a/'),
+            mock.call(f'{nf_output_dir}/output_b/')
+        ])
+
+    @mock.patch('api.runners.nextflow.default_storage')
+    @mock.patch('api.runners.nextflow.get_execution_directory_path')
+    def test_remote_find_outputs_case2(self, 
+                          mock_get_execution_directory_path,
+                          mock_default_storage):
+        '''
+        Here we test the situation where the output directory
+        for a single output is missing. Note that this does NOT
+        trigger an error since the output might be optional (
+        and that logic is handled in the 'output conversion')
+        '''
+
+        staging_dir = '/some/execution_dir'
+        mock_get_execution_directory_path.return_value = staging_dir
+
+        mock_get_outputs_dir = mock.MagicMock()
+        nf_output_dir = '/some/execution_dir/nf'
+        mock_get_outputs_dir.return_value = nf_output_dir
+
         mock_op = mock.MagicMock()
+        mock_op.outputs = {
+            'output_a': 1,
+            'output_b': 2
+        }
 
-        # test a success:
-        mock_job_succeeded.return_value = True
-        nf_runner.finalize(mock_executed_op, mock_op)
-        mock_executed_op.save.assert_called()
-        mock_job_succeeded.assert_called_once_with(mock_metadata)
-        mock_alert_admins.assert_not_called()
-        self.assertTrue(mock_executed_op.status == ExecutedOperation.COMPLETION_SUCCESS)
+        mock_check_if_exists = mock.MagicMock()
+        mock_get_files = mock.MagicMock()
+        mock_check_if_exists.side_effect = [True, True]
+        mock_get_files.side_effect = [
+            ['abc.txt'],
+            ['xyz.txt']
+        ]
+        mock_default_storage.check_if_exists = mock_check_if_exists
+        mock_default_storage.get_files = mock_get_files
+        
+        nf_runner = NextflowRunner()
+        nf_runner._get_outputs_dir = mock_get_outputs_dir
+        mock_executed_op = mock.MagicMock()
+        mock_uuid = 'abc123'
+        mock_executed_op.id = mock_uuid
+        result = nf_runner._find_outputs(mock_executed_op, mock_op)
+        self.assertEqual(result, {
+            'output_a': ['abc.txt'],
+            'output_b': ['xyz.txt'],
+        })
+        mock_get_execution_directory_path.assert_called_once_with(mock_uuid)
+        mock_get_outputs_dir.assert_called_once_with(staging_dir, mock_uuid)
+        mock_check_if_exists.assert_has_calls([
+            mock.call(f'{nf_output_dir}/output_a/'),
+            mock.call(f'{nf_output_dir}/output_b/')
+        ])
 
-        # test a failure:
-        mock_job_succeeded.reset_mock()
-        mock_alert_admins.reset_mock()
-        mock_job_succeeded.return_value = False
-        nf_runner.finalize(mock_executed_op, mock_op)
-        mock_executed_op.save.assert_called()
-        mock_job_succeeded.assert_called_once_with(mock_metadata)
-        mock_alert_admins.assert_called()
 
-
-class AWSBatchNextflowRunnerTester(BaseAPITestCase):
+class LocalNextflowRunnerTester(BaseAPITestCase):
     
     def test_creates_config(self):
         nf_runner = LocalNextflowRunner()
@@ -216,7 +280,7 @@ class AWSBatchNextflowRunnerTester(BaseAPITestCase):
         self.assertTrue(contents == expected_contents)
 
 
-class LocalNextflowRunnerTester(BaseAPITestCase):
+class AWSBatchNextflowRunnerTester(BaseAPITestCase):
 
     @override_settings(AWS_BATCH_QUEUE='my-queue')
     @override_settings(AWS_REGION='us-east-2')
@@ -247,3 +311,63 @@ class LocalNextflowRunnerTester(BaseAPITestCase):
         """
         expected_contents = textwrap.dedent(expected_contents)
         self.assertTrue(contents == expected_contents)
+
+    @mock.patch('api.runners.nextflow.alert_admins')
+    @mock.patch('api.runners.nextflow.read_final_nextflow_metadata')
+    @mock.patch('api.runners.nextflow.job_succeeded')
+    def test_remote_finalization(self, 
+                          mock_job_succeeded,
+                          mock_read_final_nextflow_metadata,
+                          mock_alert_admins):
+        '''
+        Test the expected calls are made when collecting
+        the outputs of a job
+        '''
+
+        mock_metadata = {'some_key': 0}
+        mock_read_final_nextflow_metadata.return_value = mock_metadata
+        
+        nf_runner = AWSBatchNextflowRunner()
+        mock_executed_op = mock.MagicMock()
+
+        mock_uuid = 'abc123'
+        mock_executed_op.pk = mock_uuid
+        mock_op = mock.MagicMock()
+        mock_find_outputs = mock.MagicMock()
+        find_outputs_return = {'a':1}
+        mock_find_outputs.return_value = find_outputs_return
+        mock_convert_outputs = mock.MagicMock()
+        # note different than `find_outputs_return` to mock there being some 'conversion'
+        convert_outputs_return = {'a': 11} 
+        mock_convert_outputs.return_value = convert_outputs_return
+        mock_clean = mock.MagicMock()
+        nf_runner._find_outputs = mock_find_outputs
+        nf_runner._convert_outputs = mock_convert_outputs
+        nf_runner._clean_following_success = mock_clean
+
+        # test a success:
+        mock_job_succeeded.return_value = True
+        nf_runner.finalize(mock_executed_op, mock_op)
+        mock_executed_op.save.assert_called()
+        mock_job_succeeded.assert_called_once_with(mock_metadata)
+        mock_alert_admins.assert_not_called()
+        mock_find_outputs.assert_called_once_with(mock_executed_op, mock_op)
+        mock_convert_outputs.assert_called_once_with(mock_executed_op, mock_op, find_outputs_return)
+        self.assertTrue(mock_executed_op.status == ExecutedOperation.COMPLETION_SUCCESS)
+        self.assertTrue(mock_executed_op.outputs == convert_outputs_return)
+        mock_clean.assert_called_once_with(mock_uuid)
+        
+        # test a failure:
+        mock_job_succeeded.reset_mock()
+        mock_alert_admins.reset_mock()
+        mock_find_outputs.reset_mock()
+        mock_convert_outputs.reset_mock()
+        mock_clean.reset_mock()
+        mock_job_succeeded.return_value = False
+        nf_runner.finalize(mock_executed_op, mock_op)
+        mock_executed_op.save.assert_called()
+        mock_job_succeeded.assert_called_once_with(mock_metadata)
+        mock_alert_admins.assert_called()
+        mock_clean.assert_not_called()
+
+

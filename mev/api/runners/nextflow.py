@@ -5,6 +5,7 @@ import json
 import datetime
 
 from django.conf import settings
+from django.core.files.storage import default_storage
 
 from api.storage import S3_PREFIX
 from api.runners.base import OperationRunner
@@ -20,6 +21,7 @@ from api.utilities.basic_utils import copy_local_resource, \
     run_shell_command
 from api.models import ExecutedOperation
 from api.utilities.admin_utils import alert_admins
+from api.utilities.executed_op_utilities import get_execution_directory_path
 
 
 logger = logging.getLogger(__name__)
@@ -198,6 +200,42 @@ class NextflowRunner(OperationRunner):
         else:
             return False
 
+    def _find_outputs(self, executed_op, op):
+        '''
+        Locates the outputs and returns a dictionary.
+
+        Based on the way Nextflow works, there's no direct
+        way to get the outputs by querying nextflow or
+        reading an output file. Hence, we have to go through
+        the expected outputs and locate the files.
+        '''
+        # regardless of whether local or remote, we need the staging dir:
+        staging_dir = get_execution_directory_path(executed_op.id)
+
+        # returns the output directory specific to the runner (whether local or remote)
+        nf_outputs_dir = self._get_outputs_dir(staging_dir, executed_op.id)
+
+        # get the operation spec so we know the expected outputs
+        op_spec_outputs = op.outputs
+
+        # note that the sort is not necessary, but it incurs little penalty.
+        # However, it does make unit testing easier.
+        outputs = {}
+        for k in sorted(op_spec_outputs.keys()):
+            # note that we append a '/'. For S3-based storage,
+            # it will not recognize it as a 'directory' otherwise
+            expected_dir = os.path.join(nf_outputs_dir, k  + '/')
+            if default_storage.check_if_exists(expected_dir):
+                file_list = default_storage.get_files(expected_dir)
+            else:
+                # did not find an output directory. It's possible it was
+                # NOT a required output. If that's the case, it's handled
+                # during 'conversion'. We simply put a blank value
+                # and that will be checked for validity during conversion
+                file_list = []
+            outputs[k] = file_list
+        return outputs
+
     def finalize(self, executed_op, op):
         '''
         Finishes up an ExecutedOperation. Does things like registering files 
@@ -209,11 +247,15 @@ class NextflowRunner(OperationRunner):
         job_metadata = read_final_nextflow_metadata(executed_op.pk)
         if job_succeeded(job_metadata):
             executed_op.job_failed = False
-            # TODO fetch/organize outputs
-            executed_op.outputs = {}
+            outputs_dict = self._find_outputs(executed_op, op)
+            converted_outputs = self._convert_outputs(
+                    executed_op, op, outputs_dict)
+            executed_op.outputs = converted_outputs
             executed_op.status = ExecutedOperation.COMPLETION_SUCCESS
 
-            # TODO cleanup
+            # if everything went well, including conversion of outputs,
+            # we can delete the execution directory.
+            self._clean_following_success(executed_op.pk)
         else:
             executed_op.job_failed = True
             #TODO get error logs, messages, etc.
@@ -231,6 +273,11 @@ class LocalNextflowRunner(NextflowRunner):
     CONFIG_FILE_TEMPLATE = os.path.join(os.path.dirname(__file__), 
                                         'nextflow_config_templates',
                                         'local.config')
+    # to keep nextflow from 'polluting' the execution directory on a local
+    # run, we direct nextflow to drop the final output/published files
+    # into a subdirectory of our local execution directory. hence, this would
+    # be something like /data/operation_executions/<exec op UUID>/<OUTPUT_DIR_NAME>
+    OUTPUT_DIR_NAME = 'nf_outputs'
 
     def _prepare_config_template(self, execution_dir):
         template_text = open(self.CONFIG_FILE_TEMPLATE, 'r').read()
@@ -245,9 +292,9 @@ class LocalNextflowRunner(NextflowRunner):
         '''
         This method dictates where nextflow will put output files.
         Since this is a local runner, we just put them in the
-        execution directory
+        execution directory under a nextflow-specific subdir
         '''
-        return execution_dir
+        return os.path.join(execution_dir, self.OUTPUT_DIR_NAME)
 
 
 class AWSBatchNextflowRunner(NextflowRunner):

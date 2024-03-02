@@ -228,5 +228,5 @@ class OperationRunner(object):
         to perform.
         '''
         execution_dir = os.path.join(
-            settings.OPERATION_EXECUTION_DIR, job_id)
+            settings.OPERATION_EXECUTION_DIR, str(job_id))
         rmtree(execution_dir)
