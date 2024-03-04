@@ -75,7 +75,6 @@ class BaseResourceConverter(object):
     def _attempt_resource_addition(self, executed_op,
                                    workspace, path, resource_type, 
                                    output_required):
-
         # the "name"  of the file as the user will see it.
         name = self._create_output_filename(path, executed_op.job_name)
 
@@ -133,6 +132,8 @@ class BaseResourceConverter(object):
             # if the validation fails, it will raise an Exception (or derived 
             # class of an Exception). If that's the case, we need to roll-back
             self._handle_invalid_resource_type(resource)
+            alert_admins(f'Failed to validate an output file to the expected format'
+                f' for resource {resource.pk} on job {executed_op.pk}')
             raise OutputConversionException('Failed to validate the expected'
                                             ' resource type'
                                             )
@@ -204,7 +205,7 @@ class VariableDataResourceMixin(object):
 
         Used for converting outputs.
 
-        `output_val` is a path to the file
+        `output_val` is a dict which has the `path` and `resource_type`
         `output_spec` is an instance of data_structures.output_spec.OutputSpec
         '''
 
@@ -212,8 +213,8 @@ class VariableDataResourceMixin(object):
             raise OutputConversionException('For a VariableResourceType,'
                                             ' we expect that the output is'
                                             ' an object/dict.'
-                                            ' The value received was'
-                                            f'{output_val}'
+                                            ' The value received was:'
+                                            f' {output_val}'
                                             )
 
         # in the case where the output has variable type, we need
@@ -241,6 +242,7 @@ class SingleDataResourceMixin(object):
 
     def _convert_output(
             self, executed_op, workspace, output_definition, output_val):
+
         return self._convert_resource_output(
             executed_op, workspace, output_definition, output_val)
 
@@ -389,7 +391,7 @@ class RemoteNextflowResourceMixin(object):
                 r.workspaces.add(workspace)
             return r
         except Exception as ex:
-            logger.info('Caught exception when copying a Cromwell output'
+            logger.info('Caught exception when copying a Nextflow job output'
                         ' to our storage. Removing the dummy Resource'
                         ' and re-raising.')
             raise ex
@@ -620,7 +622,7 @@ class RemoteNextflowSingleDataResourceConverter(
     DataResourceMixin
 ):
     '''
-    This converter takes a DataResource instance (for a single file,
+    This converter (for inputs) takes a DataResource instance (for a single file,
     which is simply a UUID) and returns the path to 
     the file in cloud storage.
 
@@ -637,9 +639,21 @@ class RemoteNextflowSingleDataResourceConverter(
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
+
+        Note, however, that the `output_val` is a list due to the nature
+        of locating Nextflow-based job outputs. Hence, we pass the first
+        element
         '''
-        return self._convert_output(
-            executed_op, workspace, output_definition, output_val)
+        if type(output_val) is not list:
+            raise OutputConversionException('The RemoteNextflowSingleDataResourceConverter'
+            ' converter expects a list')
+        else:
+            if len(output_val) > 1:
+                raise OutputConversionException('The RemoteNextflowSingleDataResourceConverter'
+                    ' expects a list of length 1. The passed'
+                    f' list had length of {len(output_val)}')
+            return self._convert_output(
+                executed_op, workspace, output_definition, output_val[0])
 
 
 class RemoteNextflowSingleVariableDataResourceConverter(
@@ -662,15 +676,22 @@ class RemoteNextflowSingleVariableDataResourceConverter(
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
+
+        Note, however, that the `output_val` is a list due to the nature
+        of locating Nextflow-based job outputs.
         '''
+        if type(output_val) is not list:
+            raise OutputConversionException(f'The {RemoteNextflowSingleVariableDataResourceConverter}'
+            ' converter expects a list')
         return self._convert_output(
-            executed_op, workspace, output_definition, output_val)
+            executed_op, workspace, output_definition, output_val[0])
 
-
-# TODO: re-enable once Nextflow runner is ready
-# class CromwellMultipleDataResourceConverter(
+# TODO: Can re-implement when needed. This code was originally
+#       developed in the context of remote Cromwell runners but 
+#       also covers a relatively rare use-case
+# class RemoteNextflowMultipleDataResourceConverter(
 #         BaseResourceConverter,
-#         CromwellResourceMixin,
+#         RemoteNextflowResourceMixin,
 #         MultipleDataResourceMixin,
 #         DataResourceMixin):
 #     '''
