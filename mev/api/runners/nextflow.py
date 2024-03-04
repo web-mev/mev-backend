@@ -226,7 +226,7 @@ class NextflowRunner(OperationRunner):
             # it will not recognize it as a 'directory' otherwise
             expected_dir = os.path.join(nf_outputs_dir, k  + '/')
             if default_storage.check_if_exists(expected_dir):
-                file_list = default_storage.get_files(expected_dir)
+                file_list = default_storage.get_file_listing(expected_dir)
             else:
                 # did not find an output directory. It's possible it was
                 # NOT a required output. If that's the case, it's handled

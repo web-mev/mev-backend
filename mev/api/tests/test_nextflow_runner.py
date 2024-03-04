@@ -197,7 +197,7 @@ class NextflowRunnerTester(BaseAPITestCase):
             ['xyz.txt']
         ]
         mock_default_storage.check_if_exists = mock_check_if_exists
-        mock_default_storage.get_files = mock_get_files
+        mock_default_storage.get_file_listing = mock_get_files
         
         nf_runner = NextflowRunner()
         nf_runner._get_outputs_dir = mock_get_outputs_dir
@@ -249,7 +249,59 @@ class NextflowRunnerTester(BaseAPITestCase):
             ['xyz.txt']
         ]
         mock_default_storage.check_if_exists = mock_check_if_exists
-        mock_default_storage.get_files = mock_get_files
+        mock_default_storage.get_file_listing = mock_get_files
+        
+        nf_runner = NextflowRunner()
+        nf_runner._get_outputs_dir = mock_get_outputs_dir
+        mock_executed_op = mock.MagicMock()
+        mock_uuid = 'abc123'
+        mock_executed_op.id = mock_uuid
+        result = nf_runner._find_outputs(mock_executed_op, mock_op)
+        self.assertEqual(result, {
+            'output_a': ['abc.txt'],
+            'output_b': ['xyz.txt'],
+        })
+        mock_get_execution_directory_path.assert_called_once_with(mock_uuid)
+        mock_get_outputs_dir.assert_called_once_with(staging_dir, mock_uuid)
+        mock_check_if_exists.assert_has_calls([
+            mock.call(f'{nf_output_dir}/output_a/'),
+            mock.call(f'{nf_output_dir}/output_b/')
+        ])
+
+    @mock.patch('api.runners.nextflow.default_storage')
+    @mock.patch('api.runners.nextflow.get_execution_directory_path')
+    def test_remote_find_outputs_case3(self, 
+                          mock_get_execution_directory_path,
+                          mock_default_storage):
+        '''
+        Here we test the situation where the output directory
+        for a single output is missing. Note that this does NOT
+        trigger an error since the output might be optional (
+        and that logic is handled in the 'output conversion')
+        '''
+
+        staging_dir = '/some/execution_dir'
+        mock_get_execution_directory_path.return_value = staging_dir
+
+        mock_get_outputs_dir = mock.MagicMock()
+        nf_output_dir = '/some/execution_dir/nf'
+        mock_get_outputs_dir.return_value = nf_output_dir
+
+        mock_op = mock.MagicMock()
+        mock_op.outputs = {
+            'output_a': 1,
+            'output_b': 2
+        }
+
+        mock_check_if_exists = mock.MagicMock()
+        mock_get_files = mock.MagicMock()
+        mock_check_if_exists.side_effect = [True, True]
+        mock_get_files.side_effect = [
+            ['abc.txt'],
+            ['xyz.txt']
+        ]
+        mock_default_storage.check_if_exists = mock_check_if_exists
+        mock_default_storage.get_file_listing = mock_get_files
         
         nf_runner = NextflowRunner()
         nf_runner._get_outputs_dir = mock_get_outputs_dir
