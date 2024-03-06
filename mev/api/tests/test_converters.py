@@ -826,6 +826,7 @@ class TestRemoteNextflowResourceMixin(BaseAPITestCase):
             mock_path
         )
         mock_resource.workspaces.add.assert_called_once_with(mock_workspace)
+        self.assertTrue(mock_resource.name == mock_name)
 
         mock_create_resource_from_interbucket_copy.reset_mock()
         mock_create_resource_from_interbucket_copy.side_effect = Exception('!!!') 

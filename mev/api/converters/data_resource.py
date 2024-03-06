@@ -76,6 +76,7 @@ class BaseResourceConverter(object):
                                    workspace, path, resource_type, 
                                    output_required):
         # the "name"  of the file as the user will see it.
+
         name = self._create_output_filename(path, executed_op.job_name)
 
         # try to create the resource in the db. This involves
@@ -389,6 +390,7 @@ class RemoteNextflowResourceMixin(object):
             )
             if workspace is not None:
                 r.workspaces.add(workspace)
+            r.name = name
             return r
         except Exception as ex:
             logger.info('Caught exception when copying a Nextflow job output'
