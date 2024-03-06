@@ -74,7 +74,8 @@ resource "aws_iam_role_policy" "server_batch_access" {
             "batch:TerminateJob",
             "batch:DescribeJobs",
             "batch:RegisterJobDefinition",
-            "batch:DescribeJobDefinitions"
+            "batch:DescribeJobDefinitions",
+            "batch:TagResource"
           ],
           Resource = ["*"]
         }
