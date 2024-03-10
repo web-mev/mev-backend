@@ -195,7 +195,7 @@ resource "aws_batch_compute_environment" "nextflow" {
   compute_resources {
     instance_role      = aws_iam_instance_profile.batch_instance.arn
     instance_type      = ["c5","m5","r5"]
-    max_vcpus          = 64
+    max_vcpus          = 512
     min_vcpus          = 0
     security_group_ids = [aws_security_group.batch_service.id]
     subnets            = [aws_subnet.public.id, aws_subnet.extra.id]
