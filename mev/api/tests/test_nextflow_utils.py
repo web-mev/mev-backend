@@ -9,7 +9,8 @@ from api.utilities.nextflow_utils import get_container_names, \
     extract_process_containers, \
     edit_nf_containers, \
     get_nextflow_file_contents, \
-    job_succeeded
+    job_succeeded, \
+    get_error_report
 
 # the api/tests dir
 TESTDIR = os.path.dirname(__file__)
@@ -94,3 +95,31 @@ class NextflowUtilsTester(BaseAPITestCase):
     def test_nextflow_job_succeeded_parse(self):
         j = json.load(open(os.path.join(TESTDIR, 'nextflow_job_complete_metadata.json')))
         self.assertTrue(job_succeeded(j))
+
+    def test_returns_error_report(self):
+        '''
+        If a nextflow-based job fails, the report metadata will have a trace that
+        we can save/show. Test that the function works as expected
+        '''
+        job_metadata = {
+            'metadata': {
+                'workflow': {
+                    'something': 1,
+                    'errorReport': 'some error'
+                }
+            }
+        }
+        r = get_error_report(job_metadata)
+        self.assertTrue('some error' in r)
+
+        # test that we catch the edge case where the job metadata
+        # is missing that key for whatever reason:
+        job_metadata = {
+            'metadata': {
+                'workflow': {
+                    'something': 1,
+                }
+            }
+        }
+        r = get_error_report(job_metadata)
+        self.assertTrue('Unexpected error' in r)

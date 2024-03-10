@@ -20,6 +20,7 @@ NEXTFLOW_PROCESS_SUBMITTED = 'process_submitted'
 NEXTFLOW_PROCESS_STARTED = 'process_started'
 NEXTFLOW_PROCESS_COMPLETED = 'process_completed'
 NEXTFLOW_COMPLETED = 'completed'
+NEXTFLOW_ERROR = 'error'
 
 # a list of the job status options:
 JOB_STATES = [
@@ -27,7 +28,8 @@ JOB_STATES = [
     NEXTFLOW_PROCESS_SUBMITTED,
     NEXTFLOW_PROCESS_STARTED,
     NEXTFLOW_PROCESS_COMPLETED,
-    NEXTFLOW_COMPLETED
+    NEXTFLOW_COMPLETED,
+    NEXTFLOW_ERROR
 ]
 
 # Used for more readable messages on the frontend
@@ -36,7 +38,8 @@ READABLE_STATES = {
     NEXTFLOW_PROCESS_SUBMITTED: 'Submitted job to queue',
     NEXTFLOW_PROCESS_STARTED: 'Job is running',
     NEXTFLOW_PROCESS_COMPLETED: 'Job is completing',
-    NEXTFLOW_COMPLETED: 'Job has finished.'
+    NEXTFLOW_COMPLETED: 'Job has finished.',
+    NEXTFLOW_ERROR: 'Job submission error. An administrator has been notified.'
 } 
 
 # when a nextflow job completes, it sends a POST
@@ -146,3 +149,13 @@ def job_succeeded(job_metadata):
     '''
     return job_metadata['metadata']['workflow']['success']
 
+
+def get_error_report(job_metadata):
+    try:
+        report = ('Your job did not successfully complete.'
+                  ' Our administrators have been notified.\n')
+        err = job_metadata['metadata']['workflow']['errorReport']
+        report += f'The error was: {err}'
+        return report
+    except KeyError as ex:
+        return 'Unexpected error. An administrator has been notified.'

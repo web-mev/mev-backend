@@ -12,6 +12,8 @@ from api.models import ExecutedOperation
 from api.runners.nextflow import NextflowRunner, \
     LocalNextflowRunner, \
     AWSBatchNextflowRunner
+from api.utilities.nextflow_utils import NEXTFLOW_COMPLETED, \
+    NEXTFLOW_ERROR
 
 # the api/tests dir
 TESTDIR = os.path.join(os.path.dirname(__file__), 'operation_test_files')
@@ -320,6 +322,32 @@ class NextflowRunnerTester(BaseAPITestCase):
             mock.call(f'{nf_output_dir}/output_b/')
         ])
 
+    @mock.patch('api.runners.nextflow.ExecutedOperation')
+    def test_status_check(self, mock_ex_op_class):
+        '''
+        Test that the api.runners.nextflow.NextflowRunner.check_status
+        gives the proper status return
+        '''
+        nf_runner = NextflowRunner()
+        mock_ex_op = mock.MagicMock()
+        mock_ex_op.status = NEXTFLOW_COMPLETED
+        mock_ex_op_class.objects.get.return_value = mock_ex_op
+        mock_job_id = 'abc123'
+        result = nf_runner.check_status(mock_job_id)
+        self.assertTrue(result)
+
+        mock_ex_op.status = NEXTFLOW_ERROR
+        mock_ex_op_class.objects.get.return_value = mock_ex_op
+        mock_job_id = 'abc123'
+        result = nf_runner.check_status(mock_job_id)
+        self.assertTrue(result)
+
+        mock_ex_op.status = 'some other status'
+        mock_ex_op_class.objects.get.return_value = mock_ex_op
+        mock_job_id = 'abc123'
+        result = nf_runner.check_status(mock_job_id)
+        self.assertFalse(result)
+
 
 class LocalNextflowRunnerTester(BaseAPITestCase):
     
@@ -423,3 +451,35 @@ class AWSBatchNextflowRunnerTester(BaseAPITestCase):
         mock_clean.assert_not_called()
 
 
+    @mock.patch('api.runners.nextflow.alert_admins')
+    @mock.patch('api.runners.nextflow.read_final_nextflow_metadata')
+    @mock.patch('api.runners.nextflow.job_succeeded')
+    @mock.patch('api.runners.nextflow.get_error_report')
+    def test_finalization_following_error(self,
+                          mock_get_error_report,
+                          mock_job_succeeded,
+                          mock_read_final_nextflow_metadata,
+                          mock_alert_admins):
+        '''
+        Test that we finalize appropriately if the job experienced a runtime error
+        '''
+
+        mock_metadata = {'some_key': 0}
+        mock_read_final_nextflow_metadata.return_value = mock_metadata
+        mock_job_succeeded.return_value = False
+        err_report = 'description of error'
+        mock_get_error_report.return_value = err_report
+
+        nf_runner = AWSBatchNextflowRunner()
+        mock_executed_op = mock.MagicMock()
+        mock_uuid = 'abc123'
+        mock_executed_op.pk = mock_uuid
+        mock_op = mock.MagicMock()
+
+        nf_runner.finalize(mock_executed_op, mock_op)
+        mock_job_succeeded.assert_called_once_with(mock_metadata)
+        mock_get_error_report.assert_called_once_with(mock_metadata)
+        mock_alert_admins.assert_called()
+        self.assertTrue(mock_executed_op.job_failed)
+        mock_executed_op.save.assert_called()
+        self.assertIsNotNone(mock_executed_op.execution_stop_datetime)

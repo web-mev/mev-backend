@@ -8,6 +8,7 @@ from api.utilities.admin_utils import alert_admins
 from api.models import ExecutedOperation
 from api.utilities.nextflow_utils import READABLE_STATES, \
     NEXTFLOW_COMPLETED, \
+    NEXTFLOW_ERROR, \
     write_final_nextflow_metadata
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,9 @@ class NextflowStatusView(APIView):
                 # since there is no way to get this otherwise (e.g. there is no nextflow
                 # database which we can query at a later time)
                 write_final_nextflow_metadata(data, matching_op.pk)
+            elif event == NEXTFLOW_ERROR:
+                matching_op.status = READABLE_STATES[event]
+                alert_admins(f'Job failure: {matching_op.pk}')
             else:
                 matching_op.status = READABLE_STATES[event]
             matching_op.save()

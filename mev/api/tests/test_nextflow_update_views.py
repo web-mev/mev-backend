@@ -11,7 +11,9 @@ from api.models import WorkspaceExecutedOperation, \
 from api.tests.base import BaseAPITestCase
 from api.runners.nextflow import NextflowRunner
 from api.utilities.nextflow_utils import NEXTFLOW_PROCESS_STARTED, \
-    NEXTFLOW_COMPLETED
+    NEXTFLOW_COMPLETED, \
+    NEXTFLOW_ERROR
+
 
 class NextflowStatusUpdateTests(BaseAPITestCase):
 
@@ -98,6 +100,23 @@ class NextflowStatusUpdateTests(BaseAPITestCase):
         data = {
             'event': NEXTFLOW_COMPLETED,
             'runName': 'some_bad_id'    
+        }
+        response = self.regular_client.post(self.url, data=data, format='json')
+        # the response is 200 no matter what since the nextflow-generated POST
+        # request would only generate a log if it was NOT 200
+        mock_alert_admins.assert_called()
+
+    @mock.patch('api.views.nextflow_views.alert_admins')
+    def test_job_failure_notifies_admins(self, mock_alert_admins):
+        """
+        If the job fails, we get a NEXTFLOW_ERROR sent as the 'event'.
+        Assert that we notify the admins. Typically this error is generated
+        if the nextflow file has bad syntax , etc. so not something that
+        should be generated a lot for mature/correct jobs
+        """
+        data = {
+            'event': NEXTFLOW_ERROR,
+            'runName': 'some_id'    
         }
         response = self.regular_client.post(self.url, data=data, format='json')
         # the response is 200 no matter what since the nextflow-generated POST

@@ -11,10 +11,12 @@ from api.storage import S3_PREFIX
 from api.runners.base import OperationRunner
 from api.utilities.nextflow_utils import NF_SUFFIX, \
     NEXTFLOW_COMPLETED, \
+    NEXTFLOW_ERROR, \
     get_container_names, \
     edit_nf_containers, \
     read_final_nextflow_metadata, \
-    job_succeeded
+    job_succeeded, \
+    get_error_report
 from api.utilities.docker import check_image_exists, \
     check_image_name_validity
 from api.utilities.basic_utils import copy_local_resource, \
@@ -197,6 +199,8 @@ class NextflowRunner(OperationRunner):
         logger.info(f'Checking status for Nextflow-based job {job_id}')
         if executed_op.status == NEXTFLOW_COMPLETED:
             return True
+        elif executed_op.status == NEXTFLOW_ERROR:
+            return True
         else:
             return False
 
@@ -258,8 +262,11 @@ class NextflowRunner(OperationRunner):
             self._clean_following_success(executed_op.pk)
         else:
             executed_op.job_failed = True
-            #TODO get error logs, messages, etc.
-            alert_admins('Nextflow job failed.')
+            error_report = get_error_report(job_metadata)
+            logger.error(error_report)
+            executed_op.error_messages = {'error': error_report}
+            alert_admins(f'Nextflow job ({str(executed_op.pk)}) failed.'
+                         f' Report is {error_report}')
 
         executed_op.execution_stop_datetime = datetime.datetime.now()
         executed_op.save()
