@@ -264,7 +264,7 @@ class NextflowRunner(OperationRunner):
             executed_op.job_failed = True
             error_report = get_error_report(job_metadata)
             logger.error(error_report)
-            executed_op.error_messages = {'error': error_report}
+            executed_op.error_messages = [error_report]
             alert_admins(f'Nextflow job ({str(executed_op.pk)}) failed.'
                          f' Report is {error_report}')
             executed_op.status = ExecutedOperation.COMPLETION_ERROR
