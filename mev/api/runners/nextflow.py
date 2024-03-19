@@ -267,6 +267,7 @@ class NextflowRunner(OperationRunner):
             executed_op.error_messages = {'error': error_report}
             alert_admins(f'Nextflow job ({str(executed_op.pk)}) failed.'
                          f' Report is {error_report}')
+            executed_op.status = ExecutedOperation.COMPLETION_ERROR
 
         executed_op.execution_stop_datetime = datetime.datetime.now()
         executed_op.save()
