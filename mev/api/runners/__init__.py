@@ -5,14 +5,15 @@ from exceptions import JobSubmissionException
 from .local_docker import LocalDockerRunner
 from .nextflow import LocalNextflowRunner, \
     AWSBatchNextflowRunner
-
+from .remote_cromwell import RemoteCromwellRunner
 
 logger = logging.getLogger(__name__)
 
 RUNNER_MAPPING = {
     LocalDockerRunner.NAME: LocalDockerRunner,
     AWSBatchNextflowRunner.NAME: AWSBatchNextflowRunner,
-    LocalNextflowRunner.NAME: LocalNextflowRunner
+    LocalNextflowRunner.NAME: LocalNextflowRunner,
+    RemoteCromwellRunner.NAME: RemoteCromwellRunner
 }
 AVAILABLE_RUNNERS = list(RUNNER_MAPPING.keys())
 
