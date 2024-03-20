@@ -2,7 +2,7 @@
     "name": "Dropbox upload app for AWS", 
     "description": "Uploads files from Dropbox", 
     "inputs": {
-        "AWSDropboxUpload.dropbox_link": {
+        "dropbox_link": {
             "description": "The Dropbox download link.", 
             "name": "Link", 
             "required": true, 
@@ -11,7 +11,7 @@
                 "attribute_type": "UnrestrictedString" 
             }
         },
-        "AWSDropboxUpload.filename": {
+        "filename": {
             "description": "The filename of the file.", 
             "name": "File name", 
             "required": true, 
@@ -24,7 +24,7 @@
     "outputs": {
         "AWSDropboxUpload.uploaded_file": {
             "required": true,
-            "converter": "api.converters.data_resource.CromwellSingleDataResourceConverter",
+            "converter": "api.converters.data_resource.RemoteNextflowSingleDataResourceConverter",
             "spec": {
                 "attribute_type": "DataResource", 
                 "resource_type": "*",
