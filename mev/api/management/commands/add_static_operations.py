@@ -1,13 +1,18 @@
 import os
+import uuid
+import shutil
 import sys
 import logging
 
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
+from django.conf import settings
 
 from api.models import Operation as OperationDbModel
 from api.uploaders import uploader_list
 from api.utilities.ingest_operation import ingest_dir
+from api.utilities.basic_utils import recursive_copy
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,4 +61,16 @@ class Command(BaseCommand):
                         ' but overwriting the operation contents.'
                     )
 
-                ingest_dir(op_dir, str(db_op.pk), git_hash, dir_name, '', overwrite=True)
+                staging_dir = os.path.join(settings.CLONE_STAGING_DIR, str(uuid.uuid4()))
+                recursive_copy(op_dir, staging_dir,
+                   include_hidden=True)
+                try:
+                    ingest_dir(staging_dir, str(db_op.pk), git_hash, dir_name, '', overwrite=True)
+                except Exception as ex:
+                    logger.info('Failed to ingest directory. See logs.'
+                                ' Exception was: {ex}'.format(ex=ex)
+                                )
+                    raise ex
+                finally:
+                    # remove the staging dir:
+                    shutil.rmtree(staging_dir)
