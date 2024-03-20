@@ -32,6 +32,6 @@
             }
         }
     }, 
-    "mode": "cromwell",
+    "mode": "nf_batch",
     "workspace_operation": false
 }
