@@ -375,8 +375,11 @@ def handle_invalid_resource(resource_instance, requested_resource_type, requeste
         hr_original_resource_type = DB_RESOURCE_KEY_TO_HUMAN_READABLE[
             resource_instance.resource_type]
 
-        # ...and compose the status message        
-        resource_instance.status = Resource.REVERTED
+        # ...and compose the status message
+        err_msg = (f'{Resource.REVERTED} of type: {hr_original_resource_type}.'
+            f' Could not validate as {hr_requested_resource_type} for the '
+            f' following reason: {message}')
+        resource_instance.status = err_msg
 
 def perform_validation(resource_instance, 
     resource_type_class, file_format):
