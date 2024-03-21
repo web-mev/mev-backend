@@ -7,13 +7,12 @@
 #   }
 class mevapi (
   String                  $admin_email_csv,
+  String                  $aws_batch_queue,
   String                  $aws_region,
   Optional[String]        $app_user,
   String                  $backend_domain,
   String                  $cloudwatch_log_group,
   Optional[String]        $container_registry = 'github',
-  String                  $cromwell_bucket_name,
-  String                  $cromwell_server_ip,
   String                  $database_host,
   Optional[String]        $database_superuser,
   Optional[String]        $database_superuser_password,
@@ -39,6 +38,7 @@ class mevapi (
   Optional[String]        $globus_endpoint_id= '',
   Optional[String]        $google_oauth2_client_id='',
   Optional[String]        $google_oauth2_client_secret='',
+  String                  $nextflow_bucket_name,
   Optional[String]        $project_root,
   Optional[String]        $public_data_bucket_name='',
   Optional[String]        $sentry_url = '',
@@ -171,6 +171,7 @@ class mevapi (
 
   contain mevapi::cloudwatch_agent
   contain mevapi::django
+  contain mevapi::nextflow
   contain mevapi::nginx
   contain mevapi::postgresql
   contain mevapi::solr

@@ -75,8 +75,8 @@ class BaseResourceConverter(object):
     def _attempt_resource_addition(self, executed_op,
                                    workspace, path, resource_type, 
                                    output_required):
-
         # the "name"  of the file as the user will see it.
+
         name = self._create_output_filename(path, executed_op.job_name)
 
         # try to create the resource in the db. This involves
@@ -86,13 +86,14 @@ class BaseResourceConverter(object):
         # will be reset.
         resource = None
         try:
-            # this self.create_resource calls a method
+            # this self._create_resource calls a method
             # defined in a derived class. Depending on whether
             # the resource is local or remote, the behavior
             # is different.
             resource = self._create_resource(executed_op,
                                              workspace, path, name)
         except (FileNotFoundError, StorageException):
+            # TODO: assert this does not change with other runners like Nextflow
             # For optional outputs, Cromwell will report output files
             # that do not actually exist. In this case, the copy will
             # fail, but it's not necessarily a problem.
@@ -132,6 +133,8 @@ class BaseResourceConverter(object):
             # if the validation fails, it will raise an Exception (or derived 
             # class of an Exception). If that's the case, we need to roll-back
             self._handle_invalid_resource_type(resource)
+            alert_admins(f'Failed to validate an output file to the expected format'
+                f' for resource {resource.pk} on job {executed_op.pk}')
             raise OutputConversionException('Failed to validate the expected'
                                             ' resource type'
                                             )
@@ -203,7 +206,7 @@ class VariableDataResourceMixin(object):
 
         Used for converting outputs.
 
-        `output_val` is a path to the file
+        `output_val` is a dict which has the `path` and `resource_type`
         `output_spec` is an instance of data_structures.output_spec.OutputSpec
         '''
 
@@ -211,8 +214,8 @@ class VariableDataResourceMixin(object):
             raise OutputConversionException('For a VariableResourceType,'
                                             ' we expect that the output is'
                                             ' an object/dict.'
-                                            ' The value received was'
-                                            f'{output_val}'
+                                            ' The value received was:'
+                                            f' {output_val}'
                                             )
 
         # in the case where the output has variable type, we need
@@ -240,6 +243,7 @@ class SingleDataResourceMixin(object):
 
     def _convert_output(
             self, executed_op, workspace, output_definition, output_val):
+
         return self._convert_resource_output(
             executed_op, workspace, output_definition, output_val)
 
@@ -247,7 +251,7 @@ class SingleDataResourceMixin(object):
 
         # `convert_single_resource` is dependent on
         # the runner, so the method is found in the
-        # mixin specific to local, cromwell, etc.
+        # mixin specific to local, nextflow, etc.
         return self._convert_resource_input(user_input, staging_dir)
 
 
@@ -263,7 +267,7 @@ class MultipleDataResourceMixin(object):
                 path_list.append(
                     # `convert_single_resource` is dependent on
                     # the runner, so the method is found in the
-                    # mixin specific to local, cromwell, etc.
+                    # mixin specific to local, nextflow, etc.
                     self._convert_resource_input(u, staging_dir)
                 )
         elif type(user_input) == str:
@@ -352,10 +356,10 @@ class LocalResourceMixin(object):
         )
 
 
-class CromwellResourceMixin(object):
+class RemoteNextflowResourceMixin(object):
     '''
     Contains behavior for DataResource conversion related to
-    the Cromwell runner.
+    the remote Nextflow runner.
     '''
 
     def _convert_resource_input(self, resource_uuid, staging_dir):
@@ -374,11 +378,11 @@ class CromwellResourceMixin(object):
         Returns an instance of api.models.Resource based on the 
         passed parameters.
 
-        Note that `path` is the path in the Cromwell bucket and 
+        Note that `path` is the path in the Nextflow bucket and 
         we have to move the file into WebMeV storage.
         '''
-        logger.info('From executed operation outputs based on a Cromwell-based'
-                    f' job, create a resource with name {name}')
+        logger.info('From executed operation outputs based on a remote Nextflow'
+                    f'-based job, create a resource with name {name}')
         try:
             r = default_storage.create_resource_from_interbucket_copy(
                 executed_op.owner,
@@ -386,9 +390,10 @@ class CromwellResourceMixin(object):
             )
             if workspace is not None:
                 r.workspaces.add(workspace)
+            r.name = name
             return r
         except Exception as ex:
-            logger.info('Caught exception when copying a Cromwell output'
+            logger.info('Caught exception when copying a Nextflow job output'
                         ' to our storage. Removing the dummy Resource'
                         ' and re-raising.')
             raise ex
@@ -612,18 +617,18 @@ class LocalDockerSpaceDelimResourceConverter(
     pass
 
 
-class CromwellSingleDataResourceConverter(
+class RemoteNextflowSingleDataResourceConverter(
     BaseResourceConverter,
-    CromwellResourceMixin,
+    RemoteNextflowResourceMixin,
     SingleDataResourceMixin,
     DataResourceMixin
 ):
     '''
-    This converter takes a DataResource instance (for a single file,
+    This converter (for inputs) takes a DataResource instance (for a single file,
     which is simply a UUID) and returns the path to 
     the file in cloud storage.
 
-    Note that if Cromwell is enabled, we do not allow local storage, 
+    Note that if remote execution is enabled, we do not allow local storage, 
     so we do not need to handle cases where we might have to push a 
     local file into cloud-based storage.
     '''
@@ -636,14 +641,26 @@ class CromwellSingleDataResourceConverter(
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
+
+        Note, however, that the `output_val` is a list due to the nature
+        of locating Nextflow-based job outputs. Hence, we pass the first
+        element
         '''
-        return self._convert_output(
-            executed_op, workspace, output_definition, output_val)
+        if type(output_val) is not list:
+            raise OutputConversionException('The RemoteNextflowSingleDataResourceConverter'
+            ' converter expects a list')
+        else:
+            if len(output_val) > 1:
+                raise OutputConversionException('The RemoteNextflowSingleDataResourceConverter'
+                    ' expects a list of length 1. The passed'
+                    f' list had length of {len(output_val)}')
+            return self._convert_output(
+                executed_op, workspace, output_definition, output_val[0])
 
 
-class CromwellSingleVariableDataResourceConverter(
+class RemoteNextflowSingleVariableDataResourceConverter(
     BaseResourceConverter,
-    CromwellResourceMixin,
+    RemoteNextflowResourceMixin,
     SingleDataResourceMixin,
     VariableDataResourceMixin
 ):
@@ -661,43 +678,51 @@ class CromwellSingleVariableDataResourceConverter(
         '''
         This converts a single output resource (a path) to a Resource instance
         and returns the pk/UUID for that newly created database resource.
+
+        Note, however, that the `output_val` is a list due to the nature
+        of locating Nextflow-based job outputs.
         '''
+        if type(output_val) is not list:
+            raise OutputConversionException(f'The {RemoteNextflowSingleVariableDataResourceConverter}'
+            ' converter expects a list')
         return self._convert_output(
-            executed_op, workspace, output_definition, output_val)
+            executed_op, workspace, output_definition, output_val[0])
 
+# TODO: Can re-implement when needed. This code was originally
+#       developed in the context of remote Cromwell runners but 
+#       also covers a relatively rare use-case
+# class RemoteNextflowMultipleDataResourceConverter(
+#         BaseResourceConverter,
+#         RemoteNextflowResourceMixin,
+#         MultipleDataResourceMixin,
+#         DataResourceMixin):
+#     '''
+#     This converter takes a DataResource instance (for >1 file) and 
+#     returns the path to the remote files as a list. Typically, this 
+#     is then used with a mixin class to format the paths as a comma-delimited
+#     list, a space-delimited list, etc.
 
-class CromwellMultipleDataResourceConverter(
-        BaseResourceConverter,
-        CromwellResourceMixin,
-        MultipleDataResourceMixin,
-        DataResourceMixin):
-    '''
-    This converter takes a DataResource instance (for >1 file) and 
-    returns the path to the remote files as a list. Typically, this 
-    is then used with a mixin class to format the paths as a comma-delimited
-    list, a space-delimited list, etc.
+#     For example, given the following DataResource:
+#     {
+#         'attribute_type': 'DataResource', 
+#         'value': [<UUID>, <UUID>, <UUID>], 
+#         'many': True, 
+#         'resource_types': ['MTX', 'I_MTX', 'EXP_MTX', 'RNASEQ_COUNT_MTX']
+#     }
 
-    For example, given the following DataResource:
-    {
-        'attribute_type': 'DataResource', 
-        'value': [<UUID>, <UUID>, <UUID>], 
-        'many': True, 
-        'resource_types': ['MTX', 'I_MTX', 'EXP_MTX', 'RNASEQ_COUNT_MTX']
-    }
+#     This converter takes the list UUIDs, finds each Resource/file and returns
+#     a list of the remote paths.
+#     '''
 
-    This converter takes the list UUIDs, finds each Resource/file and returns
-    a list of the remote paths.
-    '''
+#     def convert_input(self, user_input, op_dir, staging_dir):
+#         return self._convert_input(user_input, staging_dir)
 
-    def convert_input(self, user_input, op_dir, staging_dir):
-        return self._convert_input(user_input, staging_dir)
-
-    def convert_output(
-            self, executed_op, workspace, output_definition, output_val):
-        '''
-        This converts a an output corresponding to multiple
-        resources (paths) to Resource instances
-        and returns those pk/UUID for the newly created database resources.
-        '''
-        return self._convert_output(
-            executed_op, workspace, output_definition, output_val)
+#     def convert_output(
+#             self, executed_op, workspace, output_definition, output_val):
+#         '''
+#         This converts a an output corresponding to multiple
+#         resources (paths) to Resource instances
+#         and returns those pk/UUID for the newly created database resources.
+#         '''
+#         return self._convert_output(
+#             executed_op, workspace, output_definition, output_val)

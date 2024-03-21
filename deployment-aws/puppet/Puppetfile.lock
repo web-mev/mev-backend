@@ -47,13 +47,6 @@ FORGE
     puppetlabs-stdlib (6.6.0)
 
 PATH
-  remote: ./cromwell
-  specs:
-    qbrc-cromwell (0.1.0)
-      puppetlabs-postgresql (= 8.2.1)
-      puppetlabs-stdlib (= 6.6.0)
-
-PATH
   remote: ./mevapi
   specs:
     qbrc-mevapi (0.1.0)
@@ -68,6 +61,5 @@ PATH
       puppetlabs-stdlib (= 6.6.0)
 
 DEPENDENCIES
-  qbrc-cromwell (= 0.1.0)
   qbrc-mevapi (= 0.1.0)
 

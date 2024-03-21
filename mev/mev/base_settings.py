@@ -41,6 +41,7 @@ DATABASES = {
 }
 
 ALLOWED_HOSTS = [x for x in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if len(x) > 0]
+ALLOWED_HOSTS.append('127.0.0.1')
 
 # Necessary for use of the DRF pages and django 4.0+
 CSRF_TRUSTED_ORIGINS = ['https://' + x for x in ALLOWED_HOSTS]
@@ -268,10 +269,15 @@ if not CLOUD_PLATFORM in AVAILABLE_CLOUD_PLATFORMS:
 if get_env('ENABLE_REMOTE_JOB_RUNNERS') == 'yes':
     ENABLE_REMOTE_JOBS = True
 
-    # ensure we have the proper variables to work with Cromwell
-    CROMWELL_BUCKET_NAME = get_env('CROMWELL_BUCKET_NAME')
-    CROMWELL_SERVER_IP = get_env('CROMWELL_SERVER_IP')
-    CROMWELL_SERVER_URL = f'http://{CROMWELL_SERVER_IP}:8000'
+    # ensure we have the proper variables to work with Nextflow
+    # TODO: clean these up with respect to cloud environments- generalize.
+    NEXTFLOW_BUCKET_NAME = get_env('NEXTFLOW_BUCKET_NAME')
+    AWS_BATCH_QUEUE = get_env('AWS_BATCH_QUEUE')
+    AWS_REGION = get_env('AWS_REGION')
+
+    # TODO: make these variable:
+    NEXTFLOW_EXE = '/opt/nextflow'
+    NEXTFLOW_STATUS_UPDATE_URL = 'http://127.0.0.1:8080/api/nextflow/status-update/'
 else:
     ENABLE_REMOTE_JOBS = False
 
@@ -338,6 +344,7 @@ MAX_DOWNLOAD_SIZE_BYTES = 512 * 1000 * 1000
 if STORAGE_LOCATION == REMOTE:
     if CLOUD_PLATFORM == AMAZON:
         DEFAULT_FILE_STORAGE = 'api.storage.S3ResourceStorage'
+        # note that django storages makes use of these settings:
         AWS_S3_SIGNATURE_VERSION = 's3v4'
         AWS_S3_REGION_NAME = get_env('AWS_REGION')
     else:

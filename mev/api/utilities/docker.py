@@ -173,3 +173,99 @@ def get_runtime(container_id):
     finish_datetime = get_finish_datetime(container_id)
     dt = finish_datetime - start_datetime
     return dt
+
+
+def check_image_name_validity(full_image_name, repo_name, git_hash):
+    '''
+    This function checks the Docker image name and tag to assert
+    that it is valid for a WebMeV Operation, editing it to create
+    a final, valid name if necessary. Used when ingesting new tools
+    into WebMeV.
+
+    The motivation is that we strive to maintain workflows that are 
+    completely reproducible. Part of this includes properly tagged
+    Docker images (e.g. latest is ambiguous). Hence, we typically
+    associate the tag with something unambiguous such as the git
+    commit ID. This function modifies untagged, potentially ambiguous
+    images so that this is clear.
+
+    There are a couple situations:
+    1. an image is directly related to the repository being ingested 
+        (e.g. it is built off an Dockerfile which is part of the tool's repo).
+        In this case the image is NOT tagged with the commit hash in the file since
+        we don't have that commit hash until AFTER we make the commit. We
+        obviously cannot know the tag in advance and provide that tag
+        in the workflow file. Thus, we check that the tagged image can be found
+        (e.g. in github CR or dockerhub) and then edit the NF file to tag
+        it. IF the image does happen to have a tag, then we do NOT edit it.
+        It is possible that a new commit may try to use an image built off a 
+        previous commit. While that is not generally how we advise, it's not
+        incorrect since we have an umambiguous container image reference.
+    
+    2. An image is from external resources and hence NEEDS a tag. An example
+        might be use of a samtools Docker. It would be unnecessary to create our
+        own samtools docker. However, we need to unambiguously know which samtools
+        container we ended up using.
+    '''
+    # full_image_name is something like 
+    # ghcr.io/web-mev/pca:sha-abcde1234
+    # quay.io/biocontainers/samtools
+    # docker.io/ubuntu:bionic
+    # in the format of <registry>/<org>/<name>:<tag>
+    # or <registry>/<name>:<tag>
+    # (recall the tag does not need to exist- see below)
+    split_full_name = full_image_name.split(':')
+    if len(split_full_name) == 2: #if a tag is specified
+        image_prefix, tag = split_full_name
+        image_is_tagged = True
+        logger.info('Docker image was tagged.'
+            f'Image name was {image_prefix} with tag {tag}')
+    elif len(split_full_name) == 1: # if no tag
+        image_prefix = split_full_name[0]
+        image_is_tagged = False
+        logger.info('Docker image was NOT tagged.'
+            f'Image name was {image_prefix}.')
+    else:
+        logger.error('Could not properly handle the following docker'
+            f' image spec: {full_image_name}')
+        raise Exception('Could not make sense of the docker'
+            f' image handle: {full_image_name}')
+
+    # Look at the image string (the non-tag portion)
+    image_split = image_prefix.split('/')
+    if len(image_split) == 3:
+        # handles situations like ghcr.io/web-mev/pca
+        # or quay.io/biocontainers/samtools
+        docker_repo, username, image_name = image_split
+    elif len(image_split) == 2:
+        # handles situations like choosing docker.io/ubuntu:bionic
+        # where there is effectively no 'username'
+        docker_repo, image_name = image_split
+    else:
+        err_msg = ('Could not properly handle the following docker'
+            f' image spec: {full_image_name}.\nBe sure to include'
+            ' the registry prefix and user/org account')
+        logger.error(err_msg )
+        raise Exception(err_msg)
+
+    # if the image_name matches the repo, then we are NOT expecting 
+    # a tag (see the note above regarding the commit hash)
+    # However, a tag MAY exist, in which case we will NOT edit that.
+    if image_name == repo_name:
+        if not image_is_tagged:
+            logger.info('Image name matched the repo, but was NOT tagged')
+            tag_format = get_tag_format(docker_repo)
+            tag = tag_format.format(hash=git_hash)
+            final_image_name = full_image_name + ':' + tag
+        else:  # image WAS tagged and associated with this repo
+            final_image_name = full_image_name
+    else:
+        # the image is "external" to our repo, in which case it NEEDS a tag
+        if not image_is_tagged:
+            raise Exception(f'Since the Docker image {full_image_name}'
+                ' had a name indicating it is external to the github'
+                ' repository, we require a tag. None was found')
+        else: # was tagged AND "external"
+            final_image_name = full_image_name
+
+    return final_image_name

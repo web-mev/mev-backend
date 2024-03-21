@@ -14,6 +14,16 @@ variable "backend_domain" {
   type        = string
 }
 
+variable "batch_instance_ami" {
+  description = "The AMI of the images used for ephemeral Batch instances. Used as a base image with a launch template."
+  type        = string
+  # Amazon ECS-optimized Amazon Linux 2 x86_64 AMI
+  # Amazon Linux AMI 2.0.20240201 x86_64 ECS HVM GP2
+  # Recommended to use an ECS-optimized AMI
+  # https://www.nextflow.io/docs/latest/aws.html#create-your-custom-ami
+  default     = "ami-02202da28664660ac"
+}
+
 variable "container_registry" {
   description = "The Docker container registry you wish to use."
   type        = string

@@ -3,6 +3,16 @@
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
+  config.vm.hostname = "mev-api"
+
+  config.vm.network "forwarded_port", guest: 80, host: 8080  # Gunicorn
+  config.vm.network "forwarded_port", guest: 8000, host: 8000  # Django dev server
+  config.vm.network "forwarded_port", guest: 8983, host: 8983  # Solr
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 4096
+    vb.cpus = 2
+  end
 
   config.vm.provision "shell", inline: <<-SHELL
     # https://serverfault.com/a/670688
@@ -57,27 +67,5 @@ Vagrant.configure("2") do |config|
 
     puppet.manifests_path = "deployment-aws/puppet/manifests"
     puppet.manifest_file  = "site.pp"
-  end
-
-  config.vm.define "api", primary: true do |api|
-    api.vm.hostname = "mev-api"
-
-    api.vm.network "forwarded_port", guest: 80, host: 8080  # Gunicorn
-    api.vm.network "forwarded_port", guest: 8000, host: 8000  # Django dev server
-    api.vm.network "forwarded_port", guest: 8983, host: 8983  # Solr
-
-    api.vm.provider "virtualbox" do |vb|
-      vb.memory = 4096
-      vb.cpus = 2
-    end
-  end
-
-  config.vm.define "cromwell", autostart: false do |cromwell|
-    cromwell.vm.hostname = "mev-cromwell"
-
-    cromwell.vm.provider "virtualbox" do |vb|
-      vb.memory = 1024
-      vb.cpus = 2
-    end
   end
 end

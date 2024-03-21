@@ -50,11 +50,14 @@ class ExecutedOperation(models.Model):
     # This helps us locate the job itself, so we can track progress.
     # For local Docker-based jobs, this would be the container ID. For
     # remote Cromwell-based jobs, this would be the Cromwell UUID.
-    job_id = models.UUIDField(
+    # For nextflow-based jobs, we can't use UUIDs generally since they
+    # may not match NF's naming requirements.
+    job_id = models.CharField(
         primary_key = False, 
         default = uuid.uuid4, 
         editable = True,
-        null = True
+        null = True,
+        max_length=64
     )
 
     # The user-assigned name for the ExecutedOperation

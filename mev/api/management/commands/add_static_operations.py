@@ -1,13 +1,18 @@
 import os
+import uuid
+import shutil
 import sys
 import logging
 
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
+from django.conf import settings
 
 from api.models import Operation as OperationDbModel
 from api.uploaders import uploader_list
 from api.utilities.ingest_operation import ingest_dir
+from api.utilities.basic_utils import recursive_copy
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,4 +61,28 @@ class Command(BaseCommand):
                         ' but overwriting the operation contents.'
                     )
 
-                ingest_dir(op_dir, str(db_op.pk), git_hash, dir_name, '', overwrite=True)
+                staging_dir = os.path.join(settings.CLONE_STAGING_DIR, str(uuid.uuid4()))
+                recursive_copy(op_dir, staging_dir,
+                   include_hidden=True)
+                try:
+                    ingest_dir(staging_dir, str(db_op.pk), git_hash, dir_name, '', overwrite=True)
+                except Exception as ex:
+                    logger.info('Failed to ingest directory. See logs.'
+                                ' Exception was: {ex}'.format(ex=ex)
+                                )
+                    raise ex
+                finally:
+                    # remove the staging dir:
+                    shutil.rmtree(staging_dir)
+
+                    # inactivate older apps with the same name. This covers situations
+                    # where we push an update and the database has an existing/active
+                    # Operation.
+                    # Query for the updated app-
+                    db_op = OperationDbModel.objects.get(pk=db_op.pk)
+                    op_name = db_op.name
+                    matching_ops = OperationDbModel.objects.filter(name=op_name)
+                    for op in matching_ops:
+                        if op.pk != db_op.pk:
+                            op.active = False
+                            op.save()

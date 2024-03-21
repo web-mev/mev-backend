@@ -103,6 +103,9 @@ urlpatterns = [
     path('messages/', api.views.MessageList.as_view(), name='messages'),
     path('latest-message/', api.views.LatestMessage.as_view(), name='latest-message'),
 
+    # allows nextflow to update on job status
+    path('nextflow/status-update/', api.views.NextflowStatusView.as_view(), name='nextflow-status-update'),
+
     path('', api.views.ApiRoot.as_view(), name='api-root')
 ]
 

@@ -1,11 +1,11 @@
 ---
 mevapi::admin_email_csv: "root@localhost"
 mevapi::app_user: "vagrant"
+mevapi::aws_batch_queue: ""
 mevapi::aws_region: ""
 mevapi::backend_domain: "localhost"
 mevapi::cloudwatch_log_group: ""
-mevapi::cromwell_bucket_name: ""
-mevapi::cromwell_server_ip: ""
+mevapi::nextflow_bucket_name: ""
 mevapi::database_host: "localhost"
 mevapi::database_user: "%{mevapi::app_user}"
 mevapi::database_user_password: "pass"

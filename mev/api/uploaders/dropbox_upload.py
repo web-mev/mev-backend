@@ -143,8 +143,8 @@ class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):
         upload, which looks like an array where each element is like:
         ```
         {
-            "AWSDropboxUpload.dropbox_link": "",
-            "AWSDropboxUpload.filename": ""
+            "dropbox_link": "",
+            "filename": ""
         }
         ```
 
@@ -154,17 +154,11 @@ class DropboxAWSRemoteUpload(RemoteUpload, DropboxUploadMixin):
         are the same thing.
         '''
 
-        input_template = {
-            'AWSDropboxUpload.dropbox_link': '',
-            'AWSDropboxUpload.filename': ''
-        }
         remapped_inputs = []
         for item in data:
-            d = input_template.copy()
-            link = item['download_link']
-            name = item['filename']
-            d['AWSDropboxUpload.dropbox_link'] = link
-            d['AWSDropboxUpload.filename'] = name
+            d = {}
+            d['dropbox_link'] = item['download_link']
+            d['filename'] = item['filename']
             d = self.validate(user, d)
             remapped_inputs.append(d)
         return remapped_inputs
