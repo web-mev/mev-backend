@@ -74,3 +74,15 @@ class Command(BaseCommand):
                 finally:
                     # remove the staging dir:
                     shutil.rmtree(staging_dir)
+
+                    # inactivate older apps with the same name. This covers situations
+                    # where we push an update and the database has an existing/active
+                    # Operation.
+                    # Query for the updated app-
+                    db_op = OperationDbModel.objects.get(pk=db_op.pk)
+                    op_name = db_op.name
+                    matching_ops = OperationDbModel.objects.filter(name=op_name)
+                    for op in matching_ops:
+                        if op.pk != db_op.pk:
+                            op.active = False
+                            op.save()
