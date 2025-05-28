@@ -1,3 +1,5 @@
+# Note that due to Federal grant withdrawals related to Harvard University, this project is no longer maintained
+
 # WebMEV RESTful API
 
 A Django Rest Framework backend for the MEV web application.  See documentation at https://web-mev.github.io/mev-backend/
